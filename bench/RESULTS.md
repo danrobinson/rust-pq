@@ -1,15 +1,49 @@
 # SLH-DSA-SHA2-128s performance: the verified crate against other implementations
 
-This file reports two benchmark runs of the same suite:
+This file reports three benchmark runs of the same suite:
 
+- **Run 3 (`results/run3/`, 2026-11-21 06:45–07:07)** adds the verified crate built with its opt-in `hw-sha2`
+  feature (ARMv8 SHA-256 instructions in the compression function; that module is not covered by the proofs).
 - **Run 2 (current; `results/run2/`, 2026-11-21 00:18–01:16)** measures the *optimised* verified crate now in
   `../rust`, which has the seed midstate and no heap on the hot paths and has been re-proved in Lean (see
   `../opt/README.md`). The pre-optimisation crate is measured next to it as `verified-before`.
 - **Run 1 (pre-optimisation; `results/run1/`, 2026-11-20 23:11–00:13)** is kept unchanged further down. In run 1,
   `verified` *means the crate now frozen at `../opt/original/rust`*, which run 2 calls `verified-before`.
 
-Reproduce with `./run.sh` (all four build configurations, two rounds, about 35 minutes). To add rounds to an
+Reproduce with `./run.sh` (all five build configurations, two rounds, about 40 minutes). To add rounds to an
 existing results directory, use `STAMP=<dir> ROUND_START=3 [CONFIGS="default soft"] ./run.sh`.
+
+# Run 3: the opt-in `hw-sha2` backend
+
+`../rust` now has a Cargo feature `hw-sha2`, off by default. Run 3 measures the crate with it on, as
+`verified+hw-sha2`, in a new build configuration `hw` (`cargo bench --features hw`; default release profile).
+It is a separate configuration because Cargo unifies features: one build cannot contain `../rust` both with and
+without the feature. The hardware-SHA-2 libraries and portable C were run in the same configuration, back to
+back with it; the `default` configuration was run again in the same session for the portable build.
+Two rounds each (`CONFIGS="default hw"`), load average 1.3–2.3 on 36 cores. Nothing else changed from run 2.
+
+| | keygen | sign 32 B | verify 32 B | sign, against `verified+hw-sha2` |
+|---|---|---|---|---|
+| `verified` (portable, config `default`) | 43.0 ms | 324.5 ms | 335.8 µs | 3.88× slower |
+| **`verified+hw-sha2`** (config `hw`) | 11.54 ms | 83.65 ms | 85.34 µs | – |
+| rustcrypto-slh-dsa (config `hw`) | 8.28 ms | 62.49 ms | 63.83 µs | 1.34× faster |
+| openssl (config `hw`) | 7.32 ms | 55.80 ms | 58.54 µs | 1.50× faster |
+| slhdsa-c, portable C (config `hw`) | 28.75 ms | 219.0 ms | 225.8 µs | 2.62× slower |
+
+- The feature makes the crate 3.73× (keygen), 3.88× (sign) and 3.93× (verify) faster than its portable build.
+- RustCrypto is still 1.34–1.39× faster and OpenSSL 1.46–1.58×. All three now spend their time in the same
+  hardware compression function, so what is left is per-call overhead around it.
+- `verified+hw-sha2` is within 2% of the unverified prototype `variant-D` from run 2 (82.2 ms sign in this run's
+  `default` configuration), as expected: the feature is that prototype moved into the real crate, with runtime
+  CPU detection added.
+- Per-round spread of `verified+hw-sha2` is ±0.1–1.7%.
+- Interoperability with the feature on is clean on all five checks against `verified-before`, rustcrypto-slh-dsa,
+  fips205, OpenSSL and slhdsa-c (`results/run3/interop-hw.md`), and `cargo test --release --features hw-sha2`
+  passes in `../rust` (ACVP vectors and `tests/compress.rs`).
+- Compression counts are unchanged (2,218,488 per signature): the feature changes how a block is compressed,
+  not how many.
+
+Full tables: `results/run3/summary.md`.
 
 # Run 2: after the optimisation
 

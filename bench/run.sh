@@ -11,6 +11,8 @@
 #        soft    : sha2 forced to its portable backend (affects rustcrypto-slh-dsa, fips205)
 #        tuned   : lto=fat, codegen-units=1, -C target-cpu=native (Rust implementations)
 #        asm     : default profile, sha2 0.10 with its `asm` feature (ARMv8 SHA-2), for fips205
+#        hw      : default profile, the verified crate with its opt-in `hw-sha2` feature
+#                  (entry `verified+hw-sha2`), next to the hardware-SHA-2 libraries
 #      plus the SHA-256 micro-benchmark in default and soft builds.
 #   5. results/<stamp>/summary.md (scripts: summarize.py)
 #
@@ -22,7 +24,7 @@ cd "$(dirname "$0")"
 export PATH="$HOME/.cargo/bin:$PATH"
 ROUNDS="${ROUNDS:-2}"
 ROUND_START="${ROUND_START:-1}"   # to add rounds to an existing results dir: STAMP=<dir> ROUND_START=3 ./run.sh
-CONFIGS="${CONFIGS:-default soft tuned asm}"     # subset of: default soft tuned asm
+CONFIGS="${CONFIGS:-default soft tuned asm hw}"     # subset of: default soft tuned asm hw
 STAMP="${STAMP:-$(date +%Y%m%d-%H%M%S)}"
 OUT="results/$STAMP"
 mkdir -p "$OUT"
@@ -55,6 +57,8 @@ cargo test --release -q -p slhdsa_base -p slhdsa_current -p slhdsa_a -p slhdsa_b
 
 echo "== interoperability"
 cargo run --release -q --bin interop 2>/dev/null | tee "$OUT/interop.md"
+echo "== interoperability, verified crate built with hw-sha2"
+CARGO_TARGET_DIR=target/hw cargo run --release -q --features hw --bin interop 2>/dev/null | tee "$OUT/interop-hw.md"
 
 echo "== compression counts"
 cargo run --release -q -p count 2>/dev/null | tee "$OUT/compressions.md"
@@ -73,6 +77,8 @@ run_sig() { # config round
             BENCH_ONLY=rustcrypto-slh-dsa,fips205,variant-A,variant-B,variant-C,variant-D cargo bench -q --bench sig ;;
     asm) CARGO_TARGET_DIR=target/asm CRITERION_HOME="$home" BENCH_REVERSE=$rev BENCH_ONLY=fips205 \
             cargo bench -q --features asm010 --bench sig ;;
+    hw) CARGO_TARGET_DIR=target/hw CRITERION_HOME="$home" BENCH_REVERSE=$rev \
+            BENCH_ONLY=verified+hw-sha2,rustcrypto-slh-dsa,openssl,slhdsa-c cargo bench -q --features hw --bench sig ;;
   esac > "$home.log" 2>&1
 }
 run_sha() { # config round
@@ -91,12 +97,13 @@ CARGO_TARGET_DIR=target/soft RUSTFLAGS='--cfg sha2_backend="soft"' cargo bench -
 CARGO_TARGET_DIR=target/tuned RUSTFLAGS='-C target-cpu=native' CARGO_PROFILE_BENCH_LTO=fat CARGO_PROFILE_BENCH_CODEGEN_UNITS=1 \
   cargo bench -q --no-run 2>/dev/null
 CARGO_TARGET_DIR=target/asm cargo bench -q --features asm010 --no-run 2>/dev/null
+CARGO_TARGET_DIR=target/hw cargo bench -q --features hw --no-run 2>/dev/null
 
 for r in $(seq "$ROUND_START" $((ROUND_START + ROUNDS - 1))); do
   cfgs="$CONFIGS"
   if [ $((r % 2)) -eq 0 ]; then cfgs=$(echo $CONFIGS | tr ' ' '\n' | tail -r | tr '\n' ' '); fi
   for cfg in $cfgs; do run_sig "$cfg" "$r"; done
-  for cfg in $CONFIGS; do [ "$cfg" = tuned ] || run_sha "$cfg" "$r"; done
+  for cfg in $CONFIGS; do [ "$cfg" = tuned ] || [ "$cfg" = hw ] || run_sha "$cfg" "$r"; done
 done
 echo "load at end: $(uptime)" >> "$OUT/env.txt"
 

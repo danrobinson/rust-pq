@@ -7,6 +7,8 @@ publish = false
 
 [features]
 count = []
+# Declared only so that the copied sources compile without cfg warnings; never enabled here.
+hw-sha2 = []
 
 [dev-dependencies]
 serde_json = "1"

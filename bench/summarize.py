@@ -50,7 +50,7 @@ def fmt(ns):
     return f"{ns:.1f} ns"
 
 
-ORDER = ["verified", "verified-before", "variant-A", "variant-B", "variant-C", "variant-D", "rustcrypto-slh-dsa", "fips205", "openssl", "slhdsa-c", "pqclean-r3"]
+ORDER = ["verified", "verified+hw-sha2", "verified-before", "variant-A", "variant-B", "variant-C", "variant-D", "rustcrypto-slh-dsa", "fips205", "openssl", "slhdsa-c", "pqclean-r3"]
 GROUPS = ["keygen", "sign_32B", "sign_1MiB", "verify_32B", "verify_1MiB"]
 
 
@@ -83,9 +83,11 @@ n_rounds = max(len(r) for c in sig.values() for g in c.values() for r in g.value
 print("## Signature operations")
 print(f"\nMedian time per operation over all samples of all {n_rounds} rounds; **bold** = speed-up over the verified crate")
 print("in the same build configuration (>1 = faster than verified); ±x% = half the range of the per-round medians.")
-for cfg in ["default", "soft", "tuned", "asm"]:
+for cfg in ["default", "soft", "tuned", "asm", "hw"]:
     if cfg in sig:
-        table(sig, cfg, [g for g in GROUPS if any(g in sig[c] for c in sig)], ORDER)
+        # In `hw` the verified crate is built with its hw-sha2 feature and is the anchor there.
+        table(sig, cfg, [g for g in GROUPS if any(g in sig[c] for c in sig)], ORDER,
+              anchor="verified+hw-sha2" if cfg == "hw" else "verified")
 
 # verified crate, tuned vs default
 if "default" in sig and "tuned" in sig:

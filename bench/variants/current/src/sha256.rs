@@ -49,9 +49,18 @@ fn schedule(data: &[u8], off: usize) -> [u32; 64] {
 }
 
 /// The SHA-256 compression function on the block at `data[off..off + 64]`.
+///
+/// With the opt-in `hw-sha2` feature, on a CPU that has the ARMv8 SHA-256
+/// instructions, the result comes from [`hw`] instead of the code below.
 pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> [u32; 8] {
     #[cfg(feature = "count")]
     COMPRESSIONS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+    #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
+    {
+        if let Some(out) = hw::compress(state, data, off) {
+            return out;
+        }
+    }
     let w = schedule(data, off);
     let mut a = state[0];
     let mut b = state[1];
@@ -160,4 +169,110 @@ pub fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
     let ih = sha256(&inner);
     outer.extend_from_slice(&ih);
     sha256(&outer)
+}
+
+/// Whether [`compress`] is running on hardware SHA-256 instructions.
+///
+/// Exists only with the `hw-sha2` feature. `false` means the feature is on
+/// but this CPU (or this architecture) has no backend, so the portable code
+/// is in use.
+#[cfg(feature = "hw-sha2")]
+pub fn hw_active() -> bool {
+    #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+    {
+        hw::available()
+    }
+    #[cfg(not(all(target_arch = "aarch64", target_endian = "little")))]
+    {
+        false
+    }
+}
+
+/// The compression function on the ARMv8 SHA-256 instructions.
+///
+/// Compiled only with the opt-in `hw-sha2` feature. This module is the only
+/// `unsafe` code in the crate and is **not covered by the Lean proofs**:
+/// Aeneas translates the default build, in which this module does not exist.
+/// Everything outside the compression function is the same code either way,
+/// so a build with the feature computes what the verified build computes
+/// provided that
+///
+/// > for every `state` and every 64-byte `block`,
+/// > `hw::compress_block(state, block)` equals the portable `compress`.
+///
+/// That statement is tested (`tests/compress.rs` and the ACVP vectors, run
+/// with the feature on) but not proved.
+#[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
+#[allow(unsafe_code)]
+mod hw {
+    use core::arch::aarch64::*;
+
+    /// Whether this CPU has the instructions. A compile-time `true` where the
+    /// target guarantees them (as `aarch64-apple-darwin` does); otherwise
+    /// `std` asks the operating system once and caches the answer.
+    #[inline]
+    pub fn available() -> bool {
+        std::arch::is_aarch64_feature_detected!("neon") && std::arch::is_aarch64_feature_detected!("sha2")
+    }
+
+    /// The compression function on the block at `data[off..off + 64]`, or
+    /// `None` if this CPU lacks the instructions.
+    #[inline]
+    pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> Option<[u32; 8]> {
+        if !available() {
+            return None;
+        }
+        // The same bounds check, so the same panic, as the portable code.
+        let block: &[u8; 64] = data[off..off + 64].try_into().unwrap();
+        // SAFETY: `neon` and `sha2` were detected just above.
+        Some(unsafe { compress_block(state, block) })
+    }
+
+    /// Sixteen steps of four rounds each. `abcd` and `efgh` hold the working
+    /// variables, `m` the four most recent schedule vectors.
+    ///
+    /// # Safety
+    /// The CPU must support the `neon` and `sha2` target features.
+    #[target_feature(enable = "neon,sha2")]
+    unsafe fn compress_block(state: &[u32; 8], block: &[u8; 64]) -> [u32; 8] {
+        // SAFETY, for every load and store below: each touches 16 bytes that
+        // lie inside a fixed-size array borrowed for the whole call (`state`
+        // and `out` are 32 bytes, `block` is 64, `K` is 256), and NEON loads
+        // and stores have no alignment requirement.
+        unsafe {
+            let abcd0 = vld1q_u32(state.as_ptr());
+            let efgh0 = vld1q_u32(state.as_ptr().add(4));
+            let mut abcd = abcd0;
+            let mut efgh = efgh0;
+            // Big-endian words from little-endian memory: reverse each 4 bytes.
+            let p = block.as_ptr();
+            let mut m = [
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(16)))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(32)))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(48)))),
+            ];
+            let mut i = 0;
+            while i < 16 {
+                // Rounds 4i .. 4i+3, on W[4i..4i+4] + K[4i..4i+4].
+                let t = vaddq_u32(m[i % 4], vld1q_u32(super::K.as_ptr().add(4 * i)));
+                let prev = abcd;
+                abcd = vsha256hq_u32(abcd, efgh, t);
+                efgh = vsha256h2q_u32(efgh, prev, t);
+                // W[4i+16..4i+20], needed from step i + 4 on.
+                if i < 12 {
+                    m[i % 4] = vsha256su1q_u32(
+                        vsha256su0q_u32(m[i % 4], m[(i + 1) % 4]),
+                        m[(i + 2) % 4],
+                        m[(i + 3) % 4],
+                    );
+                }
+                i += 1;
+            }
+            let mut out = [0u32; 8];
+            vst1q_u32(out.as_mut_ptr(), vaddq_u32(abcd, abcd0));
+            vst1q_u32(out.as_mut_ptr().add(4), vaddq_u32(efgh, efgh0));
+            out
+        }
+    }
 }

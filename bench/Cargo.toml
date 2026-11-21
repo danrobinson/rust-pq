@@ -13,6 +13,11 @@ soft = ["sha2_010/force-soft"]
 # Opt in to sha2 0.10's ARMv8 backend, which it only uses with its `asm` feature
 # (without it, fips205 as shipped hashes with portable code on aarch64).
 asm010 = ["sha2_010/asm"]
+# The verified crate with its opt-in `hw-sha2` feature (ARMv8 SHA-256 instructions in the
+# compression function; that module is not covered by the proofs). The entry is then
+# named `verified+hw-sha2`. A separate configuration because Cargo unifies features:
+# one build cannot contain ../rust both with and without it.
+hw = ["slhdsa/hw-sha2"]
 
 [dependencies]
 slhdsa = { path = "../rust" }

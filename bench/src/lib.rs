@@ -69,8 +69,10 @@ macro_rules! slhdsa_like {
     };
 }
 
+/// The verified crate, ../rust. With this crate's `hw` feature it is built with its
+/// opt-in `hw-sha2` backend and named accordingly.
 pub fn verified() -> Impl {
-    slhdsa_like!("verified", slhdsa)
+    slhdsa_like!(if cfg!(feature = "hw") { "verified+hw-sha2" } else { "verified" }, slhdsa)
 }
 /// The pre-optimisation verified crate (copy in variants/base, see Cargo.toml).
 pub fn verified_before() -> Impl {

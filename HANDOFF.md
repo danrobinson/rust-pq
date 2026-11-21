@@ -1,8 +1,10 @@
 # Handoff — state at 2026-11-21
 
 Both composed theorems are finished: neither has a hypothesis left that is not about the forger.
-**Nothing is committed** (the repo is `git init` only). For what the project proves overall, read
-`README.md`; this file covers the two composed theorems, the Rust optimisation and the benchmark.
+The repository is under git from 2026-11-21 (first commit `d2a5a9b` is the whole project as it
+stood then; nothing is pushed anywhere). For what the project proves overall, read `README.md`;
+this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend
+and the benchmark.
 
 This file replaces the handoff of 2026-11-20, which described both theorems as unfinished.
 `quantum/HANDOFF.md` and `security/Ideal/HANDOFF.md` are that older state and are kept for the
@@ -152,12 +154,38 @@ Two technical points worth knowing before touching these proofs:
   both ways and byte-identical deterministic signatures against RustCrypto, `fips205`, OpenSSL
   and slhdsa-c. Not built: liboqs, BoringSSL (need CMake), AWS-LC (no SLH-DSA in the crate).
 
+## Opt-in hardware SHA-2 (`hw-sha2`)
+
+- Cargo feature `hw-sha2` in `rust/`, off by default. With it, `sha256::compress` returns early
+  through `sha256::hw` (ARMv8 SHA-256 intrinsics) when the CPU has the instructions; otherwise
+  the portable code below it runs. AArch64 little-endian only; on other targets the feature
+  compiles to nothing. `#![forbid(unsafe_code)]` still holds for the default build; with the
+  feature it becomes `deny`, with one `allow` on the `hw` module (about 70 lines with comments;
+  the `unsafe` function `compress_block` is 40).
+- **Not covered by the proofs.** Aeneas translates the default build. With the feature off the
+  cfg'd lines are stripped before extraction: re-extraction changed only 16 `Source: … lines`
+  comments in `lean/Slhdsa/Funs.lean` (the functions after `compress` moved down), and `lean/`,
+  `security/` and `quantum/scripts/check-integration.sh` were re-run green against that file.
+  The build with the feature equals the verified one provided `hw::compress_block` equals the
+  portable `compress` on every state and block. That is tested, not proved.
+- Tests (`rust/tests/compress.rs`, run with and without the feature; `scripts/check.sh` runs
+  both): the compression function against the `sha2` crate's on 200,000 random and 5,140
+  edge-case inputs, the same panic past the end of the buffer, and that the backend is really in
+  use. ACVP vectors pass both ways. Also run once with `RUSTFLAGS='-C target-feature=-sha2'`,
+  which forces the runtime-detection path that non-Apple AArch64 targets take.
+- Benchmark (`bench/results/run3`, config `hw`, 2 rounds): keygen 11.5 ms, sign 83.7 ms, verify
+  85.3 µs, which is 3.7–3.9× faster than the portable build in the same run. RustCrypto is
+  1.34–1.39× faster still and OpenSSL 1.46–1.58×; portable C (slhdsa-c) is 2.6× slower.
+  Interoperability with the feature on is clean (`results/run3/interop-hw.md`).
+- Not tested: a CPU without the instructions with the feature on (the fall-through to the
+  portable code; no such machine here), and any real non-Apple AArch64 machine.
+
 ## Not done
 
-- **Opt-in ARM SHA-2 backend.** An unverified prototype on top of the current structure
-  (`bench/variants`, "variant D") measured 3.8× (sign 85.8 ms), still 1.37× behind RustCrypto.
-  It needs `unsafe`, so the compression function would become one explicit assumption in that
-  build. Awaiting a decision; nothing started in `rust/`.
+- **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
+- **A formal statement for the `hw-sha2` build.** The assumption above is written in prose and
+  tested. It could be stated in Lean, and the build with the feature proved correct from a model
+  of the four SHA-256 instructions; nothing of that exists.
 - **Ideal-model theorem for the context-string interface** (first ideal caveat above).
 - **`rust/ct-evidence`** was not re-run against the optimised crate. **`multi/`** (six parameter
   sets) still has the old hashing code.
@@ -177,5 +205,6 @@ cd quantum  && PATH=$HOME/.elan/bin:$PATH scripts/check-integration.sh
 cd security && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean     && PATH=$HOME/.elan/bin:$PATH lake build
 cd rust     && cargo test --release
+cd rust     && cargo test --release --features hw-sha2
 cd bench    && ./run.sh
 ```

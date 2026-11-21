@@ -183,7 +183,7 @@ def address.Adrs.compress
       ])
 
 /-- [slhdsa::sha256::digest]: loop body 0:
-    Source: 'src/sha256.rs', lines 114:4-121:5
+    Source: 'src/sha256.rs', lines 123:4-130:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.digest_loop.body
@@ -215,7 +215,7 @@ def sha256.digest_loop.body
   else ok (done out)
 
 /-- [slhdsa::sha256::digest]: loop 0:
-    Source: 'src/sha256.rs', lines 114:4-121:5
+    Source: 'src/sha256.rs', lines 123:4-130:5
     Visibility: public -/
 @[rust_loop]
 def sha256.digest_loop
@@ -228,7 +228,7 @@ def sha256.digest_loop
     (out, i)
 
 /-- [slhdsa::sha256::digest]:
-    Source: 'src/sha256.rs', lines 111:0-123:1
+    Source: 'src/sha256.rs', lines 120:0-132:1
     Visibility: public -/
 def sha256.digest
   (state : Array Std.U32 8#usize) : Result (Array Std.U8 32#usize) := do
@@ -369,7 +369,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::compress]: loop body 0:
-    Source: 'src/sha256.rs', lines 59:4-75:5
+    Source: 'src/sha256.rs', lines 68:4-84:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.compress_loop.body
@@ -415,7 +415,7 @@ def sha256.compress_loop.body
   else ok (done (a, b, c, d, e, f, g, h))
 
 /-- [slhdsa::sha256::compress]: loop 0:
-    Source: 'src/sha256.rs', lines 59:4-75:5
+    Source: 'src/sha256.rs', lines 68:4-84:5
     Visibility: public -/
 @[rust_loop]
 def sha256.compress_loop
@@ -431,7 +431,7 @@ def sha256.compress_loop
     (a, b, c, d, e, f, g, h, i)
 
 /-- [slhdsa::sha256::compress]:
-    Source: 'src/sha256.rs', lines 48:0-86:1
+    Source: 'src/sha256.rs', lines 51:0-95:1
     Visibility: public -/
 def sha256.compress
   (state : Array Std.U32 8#usize) (data : Slice Std.U8) (off : Std.Usize) :
@@ -842,7 +842,7 @@ def xmss.climb
   xmss.climb_loop auth first height seed adrs node idx 0#u32
 
 /-- [slhdsa::sha256::pad]: loop body 0:
-    Source: 'src/sha256.rs', lines 95:4-97:5 -/
+    Source: 'src/sha256.rs', lines 104:4-106:5 -/
 @[rust_loop_body]
 def sha256.pad_loop.body
   (p : alloc.vec.Vec Std.U8) :
@@ -856,7 +856,7 @@ def sha256.pad_loop.body
   else ok (done p)
 
 /-- [slhdsa::sha256::pad]: loop 0:
-    Source: 'src/sha256.rs', lines 95:4-97:5 -/
+    Source: 'src/sha256.rs', lines 104:4-106:5 -/
 @[rust_loop]
 def sha256.pad_loop
   (p : alloc.vec.Vec Std.U8) : Result (alloc.vec.Vec Std.U8) := do
@@ -865,7 +865,7 @@ def sha256.pad_loop
     p
 
 /-- [slhdsa::sha256::pad]:
-    Source: 'src/sha256.rs', lines 91:0-108:1 -/
+    Source: 'src/sha256.rs', lines 100:0-117:1 -/
 def sha256.pad
   (msg : Slice Std.U8) (pre : Std.Usize) : Result (alloc.vec.Vec Std.U8) := do
   let p ←
@@ -902,7 +902,7 @@ def sha256.pad
   alloc.vec.Vec.push p9 i17
 
 /-- [slhdsa::sha256::sha256_from]: loop body 0:
-    Source: 'src/sha256.rs', lines 131:4-134:5
+    Source: 'src/sha256.rs', lines 140:4-143:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.sha256_from_loop.body
@@ -920,7 +920,7 @@ def sha256.sha256_from_loop.body
   else ok (done st)
 
 /-- [slhdsa::sha256::sha256_from]: loop 0:
-    Source: 'src/sha256.rs', lines 131:4-134:5
+    Source: 'src/sha256.rs', lines 140:4-143:5
     Visibility: public -/
 @[rust_loop]
 def sha256.sha256_from_loop
@@ -932,7 +932,7 @@ def sha256.sha256_from_loop
     (st, off)
 
 /-- [slhdsa::sha256::sha256_from]:
-    Source: 'src/sha256.rs', lines 127:0-136:1
+    Source: 'src/sha256.rs', lines 136:0-145:1
     Visibility: public -/
 def sha256.sha256_from
   (state : Array Std.U32 8#usize) (pre : Std.Usize) (msg : Slice Std.U8) :
@@ -1082,13 +1082,13 @@ def hash.seed_ctx (pk_seed : Array Std.U8 16#usize) : Result hash.Seed := do
   ok { pk_seed, state }
 
 /-- [slhdsa::sha256::sha256]:
-    Source: 'src/sha256.rs', lines 138:0-140:1
+    Source: 'src/sha256.rs', lines 147:0-149:1
     Visibility: public -/
 def sha256.sha256 (msg : Slice Std.U8) : Result (Array Std.U8 32#usize) := do
   sha256.sha256_from sha256.H0 0#usize msg
 
 /-- [slhdsa::sha256::hmac_sha256]: loop body 0:
-    Source: 'src/sha256.rs', lines 147:4-152:5
+    Source: 'src/sha256.rs', lines 156:4-161:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.hmac_sha256_loop.body
@@ -1112,7 +1112,7 @@ def sha256.hmac_sha256_loop.body
   else ok (done (inner, outer))
 
 /-- [slhdsa::sha256::hmac_sha256]: loop 0:
-    Source: 'src/sha256.rs', lines 147:4-152:5
+    Source: 'src/sha256.rs', lines 156:4-161:5
     Visibility: public -/
 @[rust_loop]
 def sha256.hmac_sha256_loop
@@ -1126,7 +1126,7 @@ def sha256.hmac_sha256_loop
     (inner, outer, i)
 
 /-- [slhdsa::sha256::hmac_sha256]:
-    Source: 'src/sha256.rs', lines 143:0-157:1
+    Source: 'src/sha256.rs', lines 152:0-166:1
     Visibility: public -/
 def sha256.hmac_sha256
   (key : Slice Std.U8) (msg : Slice Std.U8) :

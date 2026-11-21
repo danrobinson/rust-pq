@@ -4,6 +4,8 @@ set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 (cd rust && cargo test --release)
+# The opt-in hardware backend (not covered by the proofs): same tests against it.
+(cd rust && cargo test --release --features hw-sha2)
 ./scripts/extract.sh
 (cd lean && lake build && lake build spectest)
 (cd security && lake build)
