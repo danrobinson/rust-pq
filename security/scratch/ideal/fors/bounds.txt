@@ -1,0 +1,100 @@
+/-! ## The bounds of the ideal-model adversaries -/
+
+section Bounds
+
+variable (S : ForgerI) (oR : Bytes 16 → Bytes 16 → ProbComp (Bytes 16))
+  (pkSeedDist : ProbComp (Bytes 16))
+
+theorem choose_noH {X : Type} (oa : OracleComp (ForsP1Spec P₀) X) :
+    IsQueryBoundP (simulateQ embImpl oa : OracleComp (FFors128 pkSeedDist).fvAdvS X)
+      (fun i => (FFors128 pkSeedDist).fvIsH i = true) 0 :=
+  emb_noH _ (fun t => by rcases t with n | t <;> simp [embIdx, THFam.fvIsH]) oa
+
+theorem choose_chal :
+    IsQueryBoundP (simulateQ embImpl (forsPhase1 Link.vp P₀) :
+        OracleComp (FFors128 pkSeedDist).fvAdvS (ForsP1State Link.vp P₀))
+      (fun i => (FFors128 pkSeedDist).fvIsChal i = true) (openPreTargets Link.vp) :=
+  emb_bound _ _ _ (IsQueryBoundP.of_imp (fun t ht => by
+    rcases t with n | (x | q)
+    · simp [embIdx, THFam.fvIsChal] at ht
+    · rfl
+    · simp [embIdx, THFam.fvIsChal] at ht) forsPhase1_chal)
+
+theorem dsprAdvI_choose : (dsprAdvI S oR pkSeedDist).ChooseBound 0 :=
+  choose_noH pkSeedDist _
+
+theorem dsprAdvI_chal : (dsprAdvI S oR pkSeedDist).ChalBound (openPreTargets Link.vp) :=
+  choose_chal pkSeedDist
+
+theorem tcrAdvI_choose : (tcrAdvI S oR pkSeedDist).ChooseBound 0 :=
+  choose_noH pkSeedDist _
+
+theorem tcrAdvI_chal : (tcrAdvI S oR pkSeedDist).ChalBound (openPreTargets Link.vp) :=
+  choose_chal pkSeedDist
+
+variable {qf qs ℓ : ℕ}
+  (hqf : ∀ pk, IsQueryBoundP (S.main pk) (fun i => isPortQ (S := List Byte) i = true) qf)
+  (hqs : ∀ pk, IsQueryBoundP (S.main pk) (fun i => isSignQ (S := List Byte) i = true) qs)
+  (hlong : ∀ pk, IsQueryBoundP (S.main pk) (fun i => isLongQ (S := List Byte) ℓ i = true) 0)
+  (hout : ∀ pk, ∀ z ∈ support (S.main pk), z.1.length ≤ ℓ)
+
+include hqf hqs hlong hout
+
+theorem dsprAdvI_guess : (dsprAdvI S oR pkSeedDist).GuessBound (q2Fors qf qs ℓ) :=
+  fun st pk => phase2C_bound _ _ _ qf qs ℓ (mainP_port S hqf) (mainP_sign S hqs)
+    (mainP_long S hlong) (mainP_out S hout) _ _ _ pk
+
+theorem tcrAdvI_forge : (tcrAdvI S oR pkSeedDist).ForgeBound (q2Fors qf qs ℓ) :=
+  fun st pk => phase2C_bound _ _ _ qf qs ℓ (mainP_port S hqf) (mainP_sign S hqs)
+    (mainP_long S hlong) (mainP_out S hout) _ _ _ pk
+
+/-! ## The realisers -/
+
+/-- **The FORS-leaf SM-DSPR realiser, SUF forger.** -/
+noncomputable def realizesDspr_S :
+    RealizesDspr pkSeedDist
+      (fun g => Reduction.toDspr (Reduction.Lazy.bOpenPreS (S.typedS (optRandU oR) pkSeedDist g)))
+      (pFors qf qs ℓ) where
+  A := dsprAdvI S oR pkSeedDist
+  success g := by rw [dspr_eq_S]
+  sp g := by rw [dspr_eq_S]
+  hq₁ := dsprAdvI_choose S oR pkSeedDist
+  hch := dsprAdvI_chal S oR pkSeedDist
+  hq₂ := dsprAdvI_guess S oR pkSeedDist hqf hqs hlong hout
+
+/-- **The FORS-leaf SM-DSPR realiser, EUF forger.** -/
+noncomputable def realizesDspr_E :
+    RealizesDspr pkSeedDist
+      (fun g => Reduction.toDspr (Reduction.Lazy.bOpenPreS (S.typedE (optRandU oR) pkSeedDist g)))
+      (pFors qf qs ℓ) where
+  A := dsprAdvI S oR pkSeedDist
+  success g := by rw [dspr_eq_E]
+  sp g := by rw [dspr_eq_E]
+  hq₁ := dsprAdvI_choose S oR pkSeedDist
+  hch := dsprAdvI_chal S oR pkSeedDist
+  hq₂ := dsprAdvI_guess S oR pkSeedDist hqf hqs hlong hout
+
+/-- **The FORS-leaf SM-TCR realiser, SUF forger.** -/
+noncomputable def realizesForsTcr_S :
+    RealizesForsTcr pkSeedDist
+      (fun g => Reduction.toTcr (Reduction.Lazy.bOpenPreS (S.typedS (optRandU oR) pkSeedDist g)))
+      (pFors qf qs ℓ) where
+  A := tcrAdvI S oR pkSeedDist
+  eq g := by rw [tcr_eq_S]
+  hq₁ := tcrAdvI_choose S oR pkSeedDist
+  hch := tcrAdvI_chal S oR pkSeedDist
+  hq₂ := tcrAdvI_forge S oR pkSeedDist hqf hqs hlong hout
+
+/-- **The FORS-leaf SM-TCR realiser, EUF forger.** -/
+noncomputable def realizesForsTcr_E :
+    RealizesForsTcr pkSeedDist
+      (fun g => Reduction.toTcr (Reduction.Lazy.bOpenPreS (S.typedE (optRandU oR) pkSeedDist g)))
+      (pFors qf qs ℓ) where
+  A := tcrAdvI S oR pkSeedDist
+  eq g := by rw [tcr_eq_E]
+  hq₁ := tcrAdvI_choose S oR pkSeedDist
+  hch := tcrAdvI_chal S oR pkSeedDist
+  hq₂ := tcrAdvI_forge S oR pkSeedDist hqf hqs hlong hout
+
+end Bounds
+

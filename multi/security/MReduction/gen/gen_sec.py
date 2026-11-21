@@ -1,0 +1,16 @@
+import re
+s=open('/Users/danrobinson/Projects/formal-sig/security/Link/Security.lean').read()
+s=s.replace('import Link.Basic','import MLink.Basic')
+s=s.replace('(vp := vp)','§VP')
+s=re.sub(r'(?<![.\w])vp\b','S.vp',s).replace('§VP','(vp := S.vp)')
+s=re.sub(r'(?<![.\w])prims\b','S.prims',s)
+s=re.sub(r'(?<![.\w`])Node\b','S.Node',s)
+s=s.replace('S128','S.fips')
+s=s.replace('security_128s_euf','security_sha2_euf').replace('security_128s','security_sha2').replace('romScheme_map_romAnswer_128s','romScheme_map_romAnswer_sha2')
+s=s.replace('256 ^ 16','256 ^ S.vp.params.n')
+# insert S at uses (not declarations)
+for nm in ['hprf_dom','dom_of_secretChild','secHom_query','secHom','secImpl','keygenWithSecret_congr','signWithSecret_congr','romScheme_verify_eq','security_sha2','SecSpec']:
+    s=re.sub(r'(?<!theorem )(?<!def )(?<!abbrev )(?<!axioms )(?<![\w`.])'+nm+r'\b(?![\w`])', '('+nm+' S)' if nm=='SecSpec' else nm+' S', s)
+s=s.replace('namespace Link\n','namespace MLink\n').replace('end Link','end MLink')
+s=s.replace('open scoped ENNReal\n','open scoped ENNReal\n\nvariable (S : Sha2Set)\n',1)
+open('/Users/danrobinson/Projects/formal-sig/multi/security/MLink/Security.lean','w').write(s)

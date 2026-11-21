@@ -1,0 +1,5 @@
+'Reduction.itsrMach_encΩ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.pue_itsrMach' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.itsr_mach_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.itsrHashes_openCounts128s' depends on axioms: [propext]
+TO=400 scratch/qmach/run.sh Integration/SlhDsaBridgeMachItsr.lean  8.84s user 1.75s system 106% cpu 9.970 total

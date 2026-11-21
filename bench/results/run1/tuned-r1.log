@@ -1,0 +1,190 @@
+Benchmarking keygen/verified
+Benchmarking keygen/verified: Warming up for 1.0000 s
+Benchmarking keygen/verified: Collecting 10 samples in estimated 4.4959 s (40 iterations)
+Benchmarking keygen/verified: Analyzing
+keygen/verified         time:   [111.67 ms 112.05 ms 112.40 ms]
+Benchmarking keygen/rustcrypto-slh-dsa
+Benchmarking keygen/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking keygen/rustcrypto-slh-dsa: Collecting 10 samples in estimated 4.0075 s (550 iterations)
+Benchmarking keygen/rustcrypto-slh-dsa: Analyzing
+keygen/rustcrypto-slh-dsa
+                        time:   [6.9276 ms 6.9810 ms 7.0521 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high severe
+Benchmarking keygen/fips205
+Benchmarking keygen/fips205: Warming up for 1.0000 s
+Benchmarking keygen/fips205: Collecting 10 samples in estimated 4.3693 s (70 iterations)
+Benchmarking keygen/fips205: Analyzing
+keygen/fips205          time:   [63.147 ms 64.102 ms 65.093 ms]
+Benchmarking keygen/variant-A
+Benchmarking keygen/variant-A: Warming up for 1.0000 s
+Benchmarking keygen/variant-A: Collecting 10 samples in estimated 4.2019 s (70 iterations)
+Benchmarking keygen/variant-A: Analyzing
+keygen/variant-A        time:   [60.536 ms 60.816 ms 61.127 ms]
+Benchmarking keygen/variant-B
+Benchmarking keygen/variant-B: Warming up for 1.0000 s
+Benchmarking keygen/variant-B: Collecting 10 samples in estimated 4.4323 s (90 iterations)
+Benchmarking keygen/variant-B: Analyzing
+keygen/variant-B        time:   [49.940 ms 50.320 ms 50.699 ms]
+Benchmarking keygen/variant-C
+Benchmarking keygen/variant-C: Warming up for 1.0000 s
+Benchmarking keygen/variant-C: Collecting 10 samples in estimated 4.0242 s (290 iterations)
+Benchmarking keygen/variant-C: Analyzing
+keygen/variant-C        time:   [13.398 ms 13.607 ms 13.802 ms]
+
+Benchmarking sign_32B/verified
+Benchmarking sign_32B/verified: Warming up for 1.0000 s
+
+Warning: Unable to complete 10 samples in 6.0s. You may wish to increase target time to 8.1s.
+Benchmarking sign_32B/verified: Collecting 10 samples in estimated 8.0798 s (10 iterations)
+Benchmarking sign_32B/verified: Analyzing
+sign_32B/verified       time:   [851.37 ms 855.21 ms 859.58 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking sign_32B/rustcrypto-slh-dsa
+Benchmarking sign_32B/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking sign_32B/rustcrypto-slh-dsa: Collecting 10 samples in estimated 6.4485 s (120 iterations)
+Benchmarking sign_32B/rustcrypto-slh-dsa: Analyzing
+sign_32B/rustcrypto-slh-dsa
+                        time:   [53.312 ms 54.014 ms 54.721 ms]
+Benchmarking sign_32B/fips205
+Benchmarking sign_32B/fips205: Warming up for 1.0000 s
+Benchmarking sign_32B/fips205: Collecting 10 samples in estimated 9.7839 s (20 iterations)
+Benchmarking sign_32B/fips205: Analyzing
+sign_32B/fips205        time:   [492.62 ms 499.01 ms 505.67 ms]
+Benchmarking sign_32B/variant-A
+Benchmarking sign_32B/variant-A: Warming up for 1.0000 s
+Benchmarking sign_32B/variant-A: Collecting 10 samples in estimated 9.2227 s (20 iterations)
+Benchmarking sign_32B/variant-A: Analyzing
+sign_32B/variant-A      time:   [484.36 ms 485.63 ms 486.92 ms]
+Benchmarking sign_32B/variant-B
+Benchmarking sign_32B/variant-B: Warming up for 1.0000 s
+Benchmarking sign_32B/variant-B: Collecting 10 samples in estimated 7.7178 s (20 iterations)
+Benchmarking sign_32B/variant-B: Analyzing
+sign_32B/variant-B      time:   [372.68 ms 377.23 ms 381.65 ms]
+Benchmarking sign_32B/variant-C
+Benchmarking sign_32B/variant-C: Warming up for 1.0000 s
+Benchmarking sign_32B/variant-C: Collecting 10 samples in estimated 6.1414 s (60 iterations)
+Benchmarking sign_32B/variant-C: Analyzing
+sign_32B/variant-C      time:   [103.75 ms 105.59 ms 107.52 ms]
+
+Benchmarking sign_1MiB/verified
+Benchmarking sign_1MiB/verified: Warming up for 1.0000 s
+
+Warning: Unable to complete 10 samples in 6.0s. You may wish to increase target time to 8.8s.
+Benchmarking sign_1MiB/verified: Collecting 10 samples in estimated 8.7794 s (10 iterations)
+Benchmarking sign_1MiB/verified: Analyzing
+sign_1MiB/verified      time:   [843.43 ms 851.28 ms 857.56 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low severe
+  1 (10.00%) high mild
+Benchmarking sign_1MiB/rustcrypto-slh-dsa
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Collecting 10 samples in estimated 6.3539 s (120 iterations)
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Analyzing
+sign_1MiB/rustcrypto-slh-dsa
+                        time:   [53.873 ms 54.511 ms 55.198 ms]
+Benchmarking sign_1MiB/fips205
+Benchmarking sign_1MiB/fips205: Warming up for 1.0000 s
+Benchmarking sign_1MiB/fips205: Collecting 10 samples in estimated 9.7090 s (20 iterations)
+Benchmarking sign_1MiB/fips205: Analyzing
+sign_1MiB/fips205       time:   [488.62 ms 494.59 ms 501.24 ms]
+Benchmarking sign_1MiB/variant-A
+Benchmarking sign_1MiB/variant-A: Warming up for 1.0000 s
+Benchmarking sign_1MiB/variant-A: Collecting 10 samples in estimated 9.8358 s (20 iterations)
+Benchmarking sign_1MiB/variant-A: Analyzing
+sign_1MiB/variant-A     time:   [467.95 ms 472.48 ms 477.76 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high severe
+Benchmarking sign_1MiB/variant-B
+Benchmarking sign_1MiB/variant-B: Warming up for 1.0000 s
+Benchmarking sign_1MiB/variant-B: Collecting 10 samples in estimated 7.3281 s (20 iterations)
+Benchmarking sign_1MiB/variant-B: Analyzing
+sign_1MiB/variant-B     time:   [374.86 ms 381.52 ms 387.74 ms]
+Benchmarking sign_1MiB/variant-C
+Benchmarking sign_1MiB/variant-C: Warming up for 1.0000 s
+Benchmarking sign_1MiB/variant-C: Collecting 10 samples in estimated 6.3365 s (60 iterations)
+Benchmarking sign_1MiB/variant-C: Analyzing
+sign_1MiB/variant-C     time:   [100.33 ms 100.71 ms 101.17 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking verify_32B/verified
+Benchmarking verify_32B/verified: Warming up for 1.0000 s
+Benchmarking verify_32B/verified: Collecting 30 samples in estimated 3.2618 s (3720 iterations)
+Benchmarking verify_32B/verified: Analyzing
+verify_32B/verified     time:   [867.05 µs 871.23 µs 875.41 µs]
+Found 1 outliers among 30 measurements (3.33%)
+  1 (3.33%) high severe
+Benchmarking verify_32B/rustcrypto-slh-dsa
+Benchmarking verify_32B/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking verify_32B/rustcrypto-slh-dsa: Collecting 30 samples in estimated 3.0130 s (51k iterations)
+Benchmarking verify_32B/rustcrypto-slh-dsa: Analyzing
+verify_32B/rustcrypto-slh-dsa
+                        time:   [58.964 µs 59.131 µs 59.328 µs]
+Benchmarking verify_32B/fips205
+Benchmarking verify_32B/fips205: Warming up for 1.0000 s
+Benchmarking verify_32B/fips205: Collecting 30 samples in estimated 3.1676 s (6510 iterations)
+Benchmarking verify_32B/fips205: Analyzing
+verify_32B/fips205      time:   [500.40 µs 504.67 µs 508.23 µs]
+Found 6 outliers among 30 measurements (20.00%)
+  4 (13.33%) low severe
+  1 (3.33%) low mild
+  1 (3.33%) high severe
+Benchmarking verify_32B/variant-A
+Benchmarking verify_32B/variant-A: Warming up for 1.0000 s
+Benchmarking verify_32B/variant-A: Collecting 30 samples in estimated 3.1366 s (6510 iterations)
+Benchmarking verify_32B/variant-A: Analyzing
+verify_32B/variant-A    time:   [496.53 µs 498.49 µs 500.13 µs]
+Benchmarking verify_32B/variant-B
+Benchmarking verify_32B/variant-B: Warming up for 1.0000 s
+Benchmarking verify_32B/variant-B: Collecting 30 samples in estimated 3.1703 s (7905 iterations)
+Benchmarking verify_32B/variant-B: Analyzing
+verify_32B/variant-B    time:   [399.22 µs 401.20 µs 403.43 µs]
+Benchmarking verify_32B/variant-C
+Benchmarking verify_32B/variant-C: Warming up for 1.0000 s
+Benchmarking verify_32B/variant-C: Collecting 30 samples in estimated 3.0161 s (28k iterations)
+Benchmarking verify_32B/variant-C: Analyzing
+verify_32B/variant-C    time:   [103.04 µs 103.63 µs 104.40 µs]
+
+Benchmarking verify_1MiB/verified
+Benchmarking verify_1MiB/verified: Warming up for 1.0000 s
+Benchmarking verify_1MiB/verified: Collecting 30 samples in estimated 3.1370 s (930 iterations)
+Benchmarking verify_1MiB/verified: Analyzing
+verify_1MiB/verified    time:   [3.4973 ms 3.5251 ms 3.5569 ms]
+Benchmarking verify_1MiB/rustcrypto-slh-dsa
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Collecting 30 samples in estimated 3.1555 s (8370 iterations)
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Analyzing
+verify_1MiB/rustcrypto-slh-dsa
+                        time:   [374.42 µs 376.47 µs 377.90 µs]
+Found 2 outliers among 30 measurements (6.67%)
+  2 (6.67%) low mild
+Benchmarking verify_1MiB/fips205
+Benchmarking verify_1MiB/fips205: Warming up for 1.0000 s
+Benchmarking verify_1MiB/fips205: Collecting 30 samples in estimated 3.2043 s (1395 iterations)
+Benchmarking verify_1MiB/fips205: Analyzing
+verify_1MiB/fips205     time:   [2.2940 ms 2.2975 ms 2.3009 ms]
+Found 6 outliers among 30 measurements (20.00%)
+  3 (10.00%) low mild
+  1 (3.33%) high mild
+  2 (6.67%) high severe
+Benchmarking verify_1MiB/variant-A
+Benchmarking verify_1MiB/variant-A: Warming up for 1.0000 s
+Benchmarking verify_1MiB/variant-A: Collecting 30 samples in estimated 4.1455 s (1395 iterations)
+Benchmarking verify_1MiB/variant-A: Analyzing
+verify_1MiB/variant-A   time:   [2.9262 ms 2.9555 ms 2.9859 ms]
+Found 2 outliers among 30 measurements (6.67%)
+  2 (6.67%) high mild
+Benchmarking verify_1MiB/variant-B
+Benchmarking verify_1MiB/variant-B: Warming up for 1.0000 s
+Benchmarking verify_1MiB/variant-B: Collecting 30 samples in estimated 3.9395 s (1395 iterations)
+Benchmarking verify_1MiB/variant-B: Analyzing
+verify_1MiB/variant-B   time:   [2.8043 ms 2.8331 ms 2.8631 ms]
+Benchmarking verify_1MiB/variant-C
+Benchmarking verify_1MiB/variant-C: Warming up for 1.0000 s
+Benchmarking verify_1MiB/variant-C: Collecting 30 samples in estimated 3.0688 s (6975 iterations)
+Benchmarking verify_1MiB/variant-C: Analyzing
+verify_1MiB/variant-C   time:   [431.91 µs 433.69 µs 436.22 µs]
+

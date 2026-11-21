@@ -1,0 +1,246 @@
+Fri Nov 20 16:24:23 PST 2026
+unicorn 2.1 (0x20104ff), 12 threads, seed 349104788289
+  done sha256/len=55 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=1 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=16 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=56 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=64 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=119 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done thash/len=16 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=16 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=16 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=16 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=32 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=32 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=32 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=32 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done sha256/len=120 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done thash/len=224 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=560 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=560 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=224 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=560 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=560 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done thash/len=224 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done hmac_sha256/klen=16,mlen=32 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done thash/len=224 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done sha256/len=256 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done sha256/len=560 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done prf_msg/mlen=0 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done hmac_sha256/klen=16,mlen=150 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done prf_msg/mlen=0 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done hmac_sha256/klen=64,mlen=64 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done prf_msg/mlen=0 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=0 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=32 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=32 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done hmac_sha256/klen=32,mlen=1 [public config 0]: 64 pairs, 64 equal, 0 differ (0.0s)
+  done prf_msg/mlen=32 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=32 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=100 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=100 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=100 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=1 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=100 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=1 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=1 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=1 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=1000 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=15,s=0 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=15,s=0 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=15,s=0 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=15,s=0 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=0 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=0 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=0 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=0 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=1000 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=1000 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done prf_msg/mlen=1000 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=3,s=7 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=3,s=7 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=3,s=7 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=3,s=7 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=15 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=15 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=15 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done chain/i=0,s=15 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done wots_sign [public config 1]: 8 pairs, 8 equal, 0 differ (0.2s)
+  done wots_sign [public config 4]: 8 pairs, 8 equal, 0 differ (0.2s)
+  done wots_sign [public config 0]: 8 pairs, 8 equal, 0 differ (0.3s)
+  done wots_sign [public config 2]: 8 pairs, 8 equal, 0 differ (0.3s)
+  done wots_sign [public config 5]: 8 pairs, 8 equal, 0 differ (0.3s)
+  done wots_sign [public config 7]: 8 pairs, 8 equal, 0 differ (0.3s)
+  done wots_sign [public config 3]: 8 pairs, 8 equal, 0 differ (0.3s)
+  done wots_sign [public config 6]: 8 pairs, 8 equal, 0 differ (0.4s)
+  done wots_pk_gen [public config 3]: 16 pairs, 16 equal, 0 differ (0.9s)
+  done wots_pk_gen [public config 0]: 16 pairs, 16 equal, 0 differ (0.9s)
+  done xmss_node/z=0 [public config 1]: 16 pairs, 16 equal, 0 differ (0.9s)
+  done xmss_node/z=0 [public config 0]: 16 pairs, 16 equal, 0 differ (0.9s)
+  done wots_pk_gen [public config 1]: 16 pairs, 16 equal, 0 differ (1.1s)
+  done xmss_node/z=0 [public config 2]: 16 pairs, 16 equal, 0 differ (0.9s)
+  done wots_pk_gen [public config 2]: 16 pairs, 16 equal, 0 differ (1.2s)
+  done xmss_node/z=0 [public config 3]: 16 pairs, 16 equal, 0 differ (1.0s)
+  done xmss_node/z=1 [public config 3]: 16 pairs, 16 equal, 0 differ (2.1s)
+  done xmss_node/z=1 [public config 1]: 16 pairs, 16 equal, 0 differ (2.2s)
+  done xmss_node/z=1 [public config 0]: 16 pairs, 16 equal, 0 differ (2.2s)
+  done fors_sk_gen [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_sk_gen [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_sk_gen [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_sk_gen [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=0 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=0 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=0 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=0 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=1 [public config 0]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=1 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=1 [public config 2]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=1 [public config 3]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=3 [public config 0]: 16 pairs, 16 equal, 0 differ (0.1s)
+  done fors_node/z=3 [public config 1]: 16 pairs, 16 equal, 0 differ (0.0s)
+  done fors_node/z=3 [public config 2]: 16 pairs, 16 equal, 0 differ (0.1s)
+  done fors_node/z=3 [public config 3]: 16 pairs, 16 equal, 0 differ (0.1s)
+  done xmss_node/z=1 [public config 2]: 16 pairs, 16 equal, 0 differ (2.5s)
+  done fors_node/z=6 [public config 0]: 16 pairs, 16 equal, 0 differ (0.4s)
+  done fors_node/z=6 [public config 1]: 16 pairs, 16 equal, 0 differ (0.4s)
+  done fors_node/z=6 [public config 2]: 16 pairs, 16 equal, 0 differ (0.4s)
+  done fors_node/z=6 [public config 3]: 16 pairs, 16 equal, 0 differ (0.4s)
+  done xmss_node/z=2 [public config 0]: 16 pairs, 16 equal, 0 differ (3.4s)
+  done xmss_node/z=2 [public config 1]: 16 pairs, 16 equal, 0 differ (3.5s)
+  done xmss_node/z=2 [public config 2]: 16 pairs, 16 equal, 0 differ (3.4s)
+  done xmss_node/z=2 [public config 3]: 16 pairs, 16 equal, 0 differ (3.5s)
+  done xmss_node/z=3 [public config 1]: 16 pairs, 16 equal, 0 differ (6.9s)
+  done xmss_node/z=3 [public config 0]: 16 pairs, 16 equal, 0 differ (9.1s)
+  done fors_node/z=12 [public config 0]: 8 pairs, 8 equal, 0 differ (13.1s)
+  done CONTROL leaky_cmp (early-exit compare of secret) [public config 0]: 64 pairs, 32 equal, 32 differ (0.0s)
+  done CONTROL leaky_table (secret-indexed lookup) [public config 0]: 63 pairs, 0 equal, 63 differ (0.0s)
+  done CONTROL leaky_loop (secret-dependent iteration count) [public config 0]: 64 pairs, 17 equal, 47 differ (0.0s)
+  done CONTROL wots_sign, PUBLIC m varied [public config 0]: 16 pairs, 0 equal, 16 differ (0.6s)
+  done xmss_node/z=4 [public config 1]: 16 pairs, 16 equal, 0 differ (16.1s)
+  done CONTROL chain, PUBLIC s varied [public config 0]: 32 pairs, 0 equal, 32 differ (0.4s)
+  done CONTROL sha256, PUBLIC length varied [public config 0]: 32 pairs, 0 equal, 32 differ (0.0s)
+  done CONTROL wots_sign, PUBLIC m varied [public config 1]: 16 pairs, 0 equal, 16 differ (0.6s)
+  done fors_node/z=12 [public config 1]: 8 pairs, 8 equal, 0 differ (14.6s)
+  done xmss_node/z=4 [public config 0]: 16 pairs, 16 equal, 0 differ (19.0s)
+  done fors_sign, PUBLIC md varied (informational) [public config 0]: 4 pairs, 4 equal, 0 differ (77.6s)
+  done fors_sign [public config 0]: 8 pairs, 8 equal, 0 differ (133.4s)
+  done fors_sign [public config 1]: 8 pairs, 8 equal, 0 differ (137.2s)
+  done xmss_sign [public config 0]: 8 pairs, 8 equal, 0 differ (226.5s)
+  done xmss_sign [public config 1]: 8 pairs, 8 equal, 0 differ (230.2s)
+  done slh_keygen_internal [public config 0]: 12 pairs, 12 equal, 0 differ (320.3s)
+  done slh_keygen_internal [public config 1]: 12 pairs, 12 equal, 0 differ (320.8s)
+  done slh_keygen_internal/all-inputs [public config 0]: 12 pairs, 12 equal, 0 differ (320.8s)
+| function (public params) | varied input | public configs | pairs | identical traces | differing | insns/run | blocks/run | mem accesses/run | call-outs/run | emu==native output | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| sha256/len=1 | all message bytes | 1 | 64 | 64 | 0 | 4195 | 369 | 875 | 6 | yes | PASS (all identical) |
+| sha256/len=16 | all message bytes | 1 | 64 | 64 | 0 | 3991 | 323 | 790 | 5 | yes | PASS (all identical) |
+| sha256/len=55 | all message bytes | 1 | 64 | 64 | 0 | 3548 | 232 | 608 | 4 | yes | PASS (all identical) |
+| sha256/len=56 | all message bytes | 1 | 64 | 64 | 0 | 7435 | 550 | 1318 | 5 | yes | PASS (all identical) |
+| sha256/len=64 | all message bytes | 1 | 64 | 64 | 0 | 7302 | 520 | 1260 | 4 | yes | PASS (all identical) |
+| sha256/len=119 | all message bytes | 1 | 64 | 64 | 0 | 6752 | 411 | 1040 | 4 | yes | PASS (all identical) |
+| sha256/len=120 | all message bytes | 1 | 64 | 64 | 0 | 10586 | 715 | 1724 | 4 | yes | PASS (all identical) |
+| sha256/len=256 | all message bytes | 1 | 64 | 64 | 0 | 16914 | 1057 | 2556 | 4 | yes | PASS (all identical) |
+| sha256/len=560 | all message bytes | 1 | 64 | 64 | 0 | 29250 | 1677 | 4092 | 4 | yes | PASS (all identical) |
+| hmac_sha256/klen=16,mlen=32 | key and message bytes | 1 | 64 | 64 | 0 | 16159 | 1342 | 3228 | 21 | yes | PASS (all identical) |
+| hmac_sha256/klen=16,mlen=150 | key and message bytes | 1 | 64 | 64 | 0 | 22667 | 1720 | 4132 | 21 | yes | PASS (all identical) |
+| hmac_sha256/klen=64,mlen=64 | key and message bytes | 1 | 64 | 64 | 0 | 19729 | 1631 | 3836 | 21 | yes | PASS (all identical) |
+| hmac_sha256/klen=32,mlen=1 | key and message bytes | 1 | 64 | 64 | 0 | 16484 | 1419 | 3368 | 21 | yes | PASS (all identical) |
+| thash/len=16 | m (e.g. SK.seed / chain value / node values) | 4 | 64 | 64 | 0 | 7275 | 505 | 1285 | 9 | yes | PASS (all identical) |
+| thash/len=32 | m (e.g. SK.seed / chain value / node values) | 4 | 64 | 64 | 0 | 7115 | 473 | 1221 | 9 | yes | PASS (all identical) |
+| thash/len=560 | m (e.g. SK.seed / chain value / node values) | 4 | 64 | 64 | 0 | 36506 | 2194 | 5332 | 10 | yes | PASS (all identical) |
+| thash/len=224 | m (e.g. SK.seed / chain value / node values) | 4 | 64 | 64 | 0 | 16802 | 1024 | 2548 | 10 | yes | PASS (all identical) |
+| prf_msg/mlen=0 | SK.prf and opt_rand(addrnd) | 4 | 64 | 64 | 0 | 16445 | 1399 | 3359 | 23 | yes | PASS (all identical) |
+| prf_msg/mlen=32 | SK.prf and opt_rand(addrnd) | 4 | 64 | 64 | 0 | 16207 | 1352 | 3264 | 25 | yes | PASS (all identical) |
+| prf_msg/mlen=100 | SK.prf and opt_rand(addrnd) | 4 | 64 | 64 | 0 | 19371 | 1523 | 3680 | 25 | yes | PASS (all identical) |
+| prf_msg/mlen=1000 | SK.prf and opt_rand(addrnd) | 4 | 64 | 64 | 0 | 68031 | 4328 | 10400 | 25 | yes | PASS (all identical) |
+| chain/i=0,s=15 | start value x | 4 | 64 | 64 | 0 | 108983 | 7549 | 19109 | 135 | yes | PASS (all identical) |
+| chain/i=0,s=1 | start value x | 4 | 64 | 64 | 0 | 7315 | 507 | 1329 | 9 | yes | PASS (all identical) |
+| chain/i=3,s=7 | start value x | 4 | 64 | 64 | 0 | 50887 | 3525 | 8949 | 63 | yes | PASS (all identical) |
+| chain/i=15,s=0 | start value x | 4 | 64 | 64 | 0 | 47 | 4 | 54 | 0 | yes | PASS (all identical) |
+| chain/i=0,s=0 | start value x | 4 | 64 | 64 | 0 | 47 | 4 | 54 | 0 | yes | PASS (all identical) |
+| wots_pk_gen | SK.seed | 4 | 64 | 64 | 0 | 4102897 | 283532 | 716871 | 5058 | yes | PASS (all identical) |
+| wots_sign | SK.seed (message m public, fixed) | 8 | 64 | 64 | 0 | 2653109 | 184074 | 464417 | 3303 | yes | PASS (all identical) |
+| xmss_node/z=0 | SK.seed | 4 | 64 | 64 | 0 | 4102922 | 283536 | 716897 | 5058 | yes | PASS (all identical) |
+| xmss_node/z=1 | SK.seed | 4 | 64 | 64 | 0 | 8213146 | 567583 | 1435078 | 10128 | yes | PASS (all identical) |
+| xmss_node/z=2 | SK.seed | 4 | 64 | 64 | 0 | 16433594 | 1135677 | 2871440 | 20268 | yes | PASS (all identical) |
+| xmss_node/z=3 | SK.seed | 2 | 32 | 32 | 0 | 32874490 | 2271865 | 5744164 | 40548 | yes | PASS (all identical) |
+| xmss_node/z=4 | SK.seed | 2 | 32 | 32 | 0 | 65756282 | 4544241 | 11489612 | 81108 | yes | PASS (all identical) |
+| xmss_sign | SK.seed (m, idx public, fixed) | 2 | 16 | 16 | 0 | 2102476069 | 145297315 | 367367034 | 2593425 | yes | PASS (all identical) |
+| fors_sk_gen | SK.seed | 4 | 64 | 64 | 0 | 7294 | 505 | 1302 | 9 | yes | PASS (all identical) |
+| fors_node/z=0 | SK.seed | 4 | 64 | 64 | 0 | 14578 | 1011 | 2587 | 18 | yes | PASS (all identical) |
+| fors_node/z=1 | SK.seed | 4 | 64 | 64 | 0 | 36459 | 2533 | 6459 | 48 | yes | PASS (all identical) |
+| fors_node/z=3 | SK.seed | 4 | 64 | 64 | 0 | 167745 | 11665 | 29691 | 228 | yes | PASS (all identical) |
+| fors_node/z=6 | SK.seed | 4 | 64 | 64 | 0 | 1393081 | 96897 | 246523 | 1908 | yes | PASS (all identical) |
+| fors_node/z=12 | SK.seed | 2 | 16 | 16 | 0 | 89617273 | 6233601 | 15858427 | 122868 | yes | PASS (all identical) |
+| fors_sign | SK.seed (md public, fixed) | 2 | 16 | 16 | 0 | 1253313492 | 87177979 | 221780489 | 1718025 | yes | PASS (all identical) |
+| slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 2 | 24 | 24 | 0 | 2104427421 | 145431555 | 367707462 | 2595828 | yes | PASS (all identical) |
+| slh_keygen_internal/all-inputs | SK.seed, SK.prf and PK.seed | 1 | 12 | 12 | 0 | 2104427421 | 145431555 | 367707462 | 2595828 | yes | PASS (all identical) |
+| fors_sign, PUBLIC md varied (informational) | public digest md (SK.seed fixed) | 1 | 4 | 4 | 0 | 1253313492 | 87177979 | 221780489 | 1718025 | yes | PASS (all identical) |
+| CONTROL leaky_cmp (early-exit compare of secret) | secret (leaky by construction) | 1 | 64 | 32 | 32 | 15 | 3 | 5 | 0 | yes | PASS (control: difference detected) |
+| CONTROL leaky_table (secret-indexed lookup) | secret index (leaky by construction) | 1 | 63 | 0 | 63 | 14 | 1 | 7 | 0 | yes | PASS (control: difference detected) |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 1 | 64 | 17 | 47 | 11331 | 830 | 2096 | 12 | yes | PASS (control: difference detected) |
+| CONTROL wots_sign, PUBLIC m varied | public message m (chain lengths are public) | 2 | 32 | 0 | 32 | 2217388 | 153894 | 388277 | 2763 | yes | PASS (control: difference detected) |
+| CONTROL chain, PUBLIC s varied | public step count s | 1 | 32 | 0 | 32 | 181603 | 12579 | 31809 | 225 | yes | PASS (control: difference detected) |
+| CONTROL sha256, PUBLIC length varied | public message length (0..255) | 1 | 32 | 0 | 32 | 10246 | 647 | 1588 | 4 | yes | PASS (control: difference detected) |
+
+Divergence details (first differing pair of each row):
+
+- `CONTROL leaky_cmp (early-exit compare of secret)`: first divergence at event #6: last common event: read 0x50007ffefb (size/arg 1) in basic block ct_evidence::w_leaky_cmp+0x18; A: exec block ct_evidence::w_leaky_cmp+0x6c (size/arg 16) in basic block ct_evidence::w_leaky_cmp+0x6c | B: exec block ct_evidence::w_leaky_cmp+0x2c (size/arg 36) in basic block ct_evidence::w_leaky_cmp+0x2c
+- `CONTROL leaky_table (secret-indexed lookup)`: first divergence at event #6: last common event: read 0x50007ffef8 (size/arg 8) in basic block ct_evidence::w_leaky_table+0x0; A: read 0x10045ca17 (size/arg 1) in basic block ct_evidence::w_leaky_table+0x0 | B: read 0x10045c9fd (size/arg 1) in basic block ct_evidence::w_leaky_table+0x0
+- `CONTROL leaky_loop (secret-dependent iteration count)`: first divergence at event #1964: last common event: write 0x50007ffeb8 (size/arg 8) in basic block ct_evidence::w_leaky_loop+0x4c; A: exec block ct_evidence::w_leaky_loop+0x3c (size/arg 16) in basic block ct_evidence::w_leaky_loop+0x3c | B: exec block ct_evidence::w_leaky_loop+0x5c (size/arg 24) in basic block ct_evidence::w_leaky_loop+0x5c
+- `CONTROL wots_sign, PUBLIC m varied`: first divergence at event #27656: last common event: write 0x50007ffdb8 (size/arg 8) in basic block slhdsa::wots::wots_sign+0xd8; A: exec block slhdsa::wots::wots_sign+0xec (size/arg 24) in basic block slhdsa::wots::wots_sign+0xec | B: exec block slhdsa::wots::wots_sign+0xb0 (size/arg 40) in basic block slhdsa::wots::wots_sign+0xb0
+- `CONTROL chain, PUBLIC s varied`: first divergence at event #44891: last common event: write 0x50007ffe18 (size/arg 8) in basic block slhdsa::wots::chain+0x70; A: exec block slhdsa::wots::chain+0x84 (size/arg 32) in basic block slhdsa::wots::chain+0x84 | B: exec block slhdsa::wots::chain+0x48 (size/arg 40) in basic block slhdsa::wots::chain+0x48
+- `CONTROL sha256, PUBLIC length varied`: first divergence at event #49: last common event: read 0x10047c140 (size/arg 8) in basic block core::io::error::os_functions::set_functions::set_functions_inner+0x1ec; A: call-out stub #0 0x9a (size/arg 0) in basic block malloc+0x0 | B: call-out stub #0 0x44 (size/arg 0) in basic block malloc+0x0
+
+overall: ALL ROWS AS EXPECTED
+Fri Nov 20 16:29:51 PST 2026
+unicorn 2.1 (0x20104ff), 12 threads, seed 349104788289
+### slh_sign_internal: declassification-pinned trace comparison (control flow + memory addresses)
+
+  sign public config 7: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 6: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 5: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 4: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 1: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 0: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 2: pinned equal 4, differ 0; unpinned controls differing 2
+  sign public config 3: pinned equal 4, differ 0; unpinned controls differing 2
+| public config (m, PK.seed, key A) | secret sets B | pinned: identical | pinned: differing | unpinned control differing | insns/run | events/run | verdict |
+|---|---|---|---|---|---|---|---|
+| 0 | 4 | 4 | 0 | 2/2 | 15985708289 | 3947647395 | PASS |
+| 1 | 4 | 4 | 0 | 2/2 | 15985704919 | 3947646675 | PASS |
+| 2 | 4 | 4 | 0 | 2/2 | 15985714613 | 3947648565 | PASS |
+| 3 | 4 | 4 | 0 | 2/2 | 15985705000 | 3947646726 | PASS |
+| 4 | 4 | 4 | 0 | 2/2 | 15985708298 | 3947647403 | PASS |
+| 5 | 4 | 4 | 0 | 2/2 | 15985704922 | 3947646673 | PASS |
+| 6 | 4 | 4 | 0 | 2/2 | 15985714630 | 3947648580 | PASS |
+| 7 | 4 | 4 | 0 | 2/2 | 15985705003 | 3947646736 | PASS |
+
+unicorn 2.1 (0x20104ff), 12 threads, seed 349104788289
+### slh_sign (ctx of 17 bytes): declassification-pinned trace comparison (control flow only)
+
+  sign public config 0: pinned equal 3, differ 0; unpinned controls differing 2
+  sign public config 2: pinned equal 3, differ 0; unpinned controls differing 2
+  sign public config 1: pinned equal 3, differ 0; unpinned controls differing 2
+  sign public config 3: pinned equal 3, differ 0; unpinned controls differing 2
+| public config (m, PK.seed, key A) | secret sets B | pinned: identical | pinned: differing | unpinned control differing | insns/run | events/run | verdict |
+|---|---|---|---|---|---|---|---|
+| 0 | 3 | 3 | 0 | 2/2 | 15985712086 | 1151666849 | PASS |
+| 1 | 3 | 3 | 0 | 2/2 | 15985708818 | 1151666670 | PASS |
+| 2 | 3 | 3 | 0 | 2/2 | 15985718413 | 1151667192 | PASS |
+| 3 | 3 | 3 | 0 | 2/2 | 15985708858 | 1151666665 | PASS |
+
+Fri Nov 20 17:11:39 PST 2026
+unicorn 2.1 (0x20104ff), 12 threads, seed 349104788289
+### slh_sign_internal: unconditioned profile over random honest keys (m and PK.seed fixed)
+
+- runs: 24 (run 0 = base key, others = fresh honest (SK.seed, SK.prf, addrnd), PK.seed and m fixed)
+- distinct full control-flow traces: 24 (expected: all distinct, the public transcript differs)
+- distinct executed-instruction counts: 19 (min 15985708271, max 15985708315, spread 44)
+- distinct basic-block counts: 18
+- distinct call-out (malloc/realloc/free/memcpy) counts: [19891227]
+- distinct `thash` call counts: [2186220]
+- distinct `sha256` call counts: [2186224]
+- distinct block-execution histograms (multiset of executed blocks, order ignored): 24
+
+Fri Nov 20 17:12:38 PST 2026

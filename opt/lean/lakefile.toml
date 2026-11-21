@@ -1,0 +1,16 @@
+name = "slhdsa"
+defaultTargets = ["Slhdsa"]
+
+[[require]]
+name = "aeneas"
+path = "../../.tools/aeneas/backends/lean"
+
+[[lean_lib]]
+name = "Slhdsa"
+
+[[lean_lib]]
+name = "Spec"
+
+[[lean_exe]]
+name = "spectest"
+root = "SpecTest"

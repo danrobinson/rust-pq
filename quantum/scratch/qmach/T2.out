@@ -1,0 +1,2 @@
+'Reduction.tB' depends on axioms: [propext, Classical.choice, Quot.sound]
+TO=500 scratch/qmach/run.sh scratch/qmach/T2.lean  1.41s user 1.68s system 102% cpu 3.005 total

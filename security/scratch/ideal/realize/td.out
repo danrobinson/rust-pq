@@ -1,0 +1,4 @@
+scratch/ideal/realize/td.lean:11:0: error: (kernel) deep recursion detected, use `set_option maxRecDepth <num>` to increase the limit
+scratch/ideal/realize/td.lean:12:0: error: (kernel) deep recursion detected, use `set_option maxRecDepth <num>` to increase the limit
+scratch/ideal/realize/td.lean:13:0: error: (kernel) deep recursion detected, use `set_option maxRecDepth <num>` to increase the limit
+done

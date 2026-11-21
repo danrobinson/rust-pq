@@ -1,0 +1,20 @@
+Reduction.bytesToTyped: 1052 constants; flagged: []
+Reduction.bytesToTypedS: 1051 constants; flagged: []
+Reduction.pureBytesToTyped: 1070 constants; flagged: []
+Reduction.pureBytesToTypedS: 1070 constants; flagged: []
+Reduction.Coded.reduce: 145 constants; flagged: []
+Reduction.Coded.reduceS: 145 constants; flagged: []
+Reduction.Coded.signingImpl: 117 constants; flagged: []
+Reduction.Coded.readForgery: 90 constants; flagged: []
+Reduction.bytesView: 1022 constants; flagged: []
+Reduction.pureBytesView: 1049 constants; flagged: []
+Reduction.byteKeygen: 515 constants; flagged: []
+Reduction.byteSign: 961 constants; flagged: []
+Reduction.byteVerify: 921 constants; flagged: []
+Reduction.byteSignPure: 975 constants; flagged: []
+Reduction.byteVerifyPure: 932 constants; flagged: []
+Reduction.codec128s: 866 constants; flagged: []
+Reduction.betaSufFinalSplit: 3396 constants; flagged: [Classical.choice,
+ Classical.indefiniteDescription,
+ Exists.choose,
+ Classical.propDecidable]

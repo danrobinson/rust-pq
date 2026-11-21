@@ -1,0 +1,14 @@
+scratch/ideal/realize/te3.lean:11:54: error: Application type mismatch: The argument
+  optRandU oR g
+has type
+  PublicKeyCore (primsG (liftC g)).core → ProbComp (primsG (liftC g)).Y
+but is expected to have type
+  ProbComp (primsG (liftC g)).PkSeed
+in the application
+  realAlg Link.vp (primsG (liftC g)) ?m.12 (optRandU oR g)
+scratch/ideal/realize/te3.lean:11:164: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached
+
+Note: Use `set_option maxHeartbeats <num>` to set the limit.
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+done

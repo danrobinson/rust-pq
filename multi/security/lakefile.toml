@@ -1,0 +1,56 @@
+name = "multisecurity"
+defaultTargets = ["MLink", "MReduction", "ME2E"]
+# Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
+packagesDir = "../../.tools/VCVio-upstream/.lake/packages"
+
+[[require]]
+name = "VCVio"
+path = "../../.tools/VCVio-upstream"
+
+[[require]]
+name = "aeneas"
+path = "../../.tools/aeneas/backends/lean"
+
+# The parameterised FIPS 205 transcription (six SHA-2 sets), compiled in place from ../lean.
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
+# The Aeneas extraction of the generic Rust implementation and its refinement proofs,
+# compiled in place from ../lean.
+[[lean_lib]]
+name = "Slhdsa"
+srcDir = "../lean"
+
+# Spec-free stand-ins for the three modules of security/Link that security/Reduction imports
+# (Link.Basic, Link.Hash, Link.Verify) and for Reduction.PrfDomainNonVacuity (the one Reduction
+# module that mentions the single-set Spec).  See STATUS.md, "How Reduction is imported".
+[[lean_lib]]
+name = "Shim"
+srcDir = "shim"
+roots = ["Link.Basic", "Link.Hash", "Link.Verify", "Reduction.PrfDomainNonVacuity"]
+
+# security/Link/Security.lean (VCVio-only), compiled in place, unmodified.
+[[lean_lib]]
+name = "LinkSecurity"
+srcDir = "../../security"
+roots = ["Link.Security"]
+
+# The generic standard-model reduction of ../../security, compiled in place, unmodified
+# (explicit module list; everything except PrfDomainNonVacuity and Gen/).
+[[lean_lib]]
+name = "Reduction"
+srcDir = "../../security"
+roots = ["Reduction.Basic","Reduction.Games","Reduction.WotsGame","Reduction.Steps","Reduction.Main","Reduction.Harness","Reduction.PRFHop","Reduction.PRFMsgHop","Reduction.ITSR","Reduction.OpenPRE","Reduction.TCR","Reduction.WotsSim","Reduction.WotsEmbed","Reduction.WotsUD","Reduction.WotsFinal","Reduction.Final","Reduction.NonVacuity","Reduction.Instance128s","Reduction.Tables","Reduction.PrfDomain","Reduction.Lazy.Core","Reduction.Lazy.Open","Reduction.Lazy.MsgLazy","Reduction.Lazy.ItsrLazy","Reduction.Lazy.Sparse","Reduction.Lazy.OpenPreSparse","Reduction.Lazy.TcrSparse","Reduction.Lazy.WotsSparse","Reduction.Resources","Reduction.FinalV2","Reduction.Instance128sV2","Reduction.ForsTight","Reduction.ForsTightFinal","Reduction.ForsTightNonVacuity","Reduction.TcrSplit","Reduction.TcrSplitFinal","Reduction.VerifyArity","Reduction.TcrSplitClosed","Reduction.SufCollision","Reduction.SufHarness","Reduction.SufHopPrf","Reduction.SufHopMsg","Reduction.Suf","Reduction.SufInstance128s","Reduction.External","Reduction.SufPrfV2","Reduction.Lazy.SufMsgLazy","Reduction.SufSparse","Reduction.ExternalSuf","Reduction.Headline","Reduction.HeadlineSplit","Reduction.Resources2Wots","Reduction.Resources2Tcr","Reduction.Resources2Fors","Reduction.Resources2","Reduction.TightCaps","Reduction.TightCapsHeadline","Reduction.Bytes","Reduction.TcrMemo","Reduction.TcrMemoHeadline","Reduction.Linear","Reduction.LinearBytes","Reduction.HeadlineFinal","Reduction.ResourcesFinal"]
+
+# Spec (six sets) = VCVio's scheme at approvedPrimitives.
+[[lean_lib]]
+name = "MLink"
+
+# Reduction instances at the six sets.
+[[lean_lib]]
+name = "MReduction"
+
+# Rust = scheme cores, security statements about the Rust functions, six sets.
+[[lean_lib]]
+name = "ME2E"

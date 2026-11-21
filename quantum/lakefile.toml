@@ -1,0 +1,11 @@
+name = "quantum"
+defaultTargets = ["PQ"]
+# Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
+packagesDir = "../.tools/VCVio-upstream/.lake/packages"
+
+[[require]]
+name = "VCVio"
+path = "../.tools/VCVio-upstream"
+
+[[lean_lib]]
+name = "PQ"

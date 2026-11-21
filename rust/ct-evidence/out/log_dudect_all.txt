@@ -1,0 +1,294 @@
+Fri Nov 20 18:23:38 PST 2026
+18:23  up 1 day,  8:42, 5 users, load averages: 1.52 2.33 2.89
+clock: mach_absolute_time, 41.667 ns/tick, observed granularity 41.7 ns; PSTATE.DIT = 0; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 13688519
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  [sha256/len=1] done in 10.9s
+| sha256/len=1 | all message bytes | 128 | 199749 | 200251 | 201.5 | 201.5 | -0.107 | -0.0526% | -2.88 | 20.14 (crop 14) | 1.93 | 1.45 | **t > 4.5** |
+  [sha256/len=16] done in 10.3s
+| sha256/len=16 | all message bytes | 128 | 199758 | 200242 | 190.1 | 190.1 | -0.048 | -0.0251% | -0.74 | 6.28 (crop 4) | 1.04 | 1.36 | **t > 4.5** |
+  [sha256/len=55] done in 9.0s
+| sha256/len=55 | all message bytes | 128 | 200278 | 199722 | 166.3 | 166.3 | -0.066 | -0.0400% | -3.16 | 9.25 (crop 26) | 1.12 | 1.55 | **t > 4.5** |
+  [sha256/len=56] done in 9.1s
+| sha256/len=56 | all message bytes | 64 | 199812 | 200188 | 334.6 | 334.6 | +0.032 | +0.0094% | +1.07 | 2.57 (crop 7) | 0.95 | 1.71 | no leak detected |
+  [| sha256/len=64 | all message bytes | 64 | 200507 | 199493 | 308.6 | 308.6 | +0.003 | +0.0009% | -0.34 | 7.12 (crop 10) | 1.86 | 2.20 | **t > 4.5** |
+sha256/len=64] done in 8.4s
+  [| sha256/len=119 | all message bytes | 64 | 200222 | 199778 | 304.0 | 304.0 | -0.037 | -0.0119% | -1.84 | 2.73 (crop 58) | 0.91 | 0.67 | no leak detected |
+sha256/len=119] done in 8.4s
+  [sha256/len=120] done in 12.5s
+| sha256/len=120 | all message bytes | 64 | 200086 | 199914 | 454.4 | 454.4 | -0.040 | -0.0087% | +0.87 | 4.22 (crop 9) | 1.22 | 1.61 | no leak detected |
+  [sha256/len=256] done in 10.9s
+| sha256/len=256 | all message bytes | 32 | 199720 | 200280 | 785.2 | 785.2 | -0.321 | -0.0397% | -1.57 | 1.97 (crop 23) | 1.67 | 2.08 | no leak detected |
+  [sha256/len=560] done in 8.9s
+| sha256/len=560 | all message bytes | 16 | 199738 | 200262 | 1263.0 | 1263.0 | -0.129 | -0.0099% | -0.07 | 1.84 (crop 8) | 1.07 | 1.34 | no leak detected |
+  [| hmac_sha256/klen=16,mlen=32 | key and message bytes | 32 | 100037 | 99963 | 804.7 | 804.7 | +0.054 | +0.0066% | +1.25 | 5.75 (crop 11) | 1.29 | 1.47 | **t > 4.5** |
+hmac_sha256/klen=16,mlen=32] done in 5.5s
+  [| hmac_sha256/klen=16,mlen=150 | key and message bytes | 8 | 100246 | 99754 | 1119.8 | 1119.8 | -0.103 | -0.0091% | -0.21 | 2.24 (crop 0) | 1.56 | 0.90 | no leak detected |
+hmac_sha256/klen=16,mlen=150] done in 2.0s
+  [| hmac_sha256/klen=64,mlen=64 | key and message bytes | 32 | 100037 | 99963 | 950.5 | 950.5 | +0.146 | +0.0152% | +1.73 | 3.83 (crop 26) | 1.60 | 1.41 | no leak detected |
+hmac_sha256/klen=64,mlen=64] done in 6.4s
+  [hmac_sha256/klen=32,mlen=1] done in 5.6s
+| hmac_sha256/klen=32,mlen=1 | key and message bytes | 32 | 99718 | 100282 | 826.8 | 826.8 | +0.488 | +0.0584% | +0.60 | 3.30 (crop 22) | 0.94 | 2.61 | no leak detected |
+  [thash/len=16] done in 10.5s
+| thash/len=16 | m (e.g. SK.seed / chain value / node values) | 64 | 199754 | 200246 | 378.9 | 378.9 | +0.020 | +0.0051% | +1.09 | 1.90 (crop 5) | 0.90 | 1.64 | no leak detected |
+  [thash/len=32] done in 9.9s
+| thash/len=32 | m (e.g. SK.seed / chain value / node values) | 64 | 200044 | 199956 | 371.7 | 371.7 | -0.061 | -0.0168% | -1.61 | 2.65 (crop 0) | 1.83 | 1.23 | no leak detected |
+  [| thash/len=560 | m (e.g. SK.seed / chain value / node values) | 16 | 200036 | 199964 | 1640.6 | 1640.6 | +0.164 | +0.0099% | +0.70 | 1.68 (crop 67) | 2.34 | 1.93 | no leak detected |
+thash/len=560] done in 11.3s
+  [| thash/len=224 | m (e.g. SK.seed / chain value / node values) | 32 | 200273 | 199727 | 799.5 | 800.8 | -0.071 | -0.0088% | -0.04 | 2.23 (crop 6) | 1.60 | 2.15 | no leak detected |
+thash/len=224] done in 11.0s
+  [prf_msg/mlen=0] done in 6.0s
+| prf_msg/mlen=0 | SK.prf and opt_rand(addrnd) | 32 | 100034 | 99966 | 890.6 | 890.6 | -0.203 | -0.0228% | -0.93 | 1.23 (crop 12) | 1.11 | 1.41 | no leak detected |
+  [| prf_msg/mlen=32 | SK.prf and opt_rand(addrnd) | 32 | 99542 | 100458 | 833.3 | 833.3 | +0.163 | +0.0189% | +0.98 | 1.68 (crop 3) | 1.33 | 1.57 | no leak detected |
+prf_msg/mlen=32] done in 5.8s
+  [prf_msg/mlen=100] done in 6.7s
+| prf_msg/mlen=100 | SK.prf and opt_rand(addrnd) | 32 | 100080 | 99920 | 979.2 | 979.2 | +0.037 | +0.0037% | +0.41 | 1.45 (crop 1) | 1.57 | 2.16 | no leak detected |
+  [prf_msg/mlen=1000] done in 5.2s
+| prf_msg/mlen=1000 | SK.prf and opt_rand(addrnd) | 8 | 99874 | 100126 | 3072.9 | 3072.9 | -0.272 | -0.0087% | -0.79 | 1.41 (crop 2) | 1.24 | 1.84 | no leak detected |
+  [chain/i=0,s=15] done in 4.7s
+| chain/i=0,s=15 | start value x | 4 | 100153 | 99847 | 5364.6 | 5364.6 | +0.996 | +0.0182% | +0.27 | 1.27 (crop 0) | 0.96 | 2.28 | no leak detected |
+  [chain/i=0,s=1] done in 5.3s
+| chain/i=0,s=1 | start value x | 64 | 100553 | 99447 | 382.2 | 382.2 | -0.050 | -0.0128% | +0.06 | 2.68 (crop 3) | 1.76 | 0.85 | no leak detected |
+  [| chain/i=3,s=7 | start value x | 8 | 100033 | 99967 | 2437.5 | 2437.5 | -0.048 | -0.0020% | +2.05 | 2.52 (crop 99) | 1.45 | 2.20 | no leak detected |
+chain/i=3,s=7] done in 4.1s
+  [| chain/i=15,s=0 | start value x | 8192 | 100283 | 99717 | 3.2 | 3.2 | -0.000 | -0.0104% | +0.81 | 2.15 (crop 36) | 1.44 | 1.65 | no leak detected |
+chain/i=15,s=0] done in 5.5s
+  [| chain/i=0,s=0 | start value x | 8192 | 99782 | 100218 | 3.2 | 3.2 | +0.000 | +0.0093% | -0.76 | 1.73 (crop 37) | 1.60 | 1.50 | no leak detected |
+chain/i=0,s=0] done in 5.4s
+  [wots_pk_gen] done in 20.| wots_pk_gen | SK.seed | 1 | 49955 | 50045 | 197958.3 | 197875.0 | +51.151 | +0.0257% | -1.86 | 2.63 (crop 16) | 1.49 | 1.48 | no leak detected |
+4s
+  [wots_sign] done in 10.5s
+| wots_sign | SK.seed (message m public, fixed) | 1 | 50105 | 49895 | 101000.0 | 101041.7 | -21.772 | -0.0214% | -1.42 | 2.21 (crop 44) | 1.88 | 2.19 | no leak detected |
+  [| xmss_node/z=0 | SK.seed | 1 | 10006 | 9994 | 199000.0 | 199041.7 | -149.269 | -0.0745% | -0.79 | 2.15 (crop 5) | 1.12 | 1.13 | no leak detected |
+xmss_node/z=0] done in 4.1s
+  [| xmss_node/z=1 | SK.seed | 1 | 10033 | 9967 | 395250.0 | 394833.3 | +222.135 | +0.0561% | +1.36 | 3.04 (crop 29) | 1.42 | 1.52 | no leak detected |
+xmss_node/z=1] done in 8.1s
+  [xmss_node/z=2] done in 4.9s
+| xmss_node/z=2 | SK.seed | 1 | 3040 | 2960 | 787791.7 | 787875.0 | -19.981 | -0.0025% | -0.28 | 1.90 (crop 23) | 1.13 | 1.95 | no leak detected |
+  [xmss_node/z=3] done in 9.7s
+| xmss_node/z=3 | SK.seed | 1 | 2947 | 3053 | 1579333.3 | 1579000.0 | +636.814 | +0.0403% | +0.28 | 1.65 (crop 32) | 1.17 | 1.41 | no leak detected |
+  [| xmss_node/z=4 | SK.seed | 1 | 2988 | 3012 | 3169291.7 | 3170041.7 | -1089.811 | -0.0344% | +0.52 | 1.86 (crop 1) | 2.73 | 2.74 | no leak detected |
+xmss_node/z=4] done in 19.3s
+  [| xmss_sign | SK.seed (m, idx public, fixed) | 1 | 492 | 508 | 102509875.0 | 102555500.0 | -4916.587 | -0.0048% | +0.38 | 1.51 (crop 1) | 3.03 | 2.16 | no leak detected |
+xmss_sign] done in 103.5s
+  [| fors_sk_gen | SK.seed | 64 | 200547 | 199453 | 376.3 | 376.3 | +0.015 | +0.0039% | -0.64 | 1.28 (crop 7) | 1.43 | 1.44 | no leak detected |
+fors_sk_gen] done in 10.2s
+  [fors_node/z=0] done in | fors_node/z=0 | SK.seed | 32 | 100088 | 99912 | 707.0 | 707.0 | +0.221 | +0.0306% | +1.07 | 1.81 (crop 3) | 2.03 | 1.16 | no leak detected |
+4.9s
+  [| fors_node/z=1 | SK.seed | 16 | 99737 | 100263 | 1815.1 | 1815.1 | -0.112 | -0.0061% | -0.29 | 1.75 (crop 25) | 1.28 | 1.04 | no leak detected |
+fors_node/z=1] done in 6.2s
+  [fors_node/z=3] done in 2.1s
+| fors_node/z=3 | SK.seed | 4 | 30094 | 29906 | 8395.8 | 8395.8 | -5.221 | -0.0616% | -2.11 | 2.34 (crop 29) | 2.08 | 1.67 | no leak detected |
+  [| fors_node/z=6 | SK.seed | 1 | 5083 | 4917 | 69000.0 | 68958.3 | -4.499 | -0.0065% | -0.86 | 1.72 (crop 5) | 1.82 | 1.40 | no leak detected |
+fors_node/z=6] done in 0.7s
+  [| fors_node/z=12 | SK.seed | 1 | 1985 | 2015 | 4473541.7 | 4474791.7 | -627.675 | -0.0140% | -0.93 | 2.36 (crop 16) | 1.65 | 2.93 | no leak detected |
+fors_node/z=12] done in 18.2s
+  [fors_sign] done in 38.3s
+| fors_sign | SK.seed (md public, fixed) | 1 | 299 | 301 | 62627416.7 | 63075916.7 | -120790.290 | -0.1920% | -1.90 | 2.39 (crop 53) | 1.92 | 1.67 | no leak detected |
+  [| slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 1 | 1027 | 973 | 102588500.0 | 102573458.3 | -25677.032 | -0.0251% | -0.16 | 1.34 (crop 1) | 2.20 | 1.74 | no leak detected |
+slh_keygen_internal] done in 206.5s
+  [| CONTROL leaky_cmp (early-exit compare of secret) | secret (leaky by construction) | 32 | 100383 | 99617 | 412.8 | 209.6 | +295.008 | +111.0316% | +216.33 | 875.00 (crop 6) | 0.89 | 1.19 | leak detected (expected: control) |
+CONTROL leaky_cmp (early-exit compare of secret)] done in 2.2s
+  [CONTROL leaky_loop (secret-dependent iteration count)] done in 4.0s
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 32 | 99785 | 100215 | 502.6 | 668.0 | -85.356 | -15.3730% | -215.06 | 215.34 (crop 99) | 1.99 | 1.06 | leak detected (expected: control) |
+clock: mach_absolute_time, 41.667 ns/tick, observed granularity 41.7 ns; PSTATE.DIT = 0; classes = fixed-random; fixed class = all-zero secret; seed 13688519
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  [sha256/len=1] done in 11.2s
+| sha256/len=1 | all message bytes | 128 | 199749 | 200251 | 206.4 | 206.7 | -0.122 | -0.0584% | -3.70 | 12.86 (crop 13) | 1.00 | 1.20 | **t > 4.5** |
+  [sha256/len=16] done in | sha256/len=16 | all message bytes | 128 | 199758 | 200242 | 186.5 | 186.8 | -0.063 | -0.0333% | -1.23 | 25.56 (crop 12) | 1.44 | 1.55 | **t > 4.5** |
+10.2s
+  [| sha256/len=55 | all message bytes | 128 | 200278 | 199722 | 163.1 | 163.4 | -0.211 | -0.1288% | -4.97 | 47.16 (crop 4) | 1.78 | 1.68 | **t > 4.5** |
+sha256/len=55] done in 8.9s
+  [sha256/len=56] done in 9.2s
+| sha256/len=56 | all message bytes | 64 | 199812 | 200188 | 332.0 | 332.0 | -0.114 | -0.0338% | -1.14 | 38.14 (crop 10) | 1.72 | 1.01 | **t > 4.5** |
+  [sha256/len=64] done in 8.4s
+| sha256/len=64 | all message bytes | 64 | 200507 | 199493 | 308.6 | 308.6 | -0.161 | -0.0522% | -2.89 | 25.14 (crop 24) | 2.10 | 1.09 | **t > 4.5** |
+  [| sha256/len=119 | all message bytes | 64 | 200222 | 199778 | 297.5 | 297.5 | -0.018 | -0.0060% | -0.56 | 20.95 (crop 20) | 0.97 | 1.34 | **t > 4.5** |
+sha256/len=119] done in 8.3s
+  [sha256/len=120] done in 12.3s
+| sha256/len=120 | all message bytes | 64 | 200086 | 199914 | 451.2 | 451.8 | -0.209 | -0.0459% | -4.46 | 55.21 (crop 7) | 1.73 | 1.39 | **t > 4.5** |
+  [sha256/len=256] done in 10.5s
+| sha256/len=256 | all message bytes | 32 | 199720 | 200280 | 764.3 | 765.6 | -0.521 | -0.0675% | -2.60 | 24.23 (crop 6) | 1.38 | 1.62 | **t > 4.5** |
+  [sha256/len=560] done in 9.2s
+| sha256/len=560 | all message bytes | 16 | 199738 | 200262 | 1341.1 | 1341.1 | -0.465 | -0.0347% | -3.53 | 20.68 (crop 3) | 0.96 | 0.93 | **t > 4.5** |
+  [hmac_sha256/klen=16,mlen=32] done in 5.8| hmac_sha256/klen=16,mlen=32 | key and message bytes | 32 | 100037 | 99963 | 859.4 | 859.4 | +0.134 | +0.0154% | +1.18 | 1.61 (crop 25) | 1.55 | 1.51 | no leak detected |
+s
+  [hmac_sha256/klen=16,mlen=150] done in 2.2s
+| hmac_sha256/klen=16,mlen=150 | key and message bytes | 8 | 100246 | 99754 | 1192.7 | 1192.7 | -0.158 | -0.0131% | -1.88 | 4.89 (crop 21) | 0.73 | 1.33 | **t > 4.5** |
+  [hmac_sha256/klen=64,mlen=64] done in 7.0s
+| hmac_sha256/klen=64,mlen=64 | key and message bytes | 32 | 100037 | 99963 | 1028.6 | 1028.6 | -0.736 | -0.0698% | +2.03 | 6.91 (crop 24) | 1.12 | 1.40 | **t > 4.5** |
+  [| hmac_sha256/klen=32,mlen=1 | key and message bytes | 32 | 99718 | 100282 | 885.4 | 885.4 | +0.031 | +0.0034% | -0.19 | 3.76 (crop 14) | 1.19 | 1.55 | no leak detected |
+hmac_sha256/klen=32,mlen=1] done in 6.1s
+  [| thash/len=16 | m (e.g. SK.seed / chain value / node values) | 64 | 199754 | 200246 | 375.7 | 376.3 | +0.153 | +0.0392% | +1.76 | 3.29 (crop 14) | 0.71 | 1.29 | no leak detected |
+thash/len=16] done in 10.5s
+  [thash/len=32] done in 10.5s
+| thash/len=32 | m (e.g. SK.seed / chain value / node values) | 64 | 200044 | 199956 | 371.7 | 372.4 | -0.250 | -0.0644% | -0.96 | 7.58 (crop 12) | 1.20 | 1.26 | **t > 4.5** |
+  [| thash/len=560 | m (e.g. SK.seed / chain value / node values) | 16 | 200036 | 199964 | 1755.2 | 1755.2 | +0.873 | +0.0493% | +1.16 | 2.84 (crop 30) | 0.94 | 1.40 | no leak detected |
+thash/len=560] done in 11.9s
+  [thash/len=224] done in 11.2s
+| thash/len=224 | m (e.g. SK.seed / chain value / node values) | 32 | 200273 | 199727 | 809.9 | 809.9 | -0.038 | -0.0046% | -1.99 | 9.84 (crop 14) | 1.41 | 1.10 | **t > 4.5** |
+  [prf_msg/mlen=0] done in 5.9s
+| prf_msg/mlen=0 | SK.prf and opt_rand(addrnd) | 32 | 100034 | 99966 | 884.1 | 884.1 | -0.016 | -0.0018% | -0.43 | 2.50 (crop 6) | 0.92 | 0.59 | no leak detected |
+  [| prf_msg/mlen=32 | SK.prf and opt_rand(addrnd) | 32 | 99542 | 100458 | 849.0 | 849.0 | -0.073 | -0.0085% | -0.96 | 1.49 (crop 15) | 0.95 | 1.50 | no leak detected |
+prf_msg/mlen=32] done in 5.8s
+  [| prf_msg/mlen=100 | SK.prf and opt_rand(addrnd) | 16 | 100080 | 99920 | 1000.0 | 1000.0 | -0.292 | -0.0286% | -0.74 | 4.04 (crop 16) | 1.24 | 1.85 | no leak detected |
+prf_msg/mlen=100] done in 3.5s
+  [prf_msg/mlen=1000] done in 5.3s
+| prf_msg/mlen=1000 | SK.prf and opt_rand(addrnd) | 8 | 99874 | 100126 | 3109.4 | 3109.4 | +0.019 | +0.0006% | -2.12 | 2.90 (crop 12) | 1.18 | 0.84 | no leak detected |
+  [chain/i=0,s=15] done in 4.5s
+| chain/i=0,s=15 | start value x | 4 | 100153 | 99847 | 5197.9 | 5197.9 | -0.492 | -0.0094% | -0.95 | 2.55 (crop 0) | 1.71 | 1.86 | no leak detected |
+  [chain/i=0,s=1] done in 5.0s
+| chain/i=0,s=1 | start value x | 64 | 100553 | 99447 | 358.7 | 358.7 | -0.004 | -0.0011% | -0.80 | 1.44 (crop 64) | 1.06 | 1.35 | no leak detected |
+  [chain/i=3,s=7] done in 4.2s
+| chain/i=3,s=7 | start value x | 8 | 100033 | 99967 | 2432.3 | 2432.3 | -0.279 | -0.0113% | -0.31 | 2.62 (crop 28) | 1.19 | 1.89 | no leak detected |
+  [chain/i=15,s=0] done in | chain/i=15,s=0 | start value x | 8192 | 100283 | 99717 | 3.1 | 3.1 | +0.000 | +0.0019% | +0.47 | 0.81 (crop 1) | 1.78 | 2.38 | no leak detected |
+5.4s
+  [chain/i=0,s=0] done in | chain/i=0,s=0 | start value x | 8192 | 99782 | 100218 | 3.1 | 3.1 | +0.000 | +0.0048% | -0.36 | 2.16 (crop 2) | 1.49 | 2.04 | no leak detected |
+5.4s
+  [wots_pk_gen] done in | wots_pk_gen | SK.seed | 1 | 49952 | 50048 | 196541.7 | 196500.0 | +59.110 | +0.0299% | +0.94 | 2.15 (crop 28) | 2.00 | 1.41 | no leak detected |
+20.2s
+  [wots_sign] done in 10.7s
+| wots_sign | SK.seed (message m public, fixed) | 1 | 50105 | 49895 | 103000.0 | 103000.0 | +7.411 | +0.0071% | -0.55 | 2.01 (crop 0) | 1.48 | 1.10 | no leak detected |
+  [xmss_node/z=0] done in 4.0s
+| xmss_node/z=0 | SK.seed | 1 | 10005 | 9995 | 195083.3 | 195166.7 | -59.678 | -0.0305% | -1.76 | 2.10 (crop 47) | 2.05 | 1.70 | no leak detected |
+  [xmss_node/z=1] done in | xmss_node/z=1 | SK.seed | 1 | 10033 | 9967 | 395083.3 | 394833.3 | +45.993 | +0.0116% | +0.44 | 2.14 (crop 1) | 1.36 | 1.35 | no leak detected |
+8.1s
+  [xmss_node/z=2] done in | xmss_node/z=2 | SK.seed | 1 | 3040 | 2960 | 803750.0 | 803750.0 | -615.784 | -0.0762% | +0.21 | 2.10 (crop 0) | 2.40 | 2.19 | no leak detected |
+5.0s
+  [xmss_node/z=3] done in 9.8s
+| xmss_node/z=3 | SK.seed | 1 | 2947 | 3053 | 1581625.0 | 1581250.0 | +1225.936 | +0.0771% | -0.40 | 1.85 (crop 27) | 1.21 | 2.46 | no leak detected |
+  [xmss_node/z=4] done in 19.2s
+| xmss_node/z=4 | SK.seed | 1 | 2988 | 3012 | 3154958.3 | 3155208.3 | +197.999 | +0.0063% | -0.31 | 1.96 (crop 8) | 2.20 | 1.70 | no leak detected |
+  [xmss_sign] done in 107.3s
+| xmss_sign | SK.seed (m, idx public, fixed) | 1 | 492 | 508 | 106918666.7 | 107354541.7 | -221015.145 | -0.2093% | -2.05 | 2.18 (crop 71) | 1.67 | 1.24 | no leak detected |
+  [| fors_sk_gen | SK.seed | 64 | 200547 | 199453 | 373.7 | 374.3 | -0.248 | -0.0659% | -2.65 | 4.10 (crop 28) | 1.78 | 1.25 | no leak detected |
+fors_sk_gen] done in 10.2s
+  [fors_node/z=0] done in | fors_node/z=0 | SK.seed | 32 | 100088 | 99912 | 714.8 | 714.8 | +0.253 | +0.0343% | +0.16 | 1.97 (crop 19) | 2.37 | 2.89 | no leak detected |
+5.0s
+  [fors_node/z=1] done in 6.| fors_node/z=1 | SK.seed | 16 | 99737 | 100263 | 1895.8 | 1895.8 | -0.215 | -0.0115% | -0.47 | 1.05 (crop 9) | 1.26 | 1.22 | no leak detected |
+3s
+  [| fors_node/z=3 | SK.seed | 4 | 30094 | 29906 | 8218.8 | 8218.8 | -1.537 | -0.0186% | +1.31 | 2.24 (crop 2) | 1.21 | 1.92 | no leak detected |
+fors_node/z=3] done in 2.1s
+  [fors_node/z=6] done in 0.7s
+| fors_node/z=6 | SK.seed | 1 | 5083 | 4917 | 68291.7 | 68333.3 | -43.622 | -0.0637% | -1.54 | 2.71 (crop 33) | 1.11 | 2.41 | no leak detected |
+  [| fors_node/z=12 | SK.seed | 1 | 1985 | 2015 | 4477583.3 | 4475958.3 | +2111.909 | +0.0470% | -0.41 | 2.09 (crop 19) | 2.84 | 1.29 | no leak detected |
+fors_node/z=12] done in 18.3s
+  [| fors_sign | SK.seed (md public, fixed) | 1 | 299 | 301 | 63818833.3 | 63901041.7 | +30177.487 | +0.0471% | -0.16 | 1.69 (crop 20) | 2.12 | 1.06 | no leak detected |
+fors_sign] done in 39.1s
+  [| slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 1 | 1027 | 973 | 103743000.0 | 103671333.3 | +152167.281 | +0.1461% | +1.54 | 2.13 (crop 4) | 1.80 | 1.54 | no leak detected |
+slh_keygen_internal] done in 211.0s
+  [CONTROL leaky_cmp (early-exit compare of secret)] done in 11.9s
+| CONTROL leaky_cmp (early-exit compare of secret) | secret (leaky by construction) | 32 | 100383 | 99617 | 3380.2 | 208.3 | +3181.536 | +176.3402% | +3136.25 | 3312.59 (crop 21) | 1.61 | 1.53 | leak detected (expected: control) |
+  [CONTROL leaky_loop (secret-dependent iteration count)] done in | CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 32 | 99785 | 100215 | 1.3 | 683.6 | -616.934 | -198.8542% | -875.94 | 925.32 (crop 34) | 2.10 | 0.69 | leak detected (expected: control) |
+2.5s
+clock: mach_absolute_time, 41.667 ns/tick, observed granularity 41.7 ns; PSTATE.DIT = 1; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 13688519
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  [sha256/len=1] done in 6.6s
+| sha256/len=1 | all message bytes | 64 | 199749 | 200251 | 242.8 | 242.8 | +0.006 | +0.0025% | +0.16 | 2.10 (crop 0) | 0.86 | 1.06 | no leak detected | 0.043 |
+  [sha256/len=16] done in 12.1s
+| sha256/len=16 | all message bytes | 128 | 199758 | 200242 | 228.5 | 228.5 | +0.019 | +0.0085% | -0.17 | 2.09 (crop 1) | 1.67 | 0.99 | no leak detected | 0.031 |
+  [| sha256/len=55 | all message bytes | 128 | 200278 | 199722 | 196.0 | 196.0 | -0.013 | -0.0065% | -0.87 | 2.67 (crop 10) | 1.46 | 2.46 | no leak detected | 0.040 |
+sha256/len=55] done in 10.5s
+  [sha256/len=56] done in | sha256/len=56 | all message bytes | 64 | 199812 | 200188 | 404.3 | 404.3 | -0.027 | -0.0068% | +0.12 | 1.39 (crop 17) | 1.39 | 2.47 | no leak detected | 0.077 |
+10.7s
+  [| sha256/len=64 | all message bytes | 64 | 200507 | 199493 | 380.9 | 380.9 | -0.001 | -0.0002% | -0.95 | 3.14 (crop 11) | 1.39 | 1.37 | no leak detected | 0.089 |
+sha256/len=64] done in 10.3s
+  [sha256/len=119] done in 9.9s
+| sha256/len=119 | all message bytes | 64 | 200222 | 199778 | 371.7 | 371.7 | +0.037 | +0.0100% | -0.13 | 1.89 (crop 2) | 0.93 | 1.18 | no leak detected | 0.063 |
+  [| sha256/len=120 | all message bytes | 64 | 200086 | 199914 | 554.7 | 554.7 | +0.034 | +0.0061% | -0.38 | 2.20 (crop 19) | 1.14 | 1.76 | no leak detected | 0.088 |
+sha256/len=120] done in 14.7s
+  [| sha256/len=256 | all message bytes | 32 | 199720 | 200280 | 910.2 | 908.9 | +0.102 | +0.0112% | +2.53 | 2.53 | 2.21 | 1.78 | no leak detected | 0.140 |
+sha256/len=256] done in 12.2s
+  [sha256/len=560] done in 10.5s
+| sha256/len=560 | all message bytes | 16 | 199738 | 200262 | 1567.7 | 1567.7 | -0.178 | -0.0114% | -0.79 | 2.18 (crop 0) | 0.78 | 1.05 | no leak detected | 0.282 |
+  [hmac_sha256/klen=16,mlen=32] done in 6.5s
+| hmac_sha256/klen=16,mlen=32 | key and message bytes | 32 | 100037 | 99963 | 967.4 | 967.4 | +0.060 | +0.0062% | +0.04 | 1.88 (crop 3) | 1.25 | 1.60 | no leak detected | 0.236 |
+  [hmac_sha256/klen=16,mlen=150] done in 4.6s
+| hmac_sha256/klen=16,mlen=150 | key and message bytes | 16 | 100246 | 99754 | 1398.4 | 1398.4 | +0.312 | +0.0225% | +1.93 | 2.47 (crop 18) | 1.77 | 1.00 | no leak detected | 0.203 |
+  [| hmac_sha256/klen=64,mlen=64 | key and message bytes | 32 | 100037 | 99963 | 1156.2 | 1156.2 | -0.016 | -0.0014% | +0.55 | 0.95 (crop 56) | 1.55 | 1.40 | no leak detected | 0.226 |
+hmac_sha256/klen=64,mlen=64] done in 7.7s
+  [| hmac_sha256/klen=32,mlen=1 | key and message bytes | 32 | 99718 | 100282 | 964.8 | 964.8 | +0.029 | +0.0030% | -0.51 | 2.10 (crop 40) | 1.43 | 1.53 | no leak detected | 0.221 |
+hmac_sha256/klen=32,mlen=1] done in 6.4s
+  [| thash/len=16 | m (e.g. SK.seed / chain value / node values) | 64 | 199754 | 200246 | 416.0 | 416.0 | -0.008 | -0.0020% | -0.75 | 2.59 (crop 2) | 1.37 | 1.71 | no leak detected | 0.073 |
+thash/len=16] done in 11.1s
+  [thash/len=32] done in 11.6s
+| thash/len=32 | m (e.g. SK.seed / chain value / node values) | 64 | 200044 | 199956 | 446.6 | 446.6 | +0.087 | +0.0198% | +1.38 | 1.95 (crop 87) | 0.50 | 0.97 | no leak detected | 0.063 |
+  [| thash/len=560 | m (e.g. SK.seed / chain value / node values) | 8 | 200036 | 199964 | 1979.2 | 1979.2 | -0.076 | -0.0038% | -0.58 | 2.24 (crop 0) | 1.37 | 1.41 | no leak detected | 0.364 |
+thash/len=560] done in 6.8s
+  [thash/len=224] done in 12.7s
+| thash/len=224 | m (e.g. SK.seed / chain value / node values) | 32 | 200273 | 199727 | 946.6 | 946.6 | -0.060 | -0.0063% | -0.38 | 1.86 (crop 41) | 1.02 | 1.75 | no leak detected | 0.167 |
+  [| prf_msg/mlen=0 | SK.prf and opt_rand(addrnd) | 32 | 100034 | 99966 | 985.7 | 985.7 | +0.044 | +0.0045% | +1.06 | 1.08 (crop 56) | 1.91 | 1.82 | no leak detected | 0.214 |
+prf_msg/mlen=0] done in 6.5s
+  [prf_msg/mlen=32] done in | prf_msg/mlen=32 | SK.prf and opt_rand(addrnd) | 32 | 99542 | 100458 | 987.0 | 987.0 | +0.106 | +0.0108% | +0.41 | 2.17 (crop 7) | 1.49 | 1.00 | no leak detected | 0.219 |
+6.6s
+  [prf_msg/mlen=100| prf_msg/mlen=100 | SK.prf and opt_rand(addrnd) | 32 | 100080 | 99920 | 1242.2 | 1242.2 | +0.224 | +0.0182% | +0.98 | 1.93 (crop 63) | 0.65 | 0.96 | no leak detected | 0.172 |
+] done in 8.1s
+  [prf_msg/mlen=1000] done in 6.3s
+| prf_msg/mlen=1000 | SK.prf and opt_rand(addrnd) | 8 | 99874 | 100126 | 3890.6 | 3890.6 | +0.296 | +0.0078% | +0.05 | 1.77 (crop 15) | 1.39 | 1.31 | no leak detected | 0.908 |
+  [chain/i=0,s=15] done in 5.3s
+| chain/i=0,s=15 | start value x | 4 | 100153 | 99847 | 6333.3 | 6322.9 | +0.739 | +0.0117% | +0.37 | 2.36 (crop 0) | 1.73 | 2.14 | no leak detected | 1.472 |
+  [chain/i=0,s=1] done in 5.6s
+| chain/i=0,s=1 | start value x | 64 | 100553 | 99447 | 419.3 | 419.3 | +0.008 | +0.0020% | +0.08 | 1.10 (crop 84) | 1.30 | 1.34 | no leak detected | 0.103 |
+  [chain/i=3,s=7] done in 4.9s
+| chain/i=3,s=7 | start value x | 8 | 100033 | 99967 | 2906.2 | 2906.2 | -0.073 | -0.0025% | -0.44 | 1.63 (crop 49) | 1.44 | 0.78 | no leak detected | 0.786 |
+  [| chain/i=15,s=0 | start value x | 8192 | 100283 | 99717 | 4.0 | 4.0 | -0.000 | -0.0115% | -1.59 | 2.02 (crop 98) | 1.16 | 0.90 | no leak detected | 0.001 |
+chain/i=15,s=0] done in 6.7s
+  [chain/i=0,s=0] done in 6.4s
+| chain/i=0,s=0 | start value x | 8192 | 99782 | 100218 | 3.7 | 3.7 | -0.000 | -0.0016% | -0.40 | 1.48 (crop 37) | 1.90 | 2.75 | no leak detected | 0.001 |
+  [| wots_pk_gen | SK.seed | 1 | 49946 | 50054 | 238375.0 | 238375.0 | -55.845 | -0.0233% | +0.26 | 1.55 (crop 35) | 0.92 | 1.01 | no leak detected | 52.696 |
+wots_pk_gen] done in 24.2s
+  [| wots_sign | SK.seed (message m public, fixed) | 1 | 50111 | 49889 | 121750.0 | 121750.0 | -0.510 | -0.0004% | +1.64 | 1.95 (crop 53) | 1.53 | 1.49 | no leak detected | 28.036 |
+wots_sign] done in 12.5s
+  [xmss_node/z=0] done in 4.8s
+| xmss_node/z=0 | SK.seed | 1 | 10002 | 9998 | 235333.3 | 235375.0 | -19.227 | -0.0082% | -1.26 | 1.45 (crop 39) | 1.11 | 1.23 | no leak detected | 86.825 |
+  [| xmss_node/z=1 | SK.seed | 1 | 10034 | 9966 | 480583.3 | 480541.7 | +5.068 | +0.0011% | +0.15 | 1.29 (crop 16) | 1.58 | 1.93 | no leak detected | 206.913 |
+xmss_node/z=1] done in 9.7s
+  [| xmss_node/z=2 | SK.seed | 1 | 3039 | 2961 | 949583.3 | 950041.7 | -728.555 | -0.0770% | -1.55 | 1.84 (crop 72) | 0.91 | 0.70 | no leak detected | 544.595 |
+xmss_node/z=2] done in 5.8s
+  [xmss_node/z=3] done in 11.8s
+| xmss_node/z=3 | SK.seed | 1 | 2949 | 3051 | 1941375.0 | 1940958.3 | +385.012 | +0.0198% | -0.18 | 1.34 (crop 13) | 0.86 | 0.79 | no leak detected | 1437.300 |
+  [| xmss_node/z=4 | SK.seed | 1 | 2988 | 3012 | 3831375.0 | 3829041.7 | +18.942 | +0.0005% | +0.79 | 1.76 (crop 12) | 1.50 | 1.59 | no leak detected | 2493.143 |
+xmss_node/z=4] done in 23.1s
+  [xmss_sign] done in 125.3s
+| xmss_sign | SK.seed (m, idx public, fixed) | 1 | 492 | 508 | 123352375.0 | 123388583.3 | +10981.903 | +0.0089% | +0.35 | 1.75 (crop 15) | 1.98 | 1.68 | no leak detected | 219508.403 |
+  [fors_sk_gen] done in 11.1s
+| fors_sk_gen | SK.seed | 64 | 200547 | 199453 | 418.0 | 418.0 | +0.004 | +0.0010% | -1.61 | 1.61 | 1.63 | 1.48 | no leak detected | 0.071 |
+  [| fors_node/z=0 | SK.seed | 32 | 100088 | 99912 | 845.1 | 845.1 | +0.059 | +0.0070% | -1.01 | 1.75 (crop 53) | 1.59 | 1.16 | no leak detected | 0.193 |
+fors_node/z=0] done in 5.6s
+  [fors_node/z=1] done in 7.0s
+| fors_node/z=1 | SK.seed | 16 | 99737 | 100263 | 2127.6 | 2127.6 | -0.058 | -0.0027% | -1.06 | 1.29 (crop 7) | 1.08 | 1.29 | no leak detected | 0.484 |
+  [fors_node/z=3] done in 1.3s
+| fors_node/z=3 | SK.seed | 2 | 30094 | 29906 | 10104.2 | 10104.2 | +0.887 | +0.0088% | +1.25 | 1.59 (crop 11) | 2.19 | 1.34 | no leak detected | 4.358 |
+  [fors_node/z=6] done in 0.9s
+| fors_node/z=6 | SK.seed | 1 | 5083 | 4917 | 83875.0 | 83833.3 | -2.921 | -0.0035% | +2.48 | 3.31 (crop 85) | 2.08 | 1.50 | no leak detected | 45.570 |
+  [fors_node/z=12] done in 21.6s
+| fors_node/z=12 | SK.seed | 1 | 1985 | 2015 | 5353125.0 | 5353750.0 | -729.160 | -0.0136% | -0.80 | 1.66 (crop 2) | 1.30 | 2.08 | no leak detected | 3900.157 |
+  [fors_sign] done in 45.6s
+| fors_sign | SK.seed (md public, fixed) | 1 | 299 | 301 | 74628291.7 | 74565000.0 | +224350.205 | +0.2999% | +0.70 | 3.28 (crop 31) | 1.24 | 1.16 | no leak detected | 147330.525 |
+  [| slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 1 | 1027 | 973 | 129771000.0 | 129800041.7 | -220856.496 | -0.1721% | -1.33 | 1.95 (crop 24) | 0.65 | 1.44 | no leak detected | 134349.601 |
+slh_keygen_internal] done in 258.0s
+  [| CONTROL leaky_cmp (early-exit compare of secret) | secret (leaky by construction) | 32 | 100383 | 99617 | 623.7 | 307.3 | +452.297 | +111.8098% | +223.72 | 839.87 (crop 6) | 1.81 | 2.85 | leak detected (expected: control) | 1.419 |
+CONTROL leaky_cmp (early-exit compare of secret)] done in 3.2s
+  [CONTROL leaky_loop (secret-dependent iteration count)] done in | CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 32 | 99785 | 100215 | 636.7 | 847.7 | -109.103 | -15.5798% | -220.19 | 220.19 | 1.93 | 1.04 | leak detected (expected: control) | 0.969 |
+5.0s
+Fri Nov 20 18:59:38 PST 2026
+18:59  up 1 day,  9:18, 4 users, load averages: 4.63 4.02 3.29
+clock: mach_absolute_time, 41.667 ns/tick, observed granularity 41.7 ns; PSTATE.DIT = 0; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 13688519
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  [slh_sign_internal (m, PK.seed fixed; honest keys)] done in | slh_sign_internal (m, PK.seed fixed; honest keys) | SK.seed, SK.prf, addrnd (PK.root changes with SK.seed) | 1 | 283 | 317 | 819893125.0 | 825129250.0 | -2594151.988 | -0.3179% | -1.29 | 1.83 (crop 7) | 2.30 | 1.28 | no leak detected | 2524687.697 |
+531.0s
+clock: mach_absolute_time, 41.667 ns/tick, observed granularity 41.7 ns; PSTATE.DIT = 0; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 13688519
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  [| slh_sign_internal (m, whole key fixed) | addrnd only | 1 | 297 | 303 | 836570333.3 | 837521333.3 | -1649356.364 | -0.2000% | -0.64 | 2.01 (crop 3) | 3.39 | 1.31 | no leak detected | 2137349.016 |
+slh_sign_internal (m, whole key fixed)] done in 501.7s
+Fri Nov 20 19:16:51 PST 2026
+19:16  up 1 day,  9:36, 4 users, load averages: 3.83 3.73 3.65

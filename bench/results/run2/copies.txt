@@ -1,0 +1,2 @@
+variants/base/src == ../opt/original/rust/src
+variants/current/src == ../rust/src

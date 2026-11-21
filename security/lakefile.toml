@@ -1,0 +1,39 @@
+name = "security"
+defaultTargets = ["Link", "E2E", "Reduction", "Ideal"]
+# Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
+packagesDir = "../.tools/VCVio-upstream/.lake/packages"
+
+[[require]]
+name = "VCVio"
+path = "../.tools/VCVio-upstream"
+
+[[require]]
+name = "aeneas"
+path = "../.tools/aeneas/backends/lean"
+
+# Our FIPS 205 transcription, compiled in place from ../lean (not copied).
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
+[[lean_lib]]
+name = "Link"
+
+# The Aeneas extraction of the Rust implementation and its refinement proofs,
+# compiled in place from ../lean (not copied).
+[[lean_lib]]
+name = "Slhdsa"
+srcDir = "../lean"
+
+# End-to-end statements: Rust code -> Spec -> VCVio.
+[[lean_lib]]
+name = "E2E"
+
+# Standard-model security reduction (no random oracle).
+[[lean_lib]]
+name = "Reduction"
+
+# Ideal-compression-function model: bounds on the hash assumptions of the reduction when the
+# SHA-256 compression function is a random function (see IDEAL_STATUS.md).
+[[lean_lib]]
+name = "Ideal"

@@ -1,0 +1,9 @@
+.tools/
+target/
+.lake/
+*.llbc
+
+# Raw criterion output (thousands of small files); the .log and .md summaries beside them are kept
+bench/results/*/*/
+# macOS
+.DS_Store

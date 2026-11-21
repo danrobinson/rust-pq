@@ -1,0 +1,2 @@
+scratch/ideal/realize/ta.lean:11:0: error: (kernel) deep recursion detected, use `set_option maxRecDepth <num>` to increase the limit
+done

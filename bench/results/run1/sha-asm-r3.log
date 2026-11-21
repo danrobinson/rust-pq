@@ -1,0 +1,167 @@
+Benchmarking sha256_64B/verified
+Benchmarking sha256_64B/verified: Warming up for 500.00 ms
+Benchmarking sha256_64B/verified: Collecting 50 samples in estimated 2.0002 s (6.0M iterations)
+Benchmarking sha256_64B/verified: Analyzing
+sha256_64B/verified     time:   [319.86 ns 321.84 ns 324.21 ns]
+                        thrpt:  [188.26 MiB/s 189.64 MiB/s 190.82 MiB/s]
+Found 7 outliers among 50 measurements (14.00%)
+  4 (8.00%) high mild
+  3 (6.00%) high severe
+Benchmarking sha256_64B/variant-B-soft-streaming
+Benchmarking sha256_64B/variant-B-soft-streaming: Warming up for 500.00 ms
+Benchmarking sha256_64B/variant-B-soft-streaming: Collecting 50 samples in estimated 2.0003 s (6.8M iterations)
+Benchmarking sha256_64B/variant-B-soft-streaming: Analyzing
+sha256_64B/variant-B-soft-streaming
+                        time:   [285.61 ns 287.78 ns 290.56 ns]
+                        thrpt:  [210.06 MiB/s 212.09 MiB/s 213.70 MiB/s]
+Benchmarking sha256_64B/variant-C-armv8
+Benchmarking sha256_64B/variant-C-armv8: Warming up for 500.00 ms
+Benchmarking sha256_64B/variant-C-armv8: Collecting 50 samples in estimated 2.0000 s (51M iterations)
+Benchmarking sha256_64B/variant-C-armv8: Analyzing
+sha256_64B/variant-C-armv8
+                        time:   [37.965 ns 38.767 ns 39.768 ns]
+                        thrpt:  [1.4988 GiB/s 1.5375 GiB/s 1.5700 GiB/s]
+Found 8 outliers among 50 measurements (16.00%)
+  1 (2.00%) high mild
+  7 (14.00%) high severe
+Benchmarking sha256_64B/sha2-0.11
+Benchmarking sha256_64B/sha2-0.11: Warming up for 500.00 ms
+Benchmarking sha256_64B/sha2-0.11: Collecting 50 samples in estimated 2.0000 s (60M iterations)
+Benchmarking sha256_64B/sha2-0.11: Analyzing
+sha256_64B/sha2-0.11    time:   [32.877 ns 33.043 ns 33.195 ns]
+                        thrpt:  [1.7956 GiB/s 1.8038 GiB/s 1.8130 GiB/s]
+Found 3 outliers among 50 measurements (6.00%)
+  3 (6.00%) low mild
+Benchmarking sha256_64B/sha2-0.10
+Benchmarking sha256_64B/sha2-0.10: Warming up for 500.00 ms
+Benchmarking sha256_64B/sha2-0.10: Collecting 50 samples in estimated 2.0000 s (67M iterations)
+Benchmarking sha256_64B/sha2-0.10: Analyzing
+sha256_64B/sha2-0.10    time:   [30.043 ns 30.088 ns 30.145 ns]
+                        thrpt:  [1.9773 GiB/s 1.9810 GiB/s 1.9840 GiB/s]
+Found 10 outliers among 50 measurements (20.00%)
+  1 (2.00%) low mild
+  2 (4.00%) high mild
+  7 (14.00%) high severe
+Benchmarking sha256_64B/openssl
+Benchmarking sha256_64B/openssl: Warming up for 500.00 ms
+Benchmarking sha256_64B/openssl: Collecting 50 samples in estimated 2.0000 s (56M iterations)
+Benchmarking sha256_64B/openssl: Analyzing
+sha256_64B/openssl      time:   [35.377 ns 35.390 ns 35.403 ns]
+                        thrpt:  [1.6836 GiB/s 1.6842 GiB/s 1.6849 GiB/s]
+Found 5 outliers among 50 measurements (10.00%)
+  1 (2.00%) low severe
+  1 (2.00%) low mild
+  3 (6.00%) high mild
+
+Benchmarking sha256_102B/verified
+Benchmarking sha256_102B/verified: Warming up for 500.00 ms
+Benchmarking sha256_102B/verified: Collecting 50 samples in estimated 2.0000 s (6.4M iterations)
+Benchmarking sha256_102B/verified: Analyzing
+sha256_102B/verified    time:   [311.63 ns 313.23 ns 315.08 ns]
+                        thrpt:  [308.73 MiB/s 310.56 MiB/s 312.15 MiB/s]
+Found 6 outliers among 50 measurements (12.00%)
+  1 (2.00%) high mild
+  5 (10.00%) high severe
+Benchmarking sha256_102B/variant-B-soft-streaming
+Benchmarking sha256_102B/variant-B-soft-streaming: Warming up for 500.00 ms
+Benchmarking sha256_102B/variant-B-soft-streaming: Collecting 50 samples in estimated 2.0004 s (6.5M iterations)
+Benchmarking sha256_102B/variant-B-soft-streaming: Analyzing
+sha256_102B/variant-B-soft-streaming
+                        time:   [303.51 ns 304.96 ns 306.63 ns]
+                        thrpt:  [317.24 MiB/s 318.98 MiB/s 320.50 MiB/s]
+Found 6 outliers among 50 measurements (12.00%)
+  3 (6.00%) high mild
+  3 (6.00%) high severe
+Benchmarking sha256_102B/variant-C-armv8
+Benchmarking sha256_102B/variant-C-armv8: Warming up for 500.00 ms
+Benchmarking sha256_102B/variant-C-armv8: Collecting 50 samples in estimated 2.0000 s (36M iterations)
+Benchmarking sha256_102B/variant-C-armv8: Analyzing
+sha256_102B/variant-C-armv8
+                        time:   [55.707 ns 56.208 ns 56.717 ns]
+                        thrpt:  [1.6749 GiB/s 1.6901 GiB/s 1.7053 GiB/s]
+Found 2 outliers among 50 measurements (4.00%)
+  2 (4.00%) high mild
+Benchmarking sha256_102B/sha2-0.11
+Benchmarking sha256_102B/sha2-0.11: Warming up for 500.00 ms
+Benchmarking sha256_102B/sha2-0.11: Collecting 50 samples in estimated 2.0000 s (67M iterations)
+Benchmarking sha256_102B/sha2-0.11: Analyzing
+sha256_102B/sha2-0.11   time:   [30.001 ns 30.040 ns 30.081 ns]
+                        thrpt:  [3.1579 GiB/s 3.1623 GiB/s 3.1664 GiB/s]
+Found 5 outliers among 50 measurements (10.00%)
+  5 (10.00%) high mild
+Benchmarking sha256_102B/sha2-0.10
+Benchmarking sha256_102B/sha2-0.10: Warming up for 500.00 ms
+Benchmarking sha256_102B/sha2-0.10: Collecting 50 samples in estimated 2.0000 s (64M iterations)
+Benchmarking sha256_102B/sha2-0.10: Analyzing
+sha256_102B/sha2-0.10   time:   [30.599 ns 30.824 ns 31.013 ns]
+                        thrpt:  [3.0631 GiB/s 3.0819 GiB/s 3.1045 GiB/s]
+Found 2 outliers among 50 measurements (4.00%)
+  2 (4.00%) high mild
+Benchmarking sha256_102B/openssl
+Benchmarking sha256_102B/openssl: Warming up for 500.00 ms
+Benchmarking sha256_102B/openssl: Collecting 50 samples in estimated 2.0000 s (56M iterations)
+Benchmarking sha256_102B/openssl: Analyzing
+sha256_102B/openssl     time:   [35.386 ns 35.410 ns 35.439 ns]
+                        thrpt:  [2.6805 GiB/s 2.6827 GiB/s 2.6845 GiB/s]
+Found 3 outliers among 50 measurements (6.00%)
+  1 (2.00%) low mild
+  1 (2.00%) high mild
+  1 (2.00%) high severe
+
+Benchmarking sha256_1024B/verified
+Benchmarking sha256_1024B/verified: Warming up for 500.00 ms
+Benchmarking sha256_1024B/verified: Collecting 50 samples in estimated 2.0007 s (812k iterations)
+Benchmarking sha256_1024B/verified: Analyzing
+sha256_1024B/verified   time:   [2.4757 µs 2.4989 µs 2.5241 µs]
+                        thrpt:  [386.90 MiB/s 390.80 MiB/s 394.46 MiB/s]
+Found 4 outliers among 50 measurements (8.00%)
+  2 (4.00%) high mild
+  2 (4.00%) high severe
+Benchmarking sha256_1024B/variant-B-soft-streaming
+Benchmarking sha256_1024B/variant-B-soft-streaming: Warming up for 500.00 ms
+Benchmarking sha256_1024B/variant-B-soft-streaming: Collecting 50 samples in estimated 2.0002 s (824k iterations)
+Benchmarking sha256_1024B/variant-B-soft-streaming: Analyzing
+sha256_1024B/variant-B-soft-streaming
+                        time:   [2.3989 µs 2.4196 µs 2.4424 µs]
+                        thrpt:  [399.83 MiB/s 403.61 MiB/s 407.10 MiB/s]
+Found 7 outliers among 50 measurements (14.00%)
+  4 (8.00%) high mild
+  3 (6.00%) high severe
+Benchmarking sha256_1024B/variant-C-armv8
+Benchmarking sha256_1024B/variant-C-armv8: Warming up for 500.00 ms
+Benchmarking sha256_1024B/variant-C-armv8: Collecting 50 samples in estimated 2.0003 s (6.3M iterations)
+Benchmarking sha256_1024B/variant-C-armv8: Analyzing
+sha256_1024B/variant-C-armv8
+                        time:   [314.22 ns 314.73 ns 315.40 ns]
+                        thrpt:  [3.0237 GiB/s 3.0301 GiB/s 3.0350 GiB/s]
+Found 8 outliers among 50 measurements (16.00%)
+  4 (8.00%) high mild
+  4 (8.00%) high severe
+Benchmarking sha256_1024B/sha2-0.11
+Benchmarking sha256_1024B/sha2-0.11: Warming up for 500.00 ms
+Benchmarking sha256_1024B/sha2-0.11: Collecting 50 samples in estimated 2.0002 s (6.5M iterations)
+Benchmarking sha256_1024B/sha2-0.11: Analyzing
+sha256_1024B/sha2-0.11  time:   [305.80 ns 306.40 ns 307.05 ns]
+                        thrpt:  [3.1059 GiB/s 3.1125 GiB/s 3.1186 GiB/s]
+Found 6 outliers among 50 measurements (12.00%)
+  1 (2.00%) low mild
+  2 (4.00%) high mild
+  3 (6.00%) high severe
+Benchmarking sha256_1024B/sha2-0.10
+Benchmarking sha256_1024B/sha2-0.10: Warming up for 500.00 ms
+Benchmarking sha256_1024B/sha2-0.10: Collecting 50 samples in estimated 2.0000 s (6.5M iterations)
+Benchmarking sha256_1024B/sha2-0.10: Analyzing
+sha256_1024B/sha2-0.10  time:   [304.93 ns 305.04 ns 305.15 ns]
+                        thrpt:  [3.1253 GiB/s 3.1264 GiB/s 3.1275 GiB/s]
+Found 2 outliers among 50 measurements (4.00%)
+  1 (2.00%) low severe
+  1 (2.00%) high severe
+Benchmarking sha256_1024B/openssl
+Benchmarking sha256_1024B/openssl: Warming up for 500.00 ms
+Benchmarking sha256_1024B/openssl: Collecting 50 samples in estimated 2.0000 s (6.5M iterations)
+Benchmarking sha256_1024B/openssl: Analyzing
+sha256_1024B/openssl    time:   [308.69 ns 308.79 ns 308.89 ns]
+                        thrpt:  [3.0874 GiB/s 3.0884 GiB/s 3.0894 GiB/s]
+Found 3 outliers among 50 measurements (6.00%)
+  3 (6.00%) high severe
+

@@ -1,0 +1,1 @@
+slh-dsa/slhdsa-c commit 2b111e076a3bf0b6041651cf8746acf5ade56cc7 (2025-06-15), https://github.com/slh-dsa/slhdsa-c; test/ dir removed except test/my_dbg.h.

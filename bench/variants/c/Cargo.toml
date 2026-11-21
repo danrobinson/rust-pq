@@ -1,0 +1,15 @@
+[package]
+name = "slhdsa_c"
+version = "0.1.0"
+edition = "2021"
+description = "Variant C: B + ARMv8 SHA-256 instructions (core::arch::aarch64) for the compression function only."
+publish = false
+
+[features]
+count = []
+
+[dev-dependencies]
+serde_json = "1"
+hex = "0.4"
+sha2 = "0.10"
+hmac = "0.12"

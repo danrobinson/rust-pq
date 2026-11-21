@@ -1,0 +1,1595 @@
+vp : ValidatedParams
+prims : Primitives vp.params
+inst✝⁶ : SampleableType (@CorePrimitives.SkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝⁵ : SampleableType (@CorePrimitives.SkPrf vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝⁴ : SampleableType (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝³ : DecidableEq (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝² : DecidableEq (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝¹ : DecidableEq (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+inst✝ : Inhabited (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+B : Nat
+h5 :
+  @IsQueryBoundP
+    (Sum Nat
+      (Sum
+        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@Sigma Empty fun i =>
+          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@TweakableHashCollection.Msg Empty
+              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (TweakableHashCollection.empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+              i))))
+    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+    (SecretTable vp prims)
+    (@bind
+      (@OracleComp
+        (Sum Nat
+          (Sum
+            (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+            (@Sigma Empty fun i =>
+              Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@TweakableHashCollection.Msg Empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (TweakableHashCollection.empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  i))))
+        (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+      (@PFunctor.FreeM.instBind
+        (@toPFunctor
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+      (SecretTable vp prims) (SecretTable vp prims)
+      (@monadLift ProbComp
+        (@OracleComp
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@instMonadLiftTOfMonadLift ProbComp (@OracleComp Nat unifSpec)
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@instMonadLiftOfOracleQuery Nat
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            unifSpec
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+            (@SubSpec.toMonadLift Nat
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              unifSpec
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+              (@OracleQuery.subSpec_add_left Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i)))
+                unifSpec
+                (@HAdd.hAdd
+                  (OracleSpec
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (OracleSpec
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (OracleSpec
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (@instHAddSum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (SM_DT_TCR_challengeSpec
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@collectionSpec Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))))))
+          (instMonadLiftT ProbComp))
+        (SecretTable vp prims) (@Lazy.sparseTable vp prims inst✝⁴ inst✝))
+      fun x =>
+      @bind
+        (@OracleComp
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@PFunctor.FreeM.instBind
+          (@toPFunctor
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+        Unit (SecretTable vp prims)
+        (@structureVia vp prims
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@PFunctor.FreeM.instMonad
+            (@toPFunctor
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+          (fun key xs =>
+            @bind
+              (@OracleComp
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@PFunctor.FreeM.instBind
+                (@toPFunctor
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+              (@Range
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                (@Sum.inr Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (@Sum.inl
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))
+                    (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs))))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@liftM
+                (↑(@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                (@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))).FreeM
+                (@instMonadLiftTOfMonadLift
+                  (↑(@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (↑(@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))).FreeM
+                  (@PFunctor.FreeM.instMonadLiftObj
+                    (@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (instMonadLiftT
+                    ↑(@toPFunctor
+                        (Sum Nat
+                          (Sum
+                            (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                            (@Sigma Empty fun i =>
+                              Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@TweakableHashCollection.Msg Empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (TweakableHashCollection.empty
+                                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                  i))))
+                        (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))))
+                (@Range
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@Sum.inr Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i)))
+                    (@Sum.inl
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))
+                      (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs))))
+                (@OracleSpec.query
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@Sum.inr Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i)))
+                    (@Sum.inl
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))
+                      (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs)))))
+              fun r =>
+              @pure
+                (@OracleComp
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@PFunctor.FreeM.instPure
+                  (@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@Option.getD (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) r
+                  (@default (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) inst✝)))
+          fun a =>
+          @pure
+            (@OracleComp
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+            (@PFunctor.FreeM.instPure
+              (@toPFunctor
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) (secretOf vp prims x a))
+        fun x_1 =>
+        @pure
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@PFunctor.FreeM.instPure
+            (@toPFunctor
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+          (SecretTable vp prims) x)
+    (fun t =>
+      @Eq Bool
+        (@bad0 (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@Sigma Empty fun i =>
+            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@TweakableHashCollection.Msg Empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (TweakableHashCollection.empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                i))
+          B t)
+        true)
+    (fun a =>
+      instDecidableEqBool
+        (@bad0 (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@Sigma Empty fun i =>
+            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@TweakableHashCollection.Msg Empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (TweakableHashCollection.empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                i))
+          B a)
+        true)
+    (@OfNat.ofNat Nat (nat_lit 0) (instOfNatNat (nat_lit 0)))
+⊢ @IsQueryBoundP
+    (Sum Nat
+      (Sum
+        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@Sigma Empty fun i =>
+          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@TweakableHashCollection.Msg Empty
+              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (TweakableHashCollection.empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+              i))))
+    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+    (SecretTable vp prims)
+    (@bind
+      (@OracleComp
+        (Sum Nat
+          (Sum
+            (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+            (@Sigma Empty fun i =>
+              Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@TweakableHashCollection.Msg Empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (TweakableHashCollection.empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  i))))
+        (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+      (@PFunctor.FreeM.instBind
+        (@toPFunctor
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+      (SecretTable vp prims) (SecretTable vp prims)
+      (@monadLift ProbComp
+        (@OracleComp
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@instMonadLiftTOfMonadLift ProbComp (@OracleComp Nat unifSpec)
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@instMonadLiftOfOracleQuery Nat
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            unifSpec
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+            (@SubSpec.toMonadLift Nat
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              unifSpec
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+              (@OracleQuery.subSpec_add_left Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i)))
+                unifSpec
+                (@HAdd.hAdd
+                  (OracleSpec
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (OracleSpec
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (OracleSpec
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (@instHAddSum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (SM_DT_TCR_challengeSpec
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@collectionSpec Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))))))
+          (instMonadLiftT ProbComp))
+        (SecretTable vp prims) (@Lazy.sparseTable vp prims inst✝⁴ inst✝))
+      fun tbl =>
+      @bind
+        (@OracleComp
+          (Sum Nat
+            (Sum
+              (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@Sigma Empty fun i =>
+                Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@TweakableHashCollection.Msg Empty
+                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (TweakableHashCollection.empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                    i))))
+          (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+        (@PFunctor.FreeM.instBind
+          (@toPFunctor
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+        Unit (SecretTable vp prims)
+        (@structureVia vp prims
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@PFunctor.FreeM.instMonad
+            (@toPFunctor
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+          (fun key xs =>
+            @bind
+              (@OracleComp
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+              (@PFunctor.FreeM.instBind
+                (@toPFunctor
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+              (@Range
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                (@Sum.inr Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i)))
+                  (@Sum.inl
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))
+                    (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs))))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@liftM
+                (↑(@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                (@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))).FreeM
+                (@instMonadLiftTOfMonadLift
+                  (↑(@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (↑(@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))).FreeM
+                  (@PFunctor.FreeM.instMonadLiftObj
+                    (@toPFunctor
+                      (Sum Nat
+                        (Sum
+                          (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                          (@Sigma Empty fun i =>
+                            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@TweakableHashCollection.Msg Empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (TweakableHashCollection.empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                i))))
+                      (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                  (instMonadLiftT
+                    ↑(@toPFunctor
+                        (Sum Nat
+                          (Sum
+                            (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                            (@Sigma Empty fun i =>
+                              Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@TweakableHashCollection.Msg Empty
+                                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                  (TweakableHashCollection.empty
+                                    (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                                  i))))
+                        (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))))
+                (@Range
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@Sum.inr Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i)))
+                    (@Sum.inl
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))
+                      (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs))))
+                (@OracleSpec.query
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                  (@Sum.inr Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i)))
+                    (@Sum.inl
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))
+                      (@Prod.mk (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))) key xs)))))
+              fun r =>
+              @pure
+                (@OracleComp
+                  (Sum Nat
+                    (Sum
+                      (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                      (@Sigma Empty fun i =>
+                        Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@TweakableHashCollection.Msg Empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (TweakableHashCollection.empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                            i))))
+                  (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@PFunctor.FreeM.instPure
+                  (@toPFunctor
+                    (Sum Nat
+                      (Sum
+                        (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                        (@Sigma Empty fun i =>
+                          Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@TweakableHashCollection.Msg Empty
+                              (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                              (TweakableHashCollection.empty
+                                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                              i))))
+                    (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@Option.getD (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) r
+                  (@default (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) inst✝)))
+          fun a =>
+          @pure
+            (@OracleComp
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+            (@PFunctor.FreeM.instPure
+              (@toPFunctor
+                (Sum Nat
+                  (Sum
+                    (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                    (@Sigma Empty fun i =>
+                      Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@TweakableHashCollection.Msg Empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (TweakableHashCollection.empty
+                            (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                          i))))
+                (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+            (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)) (secretOf vp prims tbl a))
+        fun x =>
+        @pure
+          (@OracleComp
+            (Sum Nat
+              (Sum
+                (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                (@Sigma Empty fun i =>
+                  Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (@TweakableHashCollection.Msg Empty
+                      (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (TweakableHashCollection.empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                      i))))
+            (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+          (@PFunctor.FreeM.instPure
+            (@toPFunctor
+              (Sum Nat
+                (Sum
+                  (Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                    (List (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))))
+                  (@Sigma Empty fun i =>
+                    Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                      (@TweakableHashCollection.Msg Empty
+                        (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                        (TweakableHashCollection.empty
+                          (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                        i))))
+              (Spec0 (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))))
+          (SecretTable vp prims) tbl)
+    (fun t =>
+      @Eq Bool
+        (@bad0 (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@Sigma Empty fun i =>
+            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@TweakableHashCollection.Msg Empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (TweakableHashCollection.empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                i))
+          B t)
+        true)
+    (fun a =>
+      instDecidableEqBool
+        (@bad0 (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+          (@Sigma Empty fun i =>
+            Prod (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+              (@TweakableHashCollection.Msg Empty
+                (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims))
+                (TweakableHashCollection.empty
+                  (@CorePrimitives.PkSeed vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.AdrsKey vp.params (@Primitives.toCorePrimitives vp.params prims))
+                  (@CorePrimitives.Y vp.params (@Primitives.toCorePrimitives vp.params prims)))
+                i))
+          B a)
+        true)
+    (@OfNat.ofNat Nat (nat_lit 0) (instOfNatNat (nat_lit 0)))
+scratch/ideal/realize/t7.lean:261:8: warning: declaration uses `sorry`
+scratch/ideal/realize/t7.lean:308:2: warning: Unused tactic linter: `set_option pp.explicit true in trace_state` does not change the goal.
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`

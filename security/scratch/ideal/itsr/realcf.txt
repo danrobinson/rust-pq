@@ -1,0 +1,10 @@
+/-- At the real compression function the problem is the Reduction's own. -/
+theorem itsrProblem_realCF :
+    Reduction.itsrProblem Link.vp (primsG (liftC realCF)) =
+      Reduction.itsrProblem Link.vp Link.prims := by
+  have h := congrArg (fun c : CompressFn =>
+    (show ITSRProblem (Bytes 16) X128 (Bytes 30) (Adrs × ℕ) from
+      Reduction.itsrProblem Link.vp (primsG c)))
+    liftC_realCF
+  exact h
+

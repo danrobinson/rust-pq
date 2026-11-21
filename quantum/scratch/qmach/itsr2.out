@@ -1,0 +1,20 @@
+Integration/SlhDsaBridgeMachItsr2.lean:118:0: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (1000000) has been reached
+
+Note: Use `set_option maxHeartbeats <num>` to set the limit.
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+Integration/SlhDsaBridgeMachItsr2.lean:139:47: warning: This simp argument is unused:
+  gameWU
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [Lazy.lazyImplR, Lazy.kind, gameWI]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Integration/SlhDsaBridgeMachItsr2.lean:174:22: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached
+
+Note: Use `set_option maxHeartbeats <num>` to set the limit.
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+'Reduction.itsrMach_games' does not depend on any axioms
+Integration/SlhDsaBridgeMachItsr2.lean:190:14: error(lean.unknownIdentifier): Unknown constant `Reduction.itsr_iadv`
+TO=500 scratch/qmach/run.sh Integration/SlhDsaBridgeMachItsr2.lean  26.24s user 1.84s system 123% cpu 22.765 total

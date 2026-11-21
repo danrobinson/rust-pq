@@ -1,0 +1,22 @@
+Package D interface (all proved, no sorry) — `lake build MReduction`:
+- MReduction/Instances.lean: `MReduction.structural S`, `keyDiscipline S`, `codec S` (= sha2WireCodec S.vp.params),
+  `detRand S`, instances `instInhabitedY S`, `instFintypeY S`.
+- MReduction/Headline.lean: generic `MReduction.slhdsa_sha2_<base> (S : Sha2Set) …` and per set
+  `MReduction.slhdsa_sha2_<set>_<base>` (<set> ∈ 128s,128f,192s,192f,256s,256f), <base> ∈
+  {bytes,pure_bytes}_{suf,euf}_cma_final, {suf,euf,pure_suf,pure_euf}_cma_final_memo,
+  {,pure_}{,bytes_}{suf,euf}_cma_{deterministic,hedged}.
+- MReduction/Linear.lean: <base> ∈ {suf,euf,pure_suf,pure_euf}_cma_final_linear, {bytes,pure_bytes}_{suf,euf}_cma_linear.
+- MReduction/HeadlineOld.lean: <base> ∈ …_final_tight, …_final_split, {bytes,pure_bytes}_{suf,euf}_cma.
+- MReduction/Resources.lean: `final_resources_final_sha2 S`, `final_resources_final_external_sha2 S` (generic),
+  per set `final_resources_final_<set>`, `final_resources_final_external_<set>`, `directCounts<set>`,
+  `params_<set>`, `arityTargets_<set>`, `thashArityProblemT_cap_<set>`, `wotsTcrProblemT_cap_<set>`, `otherCaps_<set>`,
+  `keygenHashes_<set>`, `signHashes_<set>`, `verifyHashes_<set>`, …
+Forger variables are named `F` (strong) / `A`; the set is `S` / `Sha2Set.s128f` etc.
+Added after the first publication (statements above unchanged):
+- MReduction/Explicit.lean: `slhdsa_sha2_{bytes,pure_bytes}_{suf,euf}_cma_final_explicit (S)` and per set
+  `slhdsa_sha2_<set>_…_explicit` (boundFinalTight with the twelve adversaries written out).
+- MReduction/Audit.lean: `arities_pairwise S`, `thash_class S`, `fHash_eval S`, `prf_spec S`, `prfMsg_spec S`, `hmsg_spec S`,
+  `skAdrs_dom S`, `sha2PRFChecked_ok S`, `games_can_be_lost S`, …
+- MLink/Security.lean: `MLink.security_sha2 S`, `security_sha2_euf S`, `romScheme_verify_eq S`, `hprf_dom S`, `not_hprf S`,
+  `romScheme_map_romAnswer_sha2 S`.
+Report: status/D.md.

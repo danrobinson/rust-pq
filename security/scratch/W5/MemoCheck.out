@@ -1,0 +1,15 @@
+Reduction.bTcrArM: 1139 constants; flagged: []
+Reduction.memoForge: 1007 constants; flagged: []
+Reduction.findCollisionM: 339 constants; flagged: []
+Reduction.chkM: 334 constants; flagged: []
+Reduction.classOut: 319 constants; flagged: []
+Reduction.Resources2.memoForgeOpen: 1001 constants; flagged: []
+Reduction.Resources2.collO: 451 constants; flagged: []
+Reduction.Resources2.hashQ: 234 constants; flagged: []
+Reduction.Resources2.verifyFree: 729 constants; flagged: []
+Reduction.Resources2.thQ: 65 constants; flagged: []
+Reduction.bTcrAr: 1145 constants; flagged: [Reduction.sampleTable, Fin.mOfFn]
+Reduction.betaEufFinalMemo: 3455 constants; flagged: [Classical.choice,
+ Classical.indefiniteDescription,
+ Exists.choose,
+ Classical.propDecidable]

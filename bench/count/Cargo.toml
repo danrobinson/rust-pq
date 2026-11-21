@@ -1,0 +1,14 @@
+[package]
+name = "count"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Counts SHA-256 compression calls per operation in the instrumented copies (feature `count`)."
+
+[dependencies]
+slhdsa_base = { path = "../variants/base", features = ["count"] }
+slhdsa_current = { path = "../variants/current", features = ["count"] }
+slhdsa_a = { path = "../variants/a", features = ["count"] }
+slhdsa_b = { path = "../variants/b", features = ["count"] }
+slhdsa_d = { path = "../variants/d", features = ["count"] }
+slhdsa_c = { path = "../variants/c", features = ["count"] }

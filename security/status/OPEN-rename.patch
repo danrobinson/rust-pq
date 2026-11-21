@@ -1,0 +1,262 @@
+--- a/Reduction/Open/MsgV.lean
++++ b/Reduction/Open/MsgV.lean
+@@ -4,10 +4,10 @@
+ `Lazy.msgOpen A` / `Lazy.msgOpenW w A` end with `harnessValid` / `w`, which run `verifyInternal`
+ directly on `prims`.  Here:
+ 
+-* `emb Q` — a program `Q` over the hash oracle alone, read as an open program (every query of
++* `embR Q` — a program `Q` over the hash oracle alone, read as an open program (every query of
+   `Q` is ONE hash-kind query); `simulateQ_lazyImpl_emb`, `simulateQ_tblImpl_emb`, `emb_kindBound`.
+ * `msgOpenV A`, `msgOpenWV wO A` — as `msgOpen A`, `msgOpenW w A`, with the final check
+-  `emb (verification program)`; `wO : WinCheckO` is a final check given as a program over the hash
++  `embR (verification program)`; `wO : WinCheckO` is a final check given as a program over the hash
+   oracle, `wO.eval` the `WinCheck` it computes; `sufCheckO.eval = sufCheck`, `eufCheckO`.
+ * `lazyRun_msgOpenV`, `lazyRun_msgOpenWV`, `lazyRun_msgOpenWV_sufCheck` — equality of programs
+   with `Lazy.bPrfMsgL A`, `Lazy.bPrfMsgWL w A`.
+@@ -39,55 +39,55 @@
+ variable {ι κ : Type} {gspec : OracleSpec ι} {hspec : OracleSpec κ} {D V α : Type}
+ 
+ /-- A hash query, forwarded as the hash-kind query of the open interface. -/
+-def hashEmb : QueryImpl hspec (OracleComp (RSpec gspec D V hspec)) :=
++def hashEmbR : QueryImpl hspec (OracleComp (RSpec gspec D V hspec)) :=
+   fun q => (liftM ((RSpec gspec D V hspec).query (.inr (.inr (.inr q)))) :
+     OracleComp (RSpec gspec D V hspec) _)
+ 
+ /-- A program over the hash oracle alone, as an open program: each of its queries is one
+ hash-kind query; nothing is evaluated. -/
+-def emb (Q : OracleComp hspec α) : OracleComp (RSpec gspec D V hspec) α :=
+-  simulateQ hashEmb Q
++def embR (Q : OracleComp hspec α) : OracleComp (RSpec gspec D V hspec) α :=
++  simulateQ hashEmbR Q
+ 
+-/-- Under any handler that answers hash queries by `hI`, `emb Q` is the evaluation of `Q`. -/
++/-- Under any handler that answers hash queries by `hI`, `embR Q` is the evaluation of `Q`. -/
+ theorem simulateQ_emb {m : Type → Type} [Monad m] [LawfulMonad m]
+     (I : QueryImpl (RSpec gspec D V hspec) m) (hI : QueryImpl hspec Id)
+     (h : ∀ q, I (.inr (.inr (.inr q))) = pure (hI q)) (Q : OracleComp hspec α) :
+-    simulateQ I (emb (gspec := gspec) (D := D) (V := V) Q) = pure (simulateQ hI Q) := by
++    simulateQ I (embR (gspec := gspec) (D := D) (V := V) Q) = pure (simulateQ hI Q) := by
+   induction Q using OracleComp.inductionOn with
+-  | pure a => simp [emb]; rfl
++  | pure a => simp [embR]; rfl
+   | query_bind t k ih =>
+-    have h1 : simulateQ I (emb (gspec := gspec) (D := D) (V := V) (liftM (hspec.query t) >>= k)) =
+-        I (.inr (.inr (.inr t))) >>= fun x => simulateQ I (emb (k x)) := by
+-      simp [emb, hashEmb]
++    have h1 : simulateQ I (embR (gspec := gspec) (D := D) (V := V) (liftM (hspec.query t) >>= k)) =
++        I (.inr (.inr (.inr t))) >>= fun x => simulateQ I (embR (k x)) := by
++      simp [embR, hashEmbR]
+     rw [h1, h, pure_bind, ih]
+     rfl
+ 
+ theorem simulateQ_lazyImpl_emb [DecidableEq D] [SampleableType V] (hI : QueryImpl hspec Id)
+     (Q : OracleComp hspec α) :
+-    simulateQ (lazyImpl (gspec := gspec) (D := D) (V := V) hI) (emb Q) =
++    simulateQ (lazyImpl (gspec := gspec) (D := D) (V := V) hI) (embR Q) =
+       pure (simulateQ hI Q) :=
+   simulateQ_emb _ hI (fun _ => rfl) Q
+ 
+ theorem simulateQ_tblImpl_emb (hI : QueryImpl hspec Id) (g : D → V) (Q : OracleComp hspec α) :
+-    simulateQ (tblImpl (gspec := gspec) hI g) (emb Q) = pure (simulateQ hI Q) :=
++    simulateQ (tblImpl (gspec := gspec) hI g) (embR Q) = pure (simulateQ hI Q) :=
+   simulateQ_emb _ hI (fun _ => rfl) Q
+ 
+-/-- `emb Q` makes as many hash-kind queries as `Q` makes queries, and no other query. -/
++/-- `embR Q` makes as many hash-kind queries as `Q` makes queries, and no other query. -/
+ theorem emb_kindBound (K : Kind) (Q : OracleComp hspec α) (n : ℕ)
+     (hQ : IsTotalQueryBound Q n) :
+-    IsQueryBoundP (emb (gspec := gspec) (D := D) (V := V) Q) (fun t => kind t = K)
++    IsQueryBoundP (embR (gspec := gspec) (D := D) (V := V) Q) (fun t => kind t = K)
+       (n * ind K .hash) := by
+   by_cases hK : K = .hash
+   · subst hK
+-    have h := IsQueryBoundP.simulateQ_of_step (impl := hashEmb (gspec := gspec) (D := D) (V := V))
++    have h := IsQueryBoundP.simulateQ_of_step (impl := hashEmbR (gspec := gspec) (D := D) (V := V))
+       (q := fun t => kind t = Kind.hash) (hQ.isQueryBoundP (p := fun _ => True))
+       (fun t _ => (isQueryBoundP_query_iff _ _ _).2 fun _ => Nat.one_pos)
+       (fun t ht => absurd trivial ht)
+-    simpa [ind, emb] using h
+-  · have h := isQueryBoundP_simulateQ_zero (impl := hashEmb (gspec := gspec) (D := D) (V := V))
++    simpa [ind, embR] using h
++  · have h := isQueryBoundP_simulateQ_zero (impl := hashEmbR (gspec := gspec) (D := D) (V := V))
+       (q := fun t => kind t = K) Q
+       (fun t => (isQueryBoundP_query_iff _ _ _).2 fun h => (hK (Eq.symm h)).elim)
+-    simpa [ind, hK, emb] using h
++    simpa [ind, hK, embR] using h
+ 
+ end Generic
+ 
+@@ -163,12 +163,12 @@
+ verification being hash-kind queries. -/
+ def msgOpenV (A : Forger vp prims optRand pkSeedDist) :
+     OracleComp (OSpec prims (msgG prims)) Bool :=
+-  msgPre A >>= fun x => emb (eufCheckO x.1 x.2.2 x.2.1.1 x.2.1.2)
++  msgPre A >>= fun x => embR (eufCheckO x.1 x.2.2 x.2.1.1 x.2.1.2)
+ 
+ /-- **The open `PRF_msg` distinguisher of the SUF-CMA proof with open final check `wO`.** -/
+ def msgOpenWV (wO : WinCheckO vp prims) (A : Forger vp prims optRand pkSeedDist) :
+     OracleComp (OSpec prims (msgG prims)) Bool :=
+-  msgPreW A >>= fun x => emb (wO x.1 x.2.1 x.2.2)
++  msgPreW A >>= fun x => embR (wO x.1 x.2.1 x.2.2)
+ 
+ theorem msgOpen_eq_pre (A : Forger vp prims optRand pkSeedDist) :
+     msgOpen A = msgPre A >>= fun x => pure (harnessValid x.1 x.2.2 x.2.1.1 x.2.1.2) := by
+--- a/Reduction/Open/Tcr.lean
++++ b/Reduction/Open/Tcr.lean
+@@ -53,7 +53,7 @@
+ attribute [local irreducible] arityTargets tcrTargets
+ 
+ /-- A forger program: the only way a forger enters the second phase. -/
+-abbrev ForgerProg (vp : ValidatedParams) (prims : Primitives vp.params) : Type :=
++abbrev TcrForgerProg (vp : ValidatedParams) (prims : Primitives vp.params) : Type :=
+   PublicKeyCore prims.core →
+     OracleComp (unifSpec + (List Byte →ₒ GeneralScheme.SignatureCore vp prims.core))
+       (List Byte × GeneralScheme.SignatureCore vp prims.core)
+@@ -65,7 +65,7 @@
+ against the logging signing oracle with open signing (`openSign`), one `H_msg` query for the
+ forgery, verification of the forgery with the collision search interleaved (`collO`). -/
+ noncomputable def tcrMOpen (optRand : PublicKeyCore prims.core → ProbComp prims.Y)
+-    (gspec : OracleSpec ι) (main : ForgerProg vp prims)
++    (gspec : OracleSpec ι) (main : TcrForgerProg vp prims)
+     (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     OracleComp (Lazy.OSpec prims gspec) (ℕ × List prims.Y) := do
+   let root ← Lazy.openKeygen prims gspec pkSeed
+@@ -89,7 +89,7 @@
+ /-- **The second phase of the arity-`n` class adversary for an arbitrary forger program, DEFINED
+ as the `tblImpl` interpretation of the open program** followed by `classOut`. -/
+ noncomputable def tcrMForge (optRand : PublicKeyCore prims.core → ProbComp prims.Y)
+-    (gspec : OracleSpec ι) (n : ℕ) (main : ForgerProg vp prims)
++    (gspec : OracleSpec ι) (n : ℕ) (main : TcrForgerProg vp prims)
+     (s : SecretTable vp prims × List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     OracleComp (unifSpec + gspec) (ℕ × {xs : List prims.Y // xs.length = n}) :=
+   simulateQ (Lazy.tblImpl (gspec := gspec) (PublicHash.impl prims) s.1)
+@@ -98,7 +98,7 @@
+ /-- The same second phase in closed form (no open program), for an arbitrary forger program:
+ `memoForge` with the forger entering only through `main`. -/
+ noncomputable def tcrMForgeClosed (optRand : PublicKeyCore prims.core → ProbComp prims.Y)
+-    (n : ℕ) (main : ForgerProg vp prims)
++    (n : ℕ) (main : TcrForgerProg vp prims)
+     (s : SecretTable vp prims × List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     ProbComp (ℕ × {xs : List prims.Y // xs.length = n}) :=
+   memoForge (optRand := optRand) (pkSeedDist := (pure pkSeed : ProbComp prims.PkSeed)) n ⟨main⟩
+@@ -111,7 +111,7 @@
+ /-- **R7, program-generic interpretation lemma**: for every forger program `main` and every
+ state, the interpretation of the open program followed by `classOut` is the closed second
+ phase. -/
+-theorem tcrMForge_eq (n : ℕ) (main : ForgerProg vp prims) (tbl : SecretTable vp prims)
++theorem tcrMForge_eq (n : ℕ) (main : TcrForgerProg vp prims) (tbl : SecretTable vp prims)
+     (L : List (prims.AdrsKey × List prims.Y)) (pk : prims.PkSeed) :
+     tcrMForge optRand gspec n main (tbl, L) pk =
+       (liftM (tcrMForgeClosed optRand n main (tbl, L) pk) : OracleComp (unifSpec + gspec) _) :=
+@@ -133,7 +133,7 @@
+ through its hash-oracle queries. -/
+ theorem tcrMOpen_withTH (T : prims.PkSeed → prims.AdrsKey → List prims.Y → prims.Y)
+     (H : prims.Y → prims.PkSeed → prims.Y → List Byte → Bytes vp.params.m)
+-    (main : ForgerProg vp prims) (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
++    (main : TcrForgerProg vp prims) (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     tcrMOpen (prims := withTH prims T H) optRand gspec main L pkSeed =
+       tcrMOpen optRand gspec main L pkSeed := by
+   tcr_kernel_rfl
+@@ -154,7 +154,7 @@
+ on `T`, `H`; so the hash functions enter the second phase only through the hash oracle. -/
+ theorem tcrM_phase2_open_uniform (T : prims.PkSeed → prims.AdrsKey → List prims.Y → prims.Y)
+     (H : prims.Y → prims.PkSeed → prims.Y → List Byte → Bytes vp.params.m)
+-    (n : ℕ) (main : ForgerProg vp prims) (tbl : SecretTable vp prims)
++    (n : ℕ) (main : TcrForgerProg vp prims) (tbl : SecretTable vp prims)
+     (L : List (prims.AdrsKey × List prims.Y)) (pk : prims.PkSeed) :
+     (liftM (tcrMForgeClosed (prims := withTH prims T H) optRand n main (tbl, L) pk) :
+         OracleComp (unifSpec + gspec) _) =
+@@ -198,7 +198,7 @@
+ 
+ /-- Queries of kind `K ≠ .unif` of the open program, for an arbitrary forger program with at
+ most `qs` signing queries. -/
+-theorem tcrMOpen_kindBound (gspec : OracleSpec ι) (main : ForgerProg vp prims) (K : Lazy.Kind)
++theorem tcrMOpen_kindBound (gspec : OracleSpec ι) (main : TcrForgerProg vp prims) (K : Lazy.Kind)
+     (hK : K ≠ .unif) (qs : ℕ)
+     (hA : ∀ pk, IsQueryBoundP (main pk) (fun i => i.isRight = true) qs)
+     (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+@@ -211,7 +211,7 @@
+ 
+ /-- **Hash queries of the open second-phase program** (arbitrary forger program with at most
+ `qs` signing queries): `≤ keygenHashes + qs·signHashes + (1 + verifyHashes·2)`. -/
+-theorem tcrM_phase2_open_hashes (gspec : OracleSpec ι) (main : ForgerProg vp prims) (qs : ℕ)
++theorem tcrM_phase2_open_hashes (gspec : OracleSpec ι) (main : TcrForgerProg vp prims) (qs : ℕ)
+     (hA : ∀ pk, IsQueryBoundP (main pk) (fun i => i.isRight = true) qs)
+     (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     IsQueryBoundP (tcrMOpen optRand gspec main L pkSeed) (fun t => Lazy.kind t = .hash)
+@@ -220,7 +220,7 @@
+     (pkSeedDist := (pure pkSeed : ProbComp prims.PkSeed)) ⟨main⟩ qs hA L pkSeed
+ 
+ /-- Secret-table reads of the open second-phase program. -/
+-theorem tcrM_phase2_open_reads (gspec : OracleSpec ι) (main : ForgerProg vp prims) (qs : ℕ)
++theorem tcrM_phase2_open_reads (gspec : OracleSpec ι) (main : TcrForgerProg vp prims) (qs : ℕ)
+     (hA : ∀ pk, IsQueryBoundP (main pk) (fun i => i.isRight = true) qs)
+     (L : List (prims.AdrsKey × List prims.Y)) (pkSeed : prims.PkSeed) :
+     IsQueryBoundP (tcrMOpen optRand gspec main L pkSeed) (fun t => Lazy.kind t = .sec)
+@@ -231,7 +231,7 @@
+ /-- **SLH-DSA-SHA2-128s**: `≤ 269824 + qs·2007385 + 7857` hash queries. -/
+ theorem tcrM_phase2_open_hashes_128s {ι : Type} (gspec : OracleSpec ι)
+     (optRand : PublicKeyCore Link.prims.core → ProbComp Link.prims.Y)
+-    (main : ForgerProg Link.vp Link.prims) (qs : ℕ)
++    (main : TcrForgerProg Link.vp Link.prims) (qs : ℕ)
+     (hA : ∀ pk, IsQueryBoundP (main pk) (fun i => i.isRight = true) qs)
+     (L : List (Link.prims.AdrsKey × List Link.prims.Y)) (pkSeed : Link.prims.PkSeed) :
+     IsQueryBoundP (tcrMOpen optRand gspec main L pkSeed) (fun t => Lazy.kind t = .hash)
+--- a/Reduction/Open/Phase1Wots.lean
++++ b/Reduction/Open/Phase1Wots.lean
+@@ -187,7 +187,7 @@
+ 
+ /-! ## `q₁ = 0`: explicit forger-free, hash-free first-phase programs
+ 
+-`wotsPhase1`, `udPhase1`, `prePhase1`, `tcrPhase1` take neither a forger nor hash functions as
++`wotsPhase1`, `udPhase1`, `prePhase1`, `wotsTcrPhase1` take neither a forger nor hash functions as
+ arguments; they are programs over the game's oracle interface (coins, challenge, collection —
+ no hash oracle).  The first phase of each adversary, built over ANY `withHash prims f` from ANY
+ forger, is that one program. -/
+@@ -226,7 +226,7 @@
+   simPhase1 (preStart pkSeedDist) (preChainHash pkSeedDist) (preColl pkSeedDist)
+ 
+ /-- First phase of the SM-TCR adversary (both caps). -/
+-noncomputable def tcrPhase1 (pkSeedDist : ProbComp prims.PkSeed) :
++noncomputable def wotsTcrPhase1 (pkSeedDist : ProbComp prims.PkSeed) :
+     OracleComp (tcrSpecC prims.AdrsKey prims.Y) (RState vp prims) :=
+   simPhase1 (tcrStart pkSeedDist) (tcrChainHash pkSeedDist) (wtcrColl pkSeedDist)
+ 
+@@ -262,8 +262,8 @@
+ theorem wotsTcr_phase1_q1_zero (A' : Forger vp (withHash prims f) optRand' pkSeedDist') :
+     @Eq (OracleComp (tcrSpecC prims.AdrsKey prims.Y) (RState vp prims))
+       (rTcr (prims := withHash prims f) pkSeedDist (Lazy.bWotsS A')).choose
+-      (tcrPhase1 pkSeedDist) := by
+-  unfold rTcr tcrPhase1
++      (wotsTcrPhase1 pkSeedDist) := by
++  unfold rTcr wotsTcrPhase1
+   simp only [tcrStart_withHash, tcrChainHash_withHash, wtcrColl_withHash]
+   exact simChoose_eq_simPhase1 f _ (bWotsS_phase1_eq f A') _ _ _ _
+ 
+@@ -271,7 +271,7 @@
+ theorem wotsTcrT_phase1_q1_zero (A' : Forger vp (withHash prims f) optRand' pkSeedDist') :
+     @Eq (OracleComp (tcrSpecC prims.AdrsKey prims.Y) (RState vp prims))
+       (rTcrT (vp := vp) (prims := withHash prims f) pkSeedDist (Lazy.bWotsS A')).choose
+-      (tcrPhase1 pkSeedDist) := by
++      (wotsTcrPhase1 pkSeedDist) := by
+   dsimp only [rTcrT, TightCaps.retype]
+   exact wotsTcr_phase1_q1_zero f A'
+ 
+@@ -293,7 +293,7 @@
+     @Eq (OracleComp (preSpecC prims.AdrsKey prims.Y) (RState vp prims))
+         (prePhase1 (vp := vp) (prims := withHash prims f) pkSeedDist) (prePhase1 pkSeedDist) ∧
+     @Eq (OracleComp (tcrSpecC prims.AdrsKey prims.Y) (RState vp prims))
+-        (tcrPhase1 (vp := vp) (prims := withHash prims f) pkSeedDist) (tcrPhase1 pkSeedDist) := by
++        (wotsTcrPhase1 (vp := vp) (prims := withHash prims f) pkSeedDist) (wotsTcrPhase1 pkSeedDist) := by
+   have hw : wotsPhase1 vp (withHash prims f) = wotsPhase1 vp prims := by
+     unfold wotsPhase1
+     rw [sparseOn_withHash]
+@@ -316,7 +316,7 @@
+   · unfold prePhase1
+     rw [preStart_withHash, preChainHash_withHash, preColl_withHash]
+     exact hs _ _ _
+-  · unfold tcrPhase1
++  · unfold wotsTcrPhase1
+     rw [tcrStart_withHash, tcrChainHash_withHash, wtcrColl_withHash]
+     exact hs _ _ _
+ 
