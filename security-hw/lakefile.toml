@@ -1,0 +1,49 @@
+name = "security_hw"
+defaultTargets = ["E2E", "Ideal"]
+# The security theorems of ../security, attached to the crate built with `hw-sha2`.
+#
+# Nothing here is new source: every library is compiled in place from ../security,
+# ../lean or ../lean-hw. The one difference from ../security is `Slhdsa`, which is the
+# translation and the proofs of the `hw-sha2` build (../lean-hw) instead of the default
+# build's (../lean). The end-to-end files (`E2E`, `Ideal/Rust*`) use the Rust functions only
+# through the six theorems of `Slhdsa/Theorems.lean`, which are the same statements in both.
+
+# Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
+packagesDir = "../.tools/VCVio-upstream/.lake/packages"
+
+[[require]]
+name = "VCVio"
+path = "../.tools/VCVio-upstream"
+
+[[require]]
+name = "aeneas"
+path = "../.tools/aeneas/backends/lean"
+
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
+[[lean_lib]]
+name = "Link"
+srcDir = "../security"
+
+# The instruction model and the translation of the `hw-sha2` build, with its proofs.
+[[lean_lib]]
+name = "Arm"
+srcDir = "../lean-hw"
+
+[[lean_lib]]
+name = "Slhdsa"
+srcDir = "../lean-hw"
+
+[[lean_lib]]
+name = "E2E"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "Reduction"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "Ideal"
+srcDir = "../security"

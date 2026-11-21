@@ -176,6 +176,8 @@ default build the same function is a plain loop.
 - `lean/Slhdsa/Theorems.lean` — the headline statements.
 - `security/` — the link to VCVio's security theorem (`Link`) and the
   end-to-end statements from the Rust code (`E2E`).
+- `security-hw/` — the same libraries compiled against `lean-hw`: the security
+  statements for the `hw-sha2` build. It has no source of its own.
 - `vectors/` — the NIST vectors used by both test suites, and the record of
   the intrinsic wrappers on a processor.
 - `bench/` — benchmark against other libraries, with interoperability checks.
@@ -197,8 +199,11 @@ Needs Rust (rustup), Lean (elan), and Aeneas with Charon built under
 ## Security
 
 Two machine-checked security theorems are attached to the Rust code, in one
-Lean workspace ([security/](security)), with standard axioms only. Both go
-through the same link: the Rust key generation, signing and verification
+Lean workspace ([security/](security)), with standard axioms only. They are
+attached to both builds: [security-hw](security-hw) compiles the same files
+against the translation of the crate built with `hw-sha2`, so every statement
+in this section also holds for that build, given its instruction model. Both
+theorems go through the same link: the Rust key generation, signing and verification
 compute the same bytes as the executable SLH-DSA-SHA2-128s of the
 [VCVio](https://github.com/Verified-zkEVM/VCVio) library
 (`E2E.end_to_end`, via [security/Link](security/Link), which proves `lean/Spec`
@@ -239,9 +244,12 @@ Limits of this theorem:
   formal running-time statement.
 - **Single key, pure mode** (no pre-hash variant). The statement here is for
   classical adversaries; the lift to quantum forgers is in `quantum/`.
-- **Typed signatures.** The game is over VCVio's typed signatures; the
-  byte-level statement follows from the proven codec lemmas but is not itself
-  stated as a theorem.
+- **Typed signatures and bytes.** The statements above are over VCVio's typed
+  signatures. `E2E.bytes_standard_model_security` and
+  `E2E.pure_bytes_standard_model_security`
+  ([security/E2E/Bytes.lean](security/E2E/Bytes.lean)) give the same bounds for
+  the game played on byte strings, with the scheme defined from the functions
+  the Rust code is proved to compute.
 - One second-preimage term on `F` has no counterpart in the paper, and the
   FORS-tree and XMSS-tree hashes share one `H` term.
 

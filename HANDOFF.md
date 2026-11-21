@@ -249,6 +249,18 @@ processor instructions. Module `hw` of `rust/src/sha256.rs` was rewritten in two
   `chain_blocks_spec` moved to `ChainTop.lean`.
 - Result: `lake build` in `lean-hw` prints the same six theorems on the three standard axioms.
 
+`security-hw/` attaches the security theorems to the `hw-sha2` build. It is a Lake package with
+no source of its own: `Spec`, `Link`, `E2E`, `Reduction` and `Ideal` are compiled in place from
+`../lean` and `../security`, and `Slhdsa` and `Arm` from `../lean-hw`. Only `E2E/*` and
+`Ideal/Rust*.lean` depend on the translation, and they compile unchanged. Checked there, all on
+the three standard axioms: `E2E.end_to_end`, `E2E.standard_model_security_split`,
+`E2E.pure_standard_model_security_split`, `E2E.bytes_end_to_end`, `E2E.pure_bytes_end_to_end`,
+`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`. Its build
+directory was seeded from `security/.lake/build`; a first build elsewhere compiles its own
+copies of the security libraries. The quantum theorems are about the scheme at the byte
+interface and do not mention the Rust code; `E2E.pure_bytes_end_to_end` is what connects
+either build to them.
+
 What the `hw-sha2` theorems rest on beyond the default build's:
 - The model against the processor: `vectors/arm-wrappers.txt` holds 1,745 cases recorded from
   an Apple M5 by the unit test `sha256::hw::vectors` (`ARM_VECTORS_WRITE=1` rewrites it; without
@@ -302,6 +314,7 @@ cd quantum  && PATH=$HOME/.elan/bin:$PATH scripts/check-integration.sh
 cd security && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean     && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build
+cd security-hw && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
 cd rust     && cargo test --release
 cd rust     && cargo test --release --features hw-sha2
