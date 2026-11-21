@@ -64,6 +64,12 @@ pub fn chain_blocks(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], en
             return;
         }
     }
+    chain_blocks_portable(state, blocks, start, end)
+}
+
+/// [`chain_blocks`] in portable code: one block after another, one step
+/// after another.
+pub fn chain_blocks_portable(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
     let mut i = 0;
     while i < blocks.len() {
         let mut t = start[i];

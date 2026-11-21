@@ -672,11 +672,11 @@ theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
     (hst : s0 ≤ t.val) (hte : t.val ≤ («end».val[i.val]!).val ∨ t.val = s0)
     (hcur : bytes (blocks.val[i.val]!).val =
       runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 t.val) :
-    hash.chain_blocks_loop0_loop0 state blocks «end» i t ⦃ r =>
+    hash.chain_blocks_portable_loop0_loop0 state blocks «end» i t ⦃ r =>
       r.length = blocks0.length ∧ (∀ j, j ≠ i.val → r.val[j]! = blocks0.val[j]!) ∧
       bytes (r.val[i.val]!).val =
         runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 («end».val[i.val]!).val ⦄ := by
-  unfold hash.chain_blocks_loop0_loop0
+  unfold hash.chain_blocks_portable_loop0_loop0
   apply loop.spec_decr_nat
     (measure := fun (p : Slice (Array U8 64#usize) × U32) => («end».val[i.val]!).val - p.2.val)
     (inv := fun p => p.1.length = blocks0.length ∧ (∀ j, j ≠ i.val → p.1.val[j]! = blocks0.val[j]!) ∧
@@ -684,7 +684,7 @@ theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
       bytes (p.1.val[i.val]!).val =
         runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 p.2.val)
   · rintro ⟨blocks, t⟩ ⟨h1, h2, h3, h4, h5⟩
-    simp only [hash.chain_blocks_loop0_loop0.body]
+    simp only [hash.chain_blocks_portable_loop0_loop0.body]
     simp only at h1 h2 h3 h4 h5
     step*
     all_goals try (simp [*]; done)
@@ -748,10 +748,10 @@ theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
     (hdone : ∀ j, j < i.val → bytes (blocks.val[j]!).val =
       runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val)
     (hrest : ∀ j, i.val ≤ j → blocks.val[j]! = blocks0.val[j]!) :
-    hash.chain_blocks_loop0 state blocks start «end» i ⦃ r =>
+    hash.chain_blocks_portable_loop0 state blocks start «end» i ⦃ r =>
       r.length = blocks0.length ∧ ∀ j, j < blocks0.length → bytes (r.val[j]!).val =
         runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val ⦄ := by
-  unfold hash.chain_blocks_loop0
+  unfold hash.chain_blocks_portable_loop0
   apply loop.spec_decr_nat
     (measure := fun (p : Slice (Array U8 64#usize) × Usize) => blocks0.length - p.2.val)
     (inv := fun p => p.2.val ≤ blocks0.length ∧ p.1.length = blocks0.length ∧
@@ -759,7 +759,7 @@ theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
         runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val) ∧
       (∀ j, p.2.val ≤ j → p.1.val[j]! = blocks0.val[j]!))
   · rintro ⟨blocks, i⟩ ⟨h1, h2, h3, h4⟩
-    simp only [hash.chain_blocks_loop0.body]
+    simp only [hash.chain_blocks_portable_loop0.body]
     simp only at h1 h2 h3 h4
     simp only [step_simps]
     spec_split
@@ -785,15 +785,14 @@ theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
       exact ⟨h2, fun j hj => h3 j (by omega)⟩
   · exact ⟨hi, hlen, hdone, hrest⟩
 
-/-- `chain_blocks`: block `i` takes the steps `start[i]`, …, `end[i] − 1`. -/
-@[step]
-theorem chain_blocks_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
+/-- `chain_blocks_portable`: block `i` takes the steps `start[i]`, …, `end[i] − 1`. -/
+theorem chain_blocks_portable_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
     (start «end» : Slice U32)
     (hs : blocks.length ≤ start.length) (he : blocks.length ≤ «end».length) :
-    hash.chain_blocks state blocks start «end» ⦃ r =>
+    hash.chain_blocks_portable state blocks start «end» ⦃ r =>
       r.length = blocks.length ∧ ∀ i, i < blocks.length → bytes (r.val[i]!).val =
         runBlock (wv state.val) (bytes (blocks.val[i]!).val) (start.val[i]!).val («end».val[i]!).val ⦄ := by
-  unfold hash.chain_blocks
+  unfold hash.chain_blocks_portable
   exact chain_blocks_loop0_spec state blocks start «end» hs he blocks 0#usize (by simp) rfl
     (fun j hj => by simp at hj) (fun _ _ => rfl)
 

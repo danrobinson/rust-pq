@@ -3,8 +3,8 @@
 Both composed theorems are finished: neither has a hypothesis left that is not about the forger.
 The repository is under git from 2026-11-21 (first commit `d2a5a9b` is the whole project as it
 stood then; nothing is pushed anywhere). For what the project proves overall, read `README.md`;
-this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend,
-the performance work of 2026-11-21 and the benchmark.
+this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend
+(its performance and its proof) and the benchmark.
 
 This file replaces the handoff of 2026-11-20, which described both theorems as unfinished.
 `quantum/HANDOFF.md` and `security/Ideal/HANDOFF.md` are that older state and are kept for the
@@ -160,15 +160,15 @@ The crate was restructured so that, with the opt-in `hw-sha2` feature, it is fas
 RustCrypto and OpenSSL on this machine, and the proofs were redone for the new code. The six
 headline theorems and `lean/Spec` are unchanged.
 
-**Numbers** (`bench/results/run4`, criterion, 2 rounds, Apple M5 Ultra; keygen / sign 32 B /
+**Numbers** (`bench/results/run5`, criterion, 2 rounds, Apple M5 Ultra; keygen / sign 32 B /
 verify 32 B / verify 1 MiB):
 
 | | keygen | sign | verify | verify 1 MiB |
 |---|---|---|---|---|
-| this crate, default build | 40.4 ms | 305 ms | 324 µs | 2.69 ms |
-| this crate, `hw-sha2` | 4.00 ms | 30.2 ms | 35.4 µs | 352 µs |
-| RustCrypto `slh-dsa` | 8.30 ms | 62.6 ms | 63.8 µs | 365 µs |
-| OpenSSL 4.1 | 7.32 ms | 56.0 ms | 58.9 µs | 405 µs |
+| this crate, default build | 39.9 ms | 304 ms | 316 µs | 2.67 ms |
+| this crate, `hw-sha2` | 3.91 ms | 30.2 ms | 35.4 µs | 352 µs |
+| RustCrypto `slh-dsa` | 8.28 ms | 62.5 ms | 63.8 µs | 364 µs |
+| OpenSSL 4.1 | 7.30 ms | 55.8 ms | 58.6 µs | 405 µs |
 
 Before this work `hw-sha2` was 11.5 ms / 83.7 ms / 85.3 µs (run 3).
 
@@ -200,37 +200,64 @@ of its start. Layout lemmas (`stepBlock_thash`, `runBlock_chain`, `stepBlock_pai
   the old statement is false for the new code (the proof agent machine-checked a
   counterexample, `fors_node 4294967295 0` panics). Every use in the scheme has indices below
   14·2^12. `fors_sign_spec` and everything above it are unchanged.
-- Checked after the final re-extraction: `scripts/check.sh` (tests in both builds,
-  re-extraction, `lean/`, `spectest`, `security/`, no placeholder) and
-  `quantum/scripts/check-integration.sh`.
+- `scripts/check.sh` runs the tests in both builds, both re-extractions, `lean/`, `spectest`,
+  `security/`, `lean-hw/`, the instruction-model test, and the placeholder search;
+  `quantum/scripts/check-integration.sh` is separate.
 
-**Unverified code (`hw-sha2`):** module `hw` of `rust/src/sha256.rs`, about 330 lines with
-comments, the crate's only `unsafe`. Off by default, AArch64 little-endian only, runtime CPU
-detection off Apple targets. It replaces exactly two functions, `sha256::compress` and
-`hash::chain_blocks`; a build with the feature equals the verified build provided those two
-replacements return what the portable code returns. That is tested, not proved.
-- `hw::chain_blocks` takes chains in order into four slots, runs until the first slot is out of
-  steps, writes finished chains back and refills. `run` keeps each chain's value in registers
-  across steps and rebuilds only the words that change.
-- Why it is fast, measured on this CPU: `sha256h` and `sha256h2` share one execution unit at two
-  cycles each (throughput), four-cycle latency; the schedule instructions run elsewhere. So a
-  hash costs 64 cycles of that unit, and one hash alone leaves it idle about a third of the
-  time. Four lanes fill it. Lanes are staggered by a quarter of a hash because otherwise all
-  four are between hashes at once and the unit idles. Rounds 0..3 depend only on bytes 0..16 of
-  the block, which are the same for a whole WOTS+ key or FORS instance, so they are computed
-  once and cached by those bytes; the last `sha256h2` is skipped because only four output
-  words are kept. That is 29 round instructions per hash instead of 32; the kernel measures
-  12.97 ns per hash against 12.7 ns for 58 cycles.
-- Tests (`rust/tests/compress.rs`, run with and without the feature; `scripts/check.sh` runs
-  both): `compress` against the `sha2` crate on 200,000 random and 5,140 edge-case inputs;
-  `chain_blocks` against a reference written from that function on 7,360 random batches (0 to
-  41, 64, 70, 128, 140 blocks; uniform, mixed, single-step and random ranges; equal and
-  different block heads; step numbers around 2^16, 2^24 and 2^32); independence of chains;
-  the same panics. ACVP vectors pass both ways, in debug, and with
-  `RUSTFLAGS='-C target-feature=-sha2'` (the runtime-detection path).
-- Interoperability with the feature on is clean (`bench/results/run4/interop-hw.md`), and the
-  compression count is unchanged at 2,218,488 per signature: the same hashes, in a different
-  order.
+**The `hw-sha2` build is proved too** (third round, 2026-11-21), relative to a model of the
+processor instructions. Module `hw` of `rust/src/sha256.rs` was rewritten in two layers:
+- `hw::arm`: eighteen wrappers, each one to three intrinsics, the crate's only `unsafe`. The four
+  that touch memory (`load_words`, `load_be`, `store_be`, and `store_words` on its own array)
+  check their bounds with an overflow-free `assert!`.
+- Everything else in safe Rust in the Aeneas subset: `compress_block`, and the chain kernel
+  (`Slot`, `First`, `Lanes`, `chain_all`, `enter`, `leave`, `run`, `period`, `tick`, `lane_tick`,
+  `lane_step`). The staggered schedule that used to be macro-generated is now const-generic
+  functions (`lane_step::<L, J, LANE>`), so the translation has one definition of a lane step
+  and 60 calls per period. The functions are `inline(always)` where the target has the
+  instructions unconditionally and `target_feature` + `inline` elsewhere (macro `kernel!`);
+  both variants measure the same.
+- `sha256::compress` and `hash::chain_blocks` now call `compress_portable` /
+  `chain_blocks_portable` after the cfg'd hand-off, so the portable code is a named function in
+  both builds.
+
+`lean-hw/` is a second Lake package for the crate built with the feature:
+- `scripts/extract-hw.sh`: Charon with `--features hw-sha2` and `--opaque
+  'slhdsa::sha256::hw::arm'`, then Aeneas into `lean-hw/Slhdsa/{Types,Funs}.lean`. Aeneas lists
+  what it left out as axioms in two template files; the script fails unless each has a
+  definition in `TypesExternal.lean` / `FunsExternal.lean`, then deletes the templates.
+- `lean-hw/Arm.lean`: the instruction model (core Lean only), transcribed from the Arm ARM
+  pseudocode. `haveSha2` is an opaque Boolean; everything is proved for both values.
+- `lean-hw/Slhdsa/FunsExternal.lean`: the eighteen wrappers defined over `Arm.lean`. **These two
+  files are the trusted addition.**
+- `lean-hw/Slhdsa/Proofs/`: symbolic links to `lean/Slhdsa/Proofs/*.lean` for every file that
+  does not depend on the build (and `Theorems.lean` likewise), plus:
+  - `CompressTop.lean`, `ChainTop.lean`: `compress_spec`, `chain_blocks_spec` with the default
+    build's statements, by cases on the hand-off;
+  - `Hw/Model.lean` (`kstep`, `kcompress`), `Hw/Rounds.lean` (`sha256h_rounds`, `su_eq`,
+    `kcompress_eq`: sixteen kernel steps are `Spec.SHA256.compress`), `Hw/Compress.lean`
+    (`hw_compress_block_spec`);
+  - `Hw/ChainModel.lean` (the words a lane rebuilds are those of the block with the new counter
+    and value; one hash step is `stepBlock`), `ChainLane.lean`, `ChainRun.lean` (`run_spec`: the
+    staggered periods give each lane exactly `steps` hash steps), `ChainLoop.lean` (`enter`,
+    `leave`, the cache invariant `FirstOk`, the minimum and compaction loops), `ChainMain.lean`,
+    `ChainAll.lean` (the slot invariant `MInv`), `Chain.lean` (`hw_chain_all_spec`).
+  - `Hw/Wrappers.lean`: each wrapper's definition equals a bounds check around a plain
+    function; `lean-hw/ArmTest.lean` runs those plain functions (Aeneas's `Result` is
+    coinductive and cannot be executed).
+- To make the sharing possible `lean/Slhdsa/Proofs/Sha256.lean` was split: `Sha256Core.lean`
+  (through `compress_portable_spec`), `CompressTop.lean`, `Sha256.lean` (the rest); and
+  `chain_blocks_spec` moved to `ChainTop.lean`.
+- Result: `lake build` in `lean-hw` prints the same six theorems on the three standard axioms.
+
+What the `hw-sha2` theorems rest on beyond the default build's:
+- The model against the processor: `vectors/arm-wrappers.txt` holds 1,745 cases recorded from
+  an Apple M5 by the unit test `sha256::hw::vectors` (`ARM_VECTORS_WRITE=1` rewrites it; without
+  it the test checks the processor against the file); `ArmTest.lean` checks the model against
+  the file: 0 mismatches, and a deliberately wrong model gives 320.
+- That each wrapper's intrinsics are the instructions named, with the operand order in its
+  definition; and rustc/LLVM.
+- Not covered: other AArch64 processors (the model is architectural, but only this CPU was
+  compared), and the behaviour when `std`'s feature detection is wrong.
 
 **Tried and rejected** (all measured in scratch copies, nothing kept):
 - A fifth chain on scalar integer SHA-256, woven between the lanes. Correct, but slower: one
@@ -250,9 +277,8 @@ and lane count are tuned to this CPU.
 ## Not done
 
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
-- **A formal statement for the `hw-sha2` build.** The assumption above is written in prose and
-  tested. It could be stated in Lean, and the build with the feature proved correct from a model
-  of the four SHA-256 instructions; nothing of that exists.
+- **A machine-readable Arm specification.** `lean-hw/Arm.lean` is a hand transcription, tested
+  against one processor. Deriving it from Arm's published ASL was not attempted.
 - **Ideal-model theorem for the context-string interface** (first ideal caveat above).
 - **`rust/ct-evidence`** was not re-run against the optimised crate, and its harness still calls
   `wots::chain`, which no longer exists. The new code's data-dependent control flow is in
@@ -275,7 +301,10 @@ and lane count are tuned to this CPU.
 cd quantum  && PATH=$HOME/.elan/bin:$PATH scripts/check-integration.sh
 cd security && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean     && PATH=$HOME/.elan/bin:$PATH lake build
+cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build
+cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
 cd rust     && cargo test --release
 cd rust     && cargo test --release --features hw-sha2
+./scripts/check.sh        # all of the above except quantum, with both re-extractions
 cd bench    && ./run.sh
 ```

@@ -1,8 +1,10 @@
 # SLH-DSA-SHA2-128s performance: the verified crate against other implementations
 
-This file reports four benchmark runs of the same suite:
+This file reports five benchmark runs of the same suite:
 
-- **Run 4 (current; `results/run4/`, 2026-11-21 10:37–10:58)** measures the crate after the performance
+- **Run 5 (current; `results/run5/`, 2026-11-21 13:31–13:52)** repeats run 4 after the `hw-sha2` backend
+  was rewritten so that Aeneas translates it (see `../HANDOFF.md`). The numbers did not move.
+- **Run 4 (`results/run4/`, 2026-11-21 10:37–10:58)** measures the crate after the performance
   work of 2026-11-21: with `hw-sha2` it is faster than RustCrypto and OpenSSL. The earlier runs below
   describe the crate as it was when they were made.
 - **Run 3 (`results/run3/`, 2026-11-21 06:45–07:07)** adds the verified crate built with its opt-in `hw-sha2`
@@ -15,6 +17,32 @@ This file reports four benchmark runs of the same suite:
 
 Reproduce with `./run.sh` (all five build configurations, two rounds, about 40 minutes). To add rounds to an
 existing results directory, use `STAMP=<dir> ROUND_START=3 [CONFIGS="default soft"] ./run.sh`.
+
+# Run 5: the verified `hw-sha2` backend
+
+Between run 4 and run 5 the hardware module of `../rust/src/sha256.rs` was rewritten as safe Rust over
+eighteen one-line intrinsic wrappers, so that Aeneas translates it and the build with `hw-sha2` is proved
+too (`../lean-hw`). `compress` and `chain_blocks` now hand off to `compress_portable` and
+`chain_blocks_portable`. Same method as run 4: configurations `default` and `hw`, two rounds, load average
+1.4–2.6 on 36 cores, nothing else running.
+
+| | keygen | sign 32 B | sign 1 MiB | verify 32 B | verify 1 MiB |
+|---|---|---|---|---|---|
+| `verified` (portable, config `default`) | 39.86 ms | 303.6 ms | 309.1 ms | 316.2 µs | 2.67 ms |
+| **`verified+hw-sha2`** (config `hw`) | **3.91 ms** | **30.21 ms** | **30.86 ms** | **35.36 µs** | **351.8 µs** |
+| rustcrypto-slh-dsa (config `hw`) | 8.28 ms | 62.55 ms | 63.13 ms | 63.75 µs | 363.8 µs |
+| openssl 4.1 (config `hw`) | 7.30 ms | 55.76 ms | 56.38 ms | 58.60 µs | 404.6 µs |
+| slhdsa-c, portable C (config `hw`) | 28.63 ms | 218.3 ms | 221.7 ms | 224.9 µs | 1.86 ms |
+| RustCrypto time / `verified+hw-sha2` time | 2.12 | 2.07 | 2.05 | 1.80 | 1.03 |
+| OpenSSL time / `verified+hw-sha2` time | 1.87 | 1.85 | 1.83 | 1.66 | 1.15 |
+
+- `verified+hw-sha2` is within 2.3% of run 4 in every column (3.91 ms / 30.21 ms / 35.36 µs against
+  4.00 ms / 30.22 ms / 35.40 µs), and the portable build within 2.4%. Per-round spread of
+  `verified+hw-sha2` is ±0.0% in every column.
+- The compression count is unchanged (292,352 / 2,218,488 / 2,274), and interoperability is clean in both
+  builds (`results/run5/interop.md`, `interop-hw.md`).
+
+Full tables: `results/run5/summary.md`.
 
 # Run 4: after the performance work
 

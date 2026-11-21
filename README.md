@@ -28,6 +28,12 @@ The proofs use no `sorry` and no axioms beyond Lean's three standard ones
 (`propext`, `Classical.choice`, `Quot.sound`); the file ends with
 `#print axioms` for each theorem.
 
+The theorems are proved for both ways of building the crate: the default
+build ([lean](lean)), and the build with the opt-in `hw-sha2` feature
+([lean-hw](lean-hw)), which runs SHA-256 on the processor's SHA-256
+instructions. The second proof rests on one thing the first does not, a model
+of those instructions; see [below](#opt-in-hardware-sha-2-hw-sha2).
+
 "What the standard specifies" means the Lean transcription in
 [lean/Spec](lean/Spec): about 420 lines over lists of bytes, depending only on
 core Lean. The SHA-256 and HMAC inside the Rust crate are verified too, so no
@@ -44,24 +50,24 @@ hash function is assumed correct.
 ## Performance
 
 Measured on Apple Silicon (M5 Ultra), default release build, median of two
-rounds ([bench/RESULTS.md](bench/RESULTS.md), run 4; `bench/run.sh` reproduces
+rounds ([bench/RESULTS.md](bench/RESULTS.md), run 5; `bench/run.sh` reproduces
 it):
 
 | | keygen | sign | verify |
 |---|---|---|---|
-| this crate | 40.4 ms | 305 ms | 324 µs |
-| this crate, `hw-sha2` (below) | 4.00 ms | 30.2 ms | 35.4 µs |
-| RustCrypto `slh-dsa` | 8.30 ms | 62.6 ms | 63.8 µs |
-| OpenSSL 4.1 | 7.32 ms | 56.0 ms | 58.9 µs |
+| this crate | 39.9 ms | 304 ms | 316 µs |
+| this crate, `hw-sha2` (below) | 3.91 ms | 30.2 ms | 35.4 µs |
+| RustCrypto `slh-dsa` | 8.28 ms | 62.5 ms | 63.8 µs |
+| OpenSSL 4.1 | 7.30 ms | 55.8 ms | 58.6 µs |
 | slhdsa-c (portable C) | 28.6 ms | 218 ms | 225 µs |
-| `fips205` as shipped | 61.2 ms | 472 ms | 479 µs |
+| `fips205` as shipped | 61.2 ms | 471 ms | 479 µs |
 
 The default build is about 5 times slower than RustCrypto and OpenSSL, which
 use the ARM SHA-2 instructions; safe Rust in the Aeneas subset cannot. With
 the opt-in `hw-sha2` feature the crate is about 2.1 times as fast as
-RustCrypto and 1.8 times as fast as OpenSSL at key generation and signing, and
-1.8 and 1.7 times at verification. Verifying a 1 MiB message, which is mostly
-hashing the message, takes 352 µs against 365 µs and 405 µs.
+RustCrypto and 1.85 times as fast as OpenSSL at key generation and signing,
+and 1.8 and 1.7 times at verification. Verifying a 1 MiB message, which is
+mostly hashing the message, takes 352 µs against 364 µs and 405 µs.
 
 The crate interoperates with RustCrypto, `fips205`, OpenSSL and slhdsa-c in
 both builds: same keys from the same seeds, signatures verify both ways, and
@@ -74,44 +80,61 @@ instructions when the CPU has them. It is off by default, and AArch64 only so
 far: on other architectures, or on a CPU without the instructions, the
 portable code runs.
 
-**The theorems in this repository are about the default build, not this one.**
-The backend is the crate's only `unsafe` code: module `hw` of
-[rust/src/sha256.rs](rust/src/sha256.rs), about 330 lines with comments.
-Aeneas translates the default build, in which that module does not exist. The
-module stands in for two functions of the verified code, and everything else is
-the same code in both builds:
+**What is proved.** The backend, module `hw` of
+[rust/src/sha256.rs](rust/src/sha256.rs), has two layers:
 
-- `sha256::compress`, the compression function on one block;
-- `hash::chain_blocks`, which takes a set of independent 64-byte blocks and,
-  for each, repeats a step a given number of times: write the step number
-  into the block, compress it, and put the first 16 bytes of the result back
-  into the block. One step is `F`, `PRF` or `H` of SLH-DSA, so nearly every
-  hash of the scheme is a step of this function.
+- `hw::arm`: eighteen functions, each one to three intrinsics (loads and
+  stores, add, or, and, two shifts, two `EXT`s, the four SHA-256 instructions,
+  and the test for the CPU feature). This is the crate's only `unsafe` code,
+  and the only code Aeneas does not translate.
+- Everything else: the single-block kernel, and the kernel that works on four
+  hash chains at once. This is safe Rust, and Aeneas translates it like the
+  rest of the crate.
 
-So a build with the feature computes what the verified build computes provided
-that
+[lean-hw](lean-hw) holds Aeneas's translation of the crate built with the
+feature. [lean-hw/Arm.lean](lean-hw/Arm.lean) gives the instructions their
+meaning: a transcription of the pseudocode of `SHA256H`, `SHA256H2`,
+`SHA256SU0` and `SHA256SU1` in the Arm Architecture Reference Manual, and of
+the plain vector operations. [lean-hw/Slhdsa/FunsExternal.lean](lean-hw/Slhdsa/FunsExternal.lean)
+defines each of the eighteen functions in terms of it. From those definitions
+the six theorems above are proved for this build too, whichever answer the
+feature test gives: `lean-hw/Slhdsa/Theorems.lean` is the same file as the
+default build's, and so are all proof files but two. The two that differ are
+about `sha256::compress` and `hash::chain_blocks`, the functions the backend
+stands in for. Their proofs
+([lean-hw/Slhdsa/Proofs/Hw](lean-hw/Slhdsa/Proofs/Hw), about 2,300 lines) show
+that sixteen steps of the instructions are the compression function of FIPS
+180-4, and that the four-lane kernel leaves every block as the portable loops
+would.
 
-> `hw::compress` returns what the portable code of `compress` returns, and
-> `hw::chain_blocks` leaves in the blocks what the portable loops of
-> `chain_blocks` leave there.
+**What that rests on**, beyond what the default build's proof rests on:
 
-That statement is tested, not proved. With the feature on, `compress` agrees
-with the `sha2` crate's compression function on 200,000 random and 5,140
-edge-case inputs, and `chain_blocks` agrees with a reference written from that
-function on 7,360 random batches of 0 to 140 blocks, with step ranges of every
-kind the crate uses and step numbers around every carry
-([rust/tests/compress.rs](rust/tests/compress.rs); the portable code passes the
-same tests). The crate passes the NIST vectors, and it is byte-identical to the
-other libraries in the interoperability check.
+- *The instruction model is the processor's behaviour.* This is tested, not
+  proved. [vectors/arm-wrappers.txt](vectors/arm-wrappers.txt) records what
+  the wrappers return on an Apple M5 for 1,745 inputs; `cargo test --features
+  hw-sha2` checks the record against the processor it runs on, and
+  [lean-hw/ArmTest.lean](lean-hw/ArmTest.lean) runs the model on the same
+  record. They agree on every case.
+- *Each wrapper does what its definition says*: that the intrinsic it calls is
+  the instruction named, and that its bounds check covers the memory it
+  touches. The wrappers are short enough to read against their definitions.
 
-Where the speed comes from: the verified code is arranged so that the hashes
+The backend is also tested as a whole: `compress` against the `sha2` crate on
+200,000 random and 5,140 edge-case inputs, `chain_blocks` against a reference
+written from that function on 7,360 random batches
+([rust/tests/compress.rs](rust/tests/compress.rs)), the NIST vectors, and the
+interoperability check.
+
+**Where the speed comes from.** The verified code is arranged so that hashes
 that do not depend on each other reach `chain_blocks` together (the 35 chains
 of a WOTS+ key, the leaves and levels of a FORS subtree, the 14 FORS trees of a
-verification). The processor has one unit for the SHA-256 round instructions,
-and a single hash keeps it waiting, because each step needs the result of the
-one before. The backend works on four chains at once, staggered so the unit
-always has work, and skips the rounds whose inputs or outputs a chain step
-does not use. In the default build the same function is a plain loop.
+verification). One step of it is `F`, `PRF` or `H`: write the step number into
+a block, compress it, and put the first 16 bytes of the result back. The
+processor has one unit for the SHA-256 round instructions, and a single hash
+keeps it waiting, because each step needs the result of the one before. The
+backend works on four chains at once, staggered so the unit always has work,
+and skips the rounds whose inputs or outputs a chain step does not use. In the
+default build the same function is a plain loop.
 
 ## What is not proven
 
@@ -124,6 +147,10 @@ does not use. In the default build the same function is a plain loop.
   the hypertree treats layer 0 inside its loop.
 - **The toolchain.** The proof is about Aeneas's translation of the Rust MIR.
   Charon, Aeneas and rustc are trusted, as is the Lean kernel.
+- **The processor, for `hw-sha2`.** The meaning of the SHA-256 instructions is
+  a transcription of Arm's pseudocode, checked against one processor on
+  recorded inputs; and the eighteen functions that call the intrinsics are
+  read, not translated. See [Opt-in hardware SHA-2](#opt-in-hardware-sha-2-hw-sha2).
 - **Side channels.** Nothing about timing or memory access patterns is proven.
   There is an audit and binary-level evidence, with one timing finding; see
   [Further work](#further-work-in-this-repository).
@@ -135,19 +162,27 @@ does not use. In the default build the same function is a plain loop.
 ## Layout
 
 - `rust/` — the crate. Plain safe Rust: no `unsafe`, traits, iterators or closures
-  (the opt-in `hw-sha2` backend aside; see [Performance](#performance)).
+  (the eighteen intrinsic wrappers of the opt-in `hw-sha2` backend aside; see
+  [Performance](#performance)).
 - `lean/Spec/` — the specification (`Sha256.lean`, `SlhDsa.lean`).
 - `lean/Slhdsa/Types.lean`, `Funs.lean` — generated by Aeneas; do not edit.
-- `lean/Slhdsa/Proofs/` — one file per layer: `Sha256`, `Hash`, `Util`,
-  `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`.
+- `lean/Slhdsa/Proofs/` — one file per layer: `Sha256Core`, `Sha256`, `Hash`,
+  `Util`, `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`; and `CompressTop`, `ChainTop`,
+  the two that depend on the build.
+- `lean-hw/` — the same for the crate built with `hw-sha2`: Aeneas's
+  translation, the instruction model (`Arm.lean`, `Slhdsa/FunsExternal.lean`),
+  the proofs about the hardware kernels (`Slhdsa/Proofs/Hw/`), and links to
+  the proof files of `lean/` that do not depend on the build.
 - `lean/Slhdsa/Theorems.lean` — the headline statements.
 - `security/` — the link to VCVio's security theorem (`Link`) and the
   end-to-end statements from the Rust code (`E2E`).
-- `vectors/` — the NIST vectors used by both test suites.
+- `vectors/` — the NIST vectors used by both test suites, and the record of
+  the intrinsic wrappers on a processor.
 - `bench/` — benchmark against other libraries, with interoperability checks.
 - `opt/` — working copy in which the hashing optimisation was developed and
   re-verified; `opt/original/` holds the crate and proofs from before it.
-- `scripts/extract.sh` — regenerate the Lean translation from the Rust.
+- `scripts/extract.sh`, `scripts/extract-hw.sh` — regenerate the Lean
+  translation of the default build and of the `hw-sha2` build from the Rust.
 - `scripts/check.sh` — run everything.
 
 ## Reproducing

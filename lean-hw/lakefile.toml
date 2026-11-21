@@ -1,0 +1,22 @@
+name = "slhdsa_hw"
+defaultTargets = ["Slhdsa"]
+# Reuse the dependency checkouts (Mathlib cache included) of ../lean.
+packagesDir = "../lean/.lake/packages"
+
+[[require]]
+name = "aeneas"
+path = "../.tools/aeneas/backends/lean"
+
+# The FIPS 205 transcription, compiled in place from ../lean (not copied).
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
+# The meaning of the NEON and SHA-256 instructions the hardware backend uses.
+[[lean_lib]]
+name = "Arm"
+
+# The Aeneas translation of the crate built with `hw-sha2`, and its proofs.
+# Proof files that do not depend on the build are symbolic links into ../lean.
+[[lean_lib]]
+name = "Slhdsa"

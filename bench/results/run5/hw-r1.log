@@ -1,0 +1,184 @@
+Benchmarking keygen/verified+hw-sha2
+Benchmarking keygen/verified+hw-sha2: Warming up for 1.0000 s
+Benchmarking keygen/verified+hw-sha2: Collecting 10 samples in estimated 4.0260 s (1010 iterations)
+Benchmarking keygen/verified+hw-sha2: Analyzing
+keygen/verified+hw-sha2 time:   [3.9104 ms 3.9114 ms 3.9125 ms]
+Benchmarking keygen/verified-before
+Benchmarking keygen/verified-before: Warming up for 1.0000 s
+Benchmarking keygen/verified-before: Collecting 10 samples in estimated 4.1335 s (40 iterations)
+Benchmarking keygen/verified-before: Analyzing
+keygen/verified-before  time:   [103.05 ms 103.21 ms 103.36 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking keygen/rustcrypto-slh-dsa
+Benchmarking keygen/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking keygen/rustcrypto-slh-dsa: Collecting 10 samples in estimated 4.0571 s (490 iterations)
+Benchmarking keygen/rustcrypto-slh-dsa: Analyzing
+keygen/rustcrypto-slh-dsa
+                        time:   [8.2785 ms 8.2813 ms 8.2840 ms]
+Benchmarking keygen/openssl
+Benchmarking keygen/openssl: Warming up for 1.0000 s
+Benchmarking keygen/openssl: Collecting 10 samples in estimated 4.0255 s (550 iterations)
+Benchmarking keygen/openssl: Analyzing
+keygen/openssl          time:   [7.3038 ms 7.3094 ms 7.3161 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking keygen/slhdsa-c
+Benchmarking keygen/slhdsa-c: Warming up for 1.0000 s
+Benchmarking keygen/slhdsa-c: Collecting 10 samples in estimated 4.0086 s (140 iterations)
+Benchmarking keygen/slhdsa-c: Analyzing
+keygen/slhdsa-c         time:   [28.622 ms 28.627 ms 28.633 ms]
+
+Benchmarking sign_32B/verified+hw-sha2
+Benchmarking sign_32B/verified+hw-sha2: Warming up for 1.0000 s
+Benchmarking sign_32B/verified+hw-sha2: Collecting 10 samples in estimated 6.0385 s (200 iterations)
+Benchmarking sign_32B/verified+hw-sha2: Analyzing
+sign_32B/verified+hw-sha2
+                        time:   [30.202 ms 30.224 ms 30.252 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+Benchmarking sign_32B/verified-before
+Benchmarking sign_32B/verified-before: Warming up for 1.0000 s
+
+Warning: Unable to complete 10 samples in 6.0s. You may wish to increase target time to 7.9s.
+Benchmarking sign_32B/verified-before: Collecting 10 samples in estimated 7.8577 s (10 iterations)
+Benchmarking sign_32B/verified-before: Analyzing
+sign_32B/verified-before
+                        time:   [784.82 ms 786.56 ms 788.20 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking sign_32B/rustcrypto-slh-dsa
+Benchmarking sign_32B/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking sign_32B/rustcrypto-slh-dsa: Collecting 10 samples in estimated 6.2558 s (100 iterations)
+Benchmarking sign_32B/rustcrypto-slh-dsa: Analyzing
+sign_32B/rustcrypto-slh-dsa
+                        time:   [62.512 ms 62.535 ms 62.558 ms]
+Benchmarking sign_32B/openssl
+Benchmarking sign_32B/openssl: Warming up for 1.0000 s
+Benchmarking sign_32B/openssl: Collecting 10 samples in estimated 6.1307 s (110 iterations)
+Benchmarking sign_32B/openssl: Analyzing
+sign_32B/openssl        time:   [55.817 ms 55.849 ms 55.893 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking sign_32B/slhdsa-c
+Benchmarking sign_32B/slhdsa-c: Warming up for 1.0000 s
+Benchmarking sign_32B/slhdsa-c: Collecting 10 samples in estimated 6.5522 s (30 iterations)
+Benchmarking sign_32B/slhdsa-c: Analyzing
+sign_32B/slhdsa-c       time:   [218.32 ms 218.41 ms 218.52 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+
+Benchmarking sign_1MiB/verified+hw-sha2
+Benchmarking sign_1MiB/verified+hw-sha2: Warming up for 1.0000 s
+Benchmarking sign_1MiB/verified+hw-sha2: Collecting 10 samples in estimated 6.1741 s (200 iterations)
+Benchmarking sign_1MiB/verified+hw-sha2: Analyzing
+sign_1MiB/verified+hw-sha2
+                        time:   [30.843 ms 30.849 ms 30.857 ms]
+Benchmarking sign_1MiB/verified-before
+Benchmarking sign_1MiB/verified-before: Warming up for 1.0000 s
+
+Warning: Unable to complete 10 samples in 6.0s. You may wish to increase target time to 7.9s.
+Benchmarking sign_1MiB/verified-before: Collecting 10 samples in estimated 7.9367 s (10 iterations)
+Benchmarking sign_1MiB/verified-before: Analyzing
+sign_1MiB/verified-before
+                        time:   [789.87 ms 792.31 ms 794.77 ms]
+Benchmarking sign_1MiB/rustcrypto-slh-dsa
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Collecting 10 samples in estimated 6.3102 s (100 iterations)
+Benchmarking sign_1MiB/rustcrypto-slh-dsa: Analyzing
+sign_1MiB/rustcrypto-slh-dsa
+                        time:   [63.127 ms 63.163 ms 63.197 ms]
+Benchmarking sign_1MiB/openssl
+Benchmarking sign_1MiB/openssl: Warming up for 1.0000 s
+Benchmarking sign_1MiB/openssl: Collecting 10 samples in estimated 6.2035 s (110 iterations)
+Benchmarking sign_1MiB/openssl: Analyzing
+sign_1MiB/openssl       time:   [56.454 ms 56.486 ms 56.522 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking sign_1MiB/slhdsa-c
+Benchmarking sign_1MiB/slhdsa-c: Warming up for 1.0000 s
+Benchmarking sign_1MiB/slhdsa-c: Collecting 10 samples in estimated 6.6661 s (30 iterations)
+Benchmarking sign_1MiB/slhdsa-c: Analyzing
+sign_1MiB/slhdsa-c      time:   [221.59 ms 221.67 ms 221.77 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+
+Benchmarking verify_32B/verified+hw-sha2
+Benchmarking verify_32B/verified+hw-sha2: Warming up for 1.0000 s
+Benchmarking verify_32B/verified+hw-sha2: Collecting 30 samples in estimated 3.0145 s (85k iterations)
+Benchmarking verify_32B/verified+hw-sha2: Analyzing
+verify_32B/verified+hw-sha2
+                        time:   [35.386 µs 35.413 µs 35.438 µs]
+Benchmarking verify_32B/verified-before
+Benchmarking verify_32B/verified-before: Warming up for 1.0000 s
+Benchmarking verify_32B/verified-before: Collecting 30 samples in estimated 3.0187 s (3720 iterations)
+Benchmarking verify_32B/verified-before: Analyzing
+verify_32B/verified-before
+                        time:   [807.97 µs 810.69 µs 813.25 µs]
+Found 1 outliers among 30 measurements (3.33%)
+  1 (3.33%) high severe
+Benchmarking verify_32B/rustcrypto-slh-dsa
+Benchmarking verify_32B/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking verify_32B/rustcrypto-slh-dsa: Collecting 30 samples in estimated 3.0185 s (47k iterations)
+Benchmarking verify_32B/rustcrypto-slh-dsa: Analyzing
+verify_32B/rustcrypto-slh-dsa
+                        time:   [63.633 µs 63.663 µs 63.692 µs]
+Found 4 outliers among 30 measurements (13.33%)
+  3 (10.00%) low mild
+  1 (3.33%) high mild
+Benchmarking verify_32B/openssl
+Benchmarking verify_32B/openssl: Warming up for 1.0000 s
+Benchmarking verify_32B/openssl: Collecting 30 samples in estimated 3.0124 s (52k iterations)
+Benchmarking verify_32B/openssl: Analyzing
+verify_32B/openssl      time:   [58.669 µs 58.781 µs 58.858 µs]
+Benchmarking verify_32B/slhdsa-c
+Benchmarking verify_32B/slhdsa-c: Warming up for 1.0000 s
+Benchmarking verify_32B/slhdsa-c: Collecting 30 samples in estimated 3.0318 s (13k iterations)
+Benchmarking verify_32B/slhdsa-c: Analyzing
+verify_32B/slhdsa-c     time:   [224.83 µs 224.93 µs 225.02 µs]
+Found 3 outliers among 30 measurements (10.00%)
+  1 (3.33%) low severe
+  2 (6.67%) high mild
+
+Benchmarking verify_1MiB/verified+hw-sha2
+Benchmarking verify_1MiB/verified+hw-sha2: Warming up for 1.0000 s
+Benchmarking verify_1MiB/verified+hw-sha2: Collecting 30 samples in estimated 3.1067 s (8835 iterations)
+Benchmarking verify_1MiB/verified+hw-sha2: Analyzing
+verify_1MiB/verified+hw-sha2
+                        time:   [351.78 µs 352.03 µs 352.40 µs]
+Found 1 outliers among 30 measurements (3.33%)
+  1 (3.33%) high severe
+Benchmarking verify_1MiB/verified-before
+Benchmarking verify_1MiB/verified-before: Warming up for 1.0000 s
+Benchmarking verify_1MiB/verified-before: Collecting 30 samples in estimated 4.3846 s (1395 iterations)
+Benchmarking verify_1MiB/verified-before: Analyzing
+verify_1MiB/verified-before
+                        time:   [3.1745 ms 3.1993 ms 3.2212 ms]
+Benchmarking verify_1MiB/rustcrypto-slh-dsa
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Warming up for 1.0000 s
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Collecting 30 samples in estimated 3.0455 s (8370 iterations)
+Benchmarking verify_1MiB/rustcrypto-slh-dsa: Analyzing
+verify_1MiB/rustcrypto-slh-dsa
+                        time:   [363.80 µs 363.93 µs 364.06 µs]
+Found 2 outliers among 30 measurements (6.67%)
+  2 (6.67%) low mild
+Benchmarking verify_1MiB/openssl
+Benchmarking verify_1MiB/openssl: Warming up for 1.0000 s
+Benchmarking verify_1MiB/openssl: Collecting 30 samples in estimated 3.0091 s (7440 iterations)
+Benchmarking verify_1MiB/openssl: Analyzing
+verify_1MiB/openssl     time:   [404.48 µs 404.58 µs 404.69 µs]
+Found 2 outliers among 30 measurements (6.67%)
+  1 (3.33%) high mild
+  1 (3.33%) high severe
+Benchmarking verify_1MiB/slhdsa-c
+Benchmarking verify_1MiB/slhdsa-c: Warming up for 1.0000 s
+Benchmarking verify_1MiB/slhdsa-c: Collecting 30 samples in estimated 3.4690 s (1860 iterations)
+Benchmarking verify_1MiB/slhdsa-c: Analyzing
+verify_1MiB/slhdsa-c    time:   [1.8644 ms 1.8655 ms 1.8670 ms]
+Found 3 outliers among 30 measurements (10.00%)
+  1 (3.33%) high mild
+  2 (6.67%) high severe
+

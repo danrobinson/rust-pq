@@ -1,4 +1,4 @@
-import Slhdsa.Proofs.Hash
+import Slhdsa.Proofs.ChainTop
 import Slhdsa.Proofs.Util
 import Mathlib.Data.Nat.Count
 open Aeneas Aeneas.Std Result
