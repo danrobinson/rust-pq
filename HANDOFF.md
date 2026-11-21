@@ -54,8 +54,13 @@ its SUF-CMA (resp. EUF-CMA) advantage, averaged over the functions, is at most
 ## Caveats the claims carry
 
 Ideal side:
-- **Internal interface only.** No ideal-model theorem covers `slh_sign` / `slh_verify` with a
-  context string. The auditor judges the extension an easy reduction; it is not done.
+- **Context strings (added 2026-11-21, after the audit).** The audited theorems are for the
+  internal interface. `suf_ideal_pure_closed`, `euf_ideal_pure_closed` and their numeric points
+  (`security/Ideal/Realize/FinalPure.lean`), with `rust_ideal_security_closed_pure`
+  (`Ideal/RustFinalClosedPure.lean`), cover `slh_sign` / `slh_verify` with a context string on
+  the byte-level game `pureBytesAlg`: an external forger becomes an internal one that prepends
+  the two header bytes and the context (`ForgerP.toI`, freshness by `pureEncode_injective`), so
+  the bound is the internal one at message length `ℓ + 257`; `qf`, `qs` unchanged. Not reviewed.
 - **Random function, not SHA-256's compression.** No Davies–Meyer / ideal-cipher model.
 - **Message length.** `hout` excludes forgeries on messages longer than `ℓ`; the numeric points
   take `ℓ ≤ 2^26` bytes.
@@ -255,9 +260,9 @@ no source of its own: `Spec`, `Link`, `E2E`, `Reduction` and `Ideal` are compile
 `Ideal/Rust*.lean` depend on the translation, and they compile unchanged. Checked there, all on
 the three standard axioms: `E2E.end_to_end`, `E2E.standard_model_security_split`,
 `E2E.pure_standard_model_security_split`, `E2E.bytes_end_to_end`, `E2E.pure_bytes_end_to_end`,
-`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`. Its build
-directory was seeded from `security/.lake/build`; a first build elsewhere compiles its own
-copies of the security libraries. The quantum theorems are about the scheme at the byte
+`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`. It compiles
+its own copies of the security libraries; a build from a clean state takes about four minutes
+(checked in a scratch copy). The quantum theorems are about the scheme at the byte
 interface and do not mention the Rust code; `E2E.pure_bytes_end_to_end` is what connects
 either build to them.
 
@@ -291,7 +296,6 @@ and lane count are tuned to this CPU.
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
 - **A machine-readable Arm specification.** `lean-hw/Arm.lean` is a hand transcription, tested
   against one processor. Deriving it from Arm's published ASL was not attempted.
-- **Ideal-model theorem for the context-string interface** (first ideal caveat above).
 - **`rust/ct-evidence`** was not re-run against the optimised crate, and its harness still calls
   `wots::chain`, which no longer exists. The new code's data-dependent control flow is in
   `chain_blocks` (step ranges, which are WOTS+ digits and tree indices) and, with `hw-sha2`, in

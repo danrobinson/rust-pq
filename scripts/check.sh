@@ -16,7 +16,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 ./scripts/extract-hw.sh
 (cd lean-hw && lake build && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
 # The security statements of security/, compiled against the hw-sha2 build's translation.
-# (A first build of this package compiles its own copies of the security libraries.)
+# (It compiles its own copies of the security libraries: about four minutes from clean.)
 (cd security-hw && lake build)
 if grep -rnE "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Spec security/Link security/E2E \
      lean-hw/Arm.lean lean-hw/ArmTest.lean lean-hw/Slhdsa | grep -v "no .native_decide"; then

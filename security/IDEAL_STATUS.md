@@ -1,5 +1,11 @@
 # Ideal-compression-function bounds for the hash assumptions of the SLH-DSA-SHA2-128s reduction
 
+> **Note, 2026-11-21.** Where this file says the external pure interface (sign/verify with a
+> context string) is not covered, that is no longer so: `suf_ideal_pure_closed`,
+> `euf_ideal_pure_closed` (`Ideal/Realize/FinalPure.lean`) and
+> `rust_ideal_security_closed_pure` (`Ideal/RustFinalClosedPure.lean`) state the closed bounds
+> for it, with the message length `ℓ` replaced by `ℓ + 257`.
+
 > **Update (2026-11-21): the composed ideal-compression theorem is finished. Read this first;
 > everything below it describes an earlier, conditional state.**
 > All twelve realisers are proved (`Ideal/Realize/*.lean`). `suf_ideal_closed` / `euf_ideal_closed`

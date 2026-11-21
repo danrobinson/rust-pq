@@ -343,14 +343,23 @@ bound. Machine-checked points, for messages up to 2^26 bytes:
 
 `rust_ideal_security_closed`
 ([security/Ideal/RustFinalClosed.lean](security/Ideal/RustFinalClosed.lean))
-states this next to the Rust refinement. Limits: the theorem is about the
-internal interface (FIPS 205 Algorithms 18-20), not sign/verify with a context
-string; the subset-resilience leg is vacuous once the forger's compression
+states this next to the Rust refinement, for the internal interface (FIPS 205
+Algorithms 18-20). `suf_ideal_pure_closed`, `euf_ideal_pure_closed`
+([security/Ideal/Realize/FinalPure.lean](security/Ideal/Realize/FinalPure.lean))
+and `rust_ideal_security_closed_pure`
+([security/Ideal/RustFinalClosedPure.lean](security/Ideal/RustFinalClosedPure.lean))
+are the same for sign/verify with a context string, on byte strings: the bound
+is the internal one with the message length `ℓ` replaced by `ℓ + 257` (two
+header bytes and a context of at most 255), so the table above holds for
+messages up to 2^26 − 257 bytes.
+
+Limits: the subset-resilience leg is vacuous once the forger's compression
 queries plus twice the signatures reach about 2^70; the security statement
 averages over random tables and says nothing about the real compression
 function. Nothing is proven in the cipher-based (Davies-Meyer) model. An
-independent statement-level review is in
-[security/status/AUDIT-closed.md](security/status/AUDIT-closed.md).
+independent statement-level review of the internal-interface theorems is in
+[security/status/AUDIT-closed.md](security/status/AUDIT-closed.md); the
+context-string extension was made after it and has not been reviewed.
 
 ### Side channels ([rust/ct-evidence](rust/ct-evidence), see `lean/CT_STATUS.md`)
 
