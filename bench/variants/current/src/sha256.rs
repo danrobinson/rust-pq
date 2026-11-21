@@ -52,6 +52,7 @@ fn schedule(data: &[u8], off: usize) -> [u32; 64] {
 ///
 /// With the opt-in `hw-sha2` feature, on a CPU that has the ARMv8 SHA-256
 /// instructions, the result comes from [`hw`] instead of the code below.
+#[inline]
 pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> [u32; 8] {
     #[cfg(feature = "count")]
     COMPRESSIONS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
@@ -98,28 +99,6 @@ pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> [u32; 8] {
         state[6].wrapping_add(g),
         state[7].wrapping_add(h),
     ]
-}
-
-/// The compression function from one state on each of several blocks:
-/// `out[i] = compress(state, &blocks[i], 0)` for every `i < blocks.len()`.
-/// Panics if `out` is shorter than `blocks`.
-///
-/// The blocks do not depend on each other. With the opt-in `hw-sha2` feature
-/// that lets [`hw`] work on four of them at a time, which is about twice as
-/// fast as one after the other.
-pub fn compress_many(state: &[u32; 8], blocks: &[[u8; 64]], out: &mut [[u32; 8]]) {
-    assert!(blocks.len() <= out.len());
-    #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
-    {
-        if hw::compress_many(state, blocks, out) {
-            return;
-        }
-    }
-    let mut i = 0;
-    while i < blocks.len() {
-        out[i] = compress(state, &blocks[i], 0);
-        i += 1;
-    }
 }
 
 /// Append the SHA-256 padding to `msg`, for a message whose first `pre`
@@ -218,28 +197,36 @@ pub fn hw_active() -> bool {
     }
 }
 
-/// The compression function on the ARMv8 SHA-256 instructions.
+/// SHA-256 on the ARMv8 SHA-256 instructions.
 ///
 /// Compiled only with the opt-in `hw-sha2` feature. This module is the only
 /// `unsafe` code in the crate and is **not covered by the Lean proofs**:
 /// Aeneas translates the default build, in which this module does not exist.
-/// Everything outside [`compress`] and [`compress_many`] is the same code
-/// either way, and those two only hand their arguments to this module. So a
-/// build with the feature computes what the verified build computes provided
-/// that
+/// It stands in for two functions of the verified code, and everything else
+/// is the same code either way. So a build with the feature computes what the
+/// verified build computes provided that
 ///
 /// > whenever `hw::compress` returns `Some`, it holds what the portable code
-/// > of `compress` returns for the same arguments, and whenever
-/// > `hw::compress_many` returns `true`, it has left in `out` what the
-/// > portable loop of `compress_many` leaves there.
+/// > of [`compress`] returns for the same arguments, and whenever
+/// > `hw::chain_blocks` returns `true`, it has left in `blocks` what the
+/// > portable loops of [`crate::hash::chain_blocks`] leave there.
 ///
-/// Both come down to [`hw::lanes`]: for 1, 2, 3 or 4 blocks, its result for
-/// each block is the portable compression of that block. That statement is
-/// tested (`tests/compress.rs` and the ACVP vectors, run with the feature on)
-/// but not proved.
+/// That statement is tested (`tests/compress.rs` and the ACVP vectors, run
+/// with the feature on) but not proved.
+///
+/// `chain_blocks` is where the time goes: nearly every hash of SLH-DSA is one
+/// step of it. The processor has a single unit for the SHA-256 round
+/// instructions, each occupying it for two cycles, and one hash on its own
+/// keeps that unit waiting, because each step needs the result of the one
+/// before. So four chains are worked on at once, staggered a quarter of a
+/// hash apart, and the unit always has a step ready. Two more savings apply
+/// to a chain step: the first four rounds use only the first sixteen bytes of
+/// the block, which a chain never changes, so they are done once per chain;
+/// and only the first sixteen bytes of the result are kept, which do not
+/// depend on the last update of the second half of the state.
 #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
 #[allow(unsafe_code)]
-mod hw {
+pub(crate) mod hw {
     use core::arch::aarch64::*;
 
     /// Whether this CPU has the instructions. A compile-time `true` where the
@@ -260,102 +247,315 @@ mod hw {
         // The same bounds check, so the same panic, as the portable code.
         let block: &[u8; 64] = data[off..off + 64].try_into().unwrap();
         // SAFETY: `neon` and `sha2` were detected just above.
-        let [out] = unsafe { lanes(state, core::array::from_ref(block)) };
-        Some(out)
+        Some(unsafe { compress_block(state, block) })
     }
 
-    /// [`super::compress_many`], four blocks at a time, or `false` if this
-    /// CPU lacks the instructions. The caller has checked that `out` is at
-    /// least as long as `blocks`.
-    #[inline]
-    pub fn compress_many(state: &[u32; 8], blocks: &[[u8; 64]], out: &mut [[u32; 8]]) -> bool {
-        if !available() {
-            return false;
-        }
-        let (quads, rest) = blocks.as_chunks::<4>();
-        let (out_quads, out_rest) = out[..blocks.len()].as_chunks_mut::<4>();
-        let mut i = 0;
-        while i < quads.len() {
-            // SAFETY, here and below: `neon` and `sha2` were detected above.
-            out_quads[i] = unsafe { lanes(state, &quads[i]) };
-            i += 1;
-        }
-        if let Ok(three) = <&[[u8; 64]; 3]>::try_from(rest) {
-            out_rest.copy_from_slice(&unsafe { lanes(state, three) });
-        } else if let Ok(two) = <&[[u8; 64]; 2]>::try_from(rest) {
-            out_rest.copy_from_slice(&unsafe { lanes(state, two) });
-        } else if let Ok(one) = <&[[u8; 64]; 1]>::try_from(rest) {
-            out_rest.copy_from_slice(&unsafe { lanes(state, one) });
-        }
-        true
-    }
-
-    /// The compression function on `L` blocks at once, all from the same
-    /// state: sixteen steps of four rounds, each step done for every block
-    /// before the next step. For block `l`, `abcd[l]` and `efgh[l]` hold the
-    /// working variables and `m[l]` the four most recent schedule vectors.
-    ///
-    /// One compression is a chain of instructions each waiting for the one
-    /// before, so a processor has room to run several chains side by side;
-    /// that is the whole point of `L > 1`.
+    /// The compression function: sixteen steps of four rounds each. `abcd`
+    /// and `efgh` hold the working variables, `m` the four most recent
+    /// schedule vectors.
     ///
     /// # Safety
     /// The CPU must support the `neon` and `sha2` target features.
     #[inline]
     #[target_feature(enable = "neon,sha2")]
-    unsafe fn lanes<const L: usize>(state: &[u32; 8], blocks: &[[u8; 64]; L]) -> [[u32; 8]; L] {
+    unsafe fn compress_block(state: &[u32; 8], block: &[u8; 64]) -> [u32; 8] {
         // SAFETY, for every load and store below: each touches 16 bytes that
         // lie inside a fixed-size array borrowed for the whole call (`state`
-        // and each `out[l]` are 32 bytes, each block is 64, `K` is 256), and
-        // NEON loads and stores have no alignment requirement.
+        // and `out` are 32 bytes, `block` is 64, `K` is 256), and NEON loads
+        // and stores have no alignment requirement.
         unsafe {
             let abcd0 = vld1q_u32(state.as_ptr());
             let efgh0 = vld1q_u32(state.as_ptr().add(4));
-            let mut abcd = [abcd0; L];
-            let mut efgh = [efgh0; L];
-            let mut m = [[abcd0; 4]; L];
-            let mut l = 0;
-            while l < L {
-                // Big-endian words from little-endian memory: reverse each 4 bytes.
-                let p = blocks[l].as_ptr();
-                m[l] = [
-                    vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p))),
-                    vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(16)))),
-                    vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(32)))),
-                    vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(48)))),
-                ];
-                l += 1;
-            }
+            let mut abcd = abcd0;
+            let mut efgh = efgh0;
+            // Big-endian words from little-endian memory: reverse each 4 bytes.
+            let p = block.as_ptr();
+            let mut m = [
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(16)))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(32)))),
+                vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(p.add(48)))),
+            ];
             let mut i = 0;
             while i < 16 {
-                let k = vld1q_u32(super::K.as_ptr().add(4 * i));
-                let mut l = 0;
-                while l < L {
-                    // Rounds 4i .. 4i+3, on W[4i..4i+4] + K[4i..4i+4].
-                    let t = vaddq_u32(m[l][i % 4], k);
-                    let prev = abcd[l];
-                    abcd[l] = vsha256hq_u32(abcd[l], efgh[l], t);
-                    efgh[l] = vsha256h2q_u32(efgh[l], prev, t);
-                    // W[4i+16..4i+20], needed from step i + 4 on.
-                    if i < 12 {
-                        m[l][i % 4] = vsha256su1q_u32(
-                            vsha256su0q_u32(m[l][i % 4], m[l][(i + 1) % 4]),
-                            m[l][(i + 2) % 4],
-                            m[l][(i + 3) % 4],
-                        );
-                    }
-                    l += 1;
+                // Rounds 4i .. 4i+3, on W[4i..4i+4] + K[4i..4i+4].
+                let w = vaddq_u32(m[i % 4], vld1q_u32(super::K.as_ptr().add(4 * i)));
+                let prev = abcd;
+                abcd = vsha256hq_u32(abcd, efgh, w);
+                efgh = vsha256h2q_u32(efgh, prev, w);
+                // W[4i+16..4i+20], needed from step i + 4 on.
+                if i < 12 {
+                    m[i % 4] = vsha256su1q_u32(vsha256su0q_u32(m[i % 4], m[(i + 1) % 4]), m[(i + 2) % 4], m[(i + 3) % 4]);
                 }
                 i += 1;
             }
-            let mut out = [[0u32; 8]; L];
+            let mut out = [0u32; 8];
+            vst1q_u32(out.as_mut_ptr(), vaddq_u32(abcd, abcd0));
+            vst1q_u32(out.as_mut_ptr().add(4), vaddq_u32(efgh, efgh0));
+            out
+        }
+    }
+
+    /// One chain being worked on: the parts of its block that stay fixed, the
+    /// current 16-byte value as four big-endian words, and where it is.
+    #[derive(Clone, Copy)]
+    struct Slot {
+        /// W0..W3.
+        m0: uint32x4_t,
+        /// W4 with its low half (the top of the step counter) cleared; W5..W7 zero.
+        c1: uint32x4_t,
+        /// W9's low half and W10, W11: the padding after the value; W8 zero.
+        c2: uint32x4_t,
+        /// W12..W15.
+        m3: uint32x4_t,
+        /// The value: block bytes 22..38.
+        x: uint32x4_t,
+        /// The working variables after rounds 0..3, which use only W0..W3
+        /// and so are the same for every step of this chain.
+        a1: uint32x4_t,
+        e1: uint32x4_t,
+        /// Next step to do, and the step to stop before.
+        t: u32,
+        end: u32,
+        lane: usize,
+    }
+
+    /// [`crate::hash::chain_blocks`], four chains at a time, or `false` if
+    /// this CPU lacks the instructions (or the arguments are ones the
+    /// portable code panics on, which is then left to it).
+    ///
+    /// Chains are taken in order into four slots. The slots run until the
+    /// first of them has no steps left; finished chains are written back to
+    /// their blocks and the free slots take the next chains.
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn chain_blocks(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) -> bool {
+        let M = blocks.len();
+        if !available() || start.len() < M || end.len() < M {
+            return false;
+        }
+        // SAFETY: `neon` was detected just above.
+        let zero = unsafe { vdupq_n_u32(0) };
+        let mut slots = [Slot { m0: zero, c1: zero, c2: zero, m3: zero, x: zero, a1: zero, e1: zero, t: 0, end: 0, lane: 0 }; 4];
+        // Rounds 0..3 of the last block entered, with the bytes they came from.
+        let mut first: Option<([u8; 16], uint32x4_t, uint32x4_t)> = None;
+        let mut n = 0;
+        let mut next = 0;
+        loop {
+            // Give every free slot the next chain that has steps to do.
+            while n < 4 && next < M {
+                if start[next] < end[next] {
+                    // SAFETY: `neon` detected; `blocks[next]` is 64 bytes.
+                    slots[n] = unsafe { enter(state, &blocks[next], start[next], end[next], next, &mut first) };
+                    n += 1;
+                }
+                next += 1;
+            }
+            if n == 0 {
+                break;
+            }
+            // Run until the first of them is finished.
+            let mut r = slots[0].end - slots[0].t;
+            let mut j = 1;
+            while j < n {
+                r = r.min(slots[j].end - slots[j].t);
+                j += 1;
+            }
+            // SAFETY: `neon` and `sha2` detected; the first `n` slots are in use.
+            unsafe {
+                match n {
+                    4 => run::<4>(state, &mut slots, r),
+                    3 => run::<3>(state, &mut slots, r),
+                    2 => run::<2>(state, &mut slots, r),
+                    _ => run::<1>(state, &mut slots, r),
+                }
+            }
+            // Write back the finished chains and close the gaps.
+            let mut k = 0;
+            let mut j = 0;
+            while j < n {
+                if slots[j].t < slots[j].end {
+                    slots[k] = slots[j];
+                    k += 1;
+                } else {
+                    // SAFETY: `neon` detected; `lane < M`.
+                    unsafe { leave(&slots[j], &mut blocks[slots[j].lane]) };
+                }
+                j += 1;
+            }
+            n = k;
+        }
+        true
+    }
+
+    /// # Safety
+    /// `neon` and `sha2` are available.
+    #[inline]
+    #[target_feature(enable = "neon,sha2")]
+    unsafe fn enter(
+        state: &[u32; 8],
+        block: &[u8; 64],
+        t: u32,
+        end: u32,
+        lane: usize,
+        first: &mut Option<([u8; 16], uint32x4_t, uint32x4_t)>,
+    ) -> Slot {
+        // SAFETY: every load is 16 bytes inside the 64-byte block, `state` or `K`.
+        unsafe {
+            let p = block.as_ptr();
+            let be = |q: *const u8| vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(q)));
+            let mask1 = vld1q_u32([0xffff_0000u32, 0, 0, 0].as_ptr());
+            let mask2 = vld1q_u32([0u32, 0x0000_ffff, 0xffff_ffff, 0xffff_ffff].as_ptr());
+            let m0 = be(p);
+            let head: [u8; 16] = block[0..16].try_into().unwrap();
+            let (a1, e1) = match *first {
+                Some((h, a1, e1)) if h == head => (a1, e1),
+                _ => {
+                    let abcd0 = vld1q_u32(state.as_ptr());
+                    let efgh0 = vld1q_u32(state.as_ptr().add(4));
+                    let w = vaddq_u32(m0, vld1q_u32(super::K.as_ptr()));
+                    let a1 = vsha256hq_u32(abcd0, efgh0, w);
+                    let e1 = vsha256h2q_u32(efgh0, abcd0, w);
+                    *first = Some((head, a1, e1));
+                    (a1, e1)
+                }
+            };
+            Slot {
+                m0,
+                c1: vandq_u32(be(p.add(16)), mask1),
+                c2: vandq_u32(be(p.add(32)), mask2),
+                m3: be(p.add(48)),
+                x: be(p.add(22)),
+                a1,
+                e1,
+                t,
+                end,
+                lane,
+            }
+        }
+    }
+
+    /// A finished chain back to its block: the value, and the counter of the
+    /// last step done (which is what the portable code leaves there).
+    ///
+    /// # Safety
+    /// `neon` is available; the slot has done at least one step.
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn leave(slot: &Slot, block: &mut [u8; 64]) {
+        block[18..22].copy_from_slice(&(slot.t - 1).to_be_bytes());
+        // SAFETY: 16 bytes at offset 22 of a 64-byte block.
+        unsafe { vst1q_u8(block.as_mut_ptr().add(22), vrev32q_u8(vreinterpretq_u8_u32(slot.x))) };
+    }
+
+    /// One lane's share of one tick: step `i` (1..=15) of its current hash,
+    /// with the work that starts a hash before step 1 and the work that ends
+    /// one after step 15. `$phase` 0 is the first period of a run (a lane
+    /// joins at its offset), 1 a middle period, 2 the last (a lane that
+    /// joined late finishes its last hash).
+    macro_rules! lane_tick {
+        ($L:expr, $phase:expr, $j:expr, $lane:expr,
+         ($slots:ident, $p:ident, $abcd0:ident, $zero:ident, $x:ident, $abcd:ident, $efgh:ident, $m:ident)) => {
+            if $lane < $L {
+                let off: usize = (15 * $lane) / $L;
+                let live = match $phase {
+                    0 => $j >= off,
+                    1 => true,
+                    _ => $j < off,
+                };
+                if live {
+                    let i: usize = ($j + 15 - off) % 15 + 1;
+                    if i == 1 {
+                        // A new hash. The value sits 16 bits off the word
+                        // boundaries (bytes 22..38), after the step counter.
+                        let t = $slots[$lane].t + $p;
+                        let tv = vsetq_lane_u32(t << 16, vsetq_lane_u32(t >> 16, $zero, 0), 1);
+                        let hi = vshrq_n_u32($x[$lane], 16);
+                        let lo = vshlq_n_u32($x[$lane], 16);
+                        let m1 = vorrq_u32(
+                            vorrq_u32($slots[$lane].c1, tv),
+                            vorrq_u32(vextq_u32($zero, hi, 3), vextq_u32($zero, lo, 2)),
+                        );
+                        let m2 = vorrq_u32($slots[$lane].c2, vorrq_u32(vextq_u32(lo, $zero, 2), vextq_u32(hi, $zero, 3)));
+                        let m3 = $slots[$lane].m3;
+                        // Rounds 0..3 are already done; W16..W19 are still wanted.
+                        $abcd[$lane] = $slots[$lane].a1;
+                        $efgh[$lane] = $slots[$lane].e1;
+                        $m[$lane] = [vsha256su1q_u32(vsha256su0q_u32($slots[$lane].m0, m1), m2, m3), m1, m2, m3];
+                    }
+                    let w = vaddq_u32($m[$lane][i % 4], vld1q_u32(super::K.as_ptr().add(4 * i)));
+                    let prev = $abcd[$lane];
+                    $abcd[$lane] = vsha256hq_u32($abcd[$lane], $efgh[$lane], w);
+                    // Only the first four words of the result are kept, so
+                    // the last update of the other four is not needed.
+                    if i < 15 {
+                        $efgh[$lane] = vsha256h2q_u32($efgh[$lane], prev, w);
+                    }
+                    if i < 12 {
+                        $m[$lane][i % 4] = vsha256su1q_u32(
+                            vsha256su0q_u32($m[$lane][i % 4], $m[$lane][(i + 1) % 4]),
+                            $m[$lane][(i + 2) % 4],
+                            $m[$lane][(i + 3) % 4],
+                        );
+                    }
+                    if i == 15 {
+                        $x[$lane] = vaddq_u32($abcd[$lane], $abcd0);
+                    }
+                }
+            }
+        };
+    }
+
+    /// One period of fifteen ticks; in each, every lane takes one step.
+    macro_rules! period {
+        ($L:expr, $phase:expr, $args:tt; $($j:literal)*) => {
+            $(
+                lane_tick!($L, $phase, $j, 0, $args);
+                lane_tick!($L, $phase, $j, 1, $args);
+                lane_tick!($L, $phase, $j, 2, $args);
+                lane_tick!($L, $phase, $j, 3, $args);
+            )*
+        };
+    }
+
+    /// `steps` steps of the first `L` slots, entirely in registers: each step
+    /// rebuilds W4..W9 from the counter and the previous value, compresses,
+    /// and keeps the first four words of the result as the next value.
+    ///
+    /// The round instructions of all lanes go through one execution unit, and
+    /// a lane has nothing for it while it turns one hash into the next. So
+    /// the lanes are staggered: lane `l` runs `15·l/L` steps behind lane 0,
+    /// and no two lanes are between hashes at the same time.
+    ///
+    /// # Safety
+    /// `neon` and `sha2` are available; `1 <= L <= 4`; `steps >= 1`; each of
+    /// the first `L` slots has at least `steps` steps left.
+    #[inline]
+    #[allow(unused_assignments)]
+    #[target_feature(enable = "neon,sha2")]
+    unsafe fn run<const L: usize>(state: &[u32; 8], slots: &mut [Slot; 4], steps: u32) {
+        // SAFETY: loads of 16 bytes from `state` (32 bytes) and `K` (256 bytes).
+        unsafe {
+            let abcd0 = vld1q_u32(state.as_ptr());
+            let zero = vdupq_n_u32(0);
+            let mut x = [slots[0].x, slots[1].x, slots[2].x, slots[3].x];
+            let mut abcd = [zero; 4];
+            let mut efgh = [zero; 4];
+            let mut m = [[zero; 4]; 4];
+            let mut p: u32 = 0;
+            period!(L, 0, (slots, p, abcd0, zero, x, abcd, efgh, m); 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14);
+            p = 1;
+            while p < steps {
+                period!(L, 1, (slots, p, abcd0, zero, x, abcd, efgh, m); 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14);
+                p += 1;
+            }
+            period!(L, 2, (slots, p, abcd0, zero, x, abcd, efgh, m); 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14);
             let mut l = 0;
             while l < L {
-                vst1q_u32(out[l].as_mut_ptr(), vaddq_u32(abcd[l], abcd0));
-                vst1q_u32(out[l].as_mut_ptr().add(4), vaddq_u32(efgh[l], efgh0));
+                slots[l].x = x[l];
+                slots[l].t += steps;
                 l += 1;
             }
-            out
         }
     }
 }

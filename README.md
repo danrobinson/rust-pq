@@ -43,49 +43,75 @@ hash function is assumed correct.
 
 ## Performance
 
-Measured on Apple Silicon, default release build, median of four rounds
-([bench/RESULTS.md](bench/RESULTS.md); `bench/run.sh` reproduces it):
+Measured on Apple Silicon (M5 Ultra), default release build, median of two
+rounds ([bench/RESULTS.md](bench/RESULTS.md), run 4; `bench/run.sh` reproduces
+it):
 
 | | keygen | sign | verify |
 |---|---|---|---|
-| this crate | 42.9 ms | 325 ms | 338 µs |
-| this crate, `hw-sha2` (below) | 11.5 ms | 83.7 ms | 85.3 µs |
-| RustCrypto `slh-dsa` | 8.29 ms | 62.6 ms | 63.7 µs |
-| OpenSSL 4.1 | 7.39 ms | 56.4 ms | 58.7 µs |
-| slhdsa-c (portable C) | 28.6 ms | 219 ms | 226 µs |
-| `fips205` as shipped | 61.2 ms | 472 ms | 483 µs |
+| this crate | 40.4 ms | 305 ms | 324 µs |
+| this crate, `hw-sha2` (below) | 4.00 ms | 30.2 ms | 35.4 µs |
+| RustCrypto `slh-dsa` | 8.30 ms | 62.6 ms | 63.8 µs |
+| OpenSSL 4.1 | 7.32 ms | 56.0 ms | 58.9 µs |
+| slhdsa-c (portable C) | 28.6 ms | 218 ms | 225 µs |
+| `fips205` as shipped | 61.2 ms | 472 ms | 479 µs |
 
-The crate is about 5 times slower than the libraries that use the ARM SHA-2
-instructions. About 3.6× of that is the hardware hash, which safe Rust in the
-Aeneas subset cannot use; the rest is its portable compression function. It
-interoperates with RustCrypto, `fips205`, OpenSSL and slhdsa-c: same keys from
-the same seeds, signatures verify both ways, and deterministic signatures are
-byte-identical.
+The default build is about 5 times slower than RustCrypto and OpenSSL, which
+use the ARM SHA-2 instructions; safe Rust in the Aeneas subset cannot. With
+the opt-in `hw-sha2` feature the crate is about 2.1 times as fast as
+RustCrypto and 1.8 times as fast as OpenSSL at key generation and signing, and
+1.8 and 1.7 times at verification. Verifying a 1 MiB message, which is mostly
+hashing the message, takes 352 µs against 365 µs and 405 µs.
+
+The crate interoperates with RustCrypto, `fips205`, OpenSSL and slhdsa-c in
+both builds: same keys from the same seeds, signatures verify both ways, and
+deterministic signatures are byte-identical.
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)
 
-`cargo build --features hw-sha2` computes the SHA-256 compression function
-with the ARMv8 SHA-256 instructions when the CPU has them. It is off by
-default, and AArch64 only so far: on other architectures, or on a CPU without
-the instructions, the portable code runs. With it the crate is 3.9× faster
-and about 1.35× behind RustCrypto (1.5× behind OpenSSL).
+`cargo build --features hw-sha2` runs SHA-256 on the ARMv8 SHA-256
+instructions when the CPU has them. It is off by default, and AArch64 only so
+far: on other architectures, or on a CPU without the instructions, the
+portable code runs.
 
 **The theorems in this repository are about the default build, not this one.**
-The backend is the crate's only `unsafe` code: one 40-line function of
-intrinsics, in module `hw` of [rust/src/sha256.rs](rust/src/sha256.rs). Aeneas translates the
-default build, in which that module does not exist; re-extracting with the
-feature off reproduces the generated Lean. Everything outside the compression
-function is the same code in both builds, so a build with the feature computes
-what the verified build computes provided that
+The backend is the crate's only `unsafe` code: module `hw` of
+[rust/src/sha256.rs](rust/src/sha256.rs), about 330 lines with comments.
+Aeneas translates the default build, in which that module does not exist. The
+module stands in for two functions of the verified code, and everything else is
+the same code in both builds:
 
-> for every state and every 64-byte block, `hw::compress_block` returns what
-> the portable `compress` returns.
+- `sha256::compress`, the compression function on one block;
+- `hash::chain_blocks`, which takes a set of independent 64-byte blocks and,
+  for each, repeats a step a given number of times: write the step number
+  into the block, compress it, and put the first 16 bytes of the result back
+  into the block. One step is `F`, `PRF` or `H` of SLH-DSA, so nearly every
+  hash of the scheme is a step of this function.
 
-That statement is tested, not proved. With the feature on, the compression
-function agrees with the `sha2` crate's on 200,000 random and 5,140 edge-case
-inputs ([rust/tests/compress.rs](rust/tests/compress.rs); the portable code
-passes the same test), the crate passes the NIST vectors, and it is
-byte-identical to the other libraries in the interoperability check.
+So a build with the feature computes what the verified build computes provided
+that
+
+> `hw::compress` returns what the portable code of `compress` returns, and
+> `hw::chain_blocks` leaves in the blocks what the portable loops of
+> `chain_blocks` leave there.
+
+That statement is tested, not proved. With the feature on, `compress` agrees
+with the `sha2` crate's compression function on 200,000 random and 5,140
+edge-case inputs, and `chain_blocks` agrees with a reference written from that
+function on 7,360 random batches of 0 to 140 blocks, with step ranges of every
+kind the crate uses and step numbers around every carry
+([rust/tests/compress.rs](rust/tests/compress.rs); the portable code passes the
+same tests). The crate passes the NIST vectors, and it is byte-identical to the
+other libraries in the interoperability check.
+
+Where the speed comes from: the verified code is arranged so that the hashes
+that do not depend on each other reach `chain_blocks` together (the 35 chains
+of a WOTS+ key, the leaves and levels of a FORS subtree, the 14 FORS trees of a
+verification). The processor has one unit for the SHA-256 round instructions,
+and a single hash keeps it waiting, because each step needs the result of the
+one before. The backend works on four chains at once, staggered so the unit
+always has work, and skips the rounds whose inputs or outputs a chain step
+does not use. In the default build the same function is a plain loop.
 
 ## What is not proven
 

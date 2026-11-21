@@ -1,10 +1,13 @@
 # SLH-DSA-SHA2-128s performance: the verified crate against other implementations
 
-This file reports three benchmark runs of the same suite:
+This file reports four benchmark runs of the same suite:
 
+- **Run 4 (current; `results/run4/`, 2026-11-21 10:37–10:58)** measures the crate after the performance
+  work of 2026-11-21: with `hw-sha2` it is faster than RustCrypto and OpenSSL. The earlier runs below
+  describe the crate as it was when they were made.
 - **Run 3 (`results/run3/`, 2026-11-21 06:45–07:07)** adds the verified crate built with its opt-in `hw-sha2`
   feature (ARMv8 SHA-256 instructions in the compression function; that module is not covered by the proofs).
-- **Run 2 (current; `results/run2/`, 2026-11-21 00:18–01:16)** measures the *optimised* verified crate now in
+- **Run 2 (`results/run2/`, 2026-11-21 00:18–01:16)** measures the *optimised* verified crate now in
   `../rust`, which has the seed midstate and no heap on the hot paths and has been re-proved in Lean (see
   `../opt/README.md`). The pre-optimisation crate is measured next to it as `verified-before`.
 - **Run 1 (pre-optimisation; `results/run1/`, 2026-11-20 23:11–00:13)** is kept unchanged further down. In run 1,
@@ -12,6 +15,42 @@ This file reports three benchmark runs of the same suite:
 
 Reproduce with `./run.sh` (all five build configurations, two rounds, about 40 minutes). To add rounds to an
 existing results directory, use `STAMP=<dir> ROUND_START=3 [CONFIGS="default soft"] ./run.sh`.
+
+# Run 4: after the performance work
+
+`../rust` was restructured around one primitive, `hash::chain_blocks` (iterated single-block hashing in
+place, on many independent blocks), and its `hw-sha2` backend now works on four chains at once
+(`../HANDOFF.md` has the design and what is and is not verified). Configurations `default` and `hw`, two
+rounds each (`CONFIGS="default hw"`), load average 1.5–3.7 on 36 cores: Lean builds were running on the
+machine during the run, most heavily in the first `default` round. Nothing else changed from run 3.
+
+| | keygen | sign 32 B | sign 1 MiB | verify 32 B | verify 1 MiB |
+|---|---|---|---|---|---|
+| `verified` (portable, config `default`) | 40.40 ms | 305.2 ms | 311.3 ms | 323.9 µs | 2.69 ms |
+| **`verified+hw-sha2`** (config `hw`) | **4.00 ms** | **30.22 ms** | **30.85 ms** | **35.40 µs** | **352.3 µs** |
+| rustcrypto-slh-dsa (config `hw`) | 8.30 ms | 62.58 ms | 63.19 ms | 63.78 µs | 364.9 µs |
+| openssl 4.1 (config `hw`) | 7.32 ms | 56.00 ms | 56.95 ms | 58.86 µs | 405.5 µs |
+| slhdsa-c, portable C (config `hw`) | 29.27 ms | 220.1 ms | 223.1 ms | 225.8 µs | 1.87 ms |
+| RustCrypto time / `verified+hw-sha2` time | 2.08 | 2.07 | 2.05 | 1.80 | 1.04 |
+| OpenSSL time / `verified+hw-sha2` time | 1.83 | 1.85 | 1.85 | 1.66 | 1.15 |
+
+- With `hw-sha2` the crate is faster than RustCrypto and OpenSSL in every operation measured. The margin
+  is about 2× on key generation and signing, 1.7–1.8× on verification, and small on verifying a 1 MiB
+  message, where all three spend their time hashing the message one block after another.
+- Against run 3, `verified+hw-sha2` went from 11.54 ms / 83.65 ms / 85.34 µs to 4.00 ms / 30.22 ms /
+  35.40 µs: 2.9×, 2.8× and 2.4×.
+- The portable build went from 43.0 ms / 324.5 ms / 335.8 µs to 40.40 ms / 305.2 ms / 323.9 µs (5–6%). It
+  is still 4.9× slower than RustCrypto, 1.4× slower than slhdsa-c and 1.5× faster than `fips205`.
+- Per-round spread of `verified+hw-sha2` is ±0.0–0.3%; of the others in config `hw`, up to ±1.8%.
+- The compression count is unchanged at 292,352 / 2,218,488 / 2,274 (`results/run4/compressions.md`): the
+  same hashes in a different order. 2,218,488 compressions in 30.22 ms is 13.6 ns each; the SHA-256 round
+  instructions of this CPU allow about 12.7 ns for a chain step (see `../HANDOFF.md`).
+- Interoperability is clean in both builds on all five checks against `verified-before`,
+  rustcrypto-slh-dsa, fips205, OpenSSL and slhdsa-c (`results/run4/interop.md`, `interop-hw.md`).
+- `hw-sha2` is not covered by the proofs: the default build is what is verified, and the feature replaces
+  two of its functions with tested, unproved code.
+
+Full tables: `results/run4/summary.md`.
 
 # Run 3: the opt-in `hw-sha2` backend
 

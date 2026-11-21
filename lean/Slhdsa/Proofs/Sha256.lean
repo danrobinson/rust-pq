@@ -560,7 +560,7 @@ theorem sha256_prefix64 (B m : Spec.Bytes) (hB : B.length = 64) :
   show ser (hashFrom H0 (pad (B ++ m))) = _
   rw [pad_append64 _ _ hB, hashFrom_append64 _ _ _ hB]
 
-/-! Several blocks compressed from the same state. -/
+/-! Lists updated at one position. -/
 
 theorem getElem!_set_ne' {α} [Inhabited α] (l : List α) (i j : Nat) (x : α) (h : i ≠ j) :
     (l.set i x)[j]! = l[j]! := by
@@ -569,56 +569,5 @@ theorem getElem!_set_ne' {α} [Inhabited α] (l : List α) (i j : Nat) (x : α) 
 theorem getElem!_set_self' {α} [Inhabited α] (l : List α) (i : Nat) (x : α) (h : i < l.length) :
     (l.set i x)[i]! = x := by
   simp [h]
-
-theorem compress_many_loop_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
-    (out0 out : Slice (Array U32 8#usize)) (i : Usize)
-    (h : blocks.length ≤ out0.length) (hlen : out.length = out0.length) (hi : i.val ≤ blocks.length)
-    (hinv : ∀ j, j < i.val →
-      sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (out.val[j]!)) :
-    sha256.compress_many_loop state blocks out i ⦃ r =>
-      r.length = out0.length ∧
-      (∀ j, j < blocks.length →
-        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (r.val[j]!)) ⦄ := by
-  unfold sha256.compress_many_loop
-  apply loop.spec_decr_nat
-    (measure := fun (q : Slice (Array U32 8#usize) × Usize) => blocks.length - q.2.val)
-    (inv := fun q => q.1.length = out0.length ∧ q.2.val ≤ blocks.length ∧
-      ∀ j, j < q.2.val →
-        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (q.1.val[j]!))
-  · rintro ⟨out, i⟩ ⟨hlen, hi, hinv⟩
-    simp only [sha256.compress_many_loop.body]
-    simp only at hlen hi hinv
-    simp only [step_simps]
-    spec_split
-    · let* ⟨ a, a_post ⟩ ← Slice.index_usize_spec
-      let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-      obtain ⟨v, hv, -⟩ := spec_imp_exists (compress_spec state s 0#usize (by simp [s_post]))
-      rw [hv]
-      step*
-      refine ⟨by simp [s1_post]; scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
-      intro j hj
-      have hol : i.val < out.val.length := by scalar_tac
-      rw [s1_post, Slice.set_val_eq]
-      rcases Nat.lt_succ_iff_lt_or_eq.mp (show j < i.val + 1 by scalar_tac) with hj | hj
-      · rw [getElem!_set_ne' _ _ _ _ (by omega)]
-        exact hinv j hj
-      · subst hj
-        rw [getElem!_set_self' _ _ _ hol, ← hv, s_post, a_post, getElem!_eq _ _ (by scalar_tac)]
-    · simp only [step_simps]
-      have hib : i.val = blocks.length := by scalar_tac
-      exact ⟨hlen, fun j hj => hinv j (by omega)⟩
-  · exact ⟨hlen, hi, hinv⟩
-
-@[step]
-theorem compress_many_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
-    (out : Slice (Array U32 8#usize)) (h : blocks.length ≤ out.length) :
-    sha256.compress_many state blocks out ⦃ r =>
-      r.length = out.length ∧
-      (∀ j, j < blocks.length →
-        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (r.val[j]!)) ⦄ := by
-  unfold sha256.compress_many
-  step
-  apply compress_many_loop_spec state blocks out out 0#usize h rfl (by simp)
-  intro j hj; simp at hj
 
 end slhdsa

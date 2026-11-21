@@ -1,6 +1,7 @@
-//! The SHA-256 compression function, one block at a time (`compress`) and
-//! many at once (`compress_many`), against an independent implementation
-//! (the `sha2` crate's), on random states and blocks.
+//! The two functions the `hw-sha2` backend stands in for, against an
+//! independent implementation of the compression function (the `sha2`
+//! crate's): `sha256::compress` on random states and blocks, and
+//! `hash::chain_blocks` on random blocks, step ranges and batch sizes.
 //!
 //! Run both ways: `cargo test` checks the portable (verified) code, and
 //! `cargo test --features hw-sha2` checks the hardware backend.
@@ -75,68 +76,158 @@ fn compress_panics_past_the_end() {
     let _ = slhdsa::sha256::compress(&slhdsa::sha256::H0, &data, 37);
 }
 
-/// `compress_many` on every batch size the crate uses and more: each output
-/// is the reference compression of its own block, whatever its position in
-/// the batch, and entries of `out` past the batch are left alone.
-#[test]
-fn compress_many_matches_reference_on_every_batch_size() {
-    let mut rng = Rng(0x4d41_4e59);
-    for round in 0..400u32 {
-        for n in 0..=41usize {
-            let mut state = [0u32; 8];
-            for s in state.iter_mut() {
-                *s = rng.next() as u32;
+/// What `chain_blocks` is specified to do, written with the reference
+/// compression: block `i` takes steps `start[i]..end[i]`; a step writes its
+/// number at bytes 18..22 and then replaces bytes 22..38 by the first 16
+/// bytes of the digest of the block's compression.
+fn chain_reference(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
+    for i in 0..blocks.len() {
+        let mut t = start[i];
+        while t < end[i] {
+            blocks[i][18..22].copy_from_slice(&t.to_be_bytes());
+            let st = reference(state, &blocks[i]);
+            for w in 0..4 {
+                blocks[i][22 + 4 * w..26 + 4 * w].copy_from_slice(&st[w].to_be_bytes());
             }
-            let mut blocks = vec![[0u8; 64]; n];
-            for b in blocks.iter_mut() {
-                rng.fill(b);
-            }
-            let extra = (round as usize + n) % 3;
-            let mut out = vec![[0xa5a5_a5a5u32; 8]; n + extra];
-            slhdsa::sha256::compress_many(&state, &blocks, &mut out);
-            for i in 0..n {
-                assert_eq!(out[i], reference(&state, &blocks[i]), "round {round}, batch of {n}, block {i}");
-                assert_eq!(out[i], slhdsa::sha256::compress(&state, &blocks[i], 0));
-            }
-            for o in &out[n..] {
-                assert_eq!(*o, [0xa5a5_a5a5u32; 8], "round {round}, batch of {n}: wrote past the batch");
-            }
+            t += 1;
         }
     }
 }
 
-/// Blocks in one batch must not influence each other: the same block gives
-/// the same output next to any neighbours, and equal blocks give equal outputs.
+/// One random case: `n` blocks, each with a step range drawn by `range`, and
+/// with first 16 bytes drawn by `head` (the backend caches work that depends
+/// only on those bytes, so equal and unequal neighbours both matter).
+fn chain_case(
+    rng: &mut Rng,
+    n: usize,
+    range: &mut dyn FnMut(&mut Rng, usize) -> (u32, u32),
+    head: &mut dyn FnMut(&mut Rng, usize, &mut [u8; 16]),
+    what: &str,
+) {
+    let mut state = [0u32; 8];
+    for s in state.iter_mut() {
+        *s = rng.next() as u32;
+    }
+    let mut blocks = vec![[0u8; 64]; n];
+    let mut start = vec![0u32; n];
+    let mut end = vec![0u32; n];
+    for i in 0..n {
+        rng.fill(&mut blocks[i]);
+        let mut h: [u8; 16] = blocks[i][0..16].try_into().unwrap();
+        head(rng, i, &mut h);
+        blocks[i][0..16].copy_from_slice(&h);
+        (start[i], end[i]) = range(rng, i);
+    }
+    // Slices longer than `blocks` are allowed.
+    if rng.next() % 2 == 0 {
+        start.push(7);
+        end.push(9);
+    }
+    let mut want = blocks.clone();
+    chain_reference(&state, &mut want, &start, &end);
+    slhdsa::hash::chain_blocks(&state, &mut blocks, &start, &end);
+    for i in 0..n {
+        assert_eq!(blocks[i], want[i], "{what}: {n} blocks, block {i}, steps {}..{}", start[i], end[i]);
+    }
+}
+
+/// Step ranges of every kind the crate uses and more: none, one, fifteen,
+/// mixed lengths, empty and reversed ranges, and counters around the points
+/// where the step number carries from one byte or word of the block into
+/// the next.
 #[test]
-fn compress_many_lanes_are_independent() {
+fn chain_blocks_matches_reference() {
+    let mut rng = Rng(0x4348_4149_4e53);
+    let bases: [u32; 9] = [0, 1, 250, 0xfff8, 0xffff, 0x1_0000, 0xff_fff8, 0x7fff_fff8, u32::MAX - 20];
+    let mut random_head = |rng: &mut Rng, _i: usize, h: &mut [u8; 16]| rng.fill(h);
+    let mut same_head = |_rng: &mut Rng, _i: usize, h: &mut [u8; 16]| *h = [0x5a; 16];
+    let mut mixed_head = |rng: &mut Rng, i: usize, h: &mut [u8; 16]| {
+        if i % 3 == 0 {
+            rng.fill(h)
+        } else {
+            *h = [(i / 5) as u8; 16]
+        }
+    };
+    for round in 0..40u32 {
+        for n in (0..=41usize).chain([64, 70, 128, 140]) {
+            // As in WOTS+ key generation: every chain takes the same steps.
+            chain_case(&mut rng, n, &mut |_, _| (0, 15), &mut same_head, "uniform 0..15");
+            // As in WOTS+ signing and verification: mixed lengths.
+            chain_case(
+                &mut rng,
+                n,
+                &mut |rng, _| {
+                    let d = (rng.next() % 16) as u32;
+                    if round % 2 == 0 { (0, d) } else { (d, 15) }
+                },
+                &mut same_head,
+                "mixed lengths",
+            );
+            // As in FORS and the tree levels: one step each, numbered by an index.
+            chain_case(
+                &mut rng,
+                n,
+                &mut |rng, i| {
+                    let t = (rng.next() as u32 % 60000) + i as u32;
+                    (t, t + 1)
+                },
+                &mut mixed_head,
+                "single steps",
+            );
+            // Anything: empty and reversed ranges, counters near carries.
+            chain_case(
+                &mut rng,
+                n,
+                &mut |rng, _| {
+                    let s = bases[(rng.next() % 9) as usize].wrapping_add((rng.next() % 12) as u32);
+                    let len = (rng.next() % 22) as u32;
+                    match rng.next() % 8 {
+                        0 => (s, s),
+                        1 => (s, s.saturating_sub(3)),
+                        _ => (s, s.saturating_add(len)),
+                    }
+                },
+                &mut random_head,
+                "random",
+            );
+        }
+    }
+}
+
+/// Chains in one batch must not influence each other: the same block with
+/// the same steps gives the same result at any position, next to anything.
+#[test]
+fn chain_blocks_chains_are_independent() {
     let mut rng = Rng(0x4c41_4e45);
     let state = slhdsa::sha256::H0;
     let mut probe = [0u8; 64];
     rng.fill(&mut probe);
-    let want = reference(&state, &probe);
-    for n in 1..=9usize {
+    let mut want = [probe];
+    chain_reference(&state, &mut want, &[3], &[11]);
+    for n in 1..=12usize {
         for pos in 0..n {
             let mut blocks = vec![[0u8; 64]; n];
-            for b in blocks.iter_mut() {
-                rng.fill(b);
+            let mut start = vec![0u32; n];
+            let mut end = vec![0u32; n];
+            for i in 0..n {
+                rng.fill(&mut blocks[i]);
+                start[i] = (rng.next() % 9) as u32;
+                end[i] = start[i] + (rng.next() % 17) as u32;
             }
             blocks[pos] = probe;
-            let mut out = vec![[0u32; 8]; n];
-            slhdsa::sha256::compress_many(&state, &blocks, &mut out);
-            assert_eq!(out[pos], want, "batch of {n}, position {pos}");
+            start[pos] = 3;
+            end[pos] = 11;
+            slhdsa::hash::chain_blocks(&state, &mut blocks, &start, &end);
+            assert_eq!(blocks[pos], want[0], "batch of {n}, position {pos}");
         }
-        let mut out = vec![[0u32; 8]; n];
-        slhdsa::sha256::compress_many(&state, &vec![probe; n], &mut out);
-        assert!(out.iter().all(|o| *o == want), "batch of {n} equal blocks");
     }
 }
 
 #[test]
 #[should_panic]
-fn compress_many_panics_if_out_is_too_short() {
-    let blocks = [[0u8; 64]; 5];
-    let mut out = [[0u32; 8]; 4];
-    slhdsa::sha256::compress_many(&slhdsa::sha256::H0, &blocks, &mut out);
+fn chain_blocks_panics_if_a_range_is_missing() {
+    let mut blocks = [[0u8; 64]; 5];
+    slhdsa::hash::chain_blocks(&slhdsa::sha256::H0, &mut blocks, &[0; 5], &[1; 4]);
 }
 
 /// With the feature on, the backend must be in use exactly when the CPU has

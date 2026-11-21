@@ -1,7 +1,7 @@
 //! The SLH-DSA hash functions for SHA2, security category 1 (FIPS 205 §11.2.1).
 
 use crate::address::Adrs;
-use crate::params::{M, N};
+use crate::params::{LEN, M, N};
 use crate::sha256::{compress, digest, hmac_sha256, sha256, sha256_from, H0};
 
 /// `PK.seed` together with the SHA-256 state after the first block of every
@@ -24,6 +24,7 @@ pub fn seed_ctx(pk_seed: &[u8; N]) -> Seed {
 /// The one padded block that follows `PK.seed ‖ toByte(0, 64 − n)` when
 /// hashing `ADRSc ‖ m` for a short `m` (at most 33 bytes):
 /// `ADRSc ‖ m ‖ 0x80 ‖ 0… ‖ bit length`.
+#[inline(always)]
 pub fn short_block(adrs: &Adrs, m: &[u8]) -> [u8; 64] {
     let len = m.len();
     let mut blk = [0u8; 64];
@@ -37,11 +38,90 @@ pub fn short_block(adrs: &Adrs, m: &[u8]) -> [u8; 64] {
 }
 
 /// The first `n` bytes of the digest for a final state.
+#[inline(always)]
 pub fn trunc(st: &[u32; 8]) -> [u8; N] {
     let d = digest(st);
     let mut out = [0u8; N];
     out.copy_from_slice(&d[0..N]);
     out
+}
+
+/// Iterated single-block hashing in place, on several independent blocks.
+///
+/// Each `blocks[i]` is a `short_block` of an address and a 16-byte value.
+/// Block `i` takes steps `start[i]`, …, `end[i] − 1`: a step writes its
+/// number into the last address word (bytes 18..22) and then replaces the
+/// value (bytes 22..38) by `Trunc_n` of the compression of the block from
+/// `state`. With the seed state that is `F` (or `PRF`) at that address, so a
+/// run of steps is Algorithm 5, `chain`.
+///
+/// The blocks do not depend on each other, which is what the opt-in
+/// `hw-sha2` backend uses: it works on four of them at once.
+pub fn chain_blocks(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
+    #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
+    {
+        if crate::sha256::hw::chain_blocks(state, blocks, start, end) {
+            return;
+        }
+    }
+    let mut i = 0;
+    while i < blocks.len() {
+        let mut t = start[i];
+        while t < end[i] {
+            blocks[i][18] = (t >> 24) as u8;
+            blocks[i][19] = (t >> 16) as u8;
+            blocks[i][20] = (t >> 8) as u8;
+            blocks[i][21] = t as u8;
+            let st = compress(state, &blocks[i], 0);
+            let d = trunc(&st);
+            blocks[i][22..38].copy_from_slice(&d);
+            t += 1;
+        }
+        i += 1;
+    }
+}
+
+/// The `short_block` of `adrs` and `left ‖ right`: the single block of `H`.
+#[inline(always)]
+pub fn pair_block(adrs: &Adrs, left: &[u8; N], right: &[u8; N]) -> [u8; 64] {
+    let mut buf = [0u8; 2 * N];
+    buf[0..N].copy_from_slice(left);
+    buf[N..2 * N].copy_from_slice(right);
+    short_block(adrs, &buf)
+}
+
+/// The 16-byte value held in a block (bytes 22..38).
+#[inline(always)]
+pub fn value(block: &[u8; 64]) -> [u8; N] {
+    let mut out = [0u8; N];
+    out.copy_from_slice(&block[22..38]);
+    out
+}
+
+/// `T_len`: `Trunc_n(SHA-256(PK.seed ‖ toByte(0, 64 − n) ‖ ADRSc ‖ v_0 ‖ … ‖ v_34))`
+/// where `v_i` is the value held in `blocks[i]` (bytes 22..38).
+///
+/// The message after the first block is 22 + 35·16 = 582 bytes, so with its
+/// padding it is exactly ten blocks, built here on the stack.
+pub fn thash_values(seed: &Seed, adrs: &Adrs, blocks: &[[u8; 64]; LEN]) -> [u8; N] {
+    let mut buf = [0u8; 640];
+    buf[0..22].copy_from_slice(&adrs.compress());
+    let mut i = 0;
+    while i < LEN {
+        buf[22 + N * i..22 + N * i + N].copy_from_slice(&blocks[i][22..38]);
+        i += 1;
+    }
+    buf[582] = 0x80;
+    // Bit length of the whole message, (64 + 582)·8 = 5168 = 0x1430.
+    buf[638] = 0x14;
+    buf[639] = 0x30;
+    let mut st = seed.state;
+    let mut off = 0;
+    while off < 640 {
+        st = compress(&st, &buf, off);
+        off += 64;
+    }
+    trunc(&st)
 }
 
 /// `Trunc_n(SHA-256(PK.seed ‖ toByte(0, 64 − n) ‖ ADRSc ‖ m))` for a short

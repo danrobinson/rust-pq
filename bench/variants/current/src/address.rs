@@ -32,33 +32,40 @@ impl Adrs {
     }
 
     /// `setTypeAndClear`.
+    #[inline(always)]
     pub fn with_type(self, typ: u32) -> Adrs {
         Adrs { layer: self.layer, tree: self.tree, typ, keypair: 0, word2: 0, word3: 0 }
     }
 
+    #[inline(always)]
     pub fn with_layer(self, layer: u32) -> Adrs {
         Adrs { layer, ..self }
     }
 
+    #[inline(always)]
     pub fn with_tree(self, tree: u64) -> Adrs {
         Adrs { tree, ..self }
     }
 
+    #[inline(always)]
     pub fn with_keypair(self, keypair: u32) -> Adrs {
         Adrs { keypair, ..self }
     }
 
     /// `setChainAddress` / `setTreeHeight`.
+    #[inline(always)]
     pub fn with_word2(self, word2: u32) -> Adrs {
         Adrs { word2, ..self }
     }
 
     /// `setHashAddress` / `setTreeIndex`.
+    #[inline(always)]
     pub fn with_word3(self, word3: u32) -> Adrs {
         Adrs { word3, ..self }
     }
 
     /// The compressed address ADRSc: layer (1) ‖ tree (8) ‖ type (1) ‖ words (12).
+    #[inline(always)]
     pub fn compress(&self) -> [u8; 22] {
         let t = self.tree;
         let a = self.keypair;

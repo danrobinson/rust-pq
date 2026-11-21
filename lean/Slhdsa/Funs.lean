@@ -92,49 +92,49 @@ def address.Adrs.new : Result address.Adrs := do
     }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_type]:
-    Source: 'src/address.rs', lines 35:4-37:5
+    Source: 'src/address.rs', lines 36:4-38:5
     Visibility: public -/
 def address.Adrs.with_type
   (self : address.Adrs) (typ : Std.U32) : Result address.Adrs := do
   ok { self with typ, keypair := 0#u32, word2 := 0#u32, word3 := 0#u32 }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_layer]:
-    Source: 'src/address.rs', lines 39:4-41:5
+    Source: 'src/address.rs', lines 41:4-43:5
     Visibility: public -/
 def address.Adrs.with_layer
   (self : address.Adrs) (layer : Std.U32) : Result address.Adrs := do
   ok { self with layer }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_tree]:
-    Source: 'src/address.rs', lines 43:4-45:5
+    Source: 'src/address.rs', lines 46:4-48:5
     Visibility: public -/
 def address.Adrs.with_tree
   (self : address.Adrs) (tree : Std.U64) : Result address.Adrs := do
   ok { self with tree }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_keypair]:
-    Source: 'src/address.rs', lines 47:4-49:5
+    Source: 'src/address.rs', lines 51:4-53:5
     Visibility: public -/
 def address.Adrs.with_keypair
   (self : address.Adrs) (keypair : Std.U32) : Result address.Adrs := do
   ok { self with keypair }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_word2]:
-    Source: 'src/address.rs', lines 52:4-54:5
+    Source: 'src/address.rs', lines 57:4-59:5
     Visibility: public -/
 def address.Adrs.with_word2
   (self : address.Adrs) (word2 : Std.U32) : Result address.Adrs := do
   ok { self with word2 }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_word3]:
-    Source: 'src/address.rs', lines 57:4-59:5
+    Source: 'src/address.rs', lines 63:4-65:5
     Visibility: public -/
 def address.Adrs.with_word3
   (self : address.Adrs) (word3 : Std.U32) : Result address.Adrs := do
   ok { self with word3 }
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::compress]:
-    Source: 'src/address.rs', lines 62:4-91:5
+    Source: 'src/address.rs', lines 69:4-98:5
     Visibility: public -/
 def address.Adrs.compress
   (self : address.Adrs) : Result (Array Std.U8 22#usize) := do
@@ -316,7 +316,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::compress]: loop body 0:
-    Source: 'src/sha256.rs', lines 68:4-84:5
+    Source: 'src/sha256.rs', lines 69:4-85:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.compress_loop.body
@@ -362,7 +362,7 @@ def sha256.compress_loop.body
   else ok (done (a, b, c, d, e, f, g, h))
 
 /-- [slhdsa::sha256::compress]: loop 0:
-    Source: 'src/sha256.rs', lines 68:4-84:5
+    Source: 'src/sha256.rs', lines 69:4-85:5
     Visibility: public -/
 @[rust_loop]
 def sha256.compress_loop
@@ -378,7 +378,7 @@ def sha256.compress_loop
     (a, b, c, d, e, f, g, h, i)
 
 /-- [slhdsa::sha256::compress]:
-    Source: 'src/sha256.rs', lines 51:0-95:1
+    Source: 'src/sha256.rs', lines 52:0-96:1
     Visibility: public -/
 def sha256.compress
   (state : Array Std.U32 8#usize) (data : Slice Std.U8) (off : Std.Usize) :
@@ -414,7 +414,7 @@ def sha256.compress
   ok (Array.make 8#usize [ i1, i3, i5, i7, i9, i11, i13, i15 ])
 
 /-- [slhdsa::sha256::digest]: loop body 0:
-    Source: 'src/sha256.rs', lines 145:4-152:5
+    Source: 'src/sha256.rs', lines 124:4-131:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.digest_loop.body
@@ -446,7 +446,7 @@ def sha256.digest_loop.body
   else ok (done out)
 
 /-- [slhdsa::sha256::digest]: loop 0:
-    Source: 'src/sha256.rs', lines 145:4-152:5
+    Source: 'src/sha256.rs', lines 124:4-131:5
     Visibility: public -/
 @[rust_loop]
 def sha256.digest_loop
@@ -459,7 +459,7 @@ def sha256.digest_loop
     (out, i)
 
 /-- [slhdsa::sha256::digest]:
-    Source: 'src/sha256.rs', lines 142:0-154:1
+    Source: 'src/sha256.rs', lines 121:0-133:1
     Visibility: public -/
 def sha256.digest
   (state : Array Std.U32 8#usize) : Result (Array Std.U8 32#usize) := do
@@ -472,7 +472,7 @@ def sha256.digest
 @[global_simps, irreducible] def params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::hash::trunc]:
-    Source: 'src/hash.rs', lines 40:0-45:1
+    Source: 'src/hash.rs', lines 42:0-47:1
     Visibility: public -/
 def hash.trunc
   (st : Array Std.U32 8#usize) : Result (Array Std.U8 16#usize) := do
@@ -487,7 +487,7 @@ def hash.trunc
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::hash::short_block]:
-    Source: 'src/hash.rs', lines 27:0-37:1
+    Source: 'src/hash.rs', lines 28:0-38:1
     Visibility: public -/
 def hash.short_block
   (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -520,7 +520,7 @@ def hash.short_block
   Array.update blk4 63#usize i4
 
 /-- [slhdsa::hash::thash_short]:
-    Source: 'src/hash.rs', lines 52:0-56:1
+    Source: 'src/hash.rs', lines 132:0-136:1
     Visibility: public -/
 def hash.thash_short
   (seed : hash.Seed) (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -544,6 +544,457 @@ def fors.fors_sk_gen
   let sk_adrs ← address.Adrs.with_word3 a1 idx
   let s ← lift (Array.to_slice sk_seed)
   hash.thash_short seed sk_adrs s
+
+/-- [slhdsa::fors::BATCH_HEIGHT]
+    Source: 'src/fors.rs', lines 16:0-16:28 -/
+@[global_simps, irreducible] def fors.BATCH_HEIGHT : Std.U32 := 7#u32
+
+/-- [slhdsa::fors::BATCH]
+    Source: 'src/fors.rs', lines 17:0-17:25 -/
+@[global_simps, irreducible] def fors.BATCH : Std.Usize := 128#usize
+
+/-- [slhdsa::hash::value]:
+    Source: 'src/hash.rs', lines 95:0-99:1
+    Visibility: public -/
+def hash.value
+  (block : Array Std.U8 64#usize) : Result (Array Std.U8 16#usize) := do
+  let out := Array.repeat 16#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s1 ←
+    core.array.Array.index (core.ops.index.IndexSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) block
+      { start := 22#usize, «end» := 38#usize }
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::hash::pair_block]:
+    Source: 'src/hash.rs', lines 86:0-91:1
+    Visibility: public -/
+def hash.pair_block
+  (adrs : address.Adrs) (left : Array Std.U8 16#usize)
+  (right : Array Std.U8 16#usize) :
+  Result (Array Std.U8 64#usize)
+  := do
+  let buf := Array.repeat 32#usize 0#u8
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) buf
+      { start := 0#usize, «end» := params.N }
+  let s1 ← lift (Array.to_slice left)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let buf1 := index_mut_back s2
+  let i ← 2#usize * params.N
+  let (s3, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) buf1
+      { start := params.N, «end» := i }
+  let s4 ← lift (Array.to_slice right)
+  let s5 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 s4
+  let buf2 := index_mut_back1 s5
+  let s6 ← lift (Array.to_slice buf2)
+  hash.short_block adrs s6
+
+/-- [slhdsa::hash::chain_blocks]: loop body 1:
+    Source: 'src/hash.rs', lines 70:8-79:9
+    Visibility: public -/
+@[rust_loop_body]
+def hash.chain_blocks_loop0_loop0.body
+  (state : Array Std.U32 8#usize) («end» : Slice Std.U32) (i : Std.Usize)
+  (blocks : Slice (Array Std.U8 64#usize)) (t : Std.U32) :
+  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.U32) (Slice
+    (Array Std.U8 64#usize)))
+  := do
+  let i1 ← Slice.index_usize «end» i
+  if t < i1
+  then
+    let i2 ← t >>> 24#i32
+    let (a, index_mut_back) ← Slice.index_mut_usize blocks i
+    let i3 ← lift (UScalar.cast .U8 i2)
+    let a1 ← Array.update a 18#usize i3
+    let i4 ← t >>> 16#i32
+    let blocks1 := index_mut_back a1
+    let (a2, index_mut_back1) ← Slice.index_mut_usize blocks1 i
+    let i5 ← lift (UScalar.cast .U8 i4)
+    let a3 ← Array.update a2 19#usize i5
+    let i6 ← t >>> 8#i32
+    let blocks2 := index_mut_back1 a3
+    let (a4, index_mut_back2) ← Slice.index_mut_usize blocks2 i
+    let i7 ← lift (UScalar.cast .U8 i6)
+    let a5 ← Array.update a4 20#usize i7
+    let blocks3 := index_mut_back2 a5
+    let (a6, index_mut_back3) ← Slice.index_mut_usize blocks3 i
+    let i8 ← lift (UScalar.cast .U8 t)
+    let a7 ← Array.update a6 21#usize i8
+    let blocks4 := index_mut_back3 a7
+    let a8 ← Slice.index_usize blocks4 i
+    let s ← lift (Array.to_slice a8)
+    let st ← sha256.compress state s 0#usize
+    let d ← hash.trunc st
+    let (a9, index_mut_back4) ← Slice.index_mut_usize blocks4 i
+    let (s1, index_mut_back5) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) a9
+        { start := 22#usize, «end» := 38#usize }
+    let s2 ← lift (Array.to_slice d)
+    let s3 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s1 s2
+    let t1 ← t + 1#u32
+    let a10 := index_mut_back5 s3
+    let s4 := index_mut_back4 a10
+    ok (cont (s4, t1))
+  else ok (done blocks)
+
+/-- [slhdsa::hash::chain_blocks]: loop 1:
+    Source: 'src/hash.rs', lines 70:8-79:9
+    Visibility: public -/
+@[rust_loop]
+def hash.chain_blocks_loop0_loop0
+  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
+  («end» : Slice Std.U32) (i : Std.Usize) (t : Std.U32) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  loop
+    (fun (blocks1, t1) => hash.chain_blocks_loop0_loop0.body state «end» i
+      blocks1 t1)
+    (blocks, t)
+
+/-- [slhdsa::hash::chain_blocks]: loop body 0:
+    Source: 'src/hash.rs', lines 68:4-81:5
+    Visibility: public -/
+@[rust_loop_body]
+def hash.chain_blocks_loop0.body
+  (state : Array Std.U32 8#usize) (start : Slice Std.U32)
+  («end» : Slice Std.U32) (blocks : Slice (Array Std.U8 64#usize))
+  (i : Std.Usize) :
+  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.Usize) (Slice
+    (Array Std.U8 64#usize)))
+  := do
+  let i1 := Slice.len blocks
+  if i < i1
+  then
+    let t ← Slice.index_usize start i
+    let blocks1 ← hash.chain_blocks_loop0_loop0 state blocks «end» i t
+    let i2 ← i + 1#usize
+    ok (cont (blocks1, i2))
+  else ok (done blocks)
+
+/-- [slhdsa::hash::chain_blocks]: loop 0:
+    Source: 'src/hash.rs', lines 68:4-81:5
+    Visibility: public -/
+@[rust_loop]
+def hash.chain_blocks_loop0
+  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
+  (start : Slice Std.U32) («end» : Slice Std.U32) (i : Std.Usize) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  loop
+    (fun (blocks1, i1) => hash.chain_blocks_loop0.body state start «end»
+      blocks1 i1)
+    (blocks, i)
+
+/-- [slhdsa::hash::chain_blocks]:
+    Source: 'src/hash.rs', lines 60:0-82:1
+    Visibility: public -/
+@[reducible]
+def hash.chain_blocks
+  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
+  (start : Slice Std.U32) («end» : Slice Std.U32) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  hash.chain_blocks_loop0 state blocks start «end» 0#usize
+
+/-- [slhdsa::fors::fors_batch]: loop body 0:
+    Source: 'src/fors.rs', lines 34:4-40:5 -/
+@[rust_loop_body]
+def fors.fors_batch_loop0.body
+  (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32) (n : Std.Usize)
+  (prf_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (j : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 128#usize) × (Array
+    Std.U32 128#usize) × (Array Std.U32 128#usize) × Std.Usize) ((Array
+    (Array Std.U8 64#usize) 128#usize) × (Array Std.U32 128#usize) × (Array
+    Std.U32 128#usize)))
+  := do
+  if j < n
+  then
+    let i1 ← i <<< z
+    let i2 ← lift (UScalar.cast .U32 j)
+    let idx ← i1 + i2
+    let a ← address.Adrs.with_word3 prf_adrs idx
+    let s ← lift (Array.to_slice sk_seed)
+    let a1 ← hash.short_block a s
+    let a2 ← Array.update blocks j a1
+    let a3 ← Array.update start j idx
+    let i3 ← idx + 1#u32
+    let a4 ← Array.update «end» j i3
+    let j1 ← j + 1#usize
+    ok (cont (a2, a3, a4, j1))
+  else ok (done (blocks, start, «end»))
+
+/-- [slhdsa::fors::fors_batch]: loop 0:
+    Source: 'src/fors.rs', lines 34:4-40:5 -/
+@[rust_loop]
+def fors.fors_batch_loop0
+  (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32) (n : Std.Usize)
+  (prf_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (j : Std.Usize) :
+  Result ((Array (Array Std.U8 64#usize) 128#usize) × (Array Std.U32
+    128#usize) × (Array Std.U32 128#usize))
+  := do
+  loop
+    (fun (blocks1, start1, end1, j1) => fors.fors_batch_loop0.body sk_seed i z
+      n prf_adrs blocks1 start1 end1 j1)
+    (blocks, start, «end», j)
+
+/-- [slhdsa::fors::fors_batch]: loop body 1:
+    Source: 'src/fors.rs', lines 43:4-46:5 -/
+@[rust_loop_body]
+def fors.fors_batch_loop1.body
+  (i : Std.U32) (n : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 128#usize) (j : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 128#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 128#usize))
+  := do
+  if j < n
+  then
+    let (a, index_mut_back) ← Array.index_mut_usize blocks j
+    let i1 ← lift (UScalar.cast .U8 i)
+    let a1 ← Array.update a 9#usize i1
+    let j1 ← j + 1#usize
+    let a2 := index_mut_back a1
+    ok (cont (a2, j1))
+  else ok (done blocks)
+
+/-- [slhdsa::fors::fors_batch]: loop 1:
+    Source: 'src/fors.rs', lines 43:4-46:5 -/
+@[rust_loop]
+def fors.fors_batch_loop1
+  (i : Std.U32) (n : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 128#usize) (j : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 128#usize)
+  := do
+  loop
+    (fun (blocks1, j1) => fors.fors_batch_loop1.body i n blocks1 j1)
+    (blocks, j)
+
+/-- [slhdsa::fors::fors_batch]: loop body 2:
+    Source: 'src/fors.rs', lines 50:4-53:5 -/
+@[rust_loop_body]
+def fors.fors_batch_loop2.body
+  (n : Std.Usize) (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (j : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 16#usize) 128#usize) × Std.Usize)
+    (Array (Array Std.U8 16#usize) 128#usize))
+  := do
+  if j < n
+  then
+    let a ← Array.index_usize blocks j
+    let a1 ← hash.value a
+    let a2 ← Array.update vals j a1
+    let j1 ← j + 1#usize
+    ok (cont (a2, j1))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_batch]: loop 2:
+    Source: 'src/fors.rs', lines 50:4-53:5 -/
+@[rust_loop]
+def fors.fors_batch_loop2
+  (n : Std.Usize) (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (j : Std.Usize) :
+  Result (Array (Array Std.U8 16#usize) 128#usize)
+  := do
+  loop
+    (fun (vals1, j1) => fors.fors_batch_loop2.body n blocks vals1 j1)
+    (vals, j)
+
+/-- [slhdsa::fors::fors_batch]: loop body 4:
+    Source: 'src/fors.rs', lines 58:8-64:9 -/
+@[rust_loop_body]
+def fors.fors_batch_loop3_loop0.body
+  (i : Std.U32) (z : Std.U32) (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32)
+  (i4 : Std.U32) (i5 : Std.U32) (i6 : Std.U32)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (lvl : Std.U32)
+  (cnt : Std.Usize) (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (j : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 128#usize) × (Array
+    Std.U32 128#usize) × (Array Std.U32 128#usize) × Std.Usize) ((Array
+    (Array Std.U8 64#usize) 128#usize) × (Array Std.U32 128#usize) × (Array
+    Std.U32 128#usize)))
+  := do
+  if j < cnt
+  then
+    let i7 ← z - lvl
+    let i8 ← i <<< i7
+    let i9 ← lift (UScalar.cast .U32 j)
+    let idx ← i8 + i9
+    let a ←
+      address.Adrs.with_word2
+        {
+          layer := i1,
+          tree := i2,
+          typ := i3,
+          keypair := i4,
+          word2 := i5,
+          word3 := i6
+        } lvl
+    let a1 ← address.Adrs.with_word3 a idx
+    let i10 ← 2#usize * j
+    let a2 ← Array.index_usize vals i10
+    let i11 ← i10 + 1#usize
+    let a3 ← Array.index_usize vals i11
+    let a4 ← hash.pair_block a1 a2 a3
+    let a5 ← Array.update blocks j a4
+    let a6 ← Array.update start j idx
+    let i12 ← idx + 1#u32
+    let a7 ← Array.update «end» j i12
+    let j1 ← j + 1#usize
+    ok (cont (a5, a6, a7, j1))
+  else ok (done (blocks, start, «end»))
+
+/-- [slhdsa::fors::fors_batch]: loop 4:
+    Source: 'src/fors.rs', lines 58:8-64:9 -/
+@[rust_loop]
+def fors.fors_batch_loop3_loop0
+  (i : Std.U32) (z : Std.U32) (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32)
+  (i4 : Std.U32) (i5 : Std.U32) (i6 : Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (lvl : Std.U32)
+  (cnt : Std.Usize) (j : Std.Usize) :
+  Result ((Array (Array Std.U8 64#usize) 128#usize) × (Array Std.U32
+    128#usize) × (Array Std.U32 128#usize))
+  := do
+  loop
+    (fun (blocks1, start1, end1, j1) => fors.fors_batch_loop3_loop0.body i z i1
+      i2 i3 i4 i5 i6 vals lvl cnt blocks1 start1 end1 j1)
+    (blocks, start, «end», j)
+
+/-- [slhdsa::fors::fors_batch]: loop body 5:
+    Source: 'src/fors.rs', lines 67:8-70:9 -/
+@[rust_loop_body]
+def fors.fors_batch_loop3_loop1.body
+  (blocks : Array (Array Std.U8 64#usize) 128#usize) (cnt : Std.Usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (j : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 16#usize) 128#usize) × Std.Usize)
+    (Array (Array Std.U8 16#usize) 128#usize))
+  := do
+  if j < cnt
+  then
+    let a ← Array.index_usize blocks j
+    let a1 ← hash.value a
+    let a2 ← Array.update vals j a1
+    let j1 ← j + 1#usize
+    ok (cont (a2, j1))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_batch]: loop 5:
+    Source: 'src/fors.rs', lines 67:8-70:9 -/
+@[rust_loop]
+def fors.fors_batch_loop3_loop1
+  (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (cnt : Std.Usize)
+  (j : Std.Usize) :
+  Result (Array (Array Std.U8 16#usize) 128#usize)
+  := do
+  loop
+    (fun (vals1, j1) => fors.fors_batch_loop3_loop1.body blocks cnt vals1 j1)
+    (vals, j)
+
+/-- [slhdsa::fors::fors_batch]: loop body 3:
+    Source: 'src/fors.rs', lines 56:4-73:5 -/
+@[rust_loop_body]
+def fors.fors_batch_loop3.body
+  (i : Std.U32) (z : Std.U32) (a : Array Std.U32 8#usize) (i1 : Std.U32)
+  (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32) (i6 : Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (lvl : Std.U32)
+  (cnt : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 128#usize) × (Array
+    Std.U32 128#usize) × (Array Std.U32 128#usize) × (Array (Array Std.U8
+    16#usize) 128#usize) × Std.U32 × Std.Usize) (Array (Array Std.U8
+    16#usize) 128#usize))
+  := do
+  if lvl <= z
+  then
+    let (blocks1, start1, end1) ←
+      fors.fors_batch_loop3_loop0 i z i1 i2 i3 i4 i5 i6 blocks start «end»
+        vals lvl cnt 0#usize
+    let (s, index_mut_back) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+        blocks1 { start := 0#usize, «end» := cnt }
+    let s1 ← lift (Array.to_slice start1)
+    let s2 ← lift (Array.to_slice end1)
+    let s3 ← hash.chain_blocks a s s1 s2
+    let blocks2 := index_mut_back s3
+    let vals1 ← fors.fors_batch_loop3_loop1 blocks2 vals cnt 0#usize
+    let cnt1 ← cnt / 2#usize
+    let lvl1 ← lvl + 1#u32
+    ok (cont (blocks2, start1, end1, vals1, lvl1, cnt1))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_batch]: loop 3:
+    Source: 'src/fors.rs', lines 56:4-73:5 -/
+@[rust_loop]
+def fors.fors_batch_loop3
+  (i : Std.U32) (z : Std.U32) (a : Array Std.U32 8#usize) (i1 : Std.U32)
+  (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32) (i6 : Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 128#usize)
+  (start : Array Std.U32 128#usize) («end» : Array Std.U32 128#usize)
+  (vals : Array (Array Std.U8 16#usize) 128#usize) (lvl : Std.U32)
+  (cnt : Std.Usize) :
+  Result (Array (Array Std.U8 16#usize) 128#usize)
+  := do
+  loop
+    (fun (blocks1, start1, end1, vals1, lvl1, cnt1) =>
+      fors.fors_batch_loop3.body i z a i1 i2 i3 i4 i5 i6 blocks1 start1 end1
+      vals1 lvl1 cnt1)
+    (blocks, start, «end», vals, lvl, cnt)
+
+/-- [slhdsa::fors::fors_batch]:
+    Source: 'src/fors.rs', lines 27:0-75:1 -/
+def fors.fors_batch
+  (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32)
+  (seed : hash.Seed) (adrs : address.Adrs) :
+  Result (Array Std.U8 16#usize)
+  := do
+  let n ← 1#usize <<< z
+  let a ← address.Adrs.with_type adrs address.FORS_PRF
+  let prf_adrs ← address.Adrs.with_keypair a adrs.keypair
+  let a1 := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 128#usize a1
+  let start := Array.repeat 128#usize 0#u32
+  let «end» := Array.repeat 128#usize 0#u32
+  let (blocks1, start1, end1) ←
+    fors.fors_batch_loop0 sk_seed i z n prf_adrs blocks start «end» 0#usize
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+      blocks1 { start := 0#usize, «end» := n }
+  let s1 ← lift (Array.to_slice start1)
+  let s2 ← lift (Array.to_slice end1)
+  let s3 ← hash.chain_blocks seed.state s s1 s2
+  let blocks2 := index_mut_back s3
+  let blocks3 ← fors.fors_batch_loop1 adrs.typ n blocks2 0#usize
+  let (s4, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+      blocks3 { start := 0#usize, «end» := n }
+  let s5 ← lift (Array.to_slice start1)
+  let s6 ← lift (Array.to_slice end1)
+  let s7 ← hash.chain_blocks seed.state s4 s5 s6
+  let a2 := Array.repeat 16#usize 0#u8
+  let vals := Array.repeat 128#usize a2
+  let blocks4 := index_mut_back1 s7
+  let vals1 ← fors.fors_batch_loop2 n blocks4 vals 0#usize
+  let cnt ← n / 2#usize
+  let vals2 ←
+    fors.fors_batch_loop3 i z seed.state adrs.layer adrs.tree adrs.typ
+      adrs.keypair adrs.word2 adrs.word3 blocks4 start1 end1 vals1 1#u32 cnt
+  Array.index_usize vals2 0#usize
 
 /-- [slhdsa::xmss::hash2]:
     Source: 'src/xmss.rs', lines 10:0-15:1
@@ -573,20 +1024,15 @@ def xmss.hash2
   hash.thash_short seed adrs s6
 
 /-- [slhdsa::fors::fors_node]:
-    Source: 'src/fors.rs', lines 16:0-25:1
+    Source: 'src/fors.rs', lines 78:0-86:1
     Visibility: public -/
 def fors.fors_node
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32)
   (seed : hash.Seed) (adrs : address.Adrs) :
   Result (Array Std.U8 16#usize)
   := do
-  if z = 0#u32
-  then
-    let sk ← fors.fors_sk_gen sk_seed seed adrs i
-    let a ← address.Adrs.with_word2 adrs 0#u32
-    let a1 ← address.Adrs.with_word3 a i
-    let s ← lift (Array.to_slice sk)
-    hash.thash_short seed a1 s
+  if z <= fors.BATCH_HEIGHT
+  then fors.fors_batch sk_seed i z seed adrs
   else
     let i1 ← 2#u32 * i
     let i2 ← z - 1#u32
@@ -695,7 +1141,7 @@ def util.base_2b
 @[global_simps, irreducible] def params.A : Std.U32 := 12#u32
 
 /-- [slhdsa::fors::fors_sign]: loop body 1:
-    Source: 'src/fors.rs', lines 37:8-42:9
+    Source: 'src/fors.rs', lines 98:8-103:9
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_sign_loop0_loop0.body
@@ -719,7 +1165,7 @@ def fors.fors_sign_loop0_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::fors::fors_sign]: loop 1:
-    Source: 'src/fors.rs', lines 37:8-42:9
+    Source: 'src/fors.rs', lines 98:8-103:9
     Visibility: public -/
 @[rust_loop]
 def fors.fors_sign_loop0_loop0
@@ -733,7 +1179,7 @@ def fors.fors_sign_loop0_loop0
     (sig, j)
 
 /-- [slhdsa::fors::fors_sign]: loop body 0:
-    Source: 'src/fors.rs', lines 32:4-44:5
+    Source: 'src/fors.rs', lines 93:4-105:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_sign_loop0.body
@@ -760,7 +1206,7 @@ def fors.fors_sign_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::fors::fors_sign]: loop 0:
-    Source: 'src/fors.rs', lines 32:4-44:5
+    Source: 'src/fors.rs', lines 93:4-105:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_sign_loop0
@@ -775,7 +1221,7 @@ def fors.fors_sign_loop0
     (sig, i)
 
 /-- [slhdsa::fors::fors_sign]:
-    Source: 'src/fors.rs', lines 28:0-46:1
+    Source: 'src/fors.rs', lines 89:0-107:1
     Visibility: public -/
 def fors.fors_sign
   (md : Slice Std.U8) (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed)
@@ -802,63 +1248,8 @@ def util.block
   let s3 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s1 s2
   ok (to_slice_mut_back s3)
 
-/-- [slhdsa::xmss::climb]: loop body 0:
-    Source: 'src/xmss.rs', lines 57:4-68:5
-    Visibility: public -/
-@[rust_loop_body]
-def xmss.climb_loop.body
-  (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : hash.Seed) (adrs : address.Adrs) (node : Array Std.U8 16#usize)
-  (index : Std.U32) (k : Std.U32) :
-  Result (ControlFlow ((Array Std.U8 16#usize) × Std.U32 × Std.U32) (Array
-    Std.U8 16#usize))
-  := do
-  if k < height
-  then
-    let i ← lift (UScalar.cast .Usize k)
-    let i1 ← first + i
-    let sibling ← util.block auth i1
-    let parent ← index >>> 1#i32
-    let i2 ← k + 1#u32
-    let a ← address.Adrs.with_word2 adrs i2
-    let a1 ← address.Adrs.with_word3 a parent
-    let i3 ← lift (index &&& 1#u32)
-    let node1 ←
-      if i3 = 0#u32
-      then xmss.hash2 seed a1 node sibling
-      else xmss.hash2 seed a1 sibling node
-    ok (cont (node1, parent, i2))
-  else ok (done node)
-
-/-- [slhdsa::xmss::climb]: loop 0:
-    Source: 'src/xmss.rs', lines 57:4-68:5
-    Visibility: public -/
-@[rust_loop]
-def xmss.climb_loop
-  (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : hash.Seed) (adrs : address.Adrs) (node : Array Std.U8 16#usize)
-  (index : Std.U32) (k : Std.U32) :
-  Result (Array Std.U8 16#usize)
-  := do
-  loop
-    (fun (node1, index1, k1) => xmss.climb_loop.body auth first height seed
-      adrs node1 index1 k1)
-    (node, index, k)
-
-/-- [slhdsa::xmss::climb]:
-    Source: 'src/xmss.rs', lines 45:0-70:1
-    Visibility: public -/
-@[reducible]
-def xmss.climb
-  (node : Array Std.U8 16#usize) (idx : Std.U32) (auth : Slice Std.U8)
-  (first : Std.Usize) (height : Std.U32) (seed : hash.Seed)
-  (adrs : address.Adrs) :
-  Result (Array Std.U8 16#usize)
-  := do
-  xmss.climb_loop auth first height seed adrs node idx 0#u32
-
 /-- [slhdsa::sha256::pad]: loop body 0:
-    Source: 'src/sha256.rs', lines 126:4-128:5 -/
+    Source: 'src/sha256.rs', lines 105:4-107:5 -/
 @[rust_loop_body]
 def sha256.pad_loop.body
   (p : alloc.vec.Vec Std.U8) :
@@ -872,7 +1263,7 @@ def sha256.pad_loop.body
   else ok (done p)
 
 /-- [slhdsa::sha256::pad]: loop 0:
-    Source: 'src/sha256.rs', lines 126:4-128:5 -/
+    Source: 'src/sha256.rs', lines 105:4-107:5 -/
 @[rust_loop]
 def sha256.pad_loop
   (p : alloc.vec.Vec Std.U8) : Result (alloc.vec.Vec Std.U8) := do
@@ -881,7 +1272,7 @@ def sha256.pad_loop
     p
 
 /-- [slhdsa::sha256::pad]:
-    Source: 'src/sha256.rs', lines 122:0-139:1 -/
+    Source: 'src/sha256.rs', lines 101:0-118:1 -/
 def sha256.pad
   (msg : Slice Std.U8) (pre : Std.Usize) : Result (alloc.vec.Vec Std.U8) := do
   let p ←
@@ -918,7 +1309,7 @@ def sha256.pad
   alloc.vec.Vec.push p9 i17
 
 /-- [slhdsa::sha256::sha256_from]: loop body 0:
-    Source: 'src/sha256.rs', lines 164:4-167:5
+    Source: 'src/sha256.rs', lines 143:4-146:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.sha256_from_loop0.body
@@ -934,7 +1325,7 @@ def sha256.sha256_from_loop0.body
   else ok (done (st, off))
 
 /-- [slhdsa::sha256::sha256_from]: loop 0:
-    Source: 'src/sha256.rs', lines 164:4-167:5
+    Source: 'src/sha256.rs', lines 143:4-146:5
     Visibility: public -/
 @[rust_loop]
 def sha256.sha256_from_loop0
@@ -946,7 +1337,7 @@ def sha256.sha256_from_loop0
     (st, off)
 
 /-- [slhdsa::sha256::sha256_from]: loop body 1:
-    Source: 'src/sha256.rs', lines 170:4-173:5
+    Source: 'src/sha256.rs', lines 149:4-152:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.sha256_from_loop1.body
@@ -964,7 +1355,7 @@ def sha256.sha256_from_loop1.body
   else ok (done st)
 
 /-- [slhdsa::sha256::sha256_from]: loop 1:
-    Source: 'src/sha256.rs', lines 170:4-173:5
+    Source: 'src/sha256.rs', lines 149:4-152:5
     Visibility: public -/
 @[rust_loop]
 def sha256.sha256_from_loop1
@@ -976,7 +1367,7 @@ def sha256.sha256_from_loop1
     (st, o)
 
 /-- [slhdsa::sha256::sha256_from]:
-    Source: 'src/sha256.rs', lines 161:0-175:1
+    Source: 'src/sha256.rs', lines 140:0-154:1
     Visibility: public -/
 def sha256.sha256_from
   (state : Array Std.U32 8#usize) (pre : Std.Usize) (msg : Slice Std.U8) :
@@ -993,7 +1384,7 @@ def sha256.sha256_from
   sha256.digest st1
 
 /-- [slhdsa::hash::thash]:
-    Source: 'src/hash.rs', lines 61:0-69:1
+    Source: 'src/hash.rs', lines 141:0-149:1
     Visibility: public -/
 def hash.thash
   (seed : hash.Seed) (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -1017,57 +1408,274 @@ def hash.thash
   ok (to_slice_mut_back s4)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 0:
-    Source: 'src/fors.rs', lines 53:4-61:5
+    Source: 'src/fors.rs', lines 120:4-127:5
     Visibility: public -/
 @[rust_loop_body]
-def fors.fors_pk_from_sig_loop.body
-  (sig : Slice Std.U8) (seed : hash.Seed) (adrs : address.Adrs)
-  (indices : alloc.vec.Vec Std.U32) (roots : alloc.vec.Vec Std.U8)
-  (i : Std.U32) :
-  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.U32) (alloc.vec.Vec
-    Std.U8))
+def fors.fors_pk_from_sig_loop0.body
+  (sig : Slice Std.U8) (adrs : address.Adrs) (indices : alloc.vec.Vec Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 14#usize) × (Array
+    Std.U32 14#usize) × (Array Std.U32 14#usize) × Std.Usize) ((Array (Array
+    Std.U8 64#usize) 14#usize) × (Array Std.U32 14#usize) × (Array Std.U32
+    14#usize)))
   := do
-  if i < params.K
+  let i1 ← lift (UScalar.cast .Usize params.K)
+  if i < i1
   then
-    let i1 ← params.A + 1#u32
-    let i2 ← i * i1
-    let first ← lift (UScalar.cast .Usize i2)
-    let i3 ← i <<< params.A
-    let i4 ← lift (UScalar.cast .Usize i)
-    let i5 ←
+    let i2 ← lift (UScalar.cast .U32 i)
+    let i3 ← i2 <<< params.A
+    let i4 ←
       alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
-        indices i4
-    let leaf ← i3 + i5
-    let sk ← util.block sig first
+        indices i
+    let leaf ← i3 + i4
+    let i5 ← lift (UScalar.cast .Usize params.A)
+    let i6 ← i5 + 1#usize
+    let i7 ← i * i6
+    let sk ← util.block sig i7
     let a ← address.Adrs.with_word2 adrs 0#u32
     let a1 ← address.Adrs.with_word3 a leaf
     let s ← lift (Array.to_slice sk)
-    let node ← hash.thash_short seed a1 s
-    let i6 ← first + 1#usize
-    let root ← xmss.climb node leaf sig i6 params.A seed adrs
-    let s1 ← lift (Array.to_slice root)
-    let roots1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 roots s1
-    let i7 ← i + 1#u32
-    ok (cont (roots1, i7))
-  else ok (done roots)
+    let a2 ← hash.short_block a1 s
+    let a3 ← Array.update blocks i a2
+    let a4 ← Array.update idx i leaf
+    let i8 ← leaf + 1#u32
+    let a5 ← Array.update «end» i i8
+    let i9 ← i + 1#usize
+    ok (cont (a3, a4, a5, i9))
+  else ok (done (blocks, idx, «end»))
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 0:
-    Source: 'src/fors.rs', lines 53:4-61:5
+    Source: 'src/fors.rs', lines 120:4-127:5
     Visibility: public -/
 @[rust_loop]
-def fors.fors_pk_from_sig_loop
-  (sig : Slice Std.U8) (seed : hash.Seed) (adrs : address.Adrs)
-  (indices : alloc.vec.Vec Std.U32) (roots : alloc.vec.Vec Std.U8)
-  (i : Std.U32) :
+def fors.fors_pk_from_sig_loop0
+  (sig : Slice Std.U8) (adrs : address.Adrs) (indices : alloc.vec.Vec Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (i : Std.Usize) :
+  Result ((Array (Array Std.U8 64#usize) 14#usize) × (Array Std.U32 14#usize)
+    × (Array Std.U32 14#usize))
+  := do
+  loop
+    (fun (blocks1, idx1, end1, i1) => fors.fors_pk_from_sig_loop0.body sig adrs
+      indices blocks1 idx1 end1 i1)
+    (blocks, idx, «end», i)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop body 1:
+    Source: 'src/fors.rs', lines 131:4-134:5
+    Visibility: public -/
+@[rust_loop_body]
+def fors.fors_pk_from_sig_loop1.body
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 16#usize) 14#usize) × Std.Usize)
+    (Array (Array Std.U8 16#usize) 14#usize))
+  := do
+  let i1 ← lift (UScalar.cast .Usize params.K)
+  if i < i1
+  then
+    let a ← Array.index_usize blocks i
+    let a1 ← hash.value a
+    let a2 ← Array.update vals i a1
+    let i2 ← i + 1#usize
+    ok (cont (a2, i2))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop 1:
+    Source: 'src/fors.rs', lines 131:4-134:5
+    Visibility: public -/
+@[rust_loop]
+def fors.fors_pk_from_sig_loop1
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (i : Std.Usize) :
+  Result (Array (Array Std.U8 16#usize) 14#usize)
+  := do
+  loop
+    (fun (vals1, i1) => fors.fors_pk_from_sig_loop1.body blocks vals1 i1)
+    (vals, i)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop body 3:
+    Source: 'src/fors.rs', lines 138:8-150:9
+    Visibility: public -/
+@[rust_loop_body]
+def fors.fors_pk_from_sig_loop2_loop0.body
+  (sig : Slice Std.U8) (adrs : address.Adrs)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (k : Std.U32)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 14#usize) × (Array
+    Std.U32 14#usize) × (Array Std.U32 14#usize) × Std.Usize) ((Array (Array
+    Std.U8 64#usize) 14#usize) × (Array Std.U32 14#usize) × (Array Std.U32
+    14#usize)))
+  := do
+  let i1 ← lift (UScalar.cast .Usize params.K)
+  if i < i1
+  then
+    let i2 ← lift (UScalar.cast .Usize params.A)
+    let i3 ← i2 + 1#usize
+    let i4 ← i * i3
+    let i5 ← i4 + 1#usize
+    let i6 ← lift (UScalar.cast .Usize k)
+    let i7 ← i5 + i6
+    let sibling ← util.block sig i7
+    let i8 ← Array.index_usize idx i
+    let parent ← i8 >>> 1#i32
+    let i9 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i9
+    let a1 ← address.Adrs.with_word3 a parent
+    let i10 ← lift (i8 &&& 1#u32)
+    let blocks1 ←
+      if i10 = 0#u32
+      then
+        do
+        let a2 ← Array.index_usize vals i
+        let a3 ← hash.pair_block a1 a2 sibling
+        Array.update blocks i a3
+      else
+        do
+        let a2 ← Array.index_usize vals i
+        let a3 ← hash.pair_block a1 sibling a2
+        Array.update blocks i a3
+    let a2 ← Array.update idx i parent
+    let i11 ← parent + 1#u32
+    let a3 ← Array.update «end» i i11
+    let i12 ← i + 1#usize
+    ok (cont (blocks1, a2, a3, i12))
+  else ok (done (blocks, idx, «end»))
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop 3:
+    Source: 'src/fors.rs', lines 138:8-150:9
+    Visibility: public -/
+@[rust_loop]
+def fors.fors_pk_from_sig_loop2_loop0
+  (sig : Slice Std.U8) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (k : Std.U32) (i : Std.Usize)
+  :
+  Result ((Array (Array Std.U8 64#usize) 14#usize) × (Array Std.U32 14#usize)
+    × (Array Std.U32 14#usize))
+  := do
+  loop
+    (fun (blocks1, idx1, end1, i1) => fors.fors_pk_from_sig_loop2_loop0.body
+      sig adrs vals k blocks1 idx1 end1 i1)
+    (blocks, idx, «end», i)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop body 4:
+    Source: 'src/fors.rs', lines 153:8-156:9
+    Visibility: public -/
+@[rust_loop_body]
+def fors.fors_pk_from_sig_loop2_loop1.body
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 16#usize) 14#usize) × Std.Usize)
+    (Array (Array Std.U8 16#usize) 14#usize))
+  := do
+  let i1 ← lift (UScalar.cast .Usize params.K)
+  if i < i1
+  then
+    let a ← Array.index_usize blocks i
+    let a1 ← hash.value a
+    let a2 ← Array.update vals i a1
+    let i2 ← i + 1#usize
+    ok (cont (a2, i2))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop 4:
+    Source: 'src/fors.rs', lines 153:8-156:9
+    Visibility: public -/
+@[rust_loop]
+def fors.fors_pk_from_sig_loop2_loop1
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (i : Std.Usize) :
+  Result (Array (Array Std.U8 16#usize) 14#usize)
+  := do
+  loop
+    (fun (vals1, i1) => fors.fors_pk_from_sig_loop2_loop1.body blocks vals1 i1)
+    (vals, i)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop body 2:
+    Source: 'src/fors.rs', lines 136:4-158:5
+    Visibility: public -/
+@[rust_loop_body]
+def fors.fors_pk_from_sig_loop2.body
+  (sig : Slice Std.U8) (a : Array Std.U32 8#usize) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (k : Std.U32) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 14#usize) × (Array
+    Std.U32 14#usize) × (Array Std.U32 14#usize) × (Array (Array Std.U8
+    16#usize) 14#usize) × Std.U32) (Array (Array Std.U8 16#usize) 14#usize))
+  := do
+  if k < params.A
+  then
+    let (blocks1, idx1, end1) ←
+      fors.fors_pk_from_sig_loop2_loop0 sig adrs blocks idx «end» vals k
+        0#usize
+    let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks1)
+    let s1 ← lift (Array.to_slice idx1)
+    let s2 ← lift (Array.to_slice end1)
+    let s3 ← hash.chain_blocks a s s1 s2
+    let blocks2 := to_slice_mut_back s3
+    let vals1 ← fors.fors_pk_from_sig_loop2_loop1 blocks2 vals 0#usize
+    let k1 ← k + 1#u32
+    ok (cont (blocks2, idx1, end1, vals1, k1))
+  else ok (done vals)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop 2:
+    Source: 'src/fors.rs', lines 136:4-158:5
+    Visibility: public -/
+@[rust_loop]
+def fors.fors_pk_from_sig_loop2
+  (sig : Slice Std.U8) (a : Array Std.U32 8#usize) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 14#usize)
+  (idx : Array Std.U32 14#usize) («end» : Array Std.U32 14#usize)
+  (vals : Array (Array Std.U8 16#usize) 14#usize) (k : Std.U32) :
+  Result (Array (Array Std.U8 16#usize) 14#usize)
+  := do
+  loop
+    (fun (blocks1, idx1, end1, vals1, k1) => fors.fors_pk_from_sig_loop2.body
+      sig a adrs blocks1 idx1 end1 vals1 k1)
+    (blocks, idx, «end», vals, k)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop body 5:
+    Source: 'src/fors.rs', lines 161:4-164:5
+    Visibility: public -/
+@[rust_loop_body]
+def fors.fors_pk_from_sig_loop3.body
+  (vals : Array (Array Std.U8 16#usize) 14#usize)
+  (roots : alloc.vec.Vec Std.U8) (i : Std.Usize) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.Usize) (alloc.vec.Vec
+    Std.U8))
+  := do
+  let i1 ← lift (UScalar.cast .Usize params.K)
+  if i < i1
+  then
+    let a ← Array.index_usize vals i
+    let s ← lift (Array.to_slice a)
+    let roots1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 roots s
+    let i2 ← i + 1#usize
+    ok (cont (roots1, i2))
+  else ok (done roots)
+
+/-- [slhdsa::fors::fors_pk_from_sig]: loop 5:
+    Source: 'src/fors.rs', lines 161:4-164:5
+    Visibility: public -/
+@[rust_loop]
+def fors.fors_pk_from_sig_loop3
+  (vals : Array (Array Std.U8 16#usize) 14#usize)
+  (roots : alloc.vec.Vec Std.U8) (i : Std.Usize) :
   Result (alloc.vec.Vec Std.U8)
   := do
   loop
-    (fun (roots1, i1) => fors.fors_pk_from_sig_loop.body sig seed adrs indices
-      roots1 i1)
+    (fun (roots1, i1) => fors.fors_pk_from_sig_loop3.body vals roots1 i1)
     (roots, i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]:
-    Source: 'src/fors.rs', lines 49:0-64:1
+    Source: 'src/fors.rs', lines 114:0-167:1
     Visibility: public -/
 def fors.fors_pk_from_sig
   (sig : Slice Std.U8) (md : Slice Std.U8) (seed : hash.Seed)
@@ -1076,13 +1684,29 @@ def fors.fors_pk_from_sig
   := do
   let i ← lift (UScalar.cast .Usize params.K)
   let indices ← util.base_2b md params.A i
-  let roots ←
-    fors.fors_pk_from_sig_loop sig seed adrs indices (alloc.vec.Vec.new Std.U8)
+  let a := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 14#usize a
+  let idx := Array.repeat 14#usize 0#u32
+  let «end» := Array.repeat 14#usize 0#u32
+  let (blocks1, idx1, end1) ←
+    fors.fors_pk_from_sig_loop0 sig adrs indices blocks idx «end» 0#usize
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks1)
+  let s1 ← lift (Array.to_slice idx1)
+  let s2 ← lift (Array.to_slice end1)
+  let s3 ← hash.chain_blocks seed.state s s1 s2
+  let a1 := Array.repeat 16#usize 0#u8
+  let vals := Array.repeat 14#usize a1
+  let blocks2 := to_slice_mut_back s3
+  let vals1 ← fors.fors_pk_from_sig_loop1 blocks2 vals 0#usize
+  let vals2 ←
+    fors.fors_pk_from_sig_loop2 sig seed.state adrs blocks2 idx1 end1 vals1
       0#u32
-  let a ← address.Adrs.with_type adrs address.FORS_ROOTS
-  let pk_adrs ← address.Adrs.with_keypair a adrs.keypair
-  let s := alloc.vec.Vec.deref roots
-  hash.thash seed pk_adrs s
+  let roots ←
+    fors.fors_pk_from_sig_loop3 vals2 (alloc.vec.Vec.new Std.U8) 0#usize
+  let a2 ← address.Adrs.with_type adrs address.FORS_ROOTS
+  let pk_adrs ← address.Adrs.with_keypair a2 adrs.keypair
+  let s4 := alloc.vec.Vec.deref roots
+  hash.thash seed pk_adrs s4
 
 /-- [slhdsa::hash::{impl core::clone::Clone for slhdsa::hash::Seed}::clone]:
     Source: 'src/hash.rs', lines 10:9-10:14
@@ -1131,14 +1755,118 @@ def hash.seed_ctx (pk_seed : Array Std.U8 16#usize) : Result hash.Seed := do
   let state ← sha256.compress sha256.H0 s3 0#usize
   ok { pk_seed, state }
 
+/-- [slhdsa::params::LEN]
+    Source: 'src/params.rs', lines 24:0-24:26
+    Visibility: public -/
+@[global_simps, irreducible] def params.LEN : Std.Usize := 35#usize
+
+/-- [slhdsa::hash::thash_values]: loop body 0:
+    Source: 'src/hash.rs', lines 110:4-113:5
+    Visibility: public -/
+@[rust_loop_body]
+def hash.thash_values_loop0.body
+  (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (buf : Array Std.U8 640#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array Std.U8 640#usize) × Std.Usize) (Array Std.U8
+    640#usize))
+  := do
+  if i < params.LEN
+  then
+    let i1 ← params.N * i
+    let i2 ← 22#usize + i1
+    let i3 ← 22#usize + i1
+    let i4 ← i3 + params.N
+    let (s, index_mut_back) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) buf
+        { start := i2, «end» := i4 }
+    let a ← Array.index_usize blocks i
+    let s1 ←
+      core.array.Array.index (core.ops.index.IndexSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) a
+        { start := 22#usize, «end» := 38#usize }
+    let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+    let i5 ← i + 1#usize
+    let buf1 := index_mut_back s2
+    ok (cont (buf1, i5))
+  else ok (done buf)
+
+/-- [slhdsa::hash::thash_values]: loop 0:
+    Source: 'src/hash.rs', lines 110:4-113:5
+    Visibility: public -/
+@[rust_loop]
+def hash.thash_values_loop0
+  (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (buf : Array Std.U8 640#usize) (i : Std.Usize) :
+  Result (Array Std.U8 640#usize)
+  := do
+  loop
+    (fun (buf1, i1) => hash.thash_values_loop0.body blocks buf1 i1)
+    (buf, i)
+
+/-- [slhdsa::hash::thash_values]: loop body 1:
+    Source: 'src/hash.rs', lines 120:4-123:5
+    Visibility: public -/
+@[rust_loop_body]
+def hash.thash_values_loop1.body
+  (buf : Array Std.U8 640#usize) (st : Array Std.U32 8#usize) (off : Std.Usize)
+  :
+  Result (ControlFlow ((Array Std.U32 8#usize) × Std.Usize) (Array Std.U32
+    8#usize))
+  := do
+  if off < 640#usize
+  then
+    let s ← lift (Array.to_slice buf)
+    let st1 ← sha256.compress st s off
+    let off1 ← off + 64#usize
+    ok (cont (st1, off1))
+  else ok (done st)
+
+/-- [slhdsa::hash::thash_values]: loop 1:
+    Source: 'src/hash.rs', lines 120:4-123:5
+    Visibility: public -/
+@[rust_loop]
+def hash.thash_values_loop1
+  (buf : Array Std.U8 640#usize) (st : Array Std.U32 8#usize) (off : Std.Usize)
+  :
+  Result (Array Std.U32 8#usize)
+  := do
+  loop
+    (fun (st1, off1) => hash.thash_values_loop1.body buf st1 off1)
+    (st, off)
+
+/-- [slhdsa::hash::thash_values]:
+    Source: 'src/hash.rs', lines 106:0-125:1
+    Visibility: public -/
+def hash.thash_values
+  (seed : hash.Seed) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 35#usize) :
+  Result (Array Std.U8 16#usize)
+  := do
+  let buf := Array.repeat 640#usize 0#u8
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) buf
+      { start := 0#usize, «end» := 22#usize }
+  let a ← address.Adrs.compress adrs
+  let s1 ← lift (Array.to_slice a)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let buf1 := index_mut_back s2
+  let buf2 ← hash.thash_values_loop0 blocks buf1 0#usize
+  let buf3 ← Array.update buf2 582#usize 128#u8
+  let buf4 ← Array.update buf3 638#usize 20#u8
+  let a1 ← Array.update buf4 639#usize 48#u8
+  let st ← hash.thash_values_loop1 a1 seed.state 0#usize
+  hash.trunc st
+
 /-- [slhdsa::sha256::sha256]:
-    Source: 'src/sha256.rs', lines 177:0-179:1
+    Source: 'src/sha256.rs', lines 156:0-158:1
     Visibility: public -/
 def sha256.sha256 (msg : Slice Std.U8) : Result (Array Std.U8 32#usize) := do
   sha256.sha256_from sha256.H0 0#usize msg
 
 /-- [slhdsa::sha256::hmac_sha256]: loop body 0:
-    Source: 'src/sha256.rs', lines 186:4-191:5
+    Source: 'src/sha256.rs', lines 165:4-170:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.hmac_sha256_loop.body
@@ -1162,7 +1890,7 @@ def sha256.hmac_sha256_loop.body
   else ok (done (inner, outer))
 
 /-- [slhdsa::sha256::hmac_sha256]: loop 0:
-    Source: 'src/sha256.rs', lines 186:4-191:5
+    Source: 'src/sha256.rs', lines 165:4-170:5
     Visibility: public -/
 @[rust_loop]
 def sha256.hmac_sha256_loop
@@ -1176,7 +1904,7 @@ def sha256.hmac_sha256_loop
     (inner, outer, i)
 
 /-- [slhdsa::sha256::hmac_sha256]:
-    Source: 'src/sha256.rs', lines 182:0-196:1
+    Source: 'src/sha256.rs', lines 161:0-175:1
     Visibility: public -/
 def sha256.hmac_sha256
   (key : Slice Std.U8) (msg : Slice Std.U8) :
@@ -1194,7 +1922,7 @@ def sha256.hmac_sha256
   sha256.sha256 s2
 
 /-- [slhdsa::hash::prf_msg]:
-    Source: 'src/hash.rs', lines 72:0-80:1
+    Source: 'src/hash.rs', lines 152:0-160:1
     Visibility: public -/
 def hash.prf_msg
   (sk_prf : Array Std.U8 16#usize) (opt_rand : Array Std.U8 16#usize)
@@ -1219,7 +1947,7 @@ def hash.prf_msg
   ok (to_slice_mut_back s5)
 
 /-- [slhdsa::hash::h_msg_inner]:
-    Source: 'src/hash.rs', lines 87:0-104:1 -/
+    Source: 'src/hash.rs', lines 167:0-184:1 -/
 def hash.h_msg_inner
   (r : Array Std.U8 16#usize) (pk_seed : Array Std.U8 16#usize)
   (pk_root : Array Std.U8 16#usize) (m : Slice Std.U8) :
@@ -1288,7 +2016,7 @@ def hash.h_msg_inner
 @[global_simps, irreducible] def params.M : Std.Usize := 30#usize
 
 /-- [slhdsa::hash::h_msg]:
-    Source: 'src/hash.rs', lines 110:0-121:1
+    Source: 'src/hash.rs', lines 190:0-201:1
     Visibility: public -/
 def hash.h_msg
   (r : Array Std.U8 16#usize) (pk_seed : Array Std.U8 16#usize)
@@ -1318,263 +2046,65 @@ def hash.h_msg
   let s7 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s5 s6
   ok (to_slice_mut_back s7)
 
+/-- [slhdsa::xmss::climb]: loop body 0:
+    Source: 'src/xmss.rs', lines 57:4-68:5
+    Visibility: public -/
+@[rust_loop_body]
+def xmss.climb_loop.body
+  (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : hash.Seed) (adrs : address.Adrs) (node : Array Std.U8 16#usize)
+  (index : Std.U32) (k : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 16#usize) × Std.U32 × Std.U32) (Array
+    Std.U8 16#usize))
+  := do
+  if k < height
+  then
+    let i ← lift (UScalar.cast .Usize k)
+    let i1 ← first + i
+    let sibling ← util.block auth i1
+    let parent ← index >>> 1#i32
+    let i2 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i2
+    let a1 ← address.Adrs.with_word3 a parent
+    let i3 ← lift (index &&& 1#u32)
+    let node1 ←
+      if i3 = 0#u32
+      then xmss.hash2 seed a1 node sibling
+      else xmss.hash2 seed a1 sibling node
+    ok (cont (node1, parent, i2))
+  else ok (done node)
+
+/-- [slhdsa::xmss::climb]: loop 0:
+    Source: 'src/xmss.rs', lines 57:4-68:5
+    Visibility: public -/
+@[rust_loop]
+def xmss.climb_loop
+  (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : hash.Seed) (adrs : address.Adrs) (node : Array Std.U8 16#usize)
+  (index : Std.U32) (k : Std.U32) :
+  Result (Array Std.U8 16#usize)
+  := do
+  loop
+    (fun (node1, index1, k1) => xmss.climb_loop.body auth first height seed
+      adrs node1 index1 k1)
+    (node, index, k)
+
+/-- [slhdsa::xmss::climb]:
+    Source: 'src/xmss.rs', lines 45:0-70:1
+    Visibility: public -/
+@[reducible]
+def xmss.climb
+  (node : Array Std.U8 16#usize) (idx : Std.U32) (auth : Slice Std.U8)
+  (first : Std.Usize) (height : Std.U32) (seed : hash.Seed)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 16#usize)
+  := do
+  xmss.climb_loop auth first height seed adrs node idx 0#u32
+
 /-- [slhdsa::params::W]
     Source: 'src/params.rs', lines 16:0-16:22
     Visibility: public -/
 @[global_simps, irreducible] def params.W : Std.U32 := 16#u32
-
-/-- [slhdsa::params::LEN]
-    Source: 'src/params.rs', lines 24:0-24:26
-    Visibility: public -/
-@[global_simps, irreducible] def params.LEN : Std.Usize := 35#usize
-
-/-- [slhdsa::wots::concat]: loop body 0:
-    Source: 'src/wots.rs', lines 85:4-88:5 -/
-@[rust_loop_body]
-def wots.concat_loop.body
-  (x : Array (Array Std.U8 16#usize) 35#usize) (out : alloc.vec.Vec Std.U8)
-  (i : Std.Usize) :
-  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.Usize) (alloc.vec.Vec
-    Std.U8))
-  := do
-  if i < params.LEN
-  then
-    let a ← Array.index_usize x i
-    let s ← lift (Array.to_slice a)
-    let out1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 out s
-    let i1 ← i + 1#usize
-    ok (cont (out1, i1))
-  else ok (done out)
-
-/-- [slhdsa::wots::concat]: loop 0:
-    Source: 'src/wots.rs', lines 85:4-88:5 -/
-@[rust_loop]
-def wots.concat_loop
-  (x : Array (Array Std.U8 16#usize) 35#usize) (out : alloc.vec.Vec Std.U8)
-  (i : Std.Usize) :
-  Result (alloc.vec.Vec Std.U8)
-  := do
-  loop
-    (fun (out1, i1) => wots.concat_loop.body x out1 i1)
-    (out, i)
-
-/-- [slhdsa::wots::concat]:
-    Source: 'src/wots.rs', lines 82:0-90:1 -/
-@[reducible]
-def wots.concat
-  (x : Array (Array Std.U8 16#usize) 35#usize) :
-  Result (alloc.vec.Vec Std.U8)
-  := do
-  wots.concat_loop x (alloc.vec.Vec.new Std.U8) 0#usize
-
-/-- [slhdsa::sha256::compress_many]: loop body 0:
-    Source: 'src/sha256.rs', lines 113:4-116:5
-    Visibility: public -/
-@[rust_loop_body]
-def sha256.compress_many_loop.body
-  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
-  (out : Slice (Array Std.U32 8#usize)) (i : Std.Usize) :
-  Result (ControlFlow ((Slice (Array Std.U32 8#usize)) × Std.Usize) (Slice
-    (Array Std.U32 8#usize)))
-  := do
-  let i1 := Slice.len blocks
-  if i < i1
-  then
-    let a ← Slice.index_usize blocks i
-    let s ← lift (Array.to_slice a)
-    let a1 ← sha256.compress state s 0#usize
-    let s1 ← Slice.update out i a1
-    let i2 ← i + 1#usize
-    ok (cont (s1, i2))
-  else ok (done out)
-
-/-- [slhdsa::sha256::compress_many]: loop 0:
-    Source: 'src/sha256.rs', lines 113:4-116:5
-    Visibility: public -/
-@[rust_loop]
-def sha256.compress_many_loop
-  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
-  (out : Slice (Array Std.U32 8#usize)) (i : Std.Usize) :
-  Result (Slice (Array Std.U32 8#usize))
-  := do
-  loop
-    (fun (out1, i1) => sha256.compress_many_loop.body state blocks out1 i1)
-    (out, i)
-
-/-- [slhdsa::sha256::compress_many]:
-    Source: 'src/sha256.rs', lines 104:0-117:1
-    Visibility: public -/
-def sha256.compress_many
-  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
-  (out : Slice (Array Std.U32 8#usize)) :
-  Result (Slice (Array Std.U32 8#usize))
-  := do
-  let i := Slice.len blocks
-  let i1 := Slice.len out
-  massert (i <= i1)
-  sha256.compress_many_loop state blocks out 0#usize
-
-/-- [slhdsa::wots::chains]: loop body 1:
-    Source: 'src/wots.rs', lines 60:8-66:9
-    Visibility: public -/
-@[rust_loop_body]
-def wots.chains_loop0_loop0.body
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (adrs : address.Adrs) (t : Std.U32)
-  (blocks : Array (Array Std.U8 64#usize) 35#usize) (k : Std.Usize)
-  (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize ×
-    Std.Usize) ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize))
-  := do
-  if i < params.LEN
-  then
-    let i1 ← Slice.index_usize start i
-    let (blocks1, k1) ←
-      if i1 <= t
-      then
-        do
-        let i2 ← Slice.index_usize «end» i
-        if t < i2
-        then
-          let i3 ← lift (UScalar.cast .U32 i)
-          let a ← address.Adrs.with_word2 adrs i3
-          let a1 ← address.Adrs.with_word3 a t
-          let a2 ← Array.index_usize cur i
-          let s ← lift (Array.to_slice a2)
-          let a3 ← hash.short_block a1 s
-          let a4 ← Array.update blocks k a3
-          let k2 ← k + 1#usize
-          ok (a4, k2)
-        else ok (blocks, k)
-      else ok (blocks, k)
-    let i2 ← i + 1#usize
-    ok (cont (blocks1, k1, i2))
-  else ok (done (blocks, k))
-
-/-- [slhdsa::wots::chains]: loop 1:
-    Source: 'src/wots.rs', lines 60:8-66:9
-    Visibility: public -/
-@[rust_loop]
-def wots.chains_loop0_loop0
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (adrs : address.Adrs)
-  (blocks : Array (Array Std.U8 64#usize) 35#usize) (t : Std.U32)
-  (k : Std.Usize) (i : Std.Usize) :
-  Result ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize)
-  := do
-  loop
-    (fun (blocks1, k1, i1) => wots.chains_loop0_loop0.body cur start «end»
-      adrs t blocks1 k1 i1)
-    (blocks, k, i)
-
-/-- [slhdsa::wots::chains]: loop body 2:
-    Source: 'src/wots.rs', lines 70:8-76:9
-    Visibility: public -/
-@[rust_loop_body]
-def wots.chains_loop0_loop1.body
-  (start : Slice Std.U32) («end» : Slice Std.U32)
-  (st : Array (Array Std.U32 8#usize) 35#usize) (t : Std.U32)
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (k : Std.Usize)
-  (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 16#usize) 35#usize) × Std.Usize ×
-    Std.Usize) (Array (Array Std.U8 16#usize) 35#usize))
-  := do
-  if i < params.LEN
-  then
-    let i1 ← Slice.index_usize start i
-    let (cur1, k1) ←
-      if i1 <= t
-      then
-        do
-        let i2 ← Slice.index_usize «end» i
-        if t < i2
-        then
-          let a ← Array.index_usize st k
-          let a1 ← hash.trunc a
-          let a2 ← Array.update cur i a1
-          let k2 ← k + 1#usize
-          ok (a2, k2)
-        else ok (cur, k)
-      else ok (cur, k)
-    let i2 ← i + 1#usize
-    ok (cont (cur1, k1, i2))
-  else ok (done cur)
-
-/-- [slhdsa::wots::chains]: loop 2:
-    Source: 'src/wots.rs', lines 70:8-76:9
-    Visibility: public -/
-@[rust_loop]
-def wots.chains_loop0_loop1
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (st : Array (Array Std.U32 8#usize) 35#usize)
-  (t : Std.U32) (k : Std.Usize) (i : Std.Usize) :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
-  := do
-  loop
-    (fun (cur1, k1, i1) => wots.chains_loop0_loop1.body start «end» st t cur1
-      k1 i1)
-    (cur, k, i)
-
-/-- [slhdsa::wots::chains]: loop body 0:
-    Source: 'src/wots.rs', lines 57:4-78:5
-    Visibility: public -/
-@[rust_loop_body]
-def wots.chains_loop0.body
-  (start : Slice Std.U32) («end» : Slice Std.U32) (seed : hash.Seed)
-  (adrs : address.Adrs) (cur : Array (Array Std.U8 16#usize) 35#usize)
-  (blocks : Array (Array Std.U8 64#usize) 35#usize)
-  (st : Array (Array Std.U32 8#usize) 35#usize) (t : Std.U32) :
-  Result (ControlFlow ((Array (Array Std.U8 16#usize) 35#usize) × (Array
-    (Array Std.U8 64#usize) 35#usize) × (Array (Array Std.U32 8#usize)
-    35#usize) × Std.U32) (Array (Array Std.U8 16#usize) 35#usize))
-  := do
-  let i ← params.W - 1#u32
-  if t < i
-  then
-    let (blocks1, k) ←
-      wots.chains_loop0_loop0 cur start «end» adrs blocks t 0#usize 0#usize
-    let s ←
-      core.array.Array.index (core.ops.index.IndexSlice
-        (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
-        blocks1 { start := 0#usize, «end» := k }
-    let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut st)
-    let s2 ← sha256.compress_many seed.state s s1
-    let st1 := to_slice_mut_back s2
-    let cur1 ←
-      wots.chains_loop0_loop1 cur start «end» st1 t 0#usize 0#usize
-    let t1 ← t + 1#u32
-    ok (cont (cur1, blocks1, st1, t1))
-  else ok (done cur)
-
-/-- [slhdsa::wots::chains]: loop 0:
-    Source: 'src/wots.rs', lines 57:4-78:5
-    Visibility: public -/
-@[rust_loop]
-def wots.chains_loop0
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (seed : hash.Seed) (adrs : address.Adrs)
-  (blocks : Array (Array Std.U8 64#usize) 35#usize)
-  (st : Array (Array Std.U32 8#usize) 35#usize) (t : Std.U32) :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
-  := do
-  loop
-    (fun (cur1, blocks1, st1, t1) => wots.chains_loop0.body start «end» seed
-      adrs cur1 blocks1 st1 t1)
-    (cur, blocks, st, t)
-
-/-- [slhdsa::wots::chains]:
-    Source: 'src/wots.rs', lines 53:0-79:1
-    Visibility: public -/
-def wots.chains
-  (cur : Array (Array Std.U8 16#usize) 35#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (seed : hash.Seed) (adrs : address.Adrs) :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
-  := do
-  let a := Array.repeat 64#usize 0#u8
-  let blocks := Array.repeat 35#usize a
-  let a1 := Array.repeat 8#usize 0#u32
-  let st := Array.repeat 35#usize a1
-  wots.chains_loop0 cur start «end» seed adrs blocks st 0#u32
 
 /-- [slhdsa::params::LEN2]
     Source: 'src/params.rs', lines 22:0-22:26
@@ -1592,7 +2122,7 @@ def wots.chains
 @[global_simps, irreducible] def params.LG_W : Std.U32 := 4#u32
 
 /-- [slhdsa::wots::wots_digits]: loop body 0:
-    Source: 'src/wots.rs', lines 15:4-18:5
+    Source: 'src/wots.rs', lines 14:4-17:5
     Visibility: public -/
 @[rust_loop_body]
 def wots.wots_digits_loop.body
@@ -1611,7 +2141,7 @@ def wots.wots_digits_loop.body
   else ok (done csum)
 
 /-- [slhdsa::wots::wots_digits]: loop 0:
-    Source: 'src/wots.rs', lines 15:4-18:5
+    Source: 'src/wots.rs', lines 14:4-17:5
     Visibility: public -/
 @[rust_loop]
 def wots.wots_digits_loop
@@ -1623,7 +2153,7 @@ def wots.wots_digits_loop
     (csum, i)
 
 /-- [slhdsa::wots::wots_digits]:
-    Source: 'src/wots.rs', lines 11:0-24:1
+    Source: 'src/wots.rs', lines 10:0-23:1
     Visibility: public -/
 def wots.wots_digits
   (m : Array Std.U8 16#usize) : Result (alloc.vec.Vec Std.U32) := do
@@ -1640,38 +2170,42 @@ def wots.wots_digits
   alloc.vec.Vec.extend_from_slice core.clone.CloneU32 msg s2
 
 /-- [slhdsa::wots::wots_pk_from_sig]: loop body 0:
-    Source: 'src/wots.rs', lines 115:4-118:5
+    Source: 'src/wots.rs', lines 74:4-77:5
     Visibility: public -/
 @[rust_loop_body]
 def wots.wots_pk_from_sig_loop.body
-  (sig : Slice Std.U8) (cur : Array (Array Std.U8 16#usize) 35#usize)
-  (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 16#usize) 35#usize) × Std.Usize)
-    (Array (Array Std.U8 16#usize) 35#usize))
+  (sig : Slice Std.U8) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 35#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 35#usize))
   := do
   if i < params.LEN
   then
-    let a ← util.block sig i
-    let a1 ← Array.update cur i a
-    let i1 ← i + 1#usize
-    ok (cont (a1, i1))
-  else ok (done cur)
+    let i1 ← lift (UScalar.cast .U32 i)
+    let a ← address.Adrs.with_word2 adrs i1
+    let a1 ← util.block sig i
+    let s ← lift (Array.to_slice a1)
+    let a2 ← hash.short_block a s
+    let a3 ← Array.update blocks i a2
+    let i2 ← i + 1#usize
+    ok (cont (a3, i2))
+  else ok (done blocks)
 
 /-- [slhdsa::wots::wots_pk_from_sig]: loop 0:
-    Source: 'src/wots.rs', lines 115:4-118:5
+    Source: 'src/wots.rs', lines 74:4-77:5
     Visibility: public -/
 @[rust_loop]
 def wots.wots_pk_from_sig_loop
-  (sig : Slice Std.U8) (cur : Array (Array Std.U8 16#usize) 35#usize)
-  (i : Std.Usize) :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
+  (sig : Slice Std.U8) (adrs : address.Adrs)
+  (blocks : Array (Array Std.U8 64#usize) 35#usize) (i : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 35#usize)
   := do
   loop
-    (fun (cur1, i1) => wots.wots_pk_from_sig_loop.body sig cur1 i1)
-    (cur, i)
+    (fun (blocks1, i1) => wots.wots_pk_from_sig_loop.body sig adrs blocks1 i1)
+    (blocks, i)
 
 /-- [slhdsa::wots::wots_pk_from_sig]:
-    Source: 'src/wots.rs', lines 111:0-122:1
+    Source: 'src/wots.rs', lines 70:0-81:1
     Visibility: public -/
 def wots.wots_pk_from_sig
   (sig : Slice Std.U8) (m : Array Std.U8 16#usize) (seed : hash.Seed)
@@ -1679,20 +2213,20 @@ def wots.wots_pk_from_sig
   Result (Array Std.U8 16#usize)
   := do
   let msg ← wots.wots_digits m
-  let a := Array.repeat 16#usize 0#u8
-  let cur := Array.repeat 35#usize a
-  let cur1 ← wots.wots_pk_from_sig_loop sig cur 0#usize
-  let s := alloc.vec.Vec.deref msg
+  let a := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 35#usize a
+  let blocks1 ← wots.wots_pk_from_sig_loop sig adrs blocks 0#usize
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks1)
+  let s1 := alloc.vec.Vec.deref msg
   let _ ← params.W - 1#u32
   let i ← lift (Std.U32.wrapping_sub params.W 1#u32)
   let a1 := Array.repeat 35#usize i
-  let s1 ← lift (Array.to_slice a1)
-  let cur2 ← wots.chains cur1 s s1 seed adrs
+  let s2 ← lift (Array.to_slice a1)
+  let s3 ← hash.chain_blocks seed.state s s1 s2
   let a2 ← address.Adrs.with_type adrs address.WOTS_PK
   let pk_adrs ← address.Adrs.with_keypair a2 adrs.keypair
-  let v ← wots.concat cur2
-  let s2 := alloc.vec.Vec.deref v
-  hash.thash seed pk_adrs s2
+  let blocks2 := to_slice_mut_back s3
+  hash.thash_values seed pk_adrs blocks2
 
 /-- [slhdsa::params::HP]
     Source: 'src/params.rs', lines 6:0-6:22
@@ -1713,11 +2247,10 @@ def xmss.xmss_pk_from_sig
   let a2 ← address.Adrs.with_type adrs address.TREE
   xmss.climb node idx sig params.LEN params.HP seed a2
 
-/-- [slhdsa::wots::wots_sks]: loop body 0:
-    Source: 'src/wots.rs', lines 30:4-33:5
-    Visibility: public -/
+/-- [slhdsa::wots::sk_blocks]: loop body 0:
+    Source: 'src/wots.rs', lines 34:4-37:5 -/
 @[rust_loop_body]
-def wots.wots_sks_loop0.body
+def wots.sk_blocks_loop0.body
   (sk_seed : Array Std.U8 16#usize) (sk_adrs : address.Adrs)
   (blocks : Array (Array Std.U8 64#usize) 35#usize) (i : Std.Usize) :
   Result (ControlFlow ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize)
@@ -1734,94 +2267,89 @@ def wots.wots_sks_loop0.body
     ok (cont (a2, i2))
   else ok (done blocks)
 
-/-- [slhdsa::wots::wots_sks]: loop 0:
-    Source: 'src/wots.rs', lines 30:4-33:5
-    Visibility: public -/
+/-- [slhdsa::wots::sk_blocks]: loop 0:
+    Source: 'src/wots.rs', lines 34:4-37:5 -/
 @[rust_loop]
-def wots.wots_sks_loop0
+def wots.sk_blocks_loop0
   (sk_seed : Array Std.U8 16#usize) (sk_adrs : address.Adrs)
   (blocks : Array (Array Std.U8 64#usize) 35#usize) (i : Std.Usize) :
   Result (Array (Array Std.U8 64#usize) 35#usize)
   := do
   loop
-    (fun (blocks1, i1) => wots.wots_sks_loop0.body sk_seed sk_adrs blocks1 i1)
+    (fun (blocks1, i1) => wots.sk_blocks_loop0.body sk_seed sk_adrs blocks1 i1)
     (blocks, i)
 
-/-- [slhdsa::wots::wots_sks]: loop body 1:
-    Source: 'src/wots.rs', lines 38:4-41:5
-    Visibility: public -/
+/-- [slhdsa::wots::sk_blocks]: loop body 1:
+    Source: 'src/wots.rs', lines 40:4-43:5 -/
 @[rust_loop_body]
-def wots.wots_sks_loop1.body
-  (st : Array (Array Std.U32 8#usize) 35#usize)
-  (sk : Array (Array Std.U8 16#usize) 35#usize) (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 16#usize) 35#usize) × Std.Usize)
-    (Array (Array Std.U8 16#usize) 35#usize))
+def wots.sk_blocks_loop1.body
+  (i : Std.U32) (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (i1 : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 35#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 35#usize))
   := do
-  if i < params.LEN
+  if i1 < params.LEN
   then
-    let a ← Array.index_usize st i
-    let a1 ← hash.trunc a
-    let a2 ← Array.update sk i a1
-    let i1 ← i + 1#usize
-    ok (cont (a2, i1))
-  else ok (done sk)
+    let (a, index_mut_back) ← Array.index_mut_usize blocks i1
+    let i2 ← lift (UScalar.cast .U8 i)
+    let a1 ← Array.update a 9#usize i2
+    let i3 ← i1 + 1#usize
+    let a2 := index_mut_back a1
+    ok (cont (a2, i3))
+  else ok (done blocks)
 
-/-- [slhdsa::wots::wots_sks]: loop 1:
-    Source: 'src/wots.rs', lines 38:4-41:5
-    Visibility: public -/
+/-- [slhdsa::wots::sk_blocks]: loop 1:
+    Source: 'src/wots.rs', lines 40:4-43:5 -/
 @[rust_loop]
-def wots.wots_sks_loop1
-  (st : Array (Array Std.U32 8#usize) 35#usize)
-  (sk : Array (Array Std.U8 16#usize) 35#usize) (i : Std.Usize) :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
+def wots.sk_blocks_loop1
+  (i : Std.U32) (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (i1 : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 35#usize)
   := do
   loop
-    (fun (sk1, i1) => wots.wots_sks_loop1.body st sk1 i1)
-    (sk, i)
+    (fun (blocks1, i2) => wots.sk_blocks_loop1.body i blocks1 i2)
+    (blocks, i1)
 
-/-- [slhdsa::wots::wots_sks]:
-    Source: 'src/wots.rs', lines 27:0-43:1
-    Visibility: public -/
-def wots.wots_sks
-  (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (sk_adrs : address.Adrs)
-  :
-  Result (Array (Array Std.U8 16#usize) 35#usize)
+/-- [slhdsa::wots::sk_blocks]:
+    Source: 'src/wots.rs', lines 30:0-45:1 -/
+def wots.sk_blocks
+  (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs) :
+  Result (Array (Array Std.U8 64#usize) 35#usize)
   := do
-  let a := Array.repeat 64#usize 0#u8
-  let blocks := Array.repeat 35#usize a
-  let blocks1 ← wots.wots_sks_loop0 sk_seed sk_adrs blocks 0#usize
-  let a1 := Array.repeat 8#usize 0#u32
-  let st := Array.repeat 35#usize a1
-  let s ← lift (Array.to_slice blocks1)
-  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut st)
-  let s2 ← sha256.compress_many seed.state s s1
-  let a2 := Array.repeat 16#usize 0#u8
-  let sk := Array.repeat 35#usize a2
-  let st1 := to_slice_mut_back s2
-  wots.wots_sks_loop1 st1 sk 0#usize
+  let a ← address.Adrs.with_type adrs address.WOTS_PRF
+  let sk_adrs ← address.Adrs.with_keypair a adrs.keypair
+  let a1 := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 35#usize a1
+  let blocks1 ← wots.sk_blocks_loop0 sk_seed sk_adrs blocks 0#usize
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks1)
+  let a2 := Array.repeat 35#usize 0#u32
+  let s1 ← lift (Array.to_slice a2)
+  let a3 := Array.repeat 35#usize 1#u32
+  let s2 ← lift (Array.to_slice a3)
+  let s3 ← hash.chain_blocks seed.state s s1 s2
+  let blocks2 := to_slice_mut_back s3
+  wots.sk_blocks_loop1 adrs.typ blocks2 0#usize
 
 /-- [slhdsa::wots::wots_pk_gen]:
-    Source: 'src/wots.rs', lines 93:0-99:1
+    Source: 'src/wots.rs', lines 48:0-53:1
     Visibility: public -/
 def wots.wots_pk_gen
   (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs) :
   Result (Array Std.U8 16#usize)
   := do
-  let a ← address.Adrs.with_type adrs address.WOTS_PRF
-  let sk_adrs ← address.Adrs.with_keypair a adrs.keypair
-  let cur ← wots.wots_sks sk_seed seed sk_adrs
-  let a1 := Array.repeat 35#usize 0#u32
-  let s ← lift (Array.to_slice a1)
+  let blocks ← wots.sk_blocks sk_seed seed adrs
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks)
+  let a := Array.repeat 35#usize 0#u32
+  let s1 ← lift (Array.to_slice a)
   let _ ← params.W - 1#u32
   let i ← lift (Std.U32.wrapping_sub params.W 1#u32)
-  let a2 := Array.repeat 35#usize i
-  let s1 ← lift (Array.to_slice a2)
-  let cur1 ← wots.chains cur s s1 seed adrs
-  let a3 ← address.Adrs.with_type adrs address.WOTS_PK
-  let pk_adrs ← address.Adrs.with_keypair a3 adrs.keypair
-  let v ← wots.concat cur1
-  let s2 := alloc.vec.Vec.deref v
-  hash.thash seed pk_adrs s2
+  let a1 := Array.repeat 35#usize i
+  let s2 ← lift (Array.to_slice a1)
+  let s3 ← hash.chain_blocks seed.state s s1 s2
+  let a2 ← address.Adrs.with_type adrs address.WOTS_PK
+  let pk_adrs ← address.Adrs.with_keypair a2 adrs.keypair
+  let blocks1 := to_slice_mut_back s3
+  hash.thash_values seed pk_adrs blocks1
 
 /-- [slhdsa::xmss::xmss_node]:
     Source: 'src/xmss.rs', lines 18:0-27:1
@@ -1848,8 +2376,43 @@ def xmss.xmss_node
     xmss.hash2 seed a2 lnode rnode
 partial_fixpoint
 
+/-- [slhdsa::wots::wots_sign]: loop body 0:
+    Source: 'src/wots.rs', lines 62:4-65:5
+    Visibility: public -/
+@[rust_loop_body]
+def wots.wots_sign_loop.body
+  (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (sig : alloc.vec.Vec Std.U8) (i : Std.Usize) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.Usize) (alloc.vec.Vec
+    Std.U8))
+  := do
+  if i < params.LEN
+  then
+    let a ← Array.index_usize blocks i
+    let s ←
+      core.array.Array.index (core.ops.index.IndexSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) a
+        { start := 22#usize, «end» := 38#usize }
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+    let i1 ← i + 1#usize
+    ok (cont (sig1, i1))
+  else ok (done sig)
+
+/-- [slhdsa::wots::wots_sign]: loop 0:
+    Source: 'src/wots.rs', lines 62:4-65:5
+    Visibility: public -/
+@[rust_loop]
+def wots.wots_sign_loop
+  (blocks : Array (Array Std.U8 64#usize) 35#usize)
+  (sig : alloc.vec.Vec Std.U8) (i : Std.Usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, i1) => wots.wots_sign_loop.body blocks sig1 i1)
+    (sig, i)
+
 /-- [slhdsa::wots::wots_sign]:
-    Source: 'src/wots.rs', lines 102:0-108:1
+    Source: 'src/wots.rs', lines 56:0-67:1
     Visibility: public -/
 def wots.wots_sign
   (m : Array Std.U8 16#usize) (sk_seed : Array Std.U8 16#usize)
@@ -1857,14 +2420,14 @@ def wots.wots_sign
   Result (alloc.vec.Vec Std.U8)
   := do
   let msg ← wots.wots_digits m
-  let a ← address.Adrs.with_type adrs address.WOTS_PRF
-  let sk_adrs ← address.Adrs.with_keypair a adrs.keypair
-  let cur ← wots.wots_sks sk_seed seed sk_adrs
-  let a1 := Array.repeat 35#usize 0#u32
-  let s ← lift (Array.to_slice a1)
-  let s1 := alloc.vec.Vec.deref msg
-  let cur1 ← wots.chains cur s s1 seed adrs
-  wots.concat cur1
+  let blocks ← wots.sk_blocks sk_seed seed adrs
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut blocks)
+  let a := Array.repeat 35#usize 0#u32
+  let s1 ← lift (Array.to_slice a)
+  let s2 := alloc.vec.Vec.deref msg
+  let s3 ← hash.chain_blocks seed.state s s1 s2
+  let blocks1 := to_slice_mut_back s3
+  wots.wots_sign_loop blocks1 (alloc.vec.Vec.new Std.U8) 0#usize
 
 /-- [slhdsa::xmss::xmss_sign]: loop body 0:
     Source: 'src/xmss.rs', lines 33:4-38:5

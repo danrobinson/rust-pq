@@ -3,8 +3,8 @@
 Both composed theorems are finished: neither has a hypothesis left that is not about the forger.
 The repository is under git from 2026-11-21 (first commit `d2a5a9b` is the whole project as it
 stood then; nothing is pushed anywhere). For what the project proves overall, read `README.md`;
-this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend
-and the benchmark.
+this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend,
+the performance work of 2026-11-21 and the benchmark.
 
 This file replaces the handoff of 2026-11-20, which described both theorems as unfinished.
 `quantum/HANDOFF.md` and `security/Ideal/HANDOFF.md` are that older state and are kept for the
@@ -154,31 +154,98 @@ Two technical points worth knowing before touching these proofs:
   both ways and byte-identical deterministic signatures against RustCrypto, `fips205`, OpenSSL
   and slhdsa-c. Not built: liboqs, BoringSSL (need CMake), AWS-LC (no SLH-DSA in the crate).
 
-## Opt-in hardware SHA-2 (`hw-sha2`)
+## Opt-in hardware SHA-2 (`hw-sha2`) and the performance work of 2026-11-21
 
-- Cargo feature `hw-sha2` in `rust/`, off by default. With it, `sha256::compress` returns early
-  through `sha256::hw` (ARMv8 SHA-256 intrinsics) when the CPU has the instructions; otherwise
-  the portable code below it runs. AArch64 little-endian only; on other targets the feature
-  compiles to nothing. `#![forbid(unsafe_code)]` still holds for the default build; with the
-  feature it becomes `deny`, with one `allow` on the `hw` module (about 70 lines with comments;
-  the `unsafe` function `compress_block` is 40).
-- **Not covered by the proofs.** Aeneas translates the default build. With the feature off the
-  cfg'd lines are stripped before extraction: re-extraction changed only 16 `Source: … lines`
-  comments in `lean/Slhdsa/Funs.lean` (the functions after `compress` moved down), and `lean/`,
-  `security/` and `quantum/scripts/check-integration.sh` were re-run green against that file.
-  The build with the feature equals the verified one provided `hw::compress_block` equals the
-  portable `compress` on every state and block. That is tested, not proved.
+The crate was restructured so that, with the opt-in `hw-sha2` feature, it is faster than
+RustCrypto and OpenSSL on this machine, and the proofs were redone for the new code. The six
+headline theorems and `lean/Spec` are unchanged.
+
+**Numbers** (`bench/results/run4`, criterion, 2 rounds, Apple M5 Ultra; keygen / sign 32 B /
+verify 32 B / verify 1 MiB):
+
+| | keygen | sign | verify | verify 1 MiB |
+|---|---|---|---|---|
+| this crate, default build | 40.4 ms | 305 ms | 324 µs | 2.69 ms |
+| this crate, `hw-sha2` | 4.00 ms | 30.2 ms | 35.4 µs | 352 µs |
+| RustCrypto `slh-dsa` | 8.30 ms | 62.6 ms | 63.8 µs | 365 µs |
+| OpenSSL 4.1 | 7.32 ms | 56.0 ms | 58.9 µs | 405 µs |
+
+Before this work `hw-sha2` was 11.5 ms / 83.7 ms / 85.3 µs (run 3).
+
+**Verified code (`rust/src`, all re-proved):**
+- `hash::chain_blocks(state, blocks, start, end)` is the one hot primitive: for each block `i`,
+  for `t` in `start[i]..end[i]`: write `t` into bytes 18..22, compress, put the first 16 bytes
+  of the digest into bytes 22..38. One step is `F`, `PRF` or `H`. The portable code is two
+  nested loops.
+- WOTS+ (`wots.rs`): the 35 `PRF` blocks are built once; one step `0..1` on all of them gives
+  the secret values in place; byte 9 (the address type) is switched, which turns each into its
+  chain block; the chains are `chain_blocks` with `(0, 15)`, `(0, digit)` or `(digit, 15)`.
+  `hash::thash_values` builds the ten blocks of `T_len` on the stack from the block values.
+- FORS (`fors.rs`): `fors_batch` computes a subtree of up to 128 leaves: leaves are two steps
+  (`PRF`, type switch, `F`) numbered by the tree index, and each level is one step on
+  `pair_block`s. `fors_node` uses it for heights up to 7 and the old recursion above.
+  `fors_pk_from_sig` climbs the 14 trees together, one `chain_blocks` call per level.
+- `sha256::sha256_from` compresses whole blocks straight from the message and copies only the
+  tail; `hash::h_msg_inner` assembles the first block `R ‖ PK.seed ‖ PK.root ‖ M[0..16]` and
+  hashes the rest of a long message where it lies.
+- `#[inline]` hints on `compress` and the small block-building helpers (no effect on the
+  translation beyond line numbers).
+
+**Proofs:** `lean/Slhdsa/Proofs/{Sha256,Hash,Wots,Fors}.lean`. The model of one step is
+`stepBlock` / `runBlock` in `Hash.lean`; `chain_blocks_spec` says each block ends as `runBlock`
+of its start. Layout lemmas (`stepBlock_thash`, `runBlock_chain`, `stepBlock_pair_value`,
+`block_set_typ`, `padFrom_values`) connect that to `Spec.thash` and `Spec.chain`.
+- One internal statement changed: `fors_node_spec` now requires `(i + 1)·2^z < 2^32` where it
+  had `≤`. The batch forms `idx + 1` for each leaf index, which overflows at `idx = 2^32 − 1`;
+  the old statement is false for the new code (the proof agent machine-checked a
+  counterexample, `fors_node 4294967295 0` panics). Every use in the scheme has indices below
+  14·2^12. `fors_sign_spec` and everything above it are unchanged.
+- Checked after the final re-extraction: `scripts/check.sh` (tests in both builds,
+  re-extraction, `lean/`, `spectest`, `security/`, no placeholder) and
+  `quantum/scripts/check-integration.sh`.
+
+**Unverified code (`hw-sha2`):** module `hw` of `rust/src/sha256.rs`, about 330 lines with
+comments, the crate's only `unsafe`. Off by default, AArch64 little-endian only, runtime CPU
+detection off Apple targets. It replaces exactly two functions, `sha256::compress` and
+`hash::chain_blocks`; a build with the feature equals the verified build provided those two
+replacements return what the portable code returns. That is tested, not proved.
+- `hw::chain_blocks` takes chains in order into four slots, runs until the first slot is out of
+  steps, writes finished chains back and refills. `run` keeps each chain's value in registers
+  across steps and rebuilds only the words that change.
+- Why it is fast, measured on this CPU: `sha256h` and `sha256h2` share one execution unit at two
+  cycles each (throughput), four-cycle latency; the schedule instructions run elsewhere. So a
+  hash costs 64 cycles of that unit, and one hash alone leaves it idle about a third of the
+  time. Four lanes fill it. Lanes are staggered by a quarter of a hash because otherwise all
+  four are between hashes at once and the unit idles. Rounds 0..3 depend only on bytes 0..16 of
+  the block, which are the same for a whole WOTS+ key or FORS instance, so they are computed
+  once and cached by those bytes; the last `sha256h2` is skipped because only four output
+  words are kept. That is 29 round instructions per hash instead of 32; the kernel measures
+  12.97 ns per hash against 12.7 ns for 58 cycles.
 - Tests (`rust/tests/compress.rs`, run with and without the feature; `scripts/check.sh` runs
-  both): the compression function against the `sha2` crate's on 200,000 random and 5,140
-  edge-case inputs, the same panic past the end of the buffer, and that the backend is really in
-  use. ACVP vectors pass both ways. Also run once with `RUSTFLAGS='-C target-feature=-sha2'`,
-  which forces the runtime-detection path that non-Apple AArch64 targets take.
-- Benchmark (`bench/results/run3`, config `hw`, 2 rounds): keygen 11.5 ms, sign 83.7 ms, verify
-  85.3 µs, which is 3.7–3.9× faster than the portable build in the same run. RustCrypto is
-  1.34–1.39× faster still and OpenSSL 1.46–1.58×; portable C (slhdsa-c) is 2.6× slower.
-  Interoperability with the feature on is clean (`results/run3/interop-hw.md`).
-- Not tested: a CPU without the instructions with the feature on (the fall-through to the
-  portable code; no such machine here), and any real non-Apple AArch64 machine.
+  both): `compress` against the `sha2` crate on 200,000 random and 5,140 edge-case inputs;
+  `chain_blocks` against a reference written from that function on 7,360 random batches (0 to
+  41, 64, 70, 128, 140 blocks; uniform, mixed, single-step and random ranges; equal and
+  different block heads; step numbers around 2^16, 2^24 and 2^32); independence of chains;
+  the same panics. ACVP vectors pass both ways, in debug, and with
+  `RUSTFLAGS='-C target-feature=-sha2'` (the runtime-detection path).
+- Interoperability with the feature on is clean (`bench/results/run4/interop-hw.md`), and the
+  compression count is unchanged at 2,218,488 per signature: the same hashes, in a different
+  order.
+
+**Tried and rejected** (all measured in scratch copies, nothing kept):
+- A fifth chain on scalar integer SHA-256, woven between the lanes. Correct, but slower: one
+  scalar round per tick made the kernel 13.3 ns per hash against 12.97 without it.
+- Hashing the `T_len` of two adjacent leaves side by side: 0.3%.
+- Larger FORS batches than 128 leaves: under 0.1%.
+- Keeping long-message hashing state in registers across blocks would need a new verified
+  multi-block function; the gain is about 4% on the message part of a 1 MiB verification.
+
+**Not tested:** a CPU without the instructions with the feature on (the fall-through to the
+portable code; no such machine here), and any real non-Apple AArch64 machine. The staggering
+and lane count are tuned to this CPU.
+
+**History:** commit `2a4bea5` is an intermediate, fully verified design (lockstep chains with
+`compress_many`, 41 ms sign); `ad4e485` is the first `hw-sha2` (one block at a time, 84 ms).
 
 ## Not done
 
@@ -187,7 +254,11 @@ Two technical points worth knowing before touching these proofs:
   tested. It could be stated in Lean, and the build with the feature proved correct from a model
   of the four SHA-256 instructions; nothing of that exists.
 - **Ideal-model theorem for the context-string interface** (first ideal caveat above).
-- **`rust/ct-evidence`** was not re-run against the optimised crate. **`multi/`** (six parameter
+- **`rust/ct-evidence`** was not re-run against the optimised crate, and its harness still calls
+  `wots::chain`, which no longer exists. The new code's data-dependent control flow is in
+  `chain_blocks` (step ranges, which are WOTS+ digits and tree indices) and, with `hw-sha2`, in
+  the slot scheduling and the cache of the first rounds (keyed on the first 16 block bytes, an
+  address prefix); none of it was traced. **`multi/`** (six parameter
   sets) still has the old hashing code.
 - **Stale text.** These still describe the theorems as conditional: the headers of
   `security/Ideal/ComposeFinal.lean`, `quantum/Integration/SlhDsaComposedFinal.lean` (lines 35–55),
