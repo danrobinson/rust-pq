@@ -1,4 +1,5 @@
-//! The SHA-256 compression function against an independent implementation
+//! The SHA-256 compression function, one block at a time (`compress`) and
+//! many at once (`compress_many`), against an independent implementation
 //! (the `sha2` crate's), on random states and blocks.
 //!
 //! Run both ways: `cargo test` checks the portable (verified) code, and
@@ -72,6 +73,70 @@ fn compress_matches_reference_on_edge_inputs() {
 fn compress_panics_past_the_end() {
     let data = [0u8; 100];
     let _ = slhdsa::sha256::compress(&slhdsa::sha256::H0, &data, 37);
+}
+
+/// `compress_many` on every batch size the crate uses and more: each output
+/// is the reference compression of its own block, whatever its position in
+/// the batch, and entries of `out` past the batch are left alone.
+#[test]
+fn compress_many_matches_reference_on_every_batch_size() {
+    let mut rng = Rng(0x4d41_4e59);
+    for round in 0..400u32 {
+        for n in 0..=41usize {
+            let mut state = [0u32; 8];
+            for s in state.iter_mut() {
+                *s = rng.next() as u32;
+            }
+            let mut blocks = vec![[0u8; 64]; n];
+            for b in blocks.iter_mut() {
+                rng.fill(b);
+            }
+            let extra = (round as usize + n) % 3;
+            let mut out = vec![[0xa5a5_a5a5u32; 8]; n + extra];
+            slhdsa::sha256::compress_many(&state, &blocks, &mut out);
+            for i in 0..n {
+                assert_eq!(out[i], reference(&state, &blocks[i]), "round {round}, batch of {n}, block {i}");
+                assert_eq!(out[i], slhdsa::sha256::compress(&state, &blocks[i], 0));
+            }
+            for o in &out[n..] {
+                assert_eq!(*o, [0xa5a5_a5a5u32; 8], "round {round}, batch of {n}: wrote past the batch");
+            }
+        }
+    }
+}
+
+/// Blocks in one batch must not influence each other: the same block gives
+/// the same output next to any neighbours, and equal blocks give equal outputs.
+#[test]
+fn compress_many_lanes_are_independent() {
+    let mut rng = Rng(0x4c41_4e45);
+    let state = slhdsa::sha256::H0;
+    let mut probe = [0u8; 64];
+    rng.fill(&mut probe);
+    let want = reference(&state, &probe);
+    for n in 1..=9usize {
+        for pos in 0..n {
+            let mut blocks = vec![[0u8; 64]; n];
+            for b in blocks.iter_mut() {
+                rng.fill(b);
+            }
+            blocks[pos] = probe;
+            let mut out = vec![[0u32; 8]; n];
+            slhdsa::sha256::compress_many(&state, &blocks, &mut out);
+            assert_eq!(out[pos], want, "batch of {n}, position {pos}");
+        }
+        let mut out = vec![[0u32; 8]; n];
+        slhdsa::sha256::compress_many(&state, &vec![probe; n], &mut out);
+        assert!(out.iter().all(|o| *o == want), "batch of {n} equal blocks");
+    }
+}
+
+#[test]
+#[should_panic]
+fn compress_many_panics_if_out_is_too_short() {
+    let blocks = [[0u8; 64]; 5];
+    let mut out = [[0u32; 8]; 4];
+    slhdsa::sha256::compress_many(&slhdsa::sha256::H0, &blocks, &mut out);
 }
 
 /// With the feature on, the backend must be in use exactly when the CPU has

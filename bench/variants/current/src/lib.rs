@@ -8,7 +8,8 @@
 //!
 //! Off by default. With it on, the SHA-256 compression function runs on the
 //! ARMv8 SHA-256 instructions where the CPU has them (AArch64 only so far;
-//! elsewhere the feature changes nothing). That is one small module of
+//! elsewhere the feature changes nothing), four blocks at a time where the
+//! caller has several independent blocks. That is one small module of
 //! `unsafe` intrinsics, [`sha256`]'s `hw`, which the proofs do not cover:
 //! they are about the default build. See that module for the exact statement
 //! a build with the feature relies on.

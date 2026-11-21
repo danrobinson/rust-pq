@@ -307,29 +307,80 @@ theorem pad_spec (msg : Slice U8) (pre : Usize) (hpre : pre.val % 64 = 0)
   simp only [padFrom, bytes_length, ht, ← hval]
   simp [*, bytes]
 
-theorem sha256_from_loop_spec (p : alloc.vec.Vec U8) (S0 : List Word) (state : Array U32 8#usize)
+theorem hashFrom_append64 (st : List Word) (B P : Spec.Bytes) (hB : B.length = 64) :
+    hashFrom st (B ++ P) = hashFrom (compress st B) P := by
+  have hl : (B ++ P).length / 64 = P.length / 64 + 1 := by simp [hB]
+  simp only [hashFrom, hl, List.range_succ_eq_map, List.foldl_cons, List.foldl_map]
+  have h0 : blockAt (B ++ P) 0 = B := by
+    simp [blockAt, hB]
+  have hk : ∀ k, blockAt (B ++ P) (k + 1) = blockAt P k := by
+    intro k
+    simp only [blockAt]
+    have : 64 * (k + 1) = B.length + 64 * k := by rw [hB]; ring
+    rw [this, List.drop_append, List.drop_eq_nil_of_le (by omega)]
+    simp
+  simp only [h0, hk]
+
+/-- Padding commutes with splitting off a whole first block. -/
+theorem padFrom_append64 (pre : Nat) (B m : Spec.Bytes) (hB : B.length = 64) :
+    padFrom pre (B ++ m) = B ++ padFrom (pre + 64) m := by
+  have e1 : (119 - (64 + m.length) % 64) % 64 = (119 - m.length % 64) % 64 := by omega
+  have e2 : 8 * (pre + (64 + m.length)) = 8 * (pre + 64 + m.length) := by ring
+  simp [padFrom, hB, e2]
+
+/-- The first loop of `sha256_from`: whole blocks, straight from the message. -/
+theorem sha256_from_loop0_spec (msg : Slice U8) (pre : Nat) (S0 : List Word)
+    (st : Array U32 8#usize) (off : Usize)
+    (hmax : msg.length + 64 ≤ Usize.max) (hmod : off.val % 64 = 0) (hle : off.val ≤ msg.length)
+    (hinv : hashFrom S0 (padFrom pre (bytes msg.val)) =
+      hashFrom (wv st.val) (padFrom (pre + off.val) ((bytes msg.val).drop off.val))) :
+    sha256.sha256_from_loop0 msg st off ⦃ r =>
+      r.2.val % 64 = 0 ∧ r.2.val ≤ msg.length ∧
+      hashFrom S0 (padFrom pre (bytes msg.val)) =
+        hashFrom (wv r.1.val) (padFrom (pre + r.2.val) ((bytes msg.val).drop r.2.val)) ⦄ := by
+  unfold sha256.sha256_from_loop0
+  apply loop.spec_decr_nat
+    (measure := fun (q : Array U32 8#usize × Usize) => msg.length - q.2.val)
+    (inv := fun q => q.2.val % 64 = 0 ∧ q.2.val ≤ msg.length ∧
+      hashFrom S0 (padFrom pre (bytes msg.val)) =
+        hashFrom (wv q.1.val) (padFrom (pre + q.2.val) ((bytes msg.val).drop q.2.val)))
+  · rintro ⟨st, off⟩ ⟨hmod, hle, hinv⟩
+    simp only [sha256.sha256_from_loop0.body]
+    simp only at hmod hle hinv
+    step*
+    · refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
+      have hB : (((bytes msg.val).drop off.val).take 64).length = 64 := by
+        simp; scalar_tac
+      have hsplit : (bytes msg.val).drop off.val =
+          ((bytes msg.val).drop off.val).take 64 ++ (bytes msg.val).drop (off.val + 64) := by
+        rw [← List.drop_drop, List.take_append_drop]
+      rw [hinv, hsplit, padFrom_append64 _ _ _ hB, hashFrom_append64 _ _ _ hB]
+      rw [st1_post, i_post, ← Nat.add_assoc]
+  · exact ⟨hmod, hle, hinv⟩
+
+theorem sha256_from_loop1_spec (p : alloc.vec.Vec U8) (S0 : List Word) (state : Array U32 8#usize)
     (off : Usize)
     (hp : p.length % 64 = 0) (hoff : off.val % 64 = 0) (hle : off.val ≤ p.length)
     (hinv : wv state.val = (List.range (off.val / 64)).foldl
       (fun st k => compress st (blockAt (bytes p.val) k)) S0) :
-    sha256.sha256_from_loop p state off ⦃ r =>
+    sha256.sha256_from_loop1 state p off ⦃ r =>
       wv r.val = (List.range (p.length / 64)).foldl
         (fun st k => compress st (blockAt (bytes p.val) k)) S0 ⦄ := by
-  unfold sha256.sha256_from_loop
+  unfold sha256.sha256_from_loop1
   apply loop.spec_decr_nat
     (measure := fun (q : Array U32 8#usize × Usize) => p.length - q.2.val)
     (inv := fun q => q.2.val % 64 = 0 ∧ q.2.val ≤ p.length ∧
       wv q.1.val = (List.range (q.2.val / 64)).foldl
         (fun st k => compress st (blockAt (bytes p.val) k)) S0)
   · rintro ⟨state, off⟩ ⟨hoff, hle, hinv⟩
-    simp only [sha256.sha256_from_loop.body]
+    simp only [sha256.sha256_from_loop1.body]
     simp only at hoff hle hinv
     have h64 : off.val = p.length ∨ off.val + 64 ≤ p.length := by omega
     have hpm : p.length ≤ Usize.max := by scalar_tac
     step*
     · simp [alloc.vec.Vec.deref]; scalar_tac
     · refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
-      have e : off1.val / 64 = off.val / 64 + 1 := by scalar_tac
+      have e : o1.val / 64 = off.val / 64 + 1 := by scalar_tac
       rw [e, List.range_succ, List.foldl_append, ← hinv]
       have e2 : 64 * (off.val / 64) = off.val := by omega
       simp [blockAt, alloc.vec.Vec.deref, *]
@@ -393,15 +444,25 @@ theorem sha256_from_spec (state : Array U32 8#usize) (pre : Usize) (msg : Slice 
     sha256.sha256_from state pre msg ⦃ r =>
       bytes r.val = ser (hashFrom (wv state.val) (padFrom pre.val (bytes msg.val))) ⦄ := by
   unfold sha256.sha256_from
+  have hR := h
+  simp only [Room] at hR
+  step with sha256_from_loop0_spec msg pre.val (wv state.val) state 0#usize
+    (by scalar_tac) (by simp) (by simp) (by simp) as ⟨st, off, hmod, hle, hinv⟩
+  step as ⟨s, hs⟩
+  step as ⟨i1, hi1⟩
+  have hsv : bytes s.val = (bytes msg.val).drop off.val := by
+    simp [hs, List.slice]
+  have hsl : s.length = msg.length - off.val := by
+    simp [Slice.length, hs, List.slice]
   step as ⟨p, hp⟩
   have hpl : p.length % 64 = 0 := by
-    have := padFrom_length pre.val (bytes msg.val)
+    have := padFrom_length i1.val (bytes s.val)
     rw [← hp] at this
     simpa [alloc.vec.Vec.length] using this
-  step with sha256_from_loop_spec p (wv state.val) as ⟨st, hst⟩
+  step with sha256_from_loop1_spec p (wv st.val) as ⟨st1, hst⟩
   · simp
   step as ⟨r, hr⟩
-  rw [hr, hst, hashFrom, ← hp]
+  rw [hr, hst, hinv, hashFrom, ← hsv, ← hi1, ← hp]
   simp [alloc.vec.Vec.length]
 
 @[step]
@@ -492,25 +553,72 @@ theorem pad_append64 (B m : Spec.Bytes) (hB : B.length = 64) :
     pad (B ++ m) = B ++ padFrom 64 m := by
   simp [pad, padFrom, hB]
 
-theorem hashFrom_append64 (st : List Word) (B P : Spec.Bytes) (hB : B.length = 64) :
-    hashFrom st (B ++ P) = hashFrom (compress st B) P := by
-  have hl : (B ++ P).length / 64 = P.length / 64 + 1 := by simp [hB]
-  simp only [hashFrom, hl, List.range_succ_eq_map, List.foldl_cons, List.foldl_map]
-  have h0 : blockAt (B ++ P) 0 = B := by
-    simp [blockAt, hB]
-  have hk : ∀ k, blockAt (B ++ P) (k + 1) = blockAt P k := by
-    intro k
-    simp only [blockAt]
-    have : 64 * (k + 1) = B.length + 64 * k := by rw [hB]; ring
-    rw [this, List.drop_append, List.drop_eq_nil_of_le (by omega)]
-    simp
-  simp only [h0, hk]
-
 /-- SHA-256 of `B ‖ m`, for a 64-byte first block `B`, continues from the
 compression of `B`. -/
 theorem sha256_prefix64 (B m : Spec.Bytes) (hB : B.length = 64) :
     Spec.sha256 (B ++ m) = ser (hashFrom (compress H0 B) (padFrom 64 m)) := by
   show ser (hashFrom H0 (pad (B ++ m))) = _
   rw [pad_append64 _ _ hB, hashFrom_append64 _ _ _ hB]
+
+/-! Several blocks compressed from the same state. -/
+
+theorem getElem!_set_ne' {α} [Inhabited α] (l : List α) (i j : Nat) (x : α) (h : i ≠ j) :
+    (l.set i x)[j]! = l[j]! := by
+  simp [List.getElem!_eq_getElem?_getD, h]
+
+theorem getElem!_set_self' {α} [Inhabited α] (l : List α) (i : Nat) (x : α) (h : i < l.length) :
+    (l.set i x)[i]! = x := by
+  simp [h]
+
+theorem compress_many_loop_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
+    (out0 out : Slice (Array U32 8#usize)) (i : Usize)
+    (h : blocks.length ≤ out0.length) (hlen : out.length = out0.length) (hi : i.val ≤ blocks.length)
+    (hinv : ∀ j, j < i.val →
+      sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (out.val[j]!)) :
+    sha256.compress_many_loop state blocks out i ⦃ r =>
+      r.length = out0.length ∧
+      (∀ j, j < blocks.length →
+        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (r.val[j]!)) ⦄ := by
+  unfold sha256.compress_many_loop
+  apply loop.spec_decr_nat
+    (measure := fun (q : Slice (Array U32 8#usize) × Usize) => blocks.length - q.2.val)
+    (inv := fun q => q.1.length = out0.length ∧ q.2.val ≤ blocks.length ∧
+      ∀ j, j < q.2.val →
+        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (q.1.val[j]!))
+  · rintro ⟨out, i⟩ ⟨hlen, hi, hinv⟩
+    simp only [sha256.compress_many_loop.body]
+    simp only at hlen hi hinv
+    simp only [step_simps]
+    spec_split
+    · let* ⟨ a, a_post ⟩ ← Slice.index_usize_spec
+      let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
+      obtain ⟨v, hv, -⟩ := spec_imp_exists (compress_spec state s 0#usize (by simp [s_post]))
+      rw [hv]
+      step*
+      refine ⟨by simp [s1_post]; scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
+      intro j hj
+      have hol : i.val < out.val.length := by scalar_tac
+      rw [s1_post, Slice.set_val_eq]
+      rcases Nat.lt_succ_iff_lt_or_eq.mp (show j < i.val + 1 by scalar_tac) with hj | hj
+      · rw [getElem!_set_ne' _ _ _ _ (by omega)]
+        exact hinv j hj
+      · subst hj
+        rw [getElem!_set_self' _ _ _ hol, ← hv, s_post, a_post, getElem!_eq _ _ (by scalar_tac)]
+    · simp only [step_simps]
+      have hib : i.val = blocks.length := by scalar_tac
+      exact ⟨hlen, fun j hj => hinv j (by omega)⟩
+  · exact ⟨hlen, hi, hinv⟩
+
+@[step]
+theorem compress_many_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
+    (out : Slice (Array U32 8#usize)) (h : blocks.length ≤ out.length) :
+    sha256.compress_many state blocks out ⦃ r =>
+      r.length = out.length ∧
+      (∀ j, j < blocks.length →
+        sha256.compress state (blocks.val[j]!).to_slice 0#usize = ok (r.val[j]!)) ⦄ := by
+  unfold sha256.compress_many
+  step
+  apply compress_many_loop_spec state blocks out out 0#usize h rfl (by simp)
+  intro j hj; simp at hj
 
 end slhdsa
