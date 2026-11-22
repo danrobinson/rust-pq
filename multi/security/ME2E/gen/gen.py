@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generator of ME2E/Sha2_<set>.lean (six files) and ME2E.lean.  Not part of the build.
+"""Generator of ME2E/Sha2_<set>.lean (six files).  Not part of the build.
 
 The ten headline statements are taken textually from security/E2E/Headline.lean (SHA2-128s) and
 transformed by the substitutions in `tr` (Rust function names, array sizes, `Room` slacks,
 `vp`/`prims`/codec, `len`, `k`, resource numerals).  `check128s` asserts that undoing the
-substitutions on the generated 128s statements gives back the old statements, i.e. the 128s
-statements have the shape of the old `E2E.*` modulo `Room` slack, Rust function names and the
+substitutions on the generated 128s statements gives back the old statements (same `Room` slacks
+152 / 409 as the old ones, since multi/lean now has them for n = 16), i.e. the 128s
+statements have the shape of the old `E2E.*` modulo Rust function names and the
 spelling of `vp`, `prims`, codec, `node`, forger variable.
 Run: python3 ME2E/gen/gen.py   (from multi/security)
 """
@@ -34,13 +35,18 @@ def phase2(name):
     m = re.search(r'FinalResourcesFinal A qs \(directCounts%s qs\) (\([0-9 +*qs]+\))' % name, res)
     return m.group(1)
 
+def rooms(n):
+    # Room slacks of multi/lean/Slhdsa/Theorems.lean: 152 / 409 for n = 16 (as ../lean), 304 / 561 otherwise
+    return (152, 409) if n == 16 else (304, 561)
+
 def tr(stmt, name, ctor, n, k):
     se = 'Sha2Set.' + ctor
+    ri, rp = rooms(n)
     b = re.sub(r'\bS\b', 'F', stmt)
     b = b.replace('slhdsa.slh.slh_', 'slhdsa.sets.sha2_%s.slh_' % name)
     b = re.sub(r'Array U8 (16|32|64)#usize',
                lambda mm: 'Array U8 %d#usize' % (int(mm.group(1)) // 16 * n), b)
-    b = b.replace('Room m.length 152', 'Room m.length 304').replace('Room m.length 409', 'Room m.length 561')
+    b = b.replace('Room m.length 152', 'Room m.length %d' % ri).replace('Room m.length 409', 'Room m.length %d' % rp)
     b = b.replace('(vp := vp)', '(vp := §.vp)')
     b = re.sub(r'(?<![.\w§])vp\b(?! :=)', '§.vp', b)
     b = re.sub(r'(?<![.\w])prims\b', '§.prims', b)
@@ -55,7 +61,6 @@ def check128s():
     for nm in NAMES:
         g = tr(old_stmt(nm), '128s', 's128s', 16, 14)
         u = g.replace('slhdsa.sets.sha2_128s.slh_', 'slhdsa.slh.slh_')
-        u = u.replace('Room m.length 304', 'Room m.length 152').replace('Room m.length 561', 'Room m.length 409')
         u = u.replace('(codec Sha2Set.s128s)', 'codec128s').replace('node Sha2Set.s128s ', 'node ')
         u = u.replace('Sha2Set.s128s.', '')
         u = u.replace('MReduction.directCounts128s qs', 'Reduction.Resources2.directCounts128s qs')
@@ -77,7 +82,8 @@ def hashes(n):
 def gen(name, ctor, n, h, d, hp, a, k, m, sig):
     se = 'Sha2Set.' + ctor
     ln = 2 * n + 3
-    P = dict(name=name, se=se, n=n, n2=2 * n, n4=4 * n, sig=sig, len=ln, k=k, h=h, d=d, hp=hp, a=a, m=m,
+    ri, rp = rooms(n)
+    P = dict(ri=ri, rp=rp, name=name, se=se, n=n, n2=2 * n, n4=4 * n, sig=sig, len=ln, k=k, h=h, d=d, hp=hp, a=a, m=m,
              hashes=hashes(n), sha='SHA-256-based' if n == 16 else 'SHA-256- and SHA-512-based')
     st = {nm: tr(old_stmt(nm), name, ctor, n, k) for nm in NAMES}
     A3 = '''    ((∀ sk_seed'''
@@ -143,7 +149,7 @@ secret-key array and every %(n)d-byte `addrnd`, the Rust function does not panic
 the vector it returns are `byteSign` of the bytes of the message and of the secret key, and of
 `addrnd` read as a node. -/
 theorem rust_sign_internal_bytes (m : Slice U8) (sk : Array U8 %(n4)d#usize)
-    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length %(ri)d) :
     ∃ sig, slhdsa.sets.sha2_%(name)s.slh_sign_internal m sk addrnd = ok sig ∧
       wire sig.val =
         byteSign %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sk.val)
@@ -153,7 +159,7 @@ theorem rust_sign_internal_bytes (m : Slice U8) (sk : Array U8 %(n4)d#usize)
 
 /-- The signature returned by the Rust `sha2_%(name)s::slh_sign_internal` has %(sig)d bytes. -/
 theorem rust_sign_internal_length (m : Slice U8) (sk : Array U8 %(n4)d#usize)
-    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length %(ri)d) :
     ∃ sig, slhdsa.sets.sha2_%(name)s.slh_sign_internal m sk addrnd = ok sig ∧
       sig.val.length = %(sig)d := by
   obtain ⟨sig, h, hp⟩ := rust_sign_internal_bytes m sk addrnd hm
@@ -167,7 +173,7 @@ every message slice under the `Room` bound, every slice offered as a signature a
 %(n2)d-byte public-key array, the Rust function does not panic and returns `byteVerify` of the
 bytes of its arguments. -/
 theorem rust_verify_internal_bytes (m sig : Slice U8) (pk : Array U8 %(n2)d#usize)
-    (hm : Room m.length 304) :
+    (hm : Room m.length %(ri)d) :
     slhdsa.sets.sha2_%(name)s.slh_verify_internal m sig pk =
       ok (byteVerify %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sig.val)
         (wire pk.val)) := by
@@ -179,7 +185,7 @@ theorem rust_verify_internal_bytes (m sig : Slice U8) (pk : Array U8 %(n2)d#usiz
 `byteSignPure` is `none` (context longer than 255 bytes), and otherwise `Some` of a vector with
 the bytes `byteSignPure` returns. -/
 theorem rust_sign_bytes (m ctx : Slice U8) (sk : Array U8 %(n4)d#usize)
-    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length 561) :
+    (addrnd : Array U8 %(n)d#usize) (hm : Room m.length %(rp)d) :
     ∃ r, slhdsa.sets.sha2_%(name)s.slh_sign m ctx sk addrnd = ok r ∧
       r.map (fun v => wire v.val) =
         byteSignPure %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire ctx.val) (wire sk.val)
@@ -193,7 +199,7 @@ theorem rust_sign_bytes (m ctx : Slice U8) (sk : Array U8 %(n4)d#usize)
 
 /-- **Rust `sha2_%(name)s::slh_verify` = `byteVerifyPure`** (FIPS 205 Alg. 24), pointwise. -/
 theorem rust_verify_bytes (m sig ctx : Slice U8) (pk : Array U8 %(n2)d#usize)
-    (hm : Room m.length 561) :
+    (hm : Room m.length %(rp)d) :
     slhdsa.sets.sha2_%(name)s.slh_verify m sig ctx pk =
       ok (byteVerifyPure %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sig.val)
         (wire ctx.val) (wire pk.val)) := by
@@ -224,12 +230,12 @@ theorem bytes_end_to_end (optRand : PublicKeyCore %(se)s.prims.core → ProbComp
           byteKeygen %(se)s.vp %(se)s.prims (codec %(se)s) (node %(se)s sk_seed)
             (node %(se)s sk_prf) (node %(se)s pk_seed)) ∧
     (∀ (m : Slice U8) (sk : Array U8 %(n4)d#usize) (addrnd : Array U8 %(n)d#usize),
-      Room m.length 304 →
+      Room m.length %(ri)d →
       ∃ sig, slhdsa.sets.sha2_%(name)s.slh_sign_internal m sk addrnd = ok sig ∧
         wire sig.val =
           byteSign %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sk.val)
             (node %(se)s addrnd)) ∧
-    (∀ (m sig : Slice U8) (pk : Array U8 %(n2)d#usize), Room m.length 304 →
+    (∀ (m sig : Slice U8) (pk : Array U8 %(n2)d#usize), Room m.length %(ri)d →
       slhdsa.sets.sha2_%(name)s.slh_verify_internal m sig pk =
         ok (byteVerify %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sig.val)
           (wire pk.val))) :=
@@ -252,12 +258,12 @@ theorem pure_bytes_end_to_end
           byteKeygen %(se)s.vp %(se)s.prims (codec %(se)s) (node %(se)s sk_seed)
             (node %(se)s sk_prf) (node %(se)s pk_seed)) ∧
     (∀ (m ctx : Slice U8) (sk : Array U8 %(n4)d#usize) (addrnd : Array U8 %(n)d#usize),
-      Room m.length 561 →
+      Room m.length %(rp)d →
       ∃ r, slhdsa.sets.sha2_%(name)s.slh_sign m ctx sk addrnd = ok r ∧
         r.map (fun v => wire v.val) =
           byteSignPure %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire ctx.val)
             (wire sk.val) (node %(se)s addrnd)) ∧
-    (∀ (m sig ctx : Slice U8) (pk : Array U8 %(n2)d#usize), Room m.length 561 →
+    (∀ (m sig ctx : Slice U8) (pk : Array U8 %(n2)d#usize), Room m.length %(rp)d →
       slhdsa.sets.sha2_%(name)s.slh_verify m sig ctx pk =
         ok (byteVerifyPure %(se)s.vp %(se)s.prims (codec %(se)s) (wire m.val) (wire sig.val)
           (wire ctx.val) (wire pk.val))) :=
@@ -309,7 +315,7 @@ item checked against the statements of (a) and of `bytes_end_to_end`:
     covered.  The caller must supply them with the distributions of the game (for the
     deterministic variant: pass `addrnd = pk_seed`).
 (ii) *Length bounds.*  The Rust equalities for signing and verification are under
-    `Room m.length 304` (`m.length + 304 ≤ usize::MAX` and `< 2^61`); key generation has no
+    `Room m.length %(ri)d` (`m.length + %(ri)d ≤ usize::MAX` and `< 2^61`); key generation has no
     side condition; `B` is defined on all byte strings.
 (iii) *Fixed-length arrays.*  The Rust public key is a `[u8; %(n2)d]`, the secret key a
     `[u8; %(n4)d]`, the returned signature a `Vec<u8>` of %(sig)d bytes
@@ -354,7 +360,7 @@ rejected (`pure_bytes_end_to_end` / `ME2E.pure_bytes_scheme`; complete for conte
 
 (a) The Rust `sets::sha2_%(name)s::slh_keygen_internal`, `slh_sign`, `slh_verify` never panic and
     are pointwise equal to `byteKeygen`, `byteSignPure`, `byteVerifyPure` under
-    `Room m.length 561` (the Rust `Option` of `slh_sign` is the scheme's `Option`).
+    `Room m.length %(rp)d` (the Rust `Option` of `slh_sign` is the scheme's `Option`).
 (b) For every strong forger `F` against `X` — a forgery is `((message, context), some bytes)`
     accepted by `byteVerifyPure` and never returned for that pair; `none` is never accepted —
     the SUF-CMA advantage is at most the twelve advantages of `rust_security` (`len = %(len)d`,
@@ -364,7 +370,7 @@ rejected (`pure_bytes_end_to_end` / `ME2E.pure_bytes_scheme`; complete for conte
 (c) The same for every chosen-message forger `A` (EUF-CMA).
 
 The gap between `X` and the Rust functions is that of `rust_security`, items (i)–(vi), with
-these changes: (ii) the `Room` slack is 561; (iii) `X.sign` returns `none` when the context is
+these changes: (ii) the `Room` slack is %(rp)d; (iii) `X.sign` returns `none` when the context is
 over-long (before sampling; `byteSignPure` is `none` there for every `addrnd`,
 `Reduction.byteSignPure_tooLong`) or the public key does not parse, and `byteSignPure` returns
 `none` when the secret key is not %(n4)d bytes; contexts are slices on the Rust side and arbitrary
@@ -455,6 +461,5 @@ numerals of this set (`MReduction.directCounts%(name)s`; table: `status/D.md`,
 
 for s in SETS:
     gen(*s)
-open(os.path.join(ROOT, 'ME2E.lean'), 'w').write(
-    'import ME2E.Basic\n' + ''.join('import ME2E.Sha2_%s\n' % s[0] for s in SETS))
+# ME2E.lean (the import list) is written by scripts/gen_api_rom.py.
 print('ok')

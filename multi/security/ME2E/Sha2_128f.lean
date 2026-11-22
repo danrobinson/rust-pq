@@ -58,7 +58,7 @@ secret-key array and every 16-byte `addrnd`, the Rust function does not panic an
 the vector it returns are `byteSign` of the bytes of the message and of the secret key, and of
 `addrnd` read as a node. -/
 theorem rust_sign_internal_bytes (m : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 152) :
     ∃ sig, slhdsa.sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
       wire sig.val =
         byteSign Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sk.val)
@@ -68,7 +68,7 @@ theorem rust_sign_internal_bytes (m : Slice U8) (sk : Array U8 64#usize)
 
 /-- The signature returned by the Rust `sha2_128f::slh_sign_internal` has 17088 bytes. -/
 theorem rust_sign_internal_length (m : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 152) :
     ∃ sig, slhdsa.sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
       sig.val.length = 17088 := by
   obtain ⟨sig, h, hp⟩ := rust_sign_internal_bytes m sk addrnd hm
@@ -82,7 +82,7 @@ every message slice under the `Room` bound, every slice offered as a signature a
 32-byte public-key array, the Rust function does not panic and returns `byteVerify` of the
 bytes of its arguments. -/
 theorem rust_verify_internal_bytes (m sig : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 304) :
+    (hm : Room m.length 152) :
     slhdsa.sets.sha2_128f.slh_verify_internal m sig pk =
       ok (byteVerify Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val)
         (wire pk.val)) := by
@@ -94,7 +94,7 @@ theorem rust_verify_internal_bytes (m sig : Slice U8) (pk : Array U8 32#usize)
 `byteSignPure` is `none` (context longer than 255 bytes), and otherwise `Some` of a vector with
 the bytes `byteSignPure` returns. -/
 theorem rust_sign_bytes (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 561) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 409) :
     ∃ r, slhdsa.sets.sha2_128f.slh_sign m ctx sk addrnd = ok r ∧
       r.map (fun v => wire v.val) =
         byteSignPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire ctx.val) (wire sk.val)
@@ -108,7 +108,7 @@ theorem rust_sign_bytes (m ctx : Slice U8) (sk : Array U8 64#usize)
 
 /-- **Rust `sha2_128f::slh_verify` = `byteVerifyPure`** (FIPS 205 Alg. 24), pointwise. -/
 theorem rust_verify_bytes (m sig ctx : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 561) :
+    (hm : Room m.length 409) :
     slhdsa.sets.sha2_128f.slh_verify m sig ctx pk =
       ok (byteVerifyPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val)
         (wire ctx.val) (wire pk.val)) := by
@@ -139,12 +139,12 @@ theorem bytes_end_to_end (optRand : PublicKeyCore Sha2Set.s128f.prims.core → P
           byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed)
             (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
     (∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-      Room m.length 304 →
+      Room m.length 152 →
       ∃ sig, slhdsa.sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
         wire sig.val =
           byteSign Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sk.val)
             (node Sha2Set.s128f addrnd)) ∧
-    (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 304 →
+    (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 152 →
       slhdsa.sets.sha2_128f.slh_verify_internal m sig pk =
         ok (byteVerify Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val)
           (wire pk.val))) :=
@@ -167,12 +167,12 @@ theorem pure_bytes_end_to_end
           byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed)
             (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
     (∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-      Room m.length 561 →
+      Room m.length 409 →
       ∃ r, slhdsa.sets.sha2_128f.slh_sign m ctx sk addrnd = ok r ∧
         r.map (fun v => wire v.val) =
           byteSignPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire ctx.val)
             (wire sk.val) (node Sha2Set.s128f addrnd)) ∧
-    (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 561 →
+    (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 409 →
       slhdsa.sets.sha2_128f.slh_verify m sig ctx pk =
         ok (byteVerifyPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val)
           (wire ctx.val) (wire pk.val))) :=
@@ -225,7 +225,7 @@ item checked against the statements of (a) and of `bytes_end_to_end`:
     covered.  The caller must supply them with the distributions of the game (for the
     deterministic variant: pass `addrnd = pk_seed`).
 (ii) *Length bounds.*  The Rust equalities for signing and verification are under
-    `Room m.length 304` (`m.length + 304 ≤ usize::MAX` and `< 2^61`); key generation has no
+    `Room m.length 152` (`m.length + 152 ≤ usize::MAX` and `< 2^61`); key generation has no
     side condition; `B` is defined on all byte strings.
 (iii) *Fixed-length arrays.*  The Rust public key is a `[u8; 32]`, the secret key a
     `[u8; 64]`, the returned signature a `Vec<u8>` of 17088 bytes
@@ -262,10 +262,10 @@ theorem rust_security (optRand : PublicKeyCore Sha2Set.s128f.prims.core → Prob
           (wire pk.val, wire sk.val) =
             byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed) (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
       (∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-        Room m.length 304 →
+        Room m.length 152 →
         ∃ sig, slhdsa.sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
           wire sig.val = byteSign Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sk.val) (node Sha2Set.s128f addrnd)) ∧
-      (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 304 →
+      (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 152 →
         slhdsa.sets.sha2_128f.slh_verify_internal m sig pk =
           ok (byteVerify Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val) (wire pk.val)))) ∧
     (∀ F : SignatureAlg.StrongUnforgeableAdversary
@@ -317,7 +317,7 @@ rejected (`pure_bytes_end_to_end` / `ME2E.pure_bytes_scheme`; complete for conte
 
 (a) The Rust `sets::sha2_128f::slh_keygen_internal`, `slh_sign`, `slh_verify` never panic and
     are pointwise equal to `byteKeygen`, `byteSignPure`, `byteVerifyPure` under
-    `Room m.length 561` (the Rust `Option` of `slh_sign` is the scheme's `Option`).
+    `Room m.length 409` (the Rust `Option` of `slh_sign` is the scheme's `Option`).
 (b) For every strong forger `F` against `X` — a forgery is `((message, context), some bytes)`
     accepted by `byteVerifyPure` and never returned for that pair; `none` is never accepted —
     the SUF-CMA advantage is at most the twelve advantages of `rust_security` (`len = 35`,
@@ -327,7 +327,7 @@ rejected (`pure_bytes_end_to_end` / `ME2E.pure_bytes_scheme`; complete for conte
 (c) The same for every chosen-message forger `A` (EUF-CMA).
 
 The gap between `X` and the Rust functions is that of `rust_security`, items (i)–(vi), with
-these changes: (ii) the `Room` slack is 561; (iii) `X.sign` returns `none` when the context is
+these changes: (ii) the `Room` slack is 409; (iii) `X.sign` returns `none` when the context is
 over-long (before sampling; `byteSignPure` is `none` there for every `addrnd`,
 `Reduction.byteSignPure_tooLong`) or the public key does not parse, and `byteSignPure` returns
 `none` when the secret key is not 64 bytes; contexts are slices on the Rust side and arbitrary
@@ -340,12 +340,12 @@ theorem rust_pure_security (optRand : PublicKeyCore Sha2Set.s128f.prims.core →
           (wire pk.val, wire sk.val) =
             byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed) (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
       (∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-        Room m.length 561 →
+        Room m.length 409 →
         ∃ r, slhdsa.sets.sha2_128f.slh_sign m ctx sk addrnd = ok r ∧
           r.map (fun v => wire v.val) =
             byteSignPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire ctx.val) (wire sk.val)
               (node Sha2Set.s128f addrnd)) ∧
-      (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 561 →
+      (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 409 →
         slhdsa.sets.sha2_128f.slh_verify m sig ctx pk =
           ok (byteVerifyPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val) (wire ctx.val)
             (wire pk.val)))) ∧
@@ -410,10 +410,10 @@ theorem rust_security_linear (optRand : PublicKeyCore Sha2Set.s128f.prims.core �
           (wire pk.val, wire sk.val) =
             byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed) (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
       (∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-        Room m.length 304 →
+        Room m.length 152 →
         ∃ sig, slhdsa.sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
           wire sig.val = byteSign Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sk.val) (node Sha2Set.s128f addrnd)) ∧
-      (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 304 →
+      (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 152 →
         slhdsa.sets.sha2_128f.slh_verify_internal m sig pk =
           ok (byteVerify Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val) (wire pk.val)))) ∧
     (∀ F : SignatureAlg.StrongUnforgeableAdversary
@@ -470,12 +470,12 @@ theorem rust_pure_security_linear (optRand : PublicKeyCore Sha2Set.s128f.prims.c
           (wire pk.val, wire sk.val) =
             byteKeygen Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (node Sha2Set.s128f sk_seed) (node Sha2Set.s128f sk_prf) (node Sha2Set.s128f pk_seed)) ∧
       (∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
-        Room m.length 561 →
+        Room m.length 409 →
         ∃ r, slhdsa.sets.sha2_128f.slh_sign m ctx sk addrnd = ok r ∧
           r.map (fun v => wire v.val) =
             byteSignPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire ctx.val) (wire sk.val)
               (node Sha2Set.s128f addrnd)) ∧
-      (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 561 →
+      (∀ (m sig ctx : Slice U8) (pk : Array U8 32#usize), Room m.length 409 →
         slhdsa.sets.sha2_128f.slh_verify m sig ctx pk =
           ok (byteVerifyPure Sha2Set.s128f.vp Sha2Set.s128f.prims (codec Sha2Set.s128f) (wire m.val) (wire sig.val) (wire ctx.val)
             (wire pk.val)))) ∧

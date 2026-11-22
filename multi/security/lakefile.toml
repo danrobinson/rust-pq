@@ -43,6 +43,14 @@ name = "Reduction"
 srcDir = "../../security"
 roots = ["Reduction.Basic","Reduction.Games","Reduction.WotsGame","Reduction.Steps","Reduction.Main","Reduction.Harness","Reduction.PRFHop","Reduction.PRFMsgHop","Reduction.ITSR","Reduction.OpenPRE","Reduction.TCR","Reduction.WotsSim","Reduction.WotsEmbed","Reduction.WotsUD","Reduction.WotsFinal","Reduction.Final","Reduction.NonVacuity","Reduction.Instance128s","Reduction.Tables","Reduction.PrfDomain","Reduction.Lazy.Core","Reduction.Lazy.Open","Reduction.Lazy.MsgLazy","Reduction.Lazy.ItsrLazy","Reduction.Lazy.Sparse","Reduction.Lazy.OpenPreSparse","Reduction.Lazy.TcrSparse","Reduction.Lazy.WotsSparse","Reduction.Resources","Reduction.FinalV2","Reduction.Instance128sV2","Reduction.ForsTight","Reduction.ForsTightFinal","Reduction.ForsTightNonVacuity","Reduction.TcrSplit","Reduction.TcrSplitFinal","Reduction.VerifyArity","Reduction.TcrSplitClosed","Reduction.SufCollision","Reduction.SufHarness","Reduction.SufHopPrf","Reduction.SufHopMsg","Reduction.Suf","Reduction.SufInstance128s","Reduction.External","Reduction.SufPrfV2","Reduction.Lazy.SufMsgLazy","Reduction.SufSparse","Reduction.ExternalSuf","Reduction.Headline","Reduction.HeadlineSplit","Reduction.Resources2Wots","Reduction.Resources2Tcr","Reduction.Resources2Fors","Reduction.Resources2","Reduction.TightCaps","Reduction.TightCapsHeadline","Reduction.Bytes","Reduction.TcrMemo","Reduction.TcrMemoHeadline","Reduction.Linear","Reduction.LinearBytes","Reduction.HeadlineFinal","Reduction.ResourcesFinal"]
 
+# security/E2E/GuardedRom.lean and CodedRom.lean (no parameter set in them), compiled in place,
+# unmodified: a scheme behind a partial message encoding / seen through key and signature
+# encodings, over an arbitrary oracle interface.  Used by ME2E/PureRom.lean.
+[[lean_lib]]
+name = "E2ERom"
+srcDir = "../../security"
+roots = ["E2E.GuardedRom", "E2E.CodedRom"]
+
 # Spec (six sets) = VCVio's scheme at approvedPrimitives.
 [[lean_lib]]
 name = "MLink"
