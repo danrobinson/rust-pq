@@ -4,12 +4,13 @@ Copy of `rust/` and `lean/` extended from SLH-DSA-SHA2-128s to
 SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}. Nothing outside `multi/` was
 modified. `multi/scripts/check.sh` re-runs every check (below).
 
-## State (2026-11-22): optimised Rust for six sets, proved correct (default build)
+## State (2026-11-22): optimised Rust for six sets, proved correct (default and `hw-sha2` builds)
 
 `multi/rust` is the optimised implementation of `../rust` for all six SHA-2
-parameter sets, and the Aeneas translation of its default build is proved to
-compute FIPS 205 (`lean/Spec`) for every function the crate exports, in every
-set.
+parameter sets, and the Aeneas translations of its default build and of its
+`hw-sha2` build are proved to compute FIPS 205 (`lean/Spec`) for every function
+the crate exports, in every set (the `hw-sha2` one relative to `../lean-hw`'s
+model of the processor instructions, as for `../lean-hw`).
 
 | Item | State |
 |---|---|
@@ -17,15 +18,16 @@ set.
 | `chain_blocks`, seed-state precomputation, `sha256_from`, in-place `H_msg`, stack HMAC key blocks, FORS batches and joint climbing, on the SHA-256 paths of every set | done |
 | SHA-512 for `H`, `T_l`, `H_msg`, `PRF_msg` (n = 24, 32) | done, portable |
 | `PRF_msg`'s inner HMAC digest | kept on the stack (this stage; see "Secrets and constant time") |
-| `hw-sha2` chain kernel for n = 24 and 32 | done (one kernel, generic in `N`; the wrappers are unchanged) |
+| `hw-sha2` chain kernel for n = 24 and 32 | done (one kernel, generic in `N`; the wrappers are unchanged); proved |
 | Hardware SHA-512 (FEAT_SHA512) | separate, experimental, **unverified** feature `hw-sha512` |
 | Tests, three builds | all pass: 89 default, 91 `hw-sha2`, 92 `hw-sha2,hw-sha512` |
 | Charon/Aeneas, default build | no opaque function, no axiom, no `External` file |
-| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` left out (21 declarations, defined by `../lean-hw`'s model, linked); the translation typechecks |
+| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` left out (21 declarations, defined by `../lean-hw`'s model, linked) |
 | **Refinement proofs, default build** | **done**: `lean/Slhdsa/Proofs` (19 files, about 9,100 lines); headline files `Theorems.lean` (37 theorems), `ApiTheorems.lean` (174), `EncodingTheorems.lean` (72), `Compat128.lean` (24); every one depends only on `propext`, `Classical.choice`, `Quot.sound` (checked by `scripts/check.sh`); no `sorry`, `axiom`, `native_decide`, `bv_decide` |
 | Correctness of the specification (`lean/Spec/Checked.lean`, `Correctness.lean`) | done, generically for every `p` with `p.Valid` |
 | 128s against the single-set specification | done: `lean/Spec/Compat128.lean` proves `Spec.f Spec.sha2_128s = Spec128.f` for every function, where `Spec128` (`lean/Spec/Old128.lean`) is a verbatim copy of `../lean/Spec/{SlhDsa,Checked}.lean`; `Slhdsa/Compat128.lean` restates the 128s headlines against it |
-| Hardware proofs (`lean-hw`), constant-time proofs, security link | **not done** for this tree (`lean-hw` builds the translation only) |
+| **Refinement proofs, `hw-sha2` build** | **done**: `lean-hw/` proves the same 307 headline theorems (the four headline files are links to `lean/`'s) about the `hw-sha2` translation, all six sets, on the three standard axioms; new proofs only for the chain kernel generic in `N` and the hand-off (`lean-hw/Slhdsa/Proofs/ChainTop.lean`, `Hw/{ChainModel,ChainLane,ChainRun,ChainLoop,ChainMain,ChainAll,Chain,Guard}.lean`, about 2,400 lines); guard theorems for `Arm.haveSha2 = false`; the wrapper model passes `ArmTest` (1,745 cases, 0 mismatches) |
+| Constant-time proofs, security link | portable build: see `CT_STATUS.md` and `security/STATUS.md` (later stages, not described here); `hw-sha2` build: **not done** |
 
 ## Design, and why
 
@@ -83,7 +85,8 @@ Other decisions:
   for N > 16), and for N = 24 the block bytes 46..54 that follow the value
   are written back from a saved `tail`. The eighteen wrappers of `hw::arm`
   are unchanged, so the trusted model of `../lean-hw` still describes them;
-  the kernel's proofs are not done.
+  the kernel is proved for the three values of `N` (section "The proofs
+  (`hw-sha2` build)").
 - **Keys** are slices in the generic functions (`sk: &[u8]` of 4n bytes;
   key generation writes into `sk: &mut [u8]`, `pk: &mut [u8]`), so nothing
   secret is returned by value from the generic code; the per-set modules give
@@ -137,6 +140,19 @@ regenerated; `lean/Slhdsa/Proofs/*` rewritten for the new code (new
 `lean/Slhdsa.lean`; new `lean/Spec/{Checked,Correctness,Old128,Compat128}.lean`,
 `lean/Spec.lean` imports `Checked`; `scripts/check.sh`; this file.
 
+Stage `hw-sha2` proofs: `lean-hw/lakefile.toml` (`Spec` compiled in place
+from `../lean`; the `Slhdsa` library with its default root); new links
+`lean-hw/Slhdsa.lean`, `lean-hw/Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean`,
+`lean-hw/Slhdsa/Proofs/*.lean` (17 files, to `../lean/Slhdsa/Proofs`),
+`lean-hw/Slhdsa/Proofs/CompressTop.lean` and
+`lean-hw/Slhdsa/Proofs/Hw/{Model,Rounds,Compress,Wrappers}.lean` (to
+`../../lean-hw/Slhdsa/Proofs`), `lean-hw/ArmTest.lean` (to
+`../../lean-hw/ArmTest.lean`); new files `lean-hw/Slhdsa/Proofs/ChainTop.lean`,
+`lean-hw/Slhdsa/Proofs/Hw/{ChainModel,ChainLane,ChainRun,ChainLoop,ChainMain,ChainAll,Chain,Guard}.lean`;
+`scripts/check.sh`; this file. No Rust change, no change outside `multi/`;
+the translations were not changed (re-extracted by `scripts/check.sh`, same
+output).
+
 ## Tests
 
 All pass, run on this machine (Apple M5 Ultra) in four builds: default,
@@ -171,7 +187,8 @@ And `cargo build --target aarch64-unknown-none` for the library: default,
   or `opaque` in the generated files; Aeneas left out 21 declarations (the
   vector type, its `clone`, `panic_bounds_check`, and the eighteen wrappers),
   every one defined in `../lean-hw/Slhdsa/{Types,Funs}External.lean`, which
-  `multi/lean-hw` links to. `lake build` there succeeds (3,621 jobs).
+  `multi/lean-hw` links to. `lake build` there builds it and its proofs
+  (3,711 jobs).
 - The `hw-sha512` build was not translated (see the last section).
 
 ## Measurements
@@ -417,20 +434,82 @@ with the stack outer block, `H_msg`, MGF1 for both hashes), `Wots`, `Xmss`,
 `Fors` (both the `N == 16` batch paths and the `N > 16` node-by-node paths),
 `Ht`, `Slh`, `Checked`, `Api`, `Encoding`, `Sets` (the 22 per-set wrappers × 6).
 The per-set files (`Sets`, `Theorems`, `ApiTheorems`, `EncodingTheorems`,
-`Compat128`) are generated by scripts kept outside the repository; they are
+`Compat128`) are generated by the scripts in `scripts/gen/`; they are
 plain Lean and are checked like the rest.
+
+## The proofs (`hw-sha2` build)
+
+`cd multi/lean-hw && lake build` builds them (default target `Slhdsa`). The
+statements are about the Aeneas translation of `multi/rust` with
+`--features hw-sha2` (`lean-hw/Slhdsa/{Types,Funs}.lean`, generated by
+`scripts/extract-hw.sh`), in which the eighteen wrappers of `sha256::hw::arm`
+(and the vector type, its `clone`, `panic_bounds_check`) are the main tree's
+hand-written model, `../lean-hw/Slhdsa/{Types,Funs}External.lean` over
+`../lean-hw/Arm.lean`, linked and compiled in place, not changed. The
+translation calls no wrapper the model lacks.
+
+### Headline statements
+
+`lean-hw/Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean` are
+symbolic links to `lean/Slhdsa/`'s: the same 307 statements, word for word
+(for 128s, `Theorems.lean` lines 94–137, quoted above), now elaborated against
+the `hw-sha2` translation. As in `../lean-hw`, no headline statement carries a
+hypothesis about the processor: the hand-offs are proved for both values of
+`Arm.haveSha2`. Every `#print axioms` there reports `propext`,
+`Classical.choice`, `Quot.sound` (checked by `scripts/check.sh`).
+
+### What is shared and what is new
+
+- Linked from `lean/Slhdsa/Proofs`: every proof file that does not depend on
+  the build (`Basic`, `Params`, `Sha256Core`, `Sha256`, `Sha512`, `Util`,
+  `Hash`, `HashMsg`, `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`, `Checked`, `Api`,
+  `Encoding`, `Sets`), and `Slhdsa.lean`.
+- Linked from `../lean-hw/Slhdsa/Proofs`: `CompressTop.lean` and
+  `Hw/{Model,Rounds,Compress,Wrappers}.lean` — `sha256::compress`,
+  `sha256::hw::compress` and `compress_block` are the same functions in both
+  translations (checked by `diff` of the generated definitions); and
+  `ArmTest.lean`.
+- New, `lean-hw/Slhdsa/Proofs/`:
+  - `ChainTop.lean`: `chain_blocks_spec`, the default build's statement word
+    for word (`N : Usize`, `N.val ≤ 32`), by cases on the hand-off
+    `sha256::hw::chain_blocks::<N>`: the kernel when `N` ∈ {16, 24, 32} and
+    `available()` answered yes (which gives `Arm.haveSha2 = true`), the
+    portable loops otherwise.
+  - `Hw/ChainModel.lean`: the chain model generic in `n` ∈ {16, 24, 32}
+    (`KN`): the value as two vectors (`x`: bytes 22..38; `xb`: bytes 38..54,
+    first `n − 16` bytes value, last two words zero for n = 24, `Norm`),
+    `setBlk n`, one hash step `hval n` (= `stepBlock n`), the words the kernel
+    rebuilds (`mkM1`, `mkM2 n`, `mkM3 n`) and the masks per `n` (`k2V`, `k3V`,
+    `kbV`, `ktV`) checked bit by bit against the block, `hashV_eq` (fifteen
+    kernel steps plus the cached first four rounds are one step of the chain,
+    for each `n`).
+  - `Hw/ChainLane.lean` (`lane_step_spec` for each `N`, including the last
+    `SHA256H2` and the masked second half for N > 16), `Hw/ChainRun.lean`
+    (`run_spec`: each lane makes exactly `steps` hash steps, `xb` carried),
+    `Hw/ChainLoop.lean` (`enter`: masks and saved `tail` per `N`; `leave`:
+    writes `xb ∨ tail` at bytes 38..54 for N > 16, which gives back the value
+    and, for N = 24, the bytes 46..54 that follow it), `Hw/ChainMain.lean`,
+    `Hw/ChainAll.lean` (the loop invariant), `Hw/Chain.lean`
+    (`hw_chain_all_spec hw N (hN : KN N.val)`: block `i` ends as
+    `runBlock N.val … start[i] end[i]`, the portable model).
+  - `Hw/Guard.lean`: `compress_block_undef`, `chain_all_undef` (for every
+    `N`), `compress_block_no_spec`, `chain_all_no_spec`, for
+    `Arm.haveSha2 = false`.
+
+The kernel files are `../lean-hw/Slhdsa/Proofs/Hw/Chain*.lean` generalised
+(copied and edited, not linked): the N = 16 kernel there has no `xb`, `tail`
+or `N`-dependent branch.
 
 ## Not done / caveats
 
-- **No proofs for the `hw-sha2` build.** `multi/lean-hw` holds the
-  translation (it typechecks against `../lean-hw`'s instruction model), but
-  none of the hardware proofs: no shared proof files, no `Proofs/Hw/*` for
-  the generic kernel (second value vector, masks per `N`, the last
-  `SHA256H2` for N > 16, the saved `tail` for N = 24), no `Arm.haveSha2 =
-  false` guard theorems, no headline theorems. The headline theorems above
-  are about the default (portable) build only.
-- **Constant-time proofs and the security link** have not been started for
-  this tree (`../lean/Ct` was not run on it).
+- **The `hw-sha2` proofs are relative to the instruction model** of
+  `../lean-hw/Arm.lean` and `FunsExternal.lean` (trusted, transcribed from the
+  Arm ARM, tested against one Apple M5 by `ArmTest`), as for `../lean-hw`.
+  The model covers 17 of the 18 wrappers on in-bounds inputs only in the
+  record. The n = 24, 32 kernel paths add no wrapper and no instruction.
+- **Constant-time proofs and the security link** for the `hw-sha2` build do
+  not exist (no counterpart of `../lean-hw/Ct` or `../security-hw`); for the
+  portable build see `CT_STATUS.md` and `security/STATUS.md`.
 - **`hw-sha512` is experimental and unverified**: no translation, no model of
   the SHA-512 instructions, no proof.
 - **Hypotheses of the generic statements** (not of the per-set ones, which
@@ -459,15 +538,17 @@ plain Lean and are checked like the rest.
 ## Build
 
 ```
-multi/scripts/check.sh          # Rust tests (3 builds), both extractions + checks, all proofs + axiom check, lean-hw typechecks, spec sigVer ×6
+multi/scripts/check.sh          # Rust tests (3 builds), both extractions + checks, proofs of both builds + placeholder and axiom checks, ArmTest, spec sigVer ×6
 multi/scripts/check.sh full     # also the slow spec keygen/signing vectors
-cd multi/lean && lake build     # the proofs alone
+cd multi/lean && lake build     # the proofs of the default build alone
+cd multi/lean-hw && lake build  # the proofs of the hw-sha2 build alone
+cd multi/lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../../vectors/arm-wrappers.txt
 cd multi/rust && cargo test --release [--features hw-sha2[,hw-sha512]]
 ```
 
 `multi/lean/.lake/packages` is an APFS clone of `lean/.lake/packages`;
 `multi/lean-hw` uses those packages (`packagesDir`) and compiles `Arm.lean`
-in place from `../../lean-hw`.
+in place from `../../lean-hw` and `Spec` in place from `../lean`.
 
 ## Swapping multi/ in for rust/
 
@@ -483,5 +564,6 @@ in place from `../../lean-hw`.
 3. Lean: spec names take the parameter set (`Spec.slhSign Spec.sha2_128s`,
    equal to the old `Spec.slhSign` by `Spec/Compat128.lean`); the Rust names
    are `sets.sha2_128s.…`; `Room` slack constants are 152 / 409 for the n = 16
-   sets and 304 / 561 for the others. The hardware proofs of `../lean-hw` and
-   the constant-time proofs of `../lean/Ct` have no counterpart here yet.
+   sets and 304 / 561 for the others. The hardware proofs of `../lean-hw`
+   have their counterpart in `multi/lean-hw`; the constant-time proofs of
+   `../lean/Ct` (and `../lean-hw/Ct`) have none here yet.

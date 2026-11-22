@@ -211,8 +211,8 @@ pub fn hw_active() -> bool {
 /// > `hw::chain_blocks` returns `true`, it has left in `blocks` what the
 /// > portable loops of [`crate::hash::chain_blocks`] leave there.
 ///
-/// (That describes `../rust` and `../lean-hw`. The proofs for this tree's
-/// kernel, which is generic in the hash length, are not written yet.)
+/// (This tree's kernel is generic in the hash length; its proofs are under
+/// `../lean-hw/Slhdsa/Proofs/Hw`.)
 ///
 /// The proofs cover this module except its submodule `arm`, the eighteen
 /// functions that call the intrinsics; what those compute is taken from a

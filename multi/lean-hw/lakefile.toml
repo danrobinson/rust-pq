@@ -7,6 +7,11 @@ packagesDir = "../lean/.lake/packages"
 name = "aeneas"
 path = "../../.tools/aeneas/backends/lean"
 
+# The generic FIPS 205 transcription, compiled in place from ../lean (not copied).
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
 # The instruction model of the hardware backend, compiled in place from
 # ../../lean-hw (not copied): the wrappers are the same eighteen functions.
 [[lean_lib]]
@@ -14,7 +19,13 @@ name = "Arm"
 srcDir = "../../lean-hw"
 
 # The Aeneas translation of multi/rust built with `hw-sha2`
-# (scripts/extract-hw.sh). Proofs for it are not written yet.
+# (scripts/extract-hw.sh), and its proofs. Proof files that do not depend on
+# the build, and the headline files, are symbolic links into ../lean/Slhdsa;
+# the files about the build-independent parts of the hardware backend
+# (the wrappers, `compress_block`, `sha256::compress`) are links into
+# ../../lean-hw/Slhdsa/Proofs. `Slhdsa/Proofs/ChainTop.lean` and
+# `Slhdsa/Proofs/Hw/{ChainModel,ChainLane,ChainRun,ChainLoop,ChainMain,
+# ChainAll,Chain,Guard}.lean` are this package's own: the chain kernel generic
+# in `N`.
 [[lean_lib]]
 name = "Slhdsa"
-roots = ["Slhdsa.Types", "Slhdsa.TypesExternal", "Slhdsa.FunsExternal", "Slhdsa.Funs"]

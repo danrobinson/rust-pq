@@ -1,5 +1,6 @@
 import sys, re
-exec(open('/private/tmp/claude-501/-Users-danrobinson-Projects-formal-sig/aa936096-0075-48f4-b18f-ef8efe20006c/scratchpad/multi-proofs/gen/common.py').read())
+import os
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'common.py')).read())
 FUNS = open('/Users/danrobinson/Projects/formal-sig/multi/lean/Slhdsa/Funs.lean').read()
 def prefix_bytes(S, name):
     m = re.search(r'def sets\.sha2_%s\.%s : Array Std\.U8 (\d+)#usize :=\s*Array\.make \d+#usize \[(.*?)\]' % (S,name), FUNS, re.S)
