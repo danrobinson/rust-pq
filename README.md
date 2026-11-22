@@ -73,6 +73,26 @@ of those instructions; see [below](#opt-in-hardware-sha-2-hw-sha2).
 core Lean. The SHA-256 and HMAC inside the Rust crate are verified too, so no
 hash function is assumed correct.
 
+## All six SHA-2 parameter sets ([multi/](multi))
+
+[multi/](multi) holds the same design generalised to SLH-DSA-SHA2-128s, 128f,
+192s, 192f, 256s and 256f: one implementation with the hash length as a
+compile-time parameter and the rest of the parameter set passed at run time.
+It has, for every set and for both the portable and the `hw-sha2` build:
+functional correctness against a parameterised FIPS 205 specification,
+constant time, the security link (standard-model reduction and the
+context-string random-oracle theorem), and a RustCrypto-style adapter crate
+([multi/compat](multi/compat)) with the wiping tests. `multi/scripts/check.sh`
+re-checks all of it; [multi/STATUS.md](multi/STATUS.md) has the statements
+and the list of what is not done. For 128s its statements are shown equal to
+this tree's.
+
+Not in `multi/`: the six SHAKE parameter sets; a verified hardware SHA-512
+(the `hw-sha512` feature is experimental and unproved, and without it the
+192/256 sets hash tree nodes in portable code); the quantum-random-oracle
+result; binary-level timing evidence. The rest of this file describes the
+single-set tree.
+
 ## What is tested
 
 - The Rust crate passes the NIST ACVP vectors for SLH-DSA-SHA2-128s: 10 key

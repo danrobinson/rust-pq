@@ -461,6 +461,31 @@ statements. No definition or statement was found wrong. What it did find, and wh
   does now, and `lean/Ct` too.
 - Not done by the reviewer: no Lean run, proofs not read.
 
+## Six parameter sets and tighter bounds (2026-11-22)
+
+- **`multi/`** is now the optimised implementation for the six SHA-2 parameter sets (hash length
+  a const generic, the rest a runtime `Params`), with `api`, checked signer, `encoding`, `no_std`
+  and the `hw-sha2` kernel generic in the hash length. Proved for both builds and every set:
+  functional correctness (`multi/lean`, `multi/lean-hw`; 307 headlines each), constant time
+  (`multi/lean/Ct`, `multi/lean-hw/Ct`), the security link (`multi/security`,
+  `multi/security-hw`; 252 headlines each). Adapter: `multi/compat` (516 results equal to
+  RustCrypto's; wipe and heap tests per set). One script: `multi/scripts/check.sh`. Details:
+  `multi/STATUS.md`, `multi/CT_STATUS.md`, `multi/security/STATUS.md`.
+- **Found while doing it:** in `rust/` (this single-set tree), `prf_msg` hands the HMAC inner
+  digest, which depends on SK.prf, to a function whose padding copies it to a heap `Vec`. So
+  "nothing derived from the secret seed is written to the heap" is not literally true here, and
+  `compat/tests/heap.rs` does not search for that value. Fixed in `multi/rust` (and tested in
+  `multi/compat/tests`); NOT fixed in `rust/`.
+- **Not done in `multi/`:** SHAKE sets; verified hardware SHA-512 (`hw-sha512` is unproved; with
+  `hw-sha2` alone 256s signing is about 12% slower than RustCrypto); quantum side; binary timing
+  evidence; `compat/` and `bench/` at the top level still use `rust/`.
+- **Tighter classical bound** (`security/Ideal`, 128s): `suf/euf_ideal_closed_tight8` and the
+  context-string, Rust and API forms, same forger hypotheses as `suf_ideal_closed`. Proved
+  points (qf, qs): (2^60, 2^20) 2^-77 + 2^-132 + 2^-63; (2^64, 2^40) 2^-63 + 2^-94 + 2^-59;
+  (2^64, 2^64) 2^-45 + 2^-46 + 2^-39 (was 2^-44 + 2^-43 + 2^-31). What remains, why, and plans
+  with estimates: `security/status/TIGHT.md`. Reaching the generic-attack level (about 2^-64) at
+  2^64 signatures needs a different proof, not more counting.
+
 ## Not done
 
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
