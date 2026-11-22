@@ -320,6 +320,16 @@ compute the same bytes as the executable SLH-DSA-SHA2-128s of the
 (`E2E.end_to_end`, via [security/Link](security/Link), which proves `lean/Spec`
 equal to VCVio's definitions including SHA-256, HMAC and MGF1).
 
+The statements below name the functions `slh_keygen_internal`, `slh_sign`,
+`slh_verify` and their internal forms. [security/E2E/Api.lean](security/E2E/Api.lean)
+restates the ones for the interface with context strings for the functions
+programs actually call (`api::keygen`, `sign`, `sign_deterministic`, `verify`):
+`E2E.api_pure_security`, `E2E.api_pure_standard_model_security_split` and
+`Ideal.api_ideal_security_closed_pure`, with the bounds unchanged. It also
+proves that on a key from key generation the optional checked signer returns
+exactly what the plain signer returns (`E2E.api_keygen_checked_eq`), so it is
+the same signing oracle and the same theorems apply to it.
+
 ### Standard model: reduction to named hash properties
 
 `E2E.standard_model_security_split` and `E2E.pure_standard_model_security_split`

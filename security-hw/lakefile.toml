@@ -6,7 +6,8 @@ defaultTargets = ["E2E", "Ideal"]
 # ../lean or ../lean-hw. The one difference from ../security is `Slhdsa`, which is the
 # translation and the proofs of the `hw-sha2` build (../lean-hw) instead of the default
 # build's (../lean). The end-to-end files (`E2E`, `Ideal/Rust*`) use the Rust functions only
-# through the six theorems of `Slhdsa/Theorems.lean`, which are the same statements in both.
+# through the theorems of `Slhdsa/Theorems.lean` and `Slhdsa/ApiTheorems.lean`, which are the
+# same statements in both.
 
 # Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
 packagesDir = "../.tools/VCVio-upstream/.lake/packages"

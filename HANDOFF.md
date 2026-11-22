@@ -363,6 +363,21 @@ rebuilding (`lake build Ct`, 3,701 jobs; 221 definitions pass the checker).
 - Observation, not a defect: when a checked signer returns nothing after a failed recomputation,
   its trace shows the common-prefix length of the two roots.
 
+## Security statements attached to the interface functions (2026-11-21)
+
+`security/E2E/Api.lean` and `security/Ideal/RustFinalClosedPureApi.lean` (new files, two import
+lines; both `security` and `security-hw` build, 35 new theorems on at most the standard axioms):
+`api::keygen`, `sign`, `sign_deterministic` and `verify` are the deterministic cores of the
+byte-level scheme with context strings (`api_pure_cores`, `ApiPureBytesEndToEnd`), and the
+headline theorems are restated with them (`api_pure_security`, `…_linear`, `…G`,
+`api_pure_standard_model_security_split`, `Ideal.api_ideal_security_closed_pure`) by reusing the
+existing bounds. On a well-formed key the checked signers equal the plain ones
+(`api_sign_checked_eq_sign`, `api_keygen_checked_eq`). Key generation is stated on the split of
+the 48 seed bytes into three blocks, deterministic signing on the split of the private key; both
+splits always exist and are unique. Not done: a random-oracle form, because the only
+random-oracle theorem with a Rust part is for the internal interface, which `api` does not
+expose.
+
 ## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
 
 `compat/` (package `slhdsa-compat`, library name `slh_dsa`) gives the verified crate the
