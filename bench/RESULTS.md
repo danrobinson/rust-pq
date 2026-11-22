@@ -132,6 +132,32 @@ changed:
   `asm` ran 2 rounds. `variant-D` was added for rounds 3–4 only, so its cells have n = 2.
 - Load: the machine was much quieter. The 1-minute load average was 1.5–3.1 on 36 cores, against 1.9–12 in run 1.
 
+## Run 6 (2026-11-21, late): after the interface module, `no_std` and the adapter
+
+Same machine and method as run 5 (`STAMP=run6 CONFIGS="default hw" ROUNDS=2 ./run.sh`, idle
+machine). New entry `verified-api`: the adapter crate `compat/` (RustCrypto's types and traits
+around the verified functions, wiping the stack after key generation and signing). Raw output:
+`results/run6/`.
+
+| | keygen | sign 32 B | sign 1 MiB | verify 32 B | verify 1 MiB |
+|---|---|---|---|---|---|
+| **`verified+hw-sha2`** (config `hw`) | **3.91 ms** | **30.20 ms** | **30.87 ms** | **35.35 µs** | **352.3 µs** |
+| **`verified-api+hw-sha2`** (config `hw`) | **3.93 ms** | **30.21 ms** | **30.89 ms** | **35.46 µs** | **351.7 µs** |
+| rustcrypto-slh-dsa (config `hw`) | 8.27 ms | 62.42 ms | 63.00 ms | 63.78 µs | 363.8 µs |
+| openssl 4.1 (config `hw`) | 7.32 ms | 55.84 ms | 56.38 ms | 58.45 µs | 406.3 µs |
+| `verified` (config `default`) | 39.88 ms | 305.36 ms | 309.50 ms | 315.55 µs | 2.68 ms |
+| `verified-api` (config `default`) | 39.95 ms | 305.41 ms | 309.55 ms | 316.34 µs | 2.68 ms |
+
+- The adapter costs nothing measurable over the bare functions (at most 0.5% on key generation,
+  where the stack scrub is largest relative to the work).
+- `verified+hw-sha2` is unchanged from run 5 (30.21 ms then, 30.20 ms now).
+- Interoperability: `verified-api` produces byte-identical keys and signatures and cross-verifies
+  with every FIPS 205 implementation in both configurations (`results/run6/interop*.md`).
+- Compression counts unchanged: 292,352 / 2,218,488 / 2,274.
+- Not in this benchmark: the opt-in checked signer. A separate timing test
+  (`cargo test --release --features hw-sha2 --test api cost_of_the_check -- --nocapture`)
+  measured 56.5 ms against 30.2 ms, a ratio of 1.87.
+
 ## Interoperability against the new crate (`results/run2/interop.md`)
 
 Every FIPS 205 implementation agrees with the new `verified` crate on all five checks, for 32 B and 1 KiB
