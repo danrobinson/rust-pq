@@ -471,3 +471,147 @@ not a theorem. Whether a coefficient-1 bound holds (or a 2·qf/2^128 attack exis
 
 (vii) F1's figure (coefficient 15) is an estimate, not computed in the scripts. The F2
 expectation depends on reusing D1 inside per-leg games, which I have not designed in detail.
+
+---------------------------------------------------------------------------------------------
+
+## 7. 2026-11-22: milestones M0 and M0b in Lean (`Ideal/Direct/`, built, standard axioms)
+
+### 7.1 Files
+
+| file | lines | content |
+|---|---|---|
+| `Ideal/Direct/Engine.lean` | 274 | generic: `ex` (expectation; VCVio's `wp` is in `ProgramLogic`, not built here), `ex_hz_le_of_step:140` (**pending-charge supermartingale**: a step may defer its charge to a later sample), `prEvent_le_untilBad:195` (identical until a monotone bad event, two state types), list union bound, single-fresh-sample step |
+| `Ideal/Direct/ToyDefs.lean` | 147 | the toy game: `Params` (`m`, `w`, `cv`, `out`, `P`, `F`, a parser making `P`/`F` injective and disjoint), `realProg:131` (lazy table, adaptive reveals), `realWin:142` |
+| `Ideal/Direct/ToySwap.lean` | 242 | lazy = eager (`realWin_eq_eager`); **re-randomisation** `Psi g0 s k` (honest cells replaced by an independent table `s` of honest values), `reRand_bijective`, `realWin_eq_Psi:221` |
+| `Ideal/Direct/ToyDefer.lean` | 448 | the deferred game `G2P` (hidden honest values never sampled while hidden; secret drawn last), `G2_eq_eager`, `untilBad_agree`, first-match walk `walk_hit:375`, coupling `realWin_le_G2:410` |
+| `Ideal/Direct/ToyRom.lean` | 567 | hazards/pending charges on the lazy tables; `fresh_g`, `fresh_s` (an honest-value sample is charge-neutral), `rom_run_le:547` |
+| `Ideal/Direct/ToyBound.lean` | 695 | support facts, query counts, fused handler `comb`, `comb_step:373` (per-query maximum), `G2_le:619`, **`toy_le:663`**, `toy_le_card:672` |
+| `Ideal/Direct/TwoColour.lean` | 371 | `prT_tape2_le:217` (two-colour tape domination), `prT_tape2_cov_le:295`, **`twoColour_le:349`** |
+
+Seven `import` lines appended to `Ideal.lean`; no existing file changed. `#print axioms` of every
+headline: `[propext, Classical.choice, Quot.sound]`. No `sorry`/`axiom`/`native_decide`/`bv_decide`.
+
+### 7.2 M0 (the falsification test): proved
+
+```
+theorem toy_le (A : OracleComp T.advSpec (Fin T.m × ℕ × Y)) (q : ℕ)
+    (hq : IsQueryBoundP A (fun t => T.isHash t = true) q) (δ : ℝ≥0∞)
+    (hδ : ∀ y, Pr{let u ← ($ᵗ St : ProbComp St)}[T.out u = y] ≤ δ) :
+    T.realWin A ≤ q * max (2 * δ) (Fintype.card K : ℝ≥0∞)⁻¹ + (T.w + 1) * δ
+
+theorem toy_le_card (A …) (q : ℕ) (hq …) [Fintype Y]
+    (hδ : ∀ y, Pr{let u ← ($ᵗ St : ProbComp St)}[T.out u = y] ≤ (Fintype.card Y : ℝ≥0∞)⁻¹)
+    (hKY : (Fintype.card Y : ℝ≥0∞) ≤ 2 * Fintype.card K) :
+    T.realWin A ≤ (2 * q + T.w + 1) / Fintype.card Y
+```
+(`ToyBound.lean:663`, `:672`; finite `St Blk K Y`, decidable equality.) The game (`realProg`,
+`ToyDefs.lean:131`): `k ← $K`; the adversary gets compression queries (lazy table) and any
+number of adaptive `reveal (a, b)` (answer `v a (min b w)`, computed by compression queries);
+it outputs `(a, j, x)`; the experiment evaluates the chain from `x` at `j` by compression
+queries and wins iff `j <` every revealed position of chain `a` and the chain reaches
+`v a w`. `q` counts only the adversary's compression queries; reveals and coins are free.
+
+**No `m·q`, `w·q` or `#reveals·q` term.** Each query is charged once: `2δ` for a chain block
+(guess of the hidden input + hit on the next honest value, each charged now or deferred to the
+later sample of the honest value: either order), `1/|K|` for a secret-keyed block, `0` otherwise.
+
+**Differences from the plan's statement** `(2q+1)/|Y| + (q + m(w+1) + 2)²/(2|St|)`:
+1. **`w + 1` instead of `1`, and the plan's statement is false.** The experiment's own chain
+   evaluation from the forged value makes `w` fresh cells, each of which can land on the next
+   honest value. With `q = 0`, `w = 1`, no reveals, outputting a random `(a, 0, x)` wins with
+   probability `≈ 2/|Y|` (`x = v a 0`, or the one verifier cell hits `v a 1`), above
+   `1/|Y| + 8/|St|`. In general a `q = 0` adversary wins with `≈ (w+1)/|Y|`, so `(w+1)δ` is
+   tight. **No damage to §3**: `C0 = 3928 + 259 + 64` already charges every verifier final cell
+   once and every forged value once; the toy's `(w+1)` is exactly that accounting (verifier cells
+   are charged `δ`, not `2δ`: the guess part of a verifier cell is covered by the first-match
+   walk, `walk_hit`).
+2. **No 2^-256 term.** All toy cells are single-block cells in row `cv`, so no chaining-value
+   coincidence matters; the bound is stronger than asked, but M0 therefore does **not** test the
+   Coll/rooted-chain part of D2/D6.
+3. Per-query maximum `max (2δ) (1/|K|)` (shape disjointness through the parser), as planned.
+
+**How it was proved (the route D5/D6 should take).** The plan's swap lemma (§2.5) was replaced by
+a **re-randomisation**: `Psi g0 s k` overwrites each honest cell with an independent honest value
+`s(a, j)` (the honest positions depend on `s` itself), and `(g0, s) ↦ (Psi g0 s k, g0 at the
+honest cells)` is a bijection (`reRand_bijective`, 70 lines). Under `Psi` the DAG of hidden values
+becomes a table of i.i.d. values, read lazily only when revealed. Then (i) identical-until-bad
+against the deferred game, where `bad` is "the adversary queried an honest cell of a hidden
+position", which the deferred handler logs so that it is a hazard of the final state;
+(ii) lazy = eager (VCVio `completeTable`) for both games; (iii) one pending-charge supermartingale
+over the deferred game's lazy tables in which a sample of an honest value resolves exactly the
+pending candidates it can fire (`fresh_s`: charge-neutral) and a fresh adversary chain cell fires
+a hit or adds a pending one (`fresh_g`); (iv) the first-match walk for the win condition. The
+dynamic hidden set and the adaptivity of the tweak (§6 (i)) caused no difficulty.
+
+**Effort signal.** 2370 lines (Engine 274 of them generic and reusable) against the planned
+400–700: a factor ≈ 4. The probability steps were each routine once the method was fixed; the
+bulk was bookkeeping: support/invariant lemmas through three handler levels (adversary handler,
+lazy tables, fused handler), query counts, `ℝ≥0∞` arithmetic over `List.countP`/`Finset.card`
+pending counts, and instance mismatches (`Decidable`, `MeasurableSpace`). Builds are fast
+(< 1 min per file).
+
+### 7.3 M0b (two-colour tape): proved for predictable colouring (ρ = 0) only
+
+```
+theorem twoColour_le (h a k : ℕ) [DecidableEq C] {ι} {spec : OracleSpec ι} [Finite C]
+    [SampleableType V] [SampleableType (C → V)]
+    (cell : ι → C) (lg₀ lg₁ : ι → Bool) (hdis : ∀ t, ¬ (lg₀ t = true ∧ lg₁ t = true))
+    (ans : (C → V) → (t : ι) → spec.Range t)
+    (hans : ∀ g g' t, g (cell t) = g' (cell t) → ans g t = ans g' t)
+    (out : V → Digest h a k)
+    (hout : ∀ p, Pr{let u ← $ᵗ V}[p (out u)] = Pr{let y ← $ᵗ (Digest h a k)}[p y])
+    (oa : OracleComp (unifSpec + spec) α) (n₀ n₁ : ℕ)
+    (hn₀ : IsQueryBoundP oa (fun i => lgB lg₀ i = true) n₀)
+    (hn₁ : IsQueryBoundP oa (fun i => lgB lg₁ i = true) n₁) :
+    prT ($ᵗ (C → V) >>= fun g =>
+        (simulateQ (stImpl (ans g) (logM2 cell lg₀ lg₁)) oa).run ([], [], []) >>= fun z =>
+          pure (covW h a k (z.2.2.1.map fun c => out (g c)) (z.2.2.2.map fun c => out (g c)))) ≤
+      n₀ * targetCoverBound h a k n₁
+```
+(`TwoColour.lean:349`.) A cell takes the colour of its first read (candidate `lg₀`, coverer
+`lg₁`); `covW` = some candidate digest has each of its `k` digits matched at its own leaf by
+some coverer digest. `targetCoverBound h a k n = Σ_{r≤k} C(n,r)·#surj(k,r)·2^{-hr}·2^{-ak}
+= Σ_r S(k,r)(n)_r 2^{-hr}2^{-ak}`, at most the plan's `Σ_r S(k,r) n^r 2^{-hr}2^{-ak}`.
+Proof: `prT_tape2_le` (the marked-tape induction of `Games/ItsrTape.lean` with two marks: the two
+colour classes' values are dominated by two independent tapes) and VCVio's split witness bound
+(`evalDist_answerTape_tapeCoveredSplit_le_mul_targetCoverBound`). 371 lines.
+
+**Not done: the pre-read part (ρ > 0).** A target cell first read by the forger (the forger
+guessed `R_j`) is a coverer whose colour is decided after its value was seen. This is the case
+§6 (ii) flags, and the reason tier C needs more than the predictable lemma: a separate union
+bound costs `qs·qf/2^128` (≈ 1 at P64). What the right statement is, as far as I can see now:
+model a target query as "the challenger samples `R ← $ᵗ R`, reads cell `κ m R` as coverer"
+(`κ m` injective); bound `n₀ · weightedTargetCoverBound h a k n_T n_R (n_T/|R|)` (`n_R` = reads
+that can be pre-read); VCVio already has the combinatorics
+(`sum_pow_card_image_eq_weightedTargetCoverBound`), so the missing part is the probabilistic
+witness bound `P[witness] ≤ 2^{-h·|im f|}·2^{-ak}·w^{#weighted coverers}` for an adaptive reader,
+which mixes table values and the fresh `R`'s and is not a tape-domination statement (the
+pre-read values are old, the adversary chooses the target messages after seeing them). Estimate
+600–1000 lines (by the M0 factor, not the plan's 300–500). The multi-coverer joint version that
+§6 (ii) says was not checked is exactly this witness bound; I believe it holds (each `R_j` is
+independent of everything before it, so each weighted coverer pays `1/|R|` per target on top of
+its value factor), but it is not proved. Tier B′ (`n = qf + qs + 2`, existing machinery) remains
+the fallback.
+
+### 7.4 Does the plan survive?
+
+Yes, with changes.
+* **D5 (the main risk) is retired at toy scale**: hidden values under adaptive, repeated,
+  downward-moving reveals stay uniform with each query charged once, via re-randomisation +
+  one deferred game + one supermartingale, all with existing VCVio/`Core` tools plus the 274-line
+  engine. Replace "swap lemma" in §2.5/§5 by the re-randomisation of the honest structure; in the
+  real scheme the bijection must re-randomise every honest cell, including the intermediate
+  cells of `T_len`/`T_k` chains and the HMAC/`H_msg` cells (the toy had only final cells).
+* **Constants**: §3's `C0` is right in kind (verifier cells once, forged values once); the toy
+  bound's `+1` in §5.1 should read `+ (w+1)`.
+* **Not yet tested by M0**: Coll / rooted chains / back-links (D2, D6): the supermartingale engine
+  handles target-hitting events; collision events need the budgeted form (VCVio
+  `FreshAnswer.lean` scope note) or a separate tape-collision argument (`prT_tape_bad_le`).
+* **Tier C** needs the weighted pre-read witness lemma (7.3), not yet done.
+
+**Updated cost estimate.** Apply the observed factor ≈ 4 to the probabilistic parts (D1, D5, D6,
+D7c) and ≈ 1.5 to the deterministic ones (D0, D2–D4, D7a/b, D8): D0 0.6–1k, D1 1.5–2.5k,
+D2 1.2–2k, D3 1–1.8k, D4 0.8–1.4k, D5+D6 (now one development, toy route) 5–8k, D7a+b 0.8–1.3k,
+D8 0.6–1k: **≈ 12–19k lines for tier B** (plan: 7–10k), plus M0b-pre-read 0.6–1k and D7c 2–4k
+for tier C (**≈ 15–24k total**, plan 8–12k). The engine and the re-randomisation pattern are
+reusable as they stand.

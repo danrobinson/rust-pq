@@ -152,3 +152,10 @@ import Ideal.Realize.TcrWotsFine
 import Ideal.Realize.TcrLegsFine
 import Ideal.Realize.FinalTight8
 import Ideal.Realize.FinalPureTight8
+import Ideal.Direct.Engine
+import Ideal.Direct.ToyDefs
+import Ideal.Direct.ToySwap
+import Ideal.Direct.ToyDefer
+import Ideal.Direct.ToyRom
+import Ideal.Direct.ToyBound
+import Ideal.Direct.TwoColour
