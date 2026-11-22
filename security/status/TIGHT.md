@@ -1,5 +1,14 @@
 # TIGHT — tightening the closed ideal-compression bound (SLH-DSA-SHA2-128s)
 
+> **Update (second session, 2026-11-22).** Step M1 of §4.2 (shape marking in the `PRF` and
+> `PRF_msg` games) is done: `suf/euf_ideal_closed_tight2` (`Ideal/Realize/FinalTight2.lean`),
+> coefficient `QlinT2 = 27·qf + (qs+1)·(187792316 + 45·⌊(ℓ+56)/64⌋)`; points
+> `2^-77 + 2^-132 + 2^-63`, `2^-63 + 2^-94 + 2^-58`, `2^-45 + 2^-46 + 2^-36` (the last was
+> `… + 2^-35`). Step M2 (challenger-input accounting) was NOT started in Lean: the per-game
+> `_fresh` plan fails at the realiser end (§7.2), an alternative is proposed there. Steps 3–5 were
+> not begun (order of the brief). Details: §7.
+
+
 Scope: `suf_ideal_closed` / `euf_ideal_closed` (`Ideal/Realize/Final.lean`) and their
 context-string / Rust / API corollaries. Quantum side, other parameter sets and the
 standard-model statement are out of scope.
@@ -278,3 +287,144 @@ lake build                                 # Build completed successfully (8081 
 Every `#print axioms` of the three new files: `[propext, Classical.choice, Quot.sound]`; no
 `sorryAx` anywhere in the `lake build` output. The new files contain no `sorry`, `axiom`,
 `native_decide`, `bv_decide`, `set_option` or `maxHeartbeats`.
+
+## 7. Second session: M1 done, M2 analysed (not implemented)
+
+### 7.1 Step M1 — shape marking for the `PRF` and `PRF_msg` games (done, built)
+
+New files (nothing existing changed; eight `import` lines appended to `Ideal.lean`):
+
+| file | content |
+|---|---|
+| `Ideal/Games/PrfFine.lean` | `Prf.markQ blk` (compression query whose block is `blk a k` for SOME `a`, `k`); `prfAdvantageI_le_marked`: `prfAdvantageI ≤ qM/|K| + (q+qO)²/|St|` |
+| `Ideal/Inst/SkPrf128Fine.lean` | `skPrf_bound_128s_marked`; `key_of_tblocks_eq_blk128` (a first `Thash` block equal to a key block carries a secret-key address key) |
+| `Ideal/Realize/PrfMark.lean` | the `PRF` realisers make `≤ qPrfM qf qs ℓ` marked queries (`AprfS_mark`, `AprfE_mark`); `qPrfM_le : qPrfM ≤ qf + (qs+1)(32272 + 2x)` |
+| `Ideal/Games/MsgPrfFine.lean` | `MsgPrf.markK ik ok` (block `ik k` or `ok k` for some `k`); `macAdvantageI_le_marked`, `prT_mac_two_sided_marked` (`2qM/|K|` in place of `2q/|K|`) |
+| `Ideal/Realize/MsgMark.lean` | `msgPrf_bound_128s_marked`; the `PRF_msg` realisers make `≤ qMsgM qf qs ℓ` HMAC-key-block queries (`AmsgS_mark`, `AmsgE_mark`); `qMsgM_le : qMsgM ≤ qf + (qs+1)(39438 + x)` |
+| `Ideal/Realize/FinalTight2.lean` | `ideal_bound_core_legs` (composition with the PRF / PRF_msg legs as hypotheses), `Realizers.epsL_le_tight`, `QlinT2`, `QlinT2_le_QlinT`, `tight2_le_tight`, the headlines and the six points |
+| `Ideal/Realize/FinalPureTight2.lean` | context-string interface (`ℓ + 257`) |
+| `Ideal/RustFinalClosedTight2.lean` | `rust_ideal_security_closed_tight2`, `rust_ideal_security_closed_pure_tight2`, `api_ideal_security_closed_pure_tight2` |
+
+Why the reduction's `F`/`H` evaluations are never marked:
+- PRF game: the seed block is no key block (`sb128_ne_blk128`); the first block of
+  `Thash(pk, key, xs)` begins with `key`, so it is a key block only if `key` is the key of a
+  secret-key address; every tweakable-hash call of the SLH-DSA programs is at an address of type
+  `≤ 4` (VCVio `GeneralScheme.keygenInternalWithSecretM_pred`, `signInternalWithSecretRandomizerM_pred`,
+  `verifyInternalM_pred`), and `Concrete.keySeparated_sha2Primitives` separates those keys from
+  the secret-key keys (`Prf.keygen_sk`, `sign_sk`, `verify_sk`, `PprfS_sk`); `F`, `H` have no
+  block after the first. What is still counted: the forger's queries, the 9 blocks after the
+  first of each `T_len`/`T_k` (`512 + 3585·qs + 8` such evaluations, `Prf.PprfS_long`), every
+  block of `H_msg` and `PRF_msg`.
+- PRF_msg game: bytes `16..63` of `ikey k`/`okey k` are `0x36`/`0x5c`; byte 16 of a seed block
+  is `0`, byte `22 + 16n` of the first block of an `n ≤ 2`-value `Thash` is the padding byte
+  `0x80` (`Ideal.sb128_not_keyBlk`, `tblocks_not_keyBlk`). Counted: the forger's queries, every
+  block of `T_len`/`T_k` (`11` each) and of `H_msg`.
+
+Headline (`Ideal/Realize/FinalTight2.lean:418`, same hypotheses as `suf_ideal_closed`):
+```
+theorem suf_ideal_closed_tight2 (S : ForgerI) (oR : Bytes 16 → Bytes 16 → ProbComp (Bytes 16))
+    {qf qs ℓ : ℕ} (hqf …) (hqs …) (hlong …) (hout …) (hQ : QcAll qf qs ℓ ≤ 2 ^ 126) :
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+        ((QlinT2 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+        (polyP (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256
+QlinT2 qf qs ℓ = 27 * qf + (qs + 1) * (187792316 + 45 * ((ℓ + 56) / 64))      -- :327
+```
+`euf_ideal_closed_tight2` (`:434`) the same with `eufI`. `QlinT2_le_QlinT` (`:341`) and
+`tight2_le_tight` (`:451`): never above `suf_ideal_closed_tight`.
+
+Points (proved, SUF and EUF; `ℓ ≤ 2^26`):
+
+| point | hypotheses | tight (session 1) | tight2 (proved) | theorem |
+|---|---|---|---|---|
+| P20 | `qf ≤ 2^60`, `qs ≤ 2^20` | `2^-77 + 2^-132 + 2^-63` | `2^-77 + 2^-132 + 2^-63` | `suf/euf_ideal_closed_tight2_2_20` (`:479`, `:539`) |
+| P40 | `qf ≤ 2^64`, `qs ≤ 2^40` | `2^-63 + 2^-94 + 2^-58` | `2^-63 + 2^-94 + 2^-58` | `…_tight2_2_40` (`:499`, `:559`) |
+| P64 | `qf ≤ 2^64`, `qs ≤ 2^64` | `2^-45 + 2^-46 + 2^-35` | `2^-45 + 2^-46 + 2^-36` | `…_tight2_2_64` (`:519`, `:579`) |
+
+Unrounded legs II+III at the caps (Python, exact integers, NOT machine-checked; script
+`num2.py` in the scratch area): P20 −63.245 → −63.245 (unchanged: `27·qf` dominates),
+P40 −58.51 → −58.64, P64 −35.83 → −36.19. Gain 0 / 0.13 / 0.36 bits. Small because the two
+PRF games carried only `66·10^6` of the `254·10^6` compressions charged per signature.
+
+Context-string forms: `suf/euf_ideal_pure_closed_tight2{,_2_20,_2_40,_2_64}`
+(`FinalPureTight2.lean:27`–`:136`). Rust/API: `rust_ideal_security_closed_tight2` (`:37`),
+`rust_ideal_security_closed_pure_tight2` (`:94`), `api_ideal_security_closed_pure_tight2`
+(`:141`) in `RustFinalClosedTight2.lean`; conjuncts 1–2 are those of the existing statements.
+
+State after M1, P64 (unrounded, outside Lean): leg II `2^-36.19` = reduction hashing in the
+class-TCR (`4·25135729 ≈ 1.0·10^8` per signature), FORS (`3·21450308 ≈ 6.4·10^7`) and WOTS
+(`17·QcW ≈ 2.3·10^7`) games, plus the message blocks `45·x·qs` (`2^-38.5`); ITSR `2^-45.7`,
+`2^-46.1`. Distance to the generic attack at P64: ≈ 28 bits.
+
+### 7.2 Step M2 — not implemented; why the planned route fails, and an alternative
+
+Test target: class TCR, arity 1 (`tcrArityT_bound_128s`, realiser `Tcr.realizesTcrF_S`). The
+test was done by reading the proofs (`Games/TcrDefs.lean`, `TcrMultiPhase2.lean`,
+`TcrMultiBasic.lean`, `Realize/Tcr.lean`, `TcrCount.lean`, `Reduction/Open/TcrStore*.lean`);
+no Lean was written for it.
+
+**The `_fresh` per-game plan (§4.2, M2).** The per-game bound charges phase two through
+`ForgeBound q₂ := ∀ st pk, IsQueryBoundP (A.forge st pk) isRight q₂` (all states, all oracle
+answers) and `MP2.prEvent_bad_le_of_step_cap` with the query predicate `isRight`. A version that
+charges only fresh cells is provable in principle: a step at a cached cell of `routeRO` neither
+changes the cache nor makes `MP2.Good` fail. But the count of fresh-cell queries is a property
+of the run of `routeRO F.IV (F.sb seed) cv` from the phase-one cache `c`, not of the program,
+so the hypothesis replacing `hq₂` has to be stated over that internal simulation (cache
+satisfying `MInv`, hidden row `cv`). For a realiser to discharge it one needs, inside that
+simulation, that every compression of the reduction's honest recomputation is a cached cell:
+(i) `MInv` covers only target chains (`MInv.tgt`), so it must be extended to the chains of all
+collection queries; (ii) the realiser's phase-two Thash inputs must be shown to be inputs it
+registered in phase one (`TcrStoreCover`'s `calls_*` lemmas give this for the Reduction-level
+programs, not for the chain-interpreted port program `tcrMOpenP` run under `routeRO`);
+(iii) through `chainImpl`, a registered input's compressions must be shown to hit exactly the
+cells written by the challenger's chain query, at the symbolic `.inr`/`.inl` cell keys of the
+cache. Each layer is a new invariant through code that currently has none (`Port.lean`,
+`Phase1.lean`, `Tcr.lean`), and the per-game theorems of all seven game families would carry
+a hypothesis about their own proof internals. Not attempted: I judged it out of reach as one
+finished step.
+
+**Proposed alternative (no change to any per-game theorem).** `RealizesTcr` asks only for
+equality of experiment DISTRIBUTIONS at every table, not of adversaries. So:
+1. Target the answer-storing adversary `bTcrArA n` instead of `bTcrArM n`:
+   `Reduction.Open.bTcrArA_experiment_eq` (used in `TcrStoreHeadline.lean`) already gives equal
+   experiments at every `Structural` bundle, in particular at `primsG (liftC g)`.
+2. Build the ideal-model adversary whose phase one is that of `bTcrArA` (state: secret table,
+   honest calls `L`, store `S = ann pk L` of the challenger's answers) and whose phase two answers
+   every `Thash` query of key regeneration and signing FROM THE STORE, with a default value and NO
+   compression query on a miss, and evaluates only `H_msg` and the verification of the forgery by
+   compression chains. Its `ForgeBound` is then syntactic:
+   `qf + (qs+1)·hmsgCost ℓ + 11·verifyHashes ≈ qf + (qs+1)(x+3) + 43219`, against
+   `qf + (qs+1)(25135729 + x)` now.
+3. Equality of the two phase-two distributions on the support of phase one: on a sound store
+   containing the honest calls, the pinned key regeneration and signatures make no query outside
+   the store (`TcrStoreCover.cover_keygen`, `cover_sign`, i.e. the `hKeygen`, `hSign` of
+   `storeForgeOpen_hashes_of_cover`), so the no-fallback and the fallback handlers agree on every
+   query actually made (a generic "no `p`-query ⇒ handlers agreeing off `p` give the same
+   simulation" lemma, by induction).
+4. Reuse the existing realiser chain (`Transport/AdvTcr.lean`, `Realize/Tcr.lean`,
+   `TcrCount.lean`) for the new phase two; the open program has to be split so that verification
+   keeps the chain handler.
+Expected effect (outside Lean): class TCR's `4·25135729` per signature → `4·(x + O(10))`; P64
+leg II `2^-36.19` → `≈ 2^-37.0` (the FORS and WOTS realisers and the message blocks then
+dominate: `2^-37.0` is `3QF + 17QW + 45x` per signature). The same pattern should apply to the
+FORS (`bOpenPreS`) and WOTS (`bWotsS`) reductions if they have answer-storing variants with
+cover lemmas; I did not check. Estimated size for class TCR: 1.5–2.5k lines, most of it the
+transport (`setPrf` invariance) of the new adversary and the split open program.
+
+**Cheaper gain not taken (order of the brief).** L5 (§4.1) applies to every realiser now and
+does not depend on M2: TIGHT's estimate is P64 `2^-35.83 → ≈ 2^-37.5` before M1; after M1 the
+same arithmetic (outside Lean, factor 5.46 on the remaining hashing part) gives roughly `2^-36.2 → 2^-37.7`.
+
+### 7.3 Builds (this session)
+
+```
+cd security && export PATH=$HOME/.elan/bin:$PATH
+lake build Ideal.Realize.FinalTight2        # Build completed successfully (7336 jobs).
+lake build Ideal.Realize.FinalPureTight2    # Build completed successfully (7344 jobs).
+lake build Ideal.RustFinalClosedTight2      # Build completed successfully (8073 jobs).
+lake build Ideal                            # Build completed successfully (8080 jobs).
+lake build                                  # Build completed successfully (8097 jobs).
+```
+Every `#print axioms` of the eight new files: `[propext, Classical.choice, Quot.sound]` (two
+arithmetic lemmas `[propext, Quot.sound]`); `grep -c sorryAx` over the full `lake build` log: 0.
+No `sorry`, `axiom`, `native_decide`, `bv_decide`, `maxHeartbeats` in the new files.

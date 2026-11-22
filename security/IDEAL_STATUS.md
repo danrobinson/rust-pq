@@ -1,3 +1,9 @@
+> **Note, 2026-11-22 (second tightening).** Shape marking in the `PRF` and `PRF_msg` games:
+> `suf_ideal_closed_tight2` / `euf_ideal_closed_tight2` (`Ideal/Realize/FinalTight2.lean`),
+> coefficient `QlinT2 = 27·qf + (qs+1)(187792316 + 45·⌊(ℓ+56)/64⌋)`, same forger hypotheses;
+> points `2^-77 + 2^-132 + 2^-63`, `2^-63 + 2^-94 + 2^-58`, `2^-45 + 2^-46 + 2^-36`; context-string
+> and Rust/API forms in `FinalPureTight2.lean`, `RustFinalClosedTight2.lean`. `status/TIGHT.md` §7.
+
 > **Note, 2026-11-22 (tightening).** Tighter forms of the closed bounds, same forger hypotheses:
 > `suf_ideal_closed_tight` / `euf_ideal_closed_tight` (`Ideal/Realize/FinalTight.lean`; the
 > coefficient `66·QcAll + 40` becomes `QlinT = 27·qf + (qs+1)(253924886 + 45·⌊(ℓ+56)/64⌋)`) with
