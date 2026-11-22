@@ -615,3 +615,150 @@ D2 1.2–2k, D3 1–1.8k, D4 0.8–1.4k, D5+D6 (now one development, toy route) 
 D8 0.6–1k: **≈ 12–19k lines for tier B** (plan: 7–10k), plus M0b-pre-read 0.6–1k and D7c 2–4k
 for tier C (**≈ 15–24k total**, plan 8–12k). The engine and the re-randomisation pattern are
 reusable as they stand.
+
+---------------------------------------------------------------------------------------------
+
+## 8. 2026-11-22 (second session): tier B main development, steps 1–2 (partial)
+
+Brief: tier B′ (ITSR via `Games/ItsrTape`, no pre-read coverer lemma), in dependency order.
+Four new files under `Ideal/Direct/`, imported from `Ideal.lean` (four `import` lines appended);
+no existing Lean file changed; every headline `#print axioms` is
+`[propext, Classical.choice, Quot.sound]`; no `sorry`/`axiom`/`native_decide`/`bv_decide`.
+
+### 8.1 Files and statements proved
+
+| file | lines | content |
+|---|---|---|
+| `Ideal/Direct/Entry.lean` | 172 | D0: the SUF/EUF experiment as one compression program per table |
+| `Ideal/Direct/Tagged.lean` | 454 | D1: tags F/H/V, phase split, tagged programs, F-count, tagged lazy table |
+| `Ideal/Direct/Parse.lean` | 169 | D2 (block-level part): parse classes by tweak bytes |
+| `Ideal/Direct/Extract.lean` | 174 | D3 (FORS part): `sufWin ⇒ Cover ∨ Hit ∨ HiddenEq_FORS ∨ evWots`; first-match walk |
+
+**D0 (`Entry.lean`).**  `prfOI k` (`:36`) answers the `PRF`-game oracle at key `k` by its two
+compression calls `out16 (g (g (IV, sb128 pk), blk128 a k))`; `progOf A` (`:47`) samples `k` and
+runs `A` under it; `progS S oR pkSeedDist := progOf (AprfS S oR pkSeedDist)` (`:75`), `progE` (`:80`).
+```
+theorem prfReal_eq_progOf (g) (A) :                                              -- Entry.lean:63
+    (Reduction.skPrfC Link.vp (primsG (liftC g))).prfRealExperiment (A.inst g) =
+      simulateQ (instImpl₀ g) (progOf A)
+theorem sufI_le_progS :                                                          -- Entry.lean:116
+    sufI S (optRandU oR) pkSeedDist ≤ cfAdvantage fun g => simulateQ (instImpl₀ g) (progS S oR pkSeedDist)
+theorem sufI_le_lazy :                                                           -- Entry.lean:155
+    sufI S (optRandU oR) pkSeedDist ≤ HP.prT ((simulateQ (hS St Blk).romImpl (progS S oR pkSeedDist)).run' ∅)
+```
+and `eufI_le_progE` (`:123`), `eufI_le_lazy` (`:161`), `cfAdvantage_eq_lazy` (`:149`, generic form
+`:134`: proved over abstract table types, because the kernel otherwise unfolds `Fintype.card`
+of the concrete 2^768-element domain: "deep recursion").  This is `sufI`/`eufI` of the SAME game
+objects as `suf_ideal_pure_closed_tight8` (via `sufP_le_sufI` for the pure interface); the
+inequality comes only from the existing byte-to-typed transfer `bytes_strong_advantage_le`.  The
+`PRF` game is used only on its real side (no `PRF` bound charged).
+
+**D1 (`Tagged.lean`).**  `Tag = F | H | V` (`:39`), tagged oracle `hT`, `untagI`, `tagWith`;
+`fullH k` (`:111`, `chainP` then `prfOI k`), `fullT k τ` (`:122`; port queries `F`, `PRF`-game
+queries `H`, hash chains `τ`).  The phases are made visible by `bRestWOpenP_split` (`:165`)
+/ `bRestOpenP_split` (`:191`): `bRestWOpenP … pkSeed = runWP … pkSeed >>= chkWP wO pkSeed`
+(key generation + forger run, then the final check).  `progTS` (`:211`), `progTE` (`:219`):
+first phase tagged `H`, check tagged `V`.
+```
+theorem untag_progTS : simulateQ untagI (progTS S oR pkSeedDist) = progS S oR pkSeedDist  -- :266
+theorem progTS_F (hqf hqs hlong hout) :                                                  -- :338
+    IsQueryBoundP (progTS S oR pkSeedDist) (fun i => isTag .F i = true) qf
+theorem untag_eq (X : OracleComp TSpec α) (s : TCache) :                                 -- :412
+    (fun z => (z.1, z.2.1)) <$> (simulateQ tagRom X).run s =
+      (simulateQ (hS St Blk).romImpl (simulateQ untagI X)).run s.1
+theorem sufI_le_tag :                                                                    -- :431
+    sufI S (optRandU oR) pkSeedDist ≤
+      HP.prT ((simulateQ tagRom (progTS S oR pkSeedDist)).run' (∅, fun _ => none))
+```
+(`untag_progTE` `:275`, `progTE_F` `:351`, `eufI_le_tag` `:439`).  `tagRom` (`:376`) is the lazy
+table whose state is `(cache, first-reader tag)`; a fresh cell records the tag of its first
+reader.  So every later probability argument can be run on ONE table with first-reader tags.
+Not yet proved: the H and V counts (`#V ≤ Vc` in the plan's D1).  They follow from the existing
+`bPrfWCOpenP_*` count lemmas exactly as `progTS_F` follows from `bPrfWCOpenP_port`, but are not
+needed before D6.
+
+**D2, block-level part (`Parse.lean`).**  `Role = kprf | kseed a k | th1 A xs | thF A | other`
+(`:45`), `role cv aty q` (`:84`) classifies a cell by its chaining value (`IV`, `cv`) and its
+tweak bytes `btw128 b` through a classifier `aty : Bytes 22 → AdKind` (prf/short/long/none).
+`role_blk128` (`:96`: the honest `PRF` cell is `kseed a k`), `role_short` (`:110`), `role_th1_iff`
+(`:129`: `role = th1 A xs ↔ c = cv ∧ aty A = short ∧ xs short ∧ b = (tblocks A xs).1`),
+`blk_short_unique` (`:59`), `kprf_not_short` (`:64`), `kprf_not_seed` (`:70`).
+
+**D3, first part (`Extract.lean`, namespace `Reduction.Direct`, over any `Primitives` and any
+secret table).**
+```
+def evHidF pkSeed tbl z : Prop :=                                                       -- :75
+  ∃ i : Fin k, (forsAdrs, leafIndex parts i) ∉ openedLeaves pk (signed z.2) ∧
+    (z.1.2.fors[i]).sk = ((refSig pkSeed tbl z).fors[i]).sk
+theorem evOpen_cases (hS) : evOpen pkSeed tbl z = true → evHidF pkSeed tbl z ∨ evColl pkSeed tbl z = true  -- :94
+theorem suf_extract (hS) (h : sufWin pkSeed tbl z = true) :                             -- :116
+    evItsr pkSeed tbl z = true ∨ evColl pkSeed tbl z = true ∨ evHidF pkSeed tbl z ∨ evWots pkSeed tbl z = true
+theorem fresh_extract (hS) (h : freshWin pkSeed tbl z = true) : (same four)              -- :132
+theorem chain_walk (F : ℕ → Y → Y) (v y : ℕ → Y) (a n) (steps) (v (a+n) = y (a+n)) :     -- :148
+    v a = y a ∨ ∃ p, a ≤ p ∧ p < a + n ∧ v p ≠ y p ∧ F p (v p) = F p (y p)
+```
+`evItsr` = Cover, `evColl` = Hit (a verification call colliding with an honest call at its
+tweak), `evHidF` = HiddenEq at a FORS leaf.  New helper: `fors_leaf_verify_mem` (`:63`, the
+forged leaf call is a verification call).
+
+### 8.2 Deviations from the plan
+
+1. **Parse classes are not disjoint by block shape** (§2.3 claims they are).  The first block of
+   a 35-value `T_len` input has data in bytes `22..63`, so it can equal the first block of a
+   one-value `Thash` call at the same tweak (data `x ‖ 0x80 ‖ 0^17 ‖ len64(816)` in bytes
+   `22..63`).  No damage: the class is decided by the tweak bytes, an honest tweak is of exactly
+   one kind (address type inside `ADRSc`), and `role` classifies by tweak (`aty`).  The bound
+   does not change.  (Not machine-checked as a counterexample; the byte layout is
+   `tbytes A xs = A ‖ flat xs ‖ tailL (86 + 16·|xs|)`, `Sha/Shape.lean:240`.)
+2. **Extraction is stated at the `G2` level** (secret table `tbl`, `idealPk`/`idealSign`), quantified
+   over all tables, as the existing case analysis is.  The direct program `progTS` runs the real
+   key generation and signing with `PRF(SK.seed, ·)` and HMAC randomisers; the bridge
+   "real key generation / signing at `SK.seed` = `idealPk`/`idealSign` at the `PRF` table" exists
+   in `Reduction` (it is what makes the `G0 = G1` hop of the PRF game exact) but is not yet
+   instantiated for `progTS`'s final-state variables.  Part of step 3 (D4 lift).
+3. **The V tag is obtained from a phase split**, not from the query: the forger run and the
+   check are separated syntactically (`bRestWOpenP_split`) and tagged by two different handlers;
+   the forger count then needs a continuation-transfer lemma (`fullT_bind_F`).
+
+### 8.3 What remains (exact statements)
+
+* **D3, WOTS+ part.**  With `parts = digestParts pk z.1.2.randomness z.1.1`, `ref = refSig pkSeed tbl z`,
+  `m_j`/`m'_j` the forged/reference layer messages and `σ_j`, `ρ_j` the WOTS+ signatures at layer
+  `j`, `b_i = chainStepsCore m'_j i`, `a_i = chainStepsCore m_j i`, `A_{j,i}(p)` the chain tweak:
+  ```
+  def evHidW pkSeed tbl z : Prop := ∃ j i, a_i < b_i ∧ σ_j[i] = chain pk A_{j,i} (secret_{j,i}) 0 a_i
+  theorem evWots_cases (hS) (h : evWots pkSeed tbl z = true) : evHidW pkSeed tbl z ∨ evColl pkSeed tbl z = true
+  ```
+  Proof: `wotsPkFromSigTops_cases` (VCVio `HashSig/SLHDSA/Security/WotsWitnesses.lean:240`) gives
+  chain `i` with `a_i < b_i` and either an `F`-preimage of `ρ_j[i]` at position `b_i − 1` (then
+  `chain_walk` from `a_i` to `b_i`: HiddenEq at `a_i` or a collision at some `p ∈ [a_i, b_i)`) or
+  a collision at `t ≥ b_i`.  Missing: two membership lemmas, (i) the forged chain call at
+  `(A_{j,i}(p), [v_p])`, `p ∈ [a_i, w−1)`, is in `verifyCalls pk msg sig` (through `col_pkFromSig`,
+  `col_layerProg`, `xmssPkFromSigM`, `wotsPkFromSigM`), and (ii) the honest chain call at
+  `(A_{j,i}(p), [y_p])`, every `p < w − 1`, is in `honestCalls tbl pkSeed` (through
+  `sub_honestCalls_eq`, `sub_xmss_spec`, `sub_wots_spec`, `sub_chain_spec`, `Reduction/TCR.lean:1468–1797`).
+  Estimate 400–700 lines.
+* **D4 (lift), D5/D6 (re-randomisation and the single supermartingale over `tagRom`), D7a/b
+  (ITSR tier B′), D8 (composition, numerics, comparison with tight8)**: not started.  Their
+  statements are those of §5 with the corrections of §7 (C0 charges each verifier final cell
+  `δ` and each forged value once; `(w+1)δ` per toy chain).
+* **Collision / rooted-chain part (step 4): not reached.**  The form I would choose: the
+  *budgeted* form, i.e. `Coll` as a hazard of the same pending-charge supermartingale
+  (`Engine.ex_hz_le_of_step`), each fresh sample charged `(#cache)/2^256 ≤ Q/2^256` under a
+  state-carried cell counter bounded by the program's total compression count `Q`
+  (= `qf` + the H and V counts of D1), giving `Q²/2^256`; the alternative `prT_tape_bad_le`
+  (tape collision) needs the whole run as one tape and does not compose with the tag
+  bookkeeping.  Untested.
+
+### 8.4 Updated estimate and predicted bounds
+
+Done this session: ≈ 970 lines (D0 complete, D1 complete except the H/V counts, D2 block-level,
+D3 FORS part).  D0 cost 172 lines against the planned 400–700 (the realiser's equations were
+reusable as they stand); D1 454 against 600–900 (before the factor-4 correction).  Remaining for
+tier B: D1 counts 0.2k, D2 rooted classes 0.8–1.5k, D3 WOTS 0.4–0.7k, D4 0.8–1.4k, D5+D6
+5–8k, D7a+b 0.8–1.3k, D8 0.6–1k: **≈ 9–14k lines** (the §7.4 estimate 12–19k less what is done,
+and less the D0/D1 savings).
+
+Predicted bounds unchanged (nothing proved this session changes them): tier B′
+P20 `2^-67.00`, P40 `2^-62.99`, P64 `2^-60.54` (§3), against tight8 `2^-63`, `2^-59`, `2^-39`
+(rounded proved points).

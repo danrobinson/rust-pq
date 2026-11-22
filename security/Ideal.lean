@@ -159,3 +159,7 @@ import Ideal.Direct.ToyDefer
 import Ideal.Direct.ToyRom
 import Ideal.Direct.ToyBound
 import Ideal.Direct.TwoColour
+import Ideal.Direct.Entry
+import Ideal.Direct.Tagged
+import Ideal.Direct.Parse
+import Ideal.Direct.Extract
