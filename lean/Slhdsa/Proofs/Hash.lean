@@ -297,6 +297,62 @@ theorem thash_short_spec (pk : hash.Seed) (hpk : SeedOk pk) (a : address.Adrs) (
     List.take_of_length_le (show (bytes blk.val).length ≤ 64 by simp)] at st_post
   exact thash_short_parts pk hpk _ _ blk st r blk_post st_post r_post
 
+/-- The key padded to a block, `K ‖ toByte(0, 48)`, as machine bytes. -/
+def padKey (sk_prf : Array U8 16#usize) : List U8 := sk_prf.val ++ List.replicate 48 0#u8
+
+theorem prf_msg_loop_spec (sk_prf : Array U8 16#usize) (ipad opad : Array U8 64#usize) (i : Usize)
+    (hi : i.val ≤ 16)
+    (hin : ipad.val = ((padKey sk_prf).map (· ^^^ 54#u8)).take i.val ++
+      List.replicate (64 - i.val) 54#u8)
+    (hout : opad.val = ((padKey sk_prf).map (· ^^^ 92#u8)).take i.val ++
+      List.replicate (64 - i.val) 92#u8) :
+    hash.prf_msg_loop sk_prf ipad opad i ⦃ r =>
+      r.1.val = (padKey sk_prf).map (· ^^^ 54#u8) ∧ r.2.val = (padKey sk_prf).map (· ^^^ 92#u8) ⦄ := by
+  have hKl : (padKey sk_prf).length = 64 := by simp [padKey]
+  unfold hash.prf_msg_loop
+  apply loop.spec_decr_nat
+    (measure := fun (q : Array U8 64#usize × Array U8 64#usize × Usize) => 16 - q.2.2.val)
+    (inv := fun q => q.2.2.val ≤ 16 ∧
+      q.1.val = ((padKey sk_prf).map (· ^^^ 54#u8)).take q.2.2.val ++
+        List.replicate (64 - q.2.2.val) 54#u8 ∧
+      q.2.1.val = ((padKey sk_prf).map (· ^^^ 92#u8)).take q.2.2.val ++
+        List.replicate (64 - q.2.2.val) 92#u8)
+  · rintro ⟨ipad, opad, i⟩ ⟨hi, hin, hout⟩
+    simp only [hash.prf_msg_loop.body]
+    simp only at hi hin hout
+    have hN : params.N.val = 16 := by simp [params.N]
+    split
+    · rename_i hlt
+      have hlt' : i.val < 16 := by scalar_tac
+      step*
+      have hpk : (padKey sk_prf)[i.val]! = i1 := by
+        rw [i1_post]; simp [padKey, List.getElem!_eq_getElem?_getD, List.getElem?_append_left, hlt']
+      have key : ∀ c : U8, (((padKey sk_prf).map (· ^^^ c)).take i.val ++
+          List.replicate (64 - i.val) c).set i.val (i1 ^^^ c) =
+          ((padKey sk_prf).map (· ^^^ c)).take (i.val + 1) ++
+          List.replicate (64 - (i.val + 1)) c := by
+        intro c
+        have hl : i.val < ((padKey sk_prf).map (· ^^^ c)).length := by simp [hKl]; omega
+        rw [show 64 - i.val = (64 - (i.val + 1)) + 1 by omega, List.replicate_succ,
+          set_mid _ _ _ _ _ (by simp [hKl]; omega), List.take_succ_eq_append_getElem hl]
+        simp only [List.getElem_map, List.append_assoc, List.singleton_append]
+        rw [← getElem!_eq _ _ (by omega), hpk]
+      refine ⟨by scalar_tac, ?_, ?_, by scalar_tac⟩
+      · rw [i4_post, a_post, Array.set_val_eq, hin, ← key]
+        congr 1; scalar_tac
+      · rw [i4_post, a1_post, Array.set_val_eq, hout, ← key]
+        congr 1; scalar_tac
+    · have h16 : i.val = 16 := by scalar_tac
+      simp only [step_simps]
+      have tail : ∀ c : U8, 0#u8 ^^^ c = c →
+          ((padKey sk_prf).map (· ^^^ c)).take 16 ++ List.replicate 48 c =
+          (padKey sk_prf).map (· ^^^ c) := by
+        intro c hc
+        simp [padKey, hc]
+      rw [h16] at hin hout
+      exact ⟨by rw [hin]; exact tail _ (by decide), by rw [hout]; exact tail _ (by decide)⟩
+  · exact ⟨hi, hin, hout⟩
+
 @[step]
 theorem prf_msg_spec (sk_prf opt_rand : Array U8 16#usize) (m : Slice U8) (hm : Room m.length 152) :
     hash.prf_msg sk_prf opt_rand m ⦃ r =>
@@ -306,21 +362,53 @@ theorem prf_msg_spec (sk_prf opt_rand : Array U8 16#usize) (m : Slice U8) (hm : 
   have hR := hm
   simp only [Room] at hR
   simp only [step_simps]
+  step with prf_msg_loop_spec as ⟨ipad1, opad1, hin, hout⟩
+  · simp
+  · simp
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
   let* ⟨ buf, buf_post, buf_len ⟩ ← hash_extend_from_slice_u8_spec
   let* ⟨ buf1, buf1_post, buf1_len ⟩ ← hash_extend_from_slice_u8_spec
-  let* ⟨ s1, s1_post ⟩ ← Array.to_slice.step_spec
   have hl : buf1.length = 16 + m.length := by
     simp [buf1_len, buf_len, s_post]
-  let* ⟨ d, d_post ⟩ ← hmac_sha256_spec
+  let* ⟨ s1, s1_post ⟩ ← Array.to_slice.step_spec
+  let* ⟨ inner_state, inner_state_post ⟩ ← compress_spec
+  let* ⟨ inner, inner_post ⟩ ← sha256_from_spec
   · simp only [Room, vec_deref_length]; scalar_tac
-  let* ⟨ s3, to_slice_mut_back, s3_post, to_slice_mut_back_post ⟩ ← Array.to_slice_mut_spec
-  let* ⟨ s4, s4_post, s4_post1 ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
-  let* ⟨ s5, s5_post ⟩ ← core.slice.Slice.copy_from_slice.step_spec
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s4).val = s4.val :=
+  let* ⟨ s3, s3_post ⟩ ← Array.to_slice.step_spec
+  let* ⟨ outer_state, outer_state_post ⟩ ← compress_spec
+  let* ⟨ s4, s4_post ⟩ ← Array.to_slice.step_spec
+  let* ⟨ d, d_post ⟩ ← sha256_from_spec
+  · simp only [Room, s4_post]; scalar_tac
+  let* ⟨ s5, to_slice_mut_back, s5_post, to_slice_mut_back_post ⟩ ← Array.to_slice_mut_spec
+  let* ⟨ s6, s6_post, s6_post1 ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
+  let* ⟨ s7, s7_post ⟩ ← core.slice.Slice.copy_from_slice.step_spec
+  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s6).val = s6.val :=
     Array.from_slice_val _ _ (by scalar_tac)
-  simp only [to_slice_mut_back_post, s5_post, hv, s4_post, hN, List.slice]
-  simp [Spec.PRFmsg, Spec.n, d_post, vec_deref_val, buf1_post, buf_post, s_post, s1_post]
+  simp only [to_slice_mut_back_post, s7_post, hv, s6_post, hN, List.slice]
+  have hI : ∀ (x : Array U8 64#usize) (c : U8) (c' : Spec.Byte), c.bv = c' →
+      x.val = (padKey sk_prf).map (· ^^^ c) →
+      bytes x.val = (bytes sk_prf.val ++ List.replicate 48 0#8).map (· ^^^ c') := by
+    intro x c c' hc hx
+    rw [hx, bytes_map_xor, hc]
+    simp [padKey, bytes]
+  have hIl : ∀ (x : Array U8 64#usize), (bytes x.val).length = 64 := by intro x; simp
+  have e1 : ((List.drop 0 (bytes s1.val)).take 64) = bytes ipad1.val := by
+    simp [s1_post]
+  have e3 : ((List.drop 0 (bytes s3.val)).take 64) = bytes opad1.val := by
+    simp [s3_post]
+  rw [e1, H0_eq] at inner_state_post
+  rw [e3, H0_eq] at outer_state_post
+  rw [inner_state_post, ← sha256_prefix64 _ _ (hIl _)] at inner_post
+  rw [outer_state_post, ← sha256_prefix64 _ _ (hIl _)] at d_post
+  have hkl : ¬ (bytes sk_prf.val).length > 64 := by simp
+  simp only [Spec.PRFmsg, Spec.hmacSha256, hkl, ↓reduceIte, Spec.n]
+  have h48 : 64 - (bytes sk_prf.val).length = 48 := by simp
+  have e54 : (54#u8).bv = 0x36#8 := by decide
+  have e92 : (92#u8).bv = 0x5c#8 := by decide
+  have hi' := hI _ _ _ e54 hin
+  have ho' := hI _ _ _ e92 hout
+  rw [h48, ← hi', ← ho']
+  simp [d_post, s4_post, inner_post, vec_deref_val, buf1_post, buf_post, s_post]
 
 /-- The inner hash of `H_msg`: for a message of at least 16 bytes the first
 block is assembled and the rest hashed in place; the result is the same

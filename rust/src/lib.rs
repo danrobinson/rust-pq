@@ -17,6 +17,7 @@
 #![cfg_attr(feature = "hw-sha2", deny(unsafe_code))]
 
 pub mod address;
+pub mod api;
 pub mod fors;
 pub mod hash;
 pub mod ht;
@@ -27,4 +28,8 @@ pub mod util;
 pub mod wots;
 pub mod xmss;
 
-pub use slh::{slh_keygen_internal, slh_sign, slh_sign_internal, slh_verify, slh_verify_internal};
+pub use api::{keygen, public_key, sign, sign_checked, sign_deterministic, sign_deterministic_checked, verify};
+pub use slh::{
+    slh_keygen_internal, slh_sign, slh_sign_checked, slh_sign_internal, slh_sign_internal_checked, slh_verify,
+    slh_verify_internal,
+};

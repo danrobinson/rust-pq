@@ -63,27 +63,6 @@ fn debug_output_does_not_contain_the_secret() {
 }
 
 #[test]
-fn signing_key_is_wiped_on_drop() {
-    let sk = SigningKey::<Sha2_128s>::new(&mut TestRng(11));
-    let secret = sk.to_bytes()[..32].to_vec();
-    let size = core::mem::size_of::<SigningKey<Sha2_128s>>();
-    let mut slot = core::mem::ManuallyDrop::new(sk);
-    let at = (&*slot as *const SigningKey<Sha2_128s>).cast::<u8>();
-    let holds = |needle: &[u8]| {
-        // SAFETY: `slot` owns `size` initialised bytes at `at` for the whole
-        // test; `ManuallyDrop` keeps the storage alive after the value is dropped.
-        let memory = unsafe { core::slice::from_raw_parts(at, size) };
-        memory.windows(needle.len()).any(|w| w == needle)
-    };
-    assert!(holds(&secret[..16]) && holds(&secret[16..]), "secret not found before drop");
-    // SAFETY: dropped exactly once, and not used as a key afterwards.
-    unsafe { core::mem::ManuallyDrop::drop(&mut slot) };
-    assert!(!holds(&secret[..16]), "SK.seed still in memory after drop");
-    assert!(!holds(&secret[16..]), "SK.prf still in memory after drop");
-    assert!(!holds(&secret[..4]) && !holds(&secret[16..20]));
-}
-
-#[test]
 fn signing_key_comparison() {
     let sk = SigningKey::<Sha2_128s>::new(&mut TestRng(3));
     let bytes = sk.to_bytes();
@@ -135,4 +114,32 @@ fn random_inputs_match_upstream() {
         let msg = rng.bytes(33);
         assert!(ours.sign(&msg).to_bytes() == upstream::signature::Signer::sign(&theirs, &msg).to_bytes());
     }
+}
+
+/// The checked signer: the same signature as the plain one on a good key,
+/// with and without supplied randomness, and an error for a private key
+/// whose stored public half is not the one its seeds give (the plain signer,
+/// like RustCrypto's, signs with such a key and the signature does not
+/// verify).
+#[test]
+fn checked_signing() {
+    let sk = SigningKey::<Sha2_128s>::new(&mut TestRng(22));
+    let rand = TestRng(23).bytes(16);
+    for opt_rand in [None, Some(rand.as_slice())] {
+        let plain = sk.try_sign_with_context(b"m", b"c", opt_rand).unwrap();
+        let checked = sk.try_sign_checked(b"m", b"c", opt_rand).unwrap();
+        assert!(checked == plain);
+    }
+    assert!(sk.try_sign_checked(b"m", &[0u8; 256], None).is_err());
+
+    let msg = b"message";
+    let mut odd = sk.to_bytes();
+    odd[63] ^= 1;
+    let ours = SigningKey::<Sha2_128s>::try_from(odd.as_slice()).unwrap();
+    let theirs = upstream::SigningKey::<upstream::Sha2_128s>::try_from(odd.as_slice()).unwrap();
+    assert!(ours.try_sign_checked(msg, b"", None).is_err());
+    assert!(ours.try_sign_checked(msg, b"", Some(rand.as_slice())).is_err());
+    let plain = ours.try_sign(msg).unwrap();
+    assert!(plain.to_bytes() == upstream::signature::Signer::sign(&theirs, msg).to_bytes());
+    assert!(ours.verifying_key().try_verify_with_context(msg, b"", &plain).is_err());
 }

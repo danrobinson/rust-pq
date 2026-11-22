@@ -27,18 +27,23 @@ pub trait SigningKeyLen: VerifyingKeyLen {
 
 /// A `SigningKey` allows signing messages with a fixed parameter set.
 ///
-/// The secret is overwritten with zeros when the key is dropped.
+/// The secret is overwritten with zeros when the key is dropped. It is kept
+/// in its own heap allocation, so moving a `SigningKey` moves a pointer and
+/// leaves no copy of the secret behind.
 pub struct SigningKey<P: ParameterSet> {
     /// `SK.seed ‖ SK.prf ‖ PK.seed ‖ PK.root`.
-    bytes: Array<u8, P::SkLen>,
+    bytes: Box<Array<u8, P::SkLen>>,
     /// `PK.seed ‖ PK.root` again, as the public key type.
     verifying_key: VerifyingKey<P>,
 }
 
 impl<P: ParameterSet> Clone for SigningKey<P> {
     fn clone(&self) -> Self {
+        // Copied from one allocation to the other, never through the stack.
+        let mut bytes = Box::new(Array::<u8, P::SkLen>::default());
+        bytes.copy_from_slice(&self.bytes);
         SigningKey {
-            bytes: self.bytes.clone(),
+            bytes,
             verifying_key: self.verifying_key.clone(),
         }
     }
@@ -89,7 +94,7 @@ impl<P: ParameterSet> SigningKey<P> {
             .try_fill_bytes(&mut seeds[..n])
             .and_then(|()| rng.try_fill_bytes(&mut seeds[n..2 * n]))
             .and_then(|()| rng.try_fill_bytes(&mut seeds[2 * n..3 * n]));
-        let key = drawn.map(|()| Self::from_seeds(&seeds[..n], &seeds[n..2 * n], &seeds[2 * n..3 * n]));
+        let key = drawn.map(|()| Self::from_seeds(&seeds[..3 * n]));
         seeds.zeroize();
         key
     }
@@ -104,10 +109,12 @@ impl<P: ParameterSet> SigningKey<P> {
         Self::try_new(&mut getrandom::SysRng).map_err(|_| Error::new())
     }
 
-    fn from_seeds(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8]) -> Self {
-        let mut bytes = Array::<u8, P::SkLen>::default();
+    /// `seeds` is `SK.seed ‖ SK.prf ‖ PK.seed`.
+    fn from_seeds(seeds: &[u8]) -> Self {
+        // The private key is written straight into its allocation.
+        let mut bytes = Box::new(Array::<u8, P::SkLen>::default());
         let mut pk = Array::<u8, P::VkLen>::default();
-        P::keygen(sk_seed, sk_prf, pk_seed, &mut bytes, &mut pk);
+        P::keygen(seeds, bytes.as_mut_slice(), &mut pk);
         SigningKey {
             bytes,
             verifying_key: VerifyingKey { bytes: pk },
@@ -126,8 +133,15 @@ impl<P: ParameterSet> SigningKey<P> {
     /// Published for KAT validation purposes but not intended for general use.
     /// Each seed must be `n` bytes long, panics otherwise.
     pub fn slh_keygen_internal(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8]) -> Self {
-        assert!(sk_seed.len() == P::N && sk_prf.len() == P::N && pk_seed.len() == P::N);
-        Self::from_seeds(sk_seed, sk_prf, pk_seed)
+        let n = P::N;
+        assert!(sk_seed.len() == n && sk_prf.len() == n && pk_seed.len() == n);
+        let mut seeds = Array::<u8, P::SkLen>::default();
+        seeds[..n].copy_from_slice(sk_seed);
+        seeds[n..2 * n].copy_from_slice(sk_prf);
+        seeds[2 * n..3 * n].copy_from_slice(pk_seed);
+        let key = Self::from_seeds(&seeds[..3 * n]);
+        seeds.zeroize();
+        key
     }
 
     #[doc(hidden)]
@@ -162,6 +176,37 @@ impl<P: ParameterSet> SigningKey<P> {
         self.raw_try_sign_with_context(&[msg], ctx, opt_rand)
     }
 
+    /// [`try_sign_with_context`](Self::try_sign_with_context) with a guard
+    /// against faults during signing: each value that a one-time key signs is
+    /// computed twice, by routes that share no work, and compared before the
+    /// signature is released. The signature is the same; signing takes a
+    /// little under twice as long.
+    ///
+    /// Not part of RustCrypto's interface.
+    /// # Errors
+    /// Returns an error if the context string is too long, or if a
+    /// recomputation disagreed: the key is not one that key generation
+    /// produces, or the computation was disturbed.
+    pub fn try_sign_checked(
+        &self,
+        msg: &[u8],
+        ctx: &[u8],
+        opt_rand: Option<&[u8]>,
+    ) -> Result<Signature<P>, Error> {
+        if ctx.len() > 255 {
+            return Err(Error::new());
+        }
+        if let Some(rand) = opt_rand {
+            assert!(rand.len() == P::N);
+        }
+        let mut sig = Array::<u8, P::SigLen>::default();
+        if P::sign_checked(msg, ctx, &self.bytes, opt_rand, &mut sig) {
+            Ok(Signature { bytes: sig })
+        } else {
+            Err(Error::new())
+        }
+    }
+
     /// Hedged signing with a context string: FIPS 205's default `slh_sign`,
     /// with the per-signature randomness drawn from the operating system.
     ///
@@ -183,12 +228,13 @@ impl<P: ParameterSet> SigningKey<P> {
         if ctx.len() > 255 {
             return Err(Error::new());
         }
-        let rand = opt_rand.unwrap_or(self.pk_seed());
-        assert!(rand.len() == P::N);
+        if let Some(rand) = opt_rand {
+            assert!(rand.len() == P::N);
+        }
         let mut buf = Vec::new();
         let m = joined(msg, &mut buf);
         let mut sig = Array::<u8, P::SigLen>::default();
-        if P::sign(m, ctx, &self.bytes, rand, &mut sig) {
+        if P::sign(m, ctx, &self.bytes, opt_rand, &mut sig) {
             Ok(Signature { bytes: sig })
         } else {
             Err(Error::new())
@@ -215,7 +261,7 @@ impl<P: ParameterSet> SigningKey<P> {
     ///
     /// This clones the underlying fields
     pub fn to_bytes(&self) -> Array<u8, P::SkLen> {
-        self.bytes.clone()
+        (*self.bytes).clone()
     }
 
     /// Serialize the signing key to a new heap-allocated vector
@@ -233,7 +279,7 @@ impl<P: ParameterSet> TryFrom<&[u8]> for SigningKey<P> {
             return Err(Error::new());
         }
         let verifying_key = VerifyingKey::try_from(&bytes[2 * P::N..])?;
-        let mut sk = Array::<u8, P::SkLen>::default();
+        let mut sk = Box::new(Array::<u8, P::SkLen>::default());
         sk.copy_from_slice(bytes);
         Ok(SigningKey {
             bytes: sk,

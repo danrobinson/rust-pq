@@ -40,7 +40,7 @@ structure hash.Seed where
   state : Array Std.U32 8#usize
 
 /-- [slhdsa::sha256::hw::Slot]
-    Source: 'src/sha256.rs', lines 416:4-435:5 -/
+    Source: 'src/sha256.rs', lines 417:4-436:5 -/
 structure sha256.hw.Slot where
   m0 : core.core_arch.arm_shared.neon.uint32x4_t
   c1 : core.core_arch.arm_shared.neon.uint32x4_t
@@ -54,7 +54,7 @@ structure sha256.hw.Slot where
   lane : Std.Usize
 
 /-- [slhdsa::sha256::hw::Lanes]
-    Source: 'src/sha256.rs', lines 447:4-454:5 -/
+    Source: 'src/sha256.rs', lines 448:4-455:5 -/
 structure sha256.hw.Lanes where
   x : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
   abcd : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
@@ -62,7 +62,7 @@ structure sha256.hw.Lanes where
   m : Array (Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize) 4#usize
 
 /-- [slhdsa::sha256::hw::First]
-    Source: 'src/sha256.rs', lines 439:4-444:5 -/
+    Source: 'src/sha256.rs', lines 440:4-445:5 -/
 structure sha256.hw.First where
   known : Bool
   head : Array Std.U8 16#usize

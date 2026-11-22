@@ -206,20 +206,21 @@ pub fn hw_active() -> bool {
 
 /// SHA-256 on the ARMv8 SHA-256 instructions.
 ///
-/// Compiled only with the opt-in `hw-sha2` feature. This module is the only
-/// `unsafe` code in the crate and is **not covered by the Lean proofs**:
-/// Aeneas translates the default build, in which this module does not exist.
-/// It stands in for two functions of the verified code, and everything else
-/// is the same code either way. So a build with the feature computes what the
-/// verified build computes provided that
+/// Compiled only with the opt-in `hw-sha2` feature. It stands in for two
+/// functions of the portable code, and everything else is the same code
+/// either way. The build with the feature has its own translation and proofs
+/// (`lean-hw/`), which show that
 ///
 /// > whenever `hw::compress` returns `Some`, it holds what the portable code
 /// > of [`compress`] returns for the same arguments, and whenever
 /// > `hw::chain_blocks` returns `true`, it has left in `blocks` what the
 /// > portable loops of [`crate::hash::chain_blocks`] leave there.
 ///
-/// That statement is tested (`tests/compress.rs` and the ACVP vectors, run
-/// with the feature on) but not proved.
+/// The proofs cover this module except its submodule `arm`, the eighteen
+/// functions that call the intrinsics; what those compute is taken from a
+/// model of the instructions (`lean-hw/Arm.lean`). The crate's `unsafe` is in
+/// those wrappers and at the two places below that enter the kernel after
+/// testing that the CPU has the instructions.
 ///
 /// `chain_blocks` is where the time goes: nearly every hash of SLH-DSA is one
 /// step of it. The processor has a single unit for the SHA-256 round
@@ -252,9 +253,9 @@ pub(crate) mod hw {
     }
 
     /// The instructions: each function is one to three intrinsics and nothing
-    /// else. This is the only `unsafe` code, and the only code Aeneas does not
-    /// translate; the proofs take the meaning of these functions from the
-    /// model in `lean/SlhdsaHw/FunsExternal.lean`.
+    /// else. This is the only code Aeneas does not translate; the proofs take
+    /// the meaning of these functions from the definitions in
+    /// `lean-hw/Slhdsa/FunsExternal.lean`.
     #[allow(unused_unsafe)]
     pub(crate) mod arm {
         use core::arch::aarch64::*;

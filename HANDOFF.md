@@ -294,6 +294,46 @@ and lane count are tuned to this CPU.
 **History:** commit `2a4bea5` is an intermediate, fully verified design (lockstep chains with
 `compress_many`, 41 ms sign); `ad4e485` is the first `hw-sha2` (one block at a time, 84 ms).
 
+## Interface module, checked signer and wiping (2026-11-21, later the same day)
+
+Decisions by the owner, in order: make the RustCrypto-style crate the main interface and verify
+what can be verified of it; then, on learning that neither RustCrypto nor OpenSSL has the fault
+check, **make the check opt-in** so that default signing does the same work as RustCrypto's.
+
+- **`rust/src/api.rs`** (translated, proved): `keygen(seeds, &mut sk, &mut pk)`, `public_key`,
+  `sign`, `sign_deterministic`, `sign_checked`, `sign_deterministic_checked`, `verify`. Nothing
+  returns a secret by value.
+- **Checked signer** (`slh::slh_sign_internal_checked`, `slh_sign_checked`, `ht::ht_sign_checked`,
+  `fors::fors_pk_gen`): the FORS public key and every XMSS root are computed twice, as a verifier
+  would from the signature and as key generation would from the seed (the top one is `PK.root`);
+  each layer signs one copy and recomputes with the other. Measured 56.5 ms against 30.2 ms
+  (`hw-sha2`), 570 ms against 304 ms (portable): 1.87×. Reason it exists: a fault in one tree
+  yields a wrong root that the next layer signs correctly, so the faulty signature verifies and
+  a check of the finished signature (or of the top root alone) cannot see it. RustCrypto
+  0.2.0-rc.5 (source read) and OpenSSL (its reply to the SLasH-DSA authors, and a sign/keygen
+  time ratio of 7.6 like every unprotected signer) do not guard against this.
+- **`hash::prf_msg`** was rewritten so that HMAC's key blocks live on the stack; nothing derived
+  from the secret seed is written to the heap any more. `sha256::hmac_sha256` remains, unused by
+  the crate.
+- **Proofs** (`lean/Slhdsa/ApiTheorems.lean`, 29 statements, both packages, standard axioms):
+  the interface functions against FIPS 205; the checked signer returns the standard's signature
+  when it returns one, what it returns always verifies, and it always returns one for a
+  well-formed key (`Spec.KeyOk`); and completeness, which the repository lacked: for a key from
+  key generation, sign then verify gives `true` (`Spec/Correctness.lean`: `wots_correct`,
+  `xmss_correct`, `fors_correct`). `prf_msg_spec` was re-proved with its statement unchanged.
+  Nothing is proved about faults.
+- **`compat/`**: default signing is the plain signer (86 same-source results equal RustCrypto's);
+  `try_sign_checked` is the opt-in. The signing key's secret is in a `Box` (a moved key used to
+  leave a copy of itself on the stack; the leftover test found it). After each key generation
+  and signature the adapter overwrites 64 KiB of stack (`src/scrub.rs`); the verified functions
+  that handle the seed are `#[inline(never)]` so their frames lie below the adapter's.
+  `tests/wipe.rs` (signer run on a stack the test owns, then searched for 208 forms of the
+  secrets) and `tests/heap.rs` (allocator that searches every freed block) pass, and each fails
+  when the scrub or the key wipe is removed. Measured stack use of keygen plus checked signing:
+  about 15 KiB. Not covered: registers, unoptimised builds, compiler-made copies.
+- **Benchmark**: entry `verified-api` added (the adapter); `bench/variants/current` re-synced.
+  **Not rerun yet**: the numbers in `bench/RESULTS.md` predate this round.
+
 ## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
 
 `compat/` (package `slhdsa-compat`, library name `slh_dsa`) gives the verified crate the
@@ -307,6 +347,8 @@ breakages (no wipe, secret in `Debug`, wrong default randomiser, comparison skip
 byte) made the matching test fail. Limits: one parameter set; needs `std`; the verified
 crate itself still wipes nothing. The interface and the encoding glue follow RustCrypto's
 crate (Apache-2.0 OR MIT), credited in `compat/README.md` with both licence texts.
+(Superseded in part by the section above: the adapter now calls `slhdsa::api`, keeps the secret
+in a `Box`, and scrubs the stack.)
 
 ## A second processor (`scripts/check-arm.sh`, 2026-11-21)
 

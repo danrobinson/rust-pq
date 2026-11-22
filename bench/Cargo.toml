@@ -17,10 +17,13 @@ asm010 = ["sha2_010/asm"]
 # compression function; that module is not covered by the proofs). The entry is then
 # named `verified+hw-sha2`. A separate configuration because Cargo unifies features:
 # one build cannot contain ../rust both with and without it.
-hw = ["slhdsa/hw-sha2"]
+hw = ["slhdsa/hw-sha2", "slhdsa_api/hw-sha2"]
 
 [dependencies]
 slhdsa = { path = "../rust" }
+# The interface programs are meant to use: RustCrypto's types and traits around the verified
+# crate, signing with the fault check and wiping afterwards. Entry `verified-api`.
+slhdsa_api = { package = "slhdsa-compat", path = "../compat" }
 # `verified-before`: the pre-optimisation verified crate. Cargo cannot depend on two
 # path packages both named `slhdsa`, so this is variants/base, a copy of
 # ../opt/original/rust/src whose only difference is a compression counter compiled

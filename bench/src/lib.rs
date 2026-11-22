@@ -74,6 +74,36 @@ macro_rules! slhdsa_like {
 pub fn verified() -> Impl {
     slhdsa_like!(if cfg!(feature = "hw") { "verified+hw-sha2" } else { "verified" }, slhdsa)
 }
+/// The interface programs are meant to use (../compat): RustCrypto's types and traits
+/// around the verified crate. The same functions as `verified`, reached through the key
+/// types, with the stack they used wiped after key generation and signing.
+pub fn verified_api() -> Impl {
+    use slhdsa_api::signature::{Keypair, Signer as _, Verifier as _};
+    use slhdsa_api::{Sha2_128s, Signature, SigningKey, VerifyingKey};
+    Impl {
+        name: if cfg!(feature = "hw") { "verified-api+hw-sha2" } else { "verified-api" },
+        fips205: true,
+        seeded_keygen: true,
+        deterministic: true,
+        uses_sha2_crate: false,
+        is_rust: true,
+        keygen: Box::new(|a, b, c| {
+            let sk = SigningKey::<Sha2_128s>::slh_keygen_internal(a, b, c);
+            (sk.to_vec(), sk.verifying_key().to_vec())
+        }),
+        make_signer: Box::new(|sk| {
+            let sk = SigningKey::<Sha2_128s>::try_from(sk).unwrap();
+            Box::new(move |m| sk.sign(m).to_vec())
+        }),
+        make_verifier: Box::new(|pk| {
+            let pk = VerifyingKey::<Sha2_128s>::try_from(pk).unwrap();
+            Box::new(move |m, s| match Signature::<Sha2_128s>::try_from(s) {
+                Ok(sig) => pk.verify(m, &sig).is_ok(),
+                Err(_) => false,
+            })
+        }),
+    }
+}
 /// The pre-optimisation verified crate (copy in variants/base, see Cargo.toml).
 pub fn verified_before() -> Impl {
     slhdsa_like!("verified-before", slhdsa_base)
@@ -322,6 +352,7 @@ pub fn pqclean() -> Impl {
 pub fn all() -> Vec<Impl> {
     let mut v = vec![
         verified(),
+        verified_api(),
         verified_before(),
         rustcrypto(),
         fips205(),
@@ -335,7 +366,7 @@ pub fn all() -> Vec<Impl> {
     ];
     if let Ok(only) = std::env::var("BENCH_ONLY") {
         let names: Vec<&str> = only.split(',').collect();
-        v.retain(|i| i.name == "verified" || i.name == "verified-before" || names.contains(&i.name));
+        v.retain(|i| i.name == "verified" || i.name == "verified-api" || i.name == "verified-before" || names.contains(&i.name));
     }
     if std::env::var("BENCH_REVERSE").map(|s| s == "1").unwrap_or(false) {
         v.reverse();

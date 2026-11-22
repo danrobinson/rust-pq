@@ -28,6 +28,27 @@ The proofs use no `sorry` and no axioms beyond Lean's three standard ones
 (`propext`, `Classical.choice`, `Quot.sound`); the file ends with
 `#print axioms` for each theorem.
 
+**The interface, and signing then verifying.** The crate's interface module
+([rust/src/api.rs](rust/src/api.rs)) and its optional checked signer have their
+own theorems, in [lean/Slhdsa/ApiTheorems.lean](lean/Slhdsa/ApiTheorems.lean)
+(29 statements, same axioms):
+
+| Rust function | Theorems | Say |
+|---|---|---|
+| `api::keygen` | `api_keygen_correct`, `api_keygen_keyOk` | Algorithm 21 on the three blocks of its random bytes; the key it writes is well formed |
+| `api::sign`, `api::sign_deterministic` | `api_sign_correct`, `api_sign_deterministic_correct` | Algorithm 22, hedged and with `PK.seed` as the randomness |
+| `api::verify`, `api::public_key` | `api_verify_correct`, `api_public_key_correct` | Algorithm 24; the last two blocks of the private key |
+| any signer, then `verify` | `complete`, `complete_internal`, `api_complete_sign`, … | for a key from key generation, the signature that signing returns is accepted by verification |
+| `sign_checked` and the functions under it | `…_checked_correct` | whenever it returns a signature, it is the signature of the standard |
+| | `…_checked_verifies` | whatever it returns verifies under the public key held in the private key, for any private key at all |
+| | `…_checked_complete` | for a well-formed private key it always returns a signature |
+
+The checked signer ([below](#the-interface-to-use-compat)) is not part of FIPS
+205. [lean/Spec/Checked.lean](lean/Spec/Checked.lean) says what it computes, and
+[lean/Spec/Correctness.lean](lean/Spec/Correctness.lean) proves the scheme
+correct at the level of the specification: a WOTS+, XMSS or FORS signature
+leads back to the public key it was made under.
+
 The theorems are proved for both ways of building the crate: the default
 build ([lean](lean)), and the build with the opt-in `hw-sha2` feature
 ([lean-hw](lean-hw)), which runs SHA-256 on the processor's SHA-256
@@ -48,7 +69,8 @@ hash function is assumed correct.
   signing group (`lake build spectest`; the spec is slow, so it runs a subset).
 - The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for
   call: one piece of source compiled against both must give the same 86
-  results (`cd compat && cargo test`).
+  results; and its wiping is checked by searching the stack and freed heap
+  memory for the secrets (`cd compat && cargo test`).
 
 ## Performance
 
@@ -154,24 +176,47 @@ backend works on four chains at once, staggered so the unit always has work,
 and skips the rounds whose inputs or outputs a chain step does not use. In the
 default build the same function is a plain loop.
 
-## In place of RustCrypto's `slh-dsa` ([compat/](compat))
+## The interface to use ([compat/](compat))
 
-The verified crate is five functions over byte arrays. [compat/](compat) puts
-the interface of RustCrypto's `slh-dsa` 0.2 around them: the same `SigningKey`,
-`VerifyingKey` and `Signature` types, the `signature` crate's traits, and the
-PKCS#8 encodings. A program that uses `slh-dsa` with `Sha2_128s` switches by
-changing its dependency line, with no change to its source:
+The verified crate works on byte arrays. [compat/](compat) is the crate a
+program should depend on: it puts the interface of RustCrypto's `slh-dsa` 0.2
+around the verified functions, with the same `SigningKey`, `VerifyingKey` and
+`Signature` types, the `signature` crate's traits, and the PKCS#8 encodings. A
+program that uses `slh-dsa` with `Sha2_128s` switches by changing its
+dependency line, with no change to its source:
 
 ```toml
 slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 ```
 
-The adapter is glue and is not covered by the proofs; it is tested against
-RustCrypto's crate on every entry point. It also adds what the verified crate
-leaves to the caller: keys from the operating system's random source, hedged
-signing (the default of FIPS 205), and a signing key that is wiped when
-dropped. Its limits: only this one parameter set, and it needs the standard
-library.
+- **What is inside the proofs.** Every call goes to the verified interface
+  module (`slhdsa::keygen`, `sign`, `sign_deterministic`, `verify`). The layout
+  of a private key, the context-string framing and the choice of randomness
+  for a deterministic signature are decided there.
+- **What is not.** The key and signature types and their trait plumbing, the
+  random source, copying a multi-part message into one buffer, the encodings
+  (the `pkcs8` crate), and the wiping. These are tested against RustCrypto's
+  crate: one piece of source compiled against both must give the same 86
+  results.
+- **Additions.** Keys from the operating system's random source and hedged
+  signing (the default of FIPS 205).
+- **Wiping.** A signing key keeps its secret in its own allocation, wiped on
+  drop. The verified code keeps everything derived from the secret on the
+  stack, and the adapter overwrites that stack after each key generation and
+  signature. Two tests search the stack and every freed heap block for 208
+  forms of the seeds and values derived from them and find none (and find
+  some in their controls). This is tested, not proved, and does not reach
+  processor registers.
+- **Optional guard against faults.** `try_sign_checked` computes each value
+  that a one-time key signs twice, by routes that share no work, and compares
+  before releasing the signature. That detects the published fault attack on
+  this family (a fault in one tree gives a wrong root that the next layer
+  signs, in a signature that still verifies). RustCrypto's crate and OpenSSL
+  do not do this, and the default signing methods here do not either: they do
+  the work of the standard and no more. The check costs 1.87× the signing
+  time. What is proved about it is listed above; that it detects faults is an
+  argument, not a theorem, since the model has no faults in it.
+- **Limits.** Only this one parameter set, and it needs the standard library.
 
 ## What is not proven
 
@@ -196,9 +241,11 @@ library.
   (HashSLH-DSA) are not implemented. The verified crate takes seeds and
   `addrnd` from the caller; drawing them from the operating system is done in
   `compat/`, outside the proofs.
-- **Wiping.** The verified crate does not overwrite its intermediate secret
-  values when it is done with them (FIPS 205 §3.1 requires it). `compat/` wipes
-  the signing key it holds, nothing more.
+- **Wiping** (FIPS 205 §3.1). Done by `compat/` and tested there, not proved,
+  and only as far as memory goes: see [above](#the-interface-to-use-compat).
+  A program that calls the verified crate directly gets no wiping.
+- **Faults.** Nothing is proved about a disturbed computation. The optional
+  checked signer is a countermeasure with an argument behind it, not a theorem.
 
 ## Layout
 
@@ -214,15 +261,18 @@ library.
   translation, the instruction model (`Arm.lean`, `Slhdsa/FunsExternal.lean`),
   the proofs about the hardware kernels (`Slhdsa/Proofs/Hw/`), and links to
   the proof files of `lean/` that do not depend on the build.
-- `lean/Slhdsa/Theorems.lean` — the headline statements.
+- `lean/Slhdsa/Theorems.lean`, `ApiTheorems.lean` — the headline statements.
+- `lean/Spec/Checked.lean`, `Correctness.lean` — the checked signer over the
+  specification, and the proof that signing then verifying succeeds.
 - `security/` — the link to VCVio's security theorem (`Link`) and the
   end-to-end statements from the Rust code (`E2E`).
 - `security-hw/` — the same libraries compiled against `lean-hw`: the security
   statements for the `hw-sha2` build. It has no source of its own.
 - `vectors/` — the NIST vectors used by both test suites, and the record of
   the intrinsic wrappers on a processor.
-- `compat/` — the interface of RustCrypto's `slh-dsa` around the verified
-  crate, with operating-system randomness and key wiping. Not verified.
+- `compat/` — the interface to use: RustCrypto's `slh-dsa` types and traits
+  around the verified crate, with operating-system randomness, wiping, and the
+  optional checked signer. Glue, not verified.
 - `bench/` — benchmark against other libraries, with interoperability checks.
 - `opt/` — working copy in which the hashing optimisation was developed and
   re-verified; `opt/original/` holds the crate and proofs from before it.

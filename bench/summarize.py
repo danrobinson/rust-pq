@@ -50,7 +50,7 @@ def fmt(ns):
     return f"{ns:.1f} ns"
 
 
-ORDER = ["verified", "verified+hw-sha2", "verified-before", "variant-A", "variant-B", "variant-C", "variant-D", "rustcrypto-slh-dsa", "fips205", "openssl", "slhdsa-c", "pqclean-r3"]
+ORDER = ["verified", "verified+hw-sha2", "verified-api", "verified-api+hw-sha2", "verified-before", "variant-A", "variant-B", "variant-C", "variant-D", "rustcrypto-slh-dsa", "fips205", "openssl", "slhdsa-c", "pqclean-r3"]
 GROUPS = ["keygen", "sign_32B", "sign_1MiB", "verify_32B", "verify_1MiB"]
 
 

@@ -2,7 +2,7 @@
 
 use crate::address::Adrs;
 use crate::params::{LEN, M, N};
-use crate::sha256::{compress, digest, hmac_sha256, sha256, sha256_from, H0};
+use crate::sha256::{compress, digest, sha256, sha256_from, H0};
 
 /// `PK.seed` together with the SHA-256 state after the first block of every
 /// tweakable hash, `PK.seed ‖ toByte(0, 64 − n)`. Computed once per key
@@ -155,11 +155,26 @@ pub fn thash(seed: &Seed, adrs: &Adrs, m: &[u8]) -> [u8; N] {
 }
 
 /// `PRF_msg(SK.prf, opt_rand, M) = Trunc_n(HMAC-SHA-256(SK.prf, opt_rand ‖ M))`.
+///
+/// HMAC hashes `(K ⊕ ipad) ‖ text` and then `(K ⊕ opad) ‖ that digest`. The
+/// two key blocks are built here on the stack and compressed first, so
+/// nothing that depends on `SK.prf` is ever written to the heap.
 pub fn prf_msg(sk_prf: &[u8; N], opt_rand: &[u8; N], m: &[u8]) -> [u8; N] {
+    let mut ipad = [0x36u8; 64];
+    let mut opad = [0x5cu8; 64];
+    let mut i = 0;
+    while i < N {
+        ipad[i] = sk_prf[i] ^ 0x36;
+        opad[i] = sk_prf[i] ^ 0x5c;
+        i += 1;
+    }
     let mut buf: Vec<u8> = Vec::new();
     buf.extend_from_slice(opt_rand);
     buf.extend_from_slice(m);
-    let d = hmac_sha256(sk_prf, &buf);
+    let inner_state = compress(&H0, &ipad, 0);
+    let inner = sha256_from(&inner_state, 64, &buf);
+    let outer_state = compress(&H0, &opad, 0);
+    let d = sha256_from(&outer_state, 64, &inner);
     let mut out = [0u8; N];
     out.copy_from_slice(&d[0..N]);
     out

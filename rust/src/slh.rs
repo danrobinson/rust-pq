@@ -4,9 +4,9 @@
 //! Randomness is always supplied by the caller.
 
 use crate::address::{Adrs, FORS_TREE};
-use crate::fors::{fors_pk_from_sig, fors_sign};
+use crate::fors::{fors_pk_from_sig, fors_pk_gen, fors_sign};
 use crate::hash::{h_msg, prf_msg, seed_ctx};
-use crate::ht::{ht_sign, ht_verify};
+use crate::ht::{ht_sign, ht_sign_checked, ht_verify};
 use crate::params::{
     D, FORS_SIG_BYTES, HP, LEAF_BYTES, MD_BYTES, N, PK_BYTES, SIG_BYTES, SK_BYTES, TREE_BYTES,
 };
@@ -14,6 +14,7 @@ use crate::util::{block, to_int};
 use crate::xmss::xmss_node;
 
 /// Algorithm 18, `slh_keygen_internal`. Returns `(SK, PK)`.
+#[inline(never)]
 pub fn slh_keygen_internal(
     sk_seed: &[u8; N],
     sk_prf: &[u8; N],
@@ -45,6 +46,7 @@ fn digest_leaf(digest: &[u8]) -> u32 {
 
 /// Algorithm 19, `slh_sign_internal`. `addrnd` is the per-signature
 /// randomness; pass `PK.seed` for the deterministic variant.
+#[inline(never)]
 pub fn slh_sign_internal(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Vec<u8> {
     let sk_seed = block(sk, 0);
     let sk_prf = block(sk, 1);
@@ -64,6 +66,42 @@ pub fn slh_sign_internal(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Vec
     sig.extend_from_slice(&sig_fors);
     sig.extend_from_slice(&sig_ht);
     sig
+}
+
+/// Algorithm 19 with recomputation: [`slh_sign_internal`], except that the
+/// FORS public key and every tree root are computed twice, by routes that
+/// share no work, and no signature is returned unless each pair agrees and
+/// the top root is the `PK.root` held in `sk` (see [`ht_sign_checked`]).
+///
+/// `Some(sig)` is exactly the signature `slh_sign_internal` returns. `None`
+/// means a recomputation disagreed: the key is not one that key generation
+/// produces, or the computation was disturbed. Costs a little under twice
+/// the hashing of `slh_sign_internal`.
+#[inline(never)]
+pub fn slh_sign_internal_checked(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
+    let sk_seed = block(sk, 0);
+    let sk_prf = block(sk, 1);
+    let pk_seed = block(sk, 2);
+    let pk_root = block(sk, 3);
+    let r = prf_msg(&sk_prf, addrnd, m);
+    let digest = h_msg(&r, &pk_seed, &pk_root, m);
+    let idx_tree = digest_tree(&digest);
+    let idx_leaf = digest_leaf(&digest);
+    let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
+    let seed = seed_ctx(&pk_seed);
+    let sig_fors = fors_sign(&digest[0..MD_BYTES], &sk_seed, &seed, adrs);
+    let pk_fors_a = fors_pk_from_sig(&sig_fors, &digest[0..MD_BYTES], &seed, adrs);
+    let pk_fors_b = fors_pk_gen(&sk_seed, &seed, adrs);
+    let (sig_ht, ok) = ht_sign_checked(&pk_fors_a, &pk_fors_b, &sk_seed, &seed, idx_tree, idx_leaf, &pk_root);
+    if ok {
+        let mut sig: Vec<u8> = Vec::new();
+        sig.extend_from_slice(&r);
+        sig.extend_from_slice(&sig_fors);
+        sig.extend_from_slice(&sig_ht);
+        Some(sig)
+    } else {
+        None
+    }
 }
 
 /// Algorithm 20, `slh_verify_internal`.
@@ -101,6 +139,17 @@ pub fn slh_sign(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> 
     }
     let mp = with_context(m, ctx);
     Some(slh_sign_internal(&mp, sk, addrnd))
+}
+
+/// Algorithm 22 with recomputation: [`slh_sign`] on
+/// [`slh_sign_internal_checked`]. `None` if the context string is longer than
+/// 255 bytes or a recomputation disagreed.
+pub fn slh_sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
+    if ctx.len() > 255 {
+        return None;
+    }
+    let mp = with_context(m, ctx);
+    slh_sign_internal_checked(&mp, sk, addrnd)
 }
 
 /// Algorithm 24, `slh_verify` (pure verification).

@@ -78,7 +78,7 @@ run_sig() { # config round
     asm) CARGO_TARGET_DIR=target/asm CRITERION_HOME="$home" BENCH_REVERSE=$rev BENCH_ONLY=fips205 \
             cargo bench -q --features asm010 --bench sig ;;
     hw) CARGO_TARGET_DIR=target/hw CRITERION_HOME="$home" BENCH_REVERSE=$rev \
-            BENCH_ONLY=verified+hw-sha2,rustcrypto-slh-dsa,openssl,slhdsa-c cargo bench -q --features hw --bench sig ;;
+            BENCH_ONLY=verified+hw-sha2,verified-api+hw-sha2,rustcrypto-slh-dsa,openssl,slhdsa-c cargo bench -q --features hw --bench sig ;;
   esac > "$home.log" 2>&1
 }
 run_sha() { # config round

@@ -37,3 +37,5 @@ pub const HT_SIG_BYTES: usize = 4928; // D * XMSS_SIG_BYTES
 pub const SIG_BYTES: usize = 7856; // N + FORS_SIG_BYTES + HT_SIG_BYTES
 pub const PK_BYTES: usize = 32;
 pub const SK_BYTES: usize = 64;
+/// The random bytes key generation consumes: `SK.seed ‖ SK.prf ‖ PK.seed`.
+pub const SEED_BYTES: usize = 48; // 3 * N

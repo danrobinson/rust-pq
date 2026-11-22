@@ -24,13 +24,39 @@
 //! # What is verified and what is not
 //!
 //! Key generation, signing and verification are the verified crate's
-//! functions (`slh_keygen_internal`, `slh_sign`, `slh_sign_internal`,
-//! `slh_verify`, `slh_verify_internal`), called on byte arrays. Everything in
-//! this crate is glue around those calls and is **not** covered by the
-//! proofs: the key and signature types, drawing randomness, joining a
-//! multi-part message into one buffer, and the PKCS#8 / SPKI encodings. The
-//! tests compare every entry point with RustCrypto's crate on the same
-//! inputs.
+//! interface functions (`slhdsa::keygen`, `sign`, `sign_deterministic`,
+//! `verify`), called on byte arrays: which bytes of a private key are which,
+//! the context-string framing, and the choice of `PK.seed` as the randomness
+//! of a deterministic signature are all decided there. What this crate adds
+//! is **not** covered by the proofs: the key and signature types and their
+//! trait plumbing, drawing randomness from a random source, joining a
+//! multi-part message into one buffer, the PKCS#8 / SPKI encodings (done by
+//! the `pkcs8` crate), and the wiping described below. The tests compare
+//! every entry point with RustCrypto's crate on the same inputs.
+//!
+//! # Optional guard against faults
+//!
+//! The signing methods do the work of the standard and no more, as
+//! RustCrypto's do. [`SigningKey::try_sign_checked`] adds a guard: each
+//! value that a one-time key signs is computed twice, by routes that share
+//! no work, and compared before the signature is released. A fault during
+//! signing that would otherwise produce a signature a forger can exploit is
+//! reported as an error instead. The signature is the same; signing takes a
+//! little under twice as long.
+//!
+//! # Secrets are wiped
+//!
+//! * A [`SigningKey`] keeps its secret in an allocation of its own, wiped
+//!   when the key is dropped; moving a key moves a pointer, not the secret.
+//! * The verified code keeps everything derived from the secret on the
+//!   stack, and this crate overwrites that stack after each key generation
+//!   and signature.
+//! * `tests/wipe.rs` and `tests/heap.rs` search the stack and every freed
+//!   heap block for the seeds and values derived from them, and find none.
+//!
+//! This is a best effort, as it is everywhere: registers are not cleared,
+//! the compiler may keep copies the source does not show, and what you copy
+//! out with `to_bytes` is yours to wipe.
 //!
 //! # Differences from RustCrypto's crate
 //!
@@ -42,8 +68,9 @@
 //!   they differ.
 //! * Multi-part messages are copied into one buffer before signing or
 //!   verifying.
-//! * Additions, behind the default `getrandom` feature:
-//!   [`SigningKey::generate`] and [`SigningKey::try_sign_hedged`].
+//! * Additions: [`SigningKey::try_sign_checked`], and, behind the default
+//!   `getrandom` feature, [`SigningKey::generate`] and
+//!   [`SigningKey::try_sign_hedged`].
 //!
 //! # Credit
 //!
@@ -60,11 +87,14 @@
 pub use signature;
 
 mod params;
+mod scrub;
 mod signature_encoding;
 mod signing_key;
 mod verifying_key;
 
 pub use params::{ParameterSet, Sha2_128s};
+#[doc(hidden)]
+pub use scrub::SCRUB_BYTES;
 pub use signature_encoding::{Signature, SignatureLen};
 pub use signing_key::{SigningKey, SigningKeyLen};
 pub use verifying_key::{VerifyingKey, VerifyingKeyLen};

@@ -2,21 +2,28 @@
 
 use crate::{SignatureLen, SigningKeyLen, VerifyingKeyLen};
 use hybrid_array::sizes::{U32, U64, U7856};
-use zeroize::Zeroize;
+use crate::scrub::scrub_stack;
 
 /// The verified functions, on byte slices of the parameter set's lengths.
+/// Each one that works with the secret seed overwrites the stack it used
+/// before returning (see [`crate::scrub`]).
 ///
 /// Private: a parameter set cannot be defined outside this crate.
 pub(crate) trait Core {
     /// Security parameter `n` in bytes.
     const N: usize;
 
-    /// `slh_keygen_internal`: writes `SK` and `PK`.
-    fn keygen(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]);
+    /// `slh_keygen` on its `3n` random bytes `SK.seed ‖ SK.prf ‖ PK.seed`:
+    /// writes `SK` and `PK`.
+    fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]);
+    /// `slh_sign`. `addrnd` absent is the deterministic variant.
+    /// `false` if the context is too long.
+    fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool;
+    /// `slh_sign` with every signed value computed twice and compared.
+    /// `false` if the context is too long or a recomputation disagreed.
+    fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool;
     /// `slh_sign_internal` on the message as given.
     fn sign_internal(m: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]);
-    /// `slh_sign` with a context string. `false` if the context is too long.
-    fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]) -> bool;
     /// `slh_verify_internal` on the message as given.
     fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool;
     /// `slh_verify` with a context string.
@@ -57,6 +64,17 @@ impl ParameterSet for Sha2_128s {
     const ALGORITHM_OID: pkcs8::ObjectIdentifier = const_oid::db::fips205::ID_SLH_DSA_SHA_2_128_S;
 }
 
+/// Copy a signature out, if one was made.
+fn put(made: Option<Vec<u8>>, sig: &mut [u8]) -> bool {
+    match made {
+        Some(bytes) => {
+            sig.copy_from_slice(&bytes);
+            true
+        }
+        None => false,
+    }
+}
+
 /// A slice as the fixed-length array the verified functions take. The callers
 /// in this crate always pass the right length; a wrong one is a bug here.
 fn fixed<const L: usize>(bytes: &[u8]) -> &[u8; L] {
@@ -66,27 +84,35 @@ fn fixed<const L: usize>(bytes: &[u8]) -> &[u8; L] {
 impl Core for Sha2_128s {
     const N: usize = slhdsa::params::N;
 
-    fn keygen(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]) {
-        let (mut sk_bytes, pk_bytes) =
-            slhdsa::slh_keygen_internal(fixed(sk_seed), fixed(sk_prf), fixed(pk_seed));
-        sk.copy_from_slice(&sk_bytes);
-        pk.copy_from_slice(&pk_bytes);
-        sk_bytes.zeroize();
+    fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]) {
+        let sk: &mut [u8; 64] = sk.try_into().expect("length fixed by the parameter set");
+        let pk: &mut [u8; 32] = pk.try_into().expect("length fixed by the parameter set");
+        slhdsa::keygen(fixed(seeds), sk, pk);
+        scrub_stack();
+    }
+
+    fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool {
+        let made = match addrnd {
+            Some(addrnd) => slhdsa::sign(m, ctx, fixed(sk), fixed(addrnd)),
+            None => slhdsa::sign_deterministic(m, ctx, fixed(sk)),
+        };
+        scrub_stack();
+        put(made, sig)
+    }
+
+    fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool {
+        let made = match addrnd {
+            Some(addrnd) => slhdsa::sign_checked(m, ctx, fixed(sk), fixed(addrnd)),
+            None => slhdsa::sign_deterministic_checked(m, ctx, fixed(sk)),
+        };
+        scrub_stack();
+        put(made, sig)
     }
 
     fn sign_internal(m: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]) {
         let bytes = slhdsa::slh_sign_internal(m, fixed(sk), fixed(addrnd));
+        scrub_stack();
         sig.copy_from_slice(&bytes);
-    }
-
-    fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]) -> bool {
-        match slhdsa::slh_sign(m, ctx, fixed(sk), fixed(addrnd)) {
-            Some(bytes) => {
-                sig.copy_from_slice(&bytes);
-                true
-            }
-            None => false,
-        }
     }
 
     fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool {
