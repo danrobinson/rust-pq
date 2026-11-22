@@ -1,5 +1,6 @@
 //! FORS few-time signatures (FIPS 205 §8).
 
+use alloc::vec::Vec;
 use crate::address::{Adrs, FORS_PRF, FORS_ROOTS};
 use crate::hash::{chain_blocks, pair_block, short_block, thash, thash_short, value, Seed};
 use crate::params::{A, K, N};

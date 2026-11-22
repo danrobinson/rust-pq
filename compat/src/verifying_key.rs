@@ -2,8 +2,8 @@
 
 use crate::{joined, ParameterSet, Signature};
 use ::signature::{Error, MultipartVerifier, Verifier};
-use hybrid_array::typenum::Unsigned;
 use hybrid_array::{Array, ArraySize};
+use alloc::vec::Vec;
 use pkcs8::{der, spki};
 
 #[cfg(feature = "alloc")]
@@ -118,12 +118,12 @@ impl<P: ParameterSet> TryFrom<&[u8]> for VerifyingKey<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if bytes.len() != P::VkLen::USIZE {
-            return Err(Error::new());
-        }
         let mut vk = Array::<u8, P::VkLen>::default();
-        vk.copy_from_slice(bytes);
-        Ok(VerifyingKey { bytes: vk })
+        if P::pk_from(bytes, &mut vk) {
+            Ok(VerifyingKey { bytes: vk })
+        } else {
+            Err(Error::new())
+        }
     }
 }
 
@@ -142,19 +142,9 @@ impl<P: ParameterSet> MultipartVerifier<Signature<P>> for VerifyingKey<P> {
 #[cfg(feature = "alloc")]
 impl<P: ParameterSet> EncodePublicKey for VerifyingKey<P> {
     fn to_public_key_der(&self) -> pkcs8::spki::Result<der::Document> {
-        let algorithm_identifier = pkcs8::AlgorithmIdentifierRef {
-            oid: P::ALGORITHM_OID,
-            parameters: None,
-        };
-
-        let public_key = self.to_bytes();
-        let subject_public_key = der::asn1::BitStringRef::new(0, &public_key)?;
-
-        pkcs8::SubjectPublicKeyInfo {
-            algorithm: algorithm_identifier,
-            subject_public_key,
-        }
-        .try_into()
+        // The encoding is the verified crate's; the `der` crate only checks
+        // that it is well formed and takes ownership of it.
+        P::with_spki(&self.bytes, |encoding| Ok(der::Document::try_from(encoding)?))
     }
 }
 

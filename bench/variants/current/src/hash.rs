@@ -1,5 +1,6 @@
 //! The SLH-DSA hash functions for SHA2, security category 1 (FIPS 205 §11.2.1).
 
+use alloc::vec::Vec;
 use crate::address::Adrs;
 use crate::params::{LEN, M, N};
 use crate::sha256::{compress, digest, sha256, sha256_from, H0};

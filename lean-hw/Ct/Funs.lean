@@ -202,7 +202,7 @@ def address.Adrs.compress
 @[global_simps, irreducible] def params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::util::block]:
-    Source: 'src/util.rs', lines 6:0-10:1
+    Source: 'src/util.rs', lines 7:0-11:1
     Visibility: public -/
 def util.block
   (s : Slice Std.U8) (i : Std.Usize) : Result (Array Std.U8 16#usize) := do
@@ -217,7 +217,7 @@ def util.block
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sha256::K]
-    Source: 'src/sha256.rs', lines 6:0-15:2 -/
+    Source: 'src/sha256.rs', lines 7:0-16:2 -/
 @[global_simps, irreducible]
 def sha256.K : Array Std.U32 64#usize :=
   Array.make 64#usize [
@@ -240,7 +240,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::hw::compress_block]: loop body 0:
-    Source: 'src/sha256.rs', lines 398:12-409:13 -/
+    Source: 'src/sha256.rs', lines 409:12-420:13 -/
 @[rust_loop_body]
 def sha256.hw.compress_block_loop.body
   (abcd : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -284,7 +284,7 @@ def sha256.hw.compress_block_loop.body
   else ok (done (abcd, efgh))
 
 /-- [slhdsa::sha256::hw::compress_block]: loop 0:
-    Source: 'src/sha256.rs', lines 398:12-409:13 -/
+    Source: 'src/sha256.rs', lines 409:12-420:13 -/
 @[rust_loop]
 def sha256.hw.compress_block_loop
   (abcd : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -300,7 +300,7 @@ def sha256.hw.compress_block_loop
     (abcd, efgh, m, i)
 
 /-- [slhdsa::sha256::hw::compress_block]:
-    Source: 'src/sha256.rs', lines 387:8-411:9 -/
+    Source: 'src/sha256.rs', lines 398:8-422:9 -/
 def sha256.hw.compress_block
   (state : Array Std.U32 8#usize) (block : Array Std.U8 64#usize) :
   Result (Array Std.U32 8#usize)
@@ -325,7 +325,7 @@ def sha256.hw.compress_block
   sha256.hw.arm.store_words uxt uxt1
 
 /-- [slhdsa::sha256::hw::compress]:
-    Source: 'src/sha256.rs', lines 372:4-381:5
+    Source: 'src/sha256.rs', lines 383:4-392:5
     Visibility: public -/
 def sha256.hw.compress
   (state : Array Std.U32 8#usize) (data : Slice Std.U8) (off : Std.Usize) :
@@ -347,7 +347,7 @@ def sha256.hw.compress
   else ok none
 
 /-- [slhdsa::sha256::load_be32]:
-    Source: 'src/sha256.rs', lines 21:0-26:1 -/
+    Source: 'src/sha256.rs', lines 22:0-27:1 -/
 def sha256.load_be32
   (data : Slice Std.U8) (off : Std.Usize) : Result Std.U32 := do
   let i ← Slice.index_usize data off
@@ -369,7 +369,7 @@ def sha256.load_be32
   ok (i12 ||| i15)
 
 /-- [slhdsa::sha256::schedule]: loop body 0:
-    Source: 'src/sha256.rs', lines 32:4-35:5 -/
+    Source: 'src/sha256.rs', lines 33:4-36:5 -/
 @[rust_loop_body]
 def sha256.schedule_loop0.body
   (data : Slice Std.U8) (off : Std.Usize) (w : Array Std.U32 64#usize)
@@ -388,7 +388,7 @@ def sha256.schedule_loop0.body
   else ok (done (w, i))
 
 /-- [slhdsa::sha256::schedule]: loop 0:
-    Source: 'src/sha256.rs', lines 32:4-35:5 -/
+    Source: 'src/sha256.rs', lines 33:4-36:5 -/
 @[rust_loop]
 def sha256.schedule_loop0
   (data : Slice Std.U8) (off : Std.Usize) (w : Array Std.U32 64#usize)
@@ -400,7 +400,7 @@ def sha256.schedule_loop0
     (w, i)
 
 /-- [slhdsa::sha256::schedule]: loop body 1:
-    Source: 'src/sha256.rs', lines 36:4-43:5 -/
+    Source: 'src/sha256.rs', lines 37:4-44:5 -/
 @[rust_loop_body]
 def sha256.schedule_loop1.body
   (w : Array Std.U32 64#usize) (i : Std.Usize) :
@@ -436,7 +436,7 @@ def sha256.schedule_loop1.body
   else ok (done w)
 
 /-- [slhdsa::sha256::schedule]: loop 1:
-    Source: 'src/sha256.rs', lines 36:4-43:5 -/
+    Source: 'src/sha256.rs', lines 37:4-44:5 -/
 @[rust_loop]
 def sha256.schedule_loop1
   (w : Array Std.U32 64#usize) (i : Std.Usize) :
@@ -447,7 +447,7 @@ def sha256.schedule_loop1
     (w, i)
 
 /-- [slhdsa::sha256::schedule]:
-    Source: 'src/sha256.rs', lines 29:0-45:1 -/
+    Source: 'src/sha256.rs', lines 30:0-46:1 -/
 def sha256.schedule
   (data : Slice Std.U8) (off : Std.Usize) :
   Result (Array Std.U32 64#usize)
@@ -457,7 +457,7 @@ def sha256.schedule
   sha256.schedule_loop1 w1 i
 
 /-- [slhdsa::sha256::compress_portable]: loop body 0:
-    Source: 'src/sha256.rs', lines 76:4-92:5
+    Source: 'src/sha256.rs', lines 77:4-93:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.compress_portable_loop.body
@@ -503,7 +503,7 @@ def sha256.compress_portable_loop.body
   else ok (done (a, b, c, d, e, f, g, h))
 
 /-- [slhdsa::sha256::compress_portable]: loop 0:
-    Source: 'src/sha256.rs', lines 76:4-92:5
+    Source: 'src/sha256.rs', lines 77:4-93:5
     Visibility: public -/
 @[rust_loop]
 def sha256.compress_portable_loop
@@ -519,7 +519,7 @@ def sha256.compress_portable_loop
     (a, b, c, d, e, f, g, h, i)
 
 /-- [slhdsa::sha256::compress_portable]:
-    Source: 'src/sha256.rs', lines 65:0-103:1
+    Source: 'src/sha256.rs', lines 66:0-104:1
     Visibility: public -/
 def sha256.compress_portable
   (state : Array Std.U32 8#usize) (data : Slice Std.U8) (off : Std.Usize) :
@@ -555,7 +555,7 @@ def sha256.compress_portable
   ok (Array.make 8#usize [ i1, i3, i5, i7, i9, i11, i13, i15 ])
 
 /-- [slhdsa::sha256::compress]:
-    Source: 'src/sha256.rs', lines 53:0-61:1
+    Source: 'src/sha256.rs', lines 54:0-62:1
     Visibility: public -/
 def sha256.compress
   (state : Array Std.U32 8#usize) (data : Slice Std.U8) (off : Std.Usize) :
@@ -567,7 +567,7 @@ def sha256.compress
   | some out => ok out
 
 /-- [slhdsa::sha256::digest]: loop body 0:
-    Source: 'src/sha256.rs', lines 131:4-138:5
+    Source: 'src/sha256.rs', lines 132:4-139:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.digest_loop.body
@@ -599,7 +599,7 @@ def sha256.digest_loop.body
   else ok (done out)
 
 /-- [slhdsa::sha256::digest]: loop 0:
-    Source: 'src/sha256.rs', lines 131:4-138:5
+    Source: 'src/sha256.rs', lines 132:4-139:5
     Visibility: public -/
 @[rust_loop]
 def sha256.digest_loop
@@ -612,7 +612,7 @@ def sha256.digest_loop
     (out, i)
 
 /-- [slhdsa::sha256::digest]:
-    Source: 'src/sha256.rs', lines 128:0-140:1
+    Source: 'src/sha256.rs', lines 129:0-141:1
     Visibility: public -/
 def sha256.digest
   (state : Array Std.U32 8#usize) : Result (Array Std.U8 32#usize) := do
@@ -620,7 +620,7 @@ def sha256.digest
   sha256.digest_loop state out 0#usize
 
 /-- [slhdsa::hash::trunc]:
-    Source: 'src/hash.rs', lines 42:0-47:1
+    Source: 'src/hash.rs', lines 43:0-48:1
     Visibility: public -/
 def hash.trunc
   (st : Array Std.U32 8#usize) : Result (Array Std.U8 16#usize) := do
@@ -635,7 +635,7 @@ def hash.trunc
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::hash::short_block]:
-    Source: 'src/hash.rs', lines 28:0-38:1
+    Source: 'src/hash.rs', lines 29:0-39:1
     Visibility: public -/
 def hash.short_block
   (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -668,7 +668,7 @@ def hash.short_block
   Array.update blk4 63#usize i4
 
 /-- [slhdsa::hash::thash_short]:
-    Source: 'src/hash.rs', lines 138:0-142:1
+    Source: 'src/hash.rs', lines 139:0-143:1
     Visibility: public -/
 def hash.thash_short
   (seed : hash.Seed) (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -680,7 +680,7 @@ def hash.thash_short
   hash.trunc st
 
 /-- [slhdsa::xmss::hash2]:
-    Source: 'src/xmss.rs', lines 10:0-15:1
+    Source: 'src/xmss.rs', lines 11:0-16:1
     Visibility: public -/
 def xmss.hash2
   (seed : hash.Seed) (adrs : address.Adrs) (left : Array Std.U8 16#usize)
@@ -717,7 +717,7 @@ def xmss.hash2
 @[global_simps, irreducible] def params.LEN : Std.Usize := 35#usize
 
 /-- [slhdsa::sha256::hw::advanced]:
-    Source: 'src/sha256.rs', lines 709:4-711:5 -/
+    Source: 'src/sha256.rs', lines 720:4-722:5 -/
 def sha256.hw.advanced
   (slot : sha256.hw.Slot) (x : core.core_arch.arm_shared.neon.uint32x4_t)
   (steps : Std.U32) :
@@ -727,7 +727,7 @@ def sha256.hw.advanced
   ok { slot with x, t := i }
 
 /-- [slhdsa::sha256::hw::lane_step]:
-    Source: 'src/sha256.rs', lines 601:8-640:9 -/
+    Source: 'src/sha256.rs', lines 612:8-651:9 -/
 def sha256.hw.lane_step
   (L : Std.Usize) (J : Std.Usize) (LANE : Std.Usize)
   (abcd0 : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -880,7 +880,7 @@ def sha256.hw.lane_step
            ok { s1 with abcd := a1 }
 
 /-- [slhdsa::sha256::hw::lane_tick]:
-    Source: 'src/sha256.rs', lines 577:8-595:9 -/
+    Source: 'src/sha256.rs', lines 588:8-606:9 -/
 def sha256.hw.lane_tick
   (L : Std.Usize) (PHASE : Std.Usize) (J : Std.Usize) (LANE : Std.Usize)
   (abcd0 : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -906,7 +906,7 @@ def sha256.hw.lane_tick
   else ok s
 
 /-- [slhdsa::sha256::hw::tick]:
-    Source: 'src/sha256.rs', lines 643:8-648:9 -/
+    Source: 'src/sha256.rs', lines 654:8-659:9 -/
 def sha256.hw.tick
   (L : Std.Usize) (PHASE : Std.Usize) (J : Std.Usize)
   (abcd0 : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -919,7 +919,7 @@ def sha256.hw.tick
   sha256.hw.lane_tick L PHASE J 3#usize abcd0 slots p s3
 
 /-- [slhdsa::sha256::hw::period]:
-    Source: 'src/sha256.rs', lines 651:8-667:9 -/
+    Source: 'src/sha256.rs', lines 662:8-678:9 -/
 def sha256.hw.period
   (L : Std.Usize) (PHASE : Std.Usize)
   (abcd0 : core.core_arch.arm_shared.neon.uint32x4_t)
@@ -943,7 +943,7 @@ def sha256.hw.period
   sha256.hw.tick L PHASE 14#usize abcd0 slots p s14
 
 /-- [slhdsa::sha256::hw::run]: loop body 0:
-    Source: 'src/sha256.rs', lines 688:8-691:9 -/
+    Source: 'src/sha256.rs', lines 699:8-702:9 -/
 @[rust_loop_body]
 def sha256.hw.run_loop.body
   (L : Std.Usize) (slots : Array sha256.hw.Slot 4#usize) (steps : Std.U32)
@@ -960,7 +960,7 @@ def sha256.hw.run_loop.body
   else ok (done (s, p))
 
 /-- [slhdsa::sha256::hw::run]: loop 0:
-    Source: 'src/sha256.rs', lines 688:8-691:9 -/
+    Source: 'src/sha256.rs', lines 699:8-702:9 -/
 @[rust_loop]
 def sha256.hw.run_loop
   (L : Std.Usize) (slots : Array sha256.hw.Slot 4#usize) (steps : Std.U32)
@@ -973,7 +973,7 @@ def sha256.hw.run_loop
     (s, p)
 
 /-- [slhdsa::sha256::hw::run]:
-    Source: 'src/sha256.rs', lines 682:4-705:5 -/
+    Source: 'src/sha256.rs', lines 693:4-716:5 -/
 def sha256.hw.run
   (L : Std.Usize) (state : Array Std.U32 8#usize)
   (slots : Array sha256.hw.Slot 4#usize) (steps : Std.U32) :
@@ -1081,7 +1081,7 @@ def sha256.hw.run
         else ok slots
 
 /-- [slhdsa::sha256::hw::leave]:
-    Source: 'src/sha256.rs', lines 564:8-571:9 -/
+    Source: 'src/sha256.rs', lines 575:8-582:9 -/
 def sha256.hw.leave
   (slot : sha256.hw.Slot) (block : Array Std.U8 64#usize) :
   Result (Array Std.U8 64#usize)
@@ -1103,19 +1103,19 @@ def sha256.hw.leave
   ok (to_slice_mut_back s1)
 
 /-- [slhdsa::sha256::hw::MASK2]
-    Source: 'src/sha256.rs', lines 458:4-458:71 -/
+    Source: 'src/sha256.rs', lines 469:4-469:71 -/
 @[global_simps, irreducible]
 def sha256.hw.MASK2 : Array Std.U32 4#usize :=
   Array.make 4#usize [ 0#u32, 65535#u32, 4294967295#u32, 4294967295#u32 ]
 
 /-- [slhdsa::sha256::hw::MASK1]
-    Source: 'src/sha256.rs', lines 457:4-457:51 -/
+    Source: 'src/sha256.rs', lines 468:4-468:51 -/
 @[global_simps, irreducible]
 def sha256.hw.MASK1 : Array Std.U32 4#usize :=
   Array.make 4#usize [ 4294901760#u32, 0#u32, 0#u32, 0#u32 ]
 
 /-- [slhdsa::sha256::hw::enter]:
-    Source: 'src/sha256.rs', lines 534:8-559:9 -/
+    Source: 'src/sha256.rs', lines 545:8-570:9 -/
 def sha256.hw.enter
   (state : Array Std.U32 8#usize) (block : Array Std.U8 64#usize) (t : Std.U32)
   («end» : Std.U32) (lane : Std.Usize) (first : sha256.hw.First) :
@@ -1193,21 +1193,21 @@ def sha256.hw.enter
      }, { known := b, head := a, a1 := uxt, e1 := uxt1 })
 
 /-- [slhdsa::sha256::hw::{impl core::clone::Clone for slhdsa::sha256::hw::Slot}::clone]:
-    Source: 'src/sha256.rs', lines 416:13-416:18
+    Source: 'src/sha256.rs', lines 427:13-427:18
     Visibility: public -/
 def sha256.hw.Slot.Insts.CoreCloneClone.clone
   (self : sha256.hw.Slot) : Result sha256.hw.Slot := do
   ok self
 
 /-- Trait implementation: [slhdsa::sha256::hw::{impl core::clone::Clone for slhdsa::sha256::hw::Slot}]
-    Source: 'src/sha256.rs', lines 416:13-416:18 -/
+    Source: 'src/sha256.rs', lines 427:13-427:18 -/
 @[reducible]
 def sha256.hw.Slot.Insts.CoreCloneClone : core.clone.Clone sha256.hw.Slot := {
   clone := sha256.hw.Slot.Insts.CoreCloneClone.clone
 }
 
 /-- [slhdsa::sha256::hw::chain_all]: loop body 1:
-    Source: 'src/sha256.rs', lines 499:16-505:17 -/
+    Source: 'src/sha256.rs', lines 510:16-516:17 -/
 @[rust_loop_body]
 def sha256.hw.chain_all_loop0_loop0.body
   (slots : Array sha256.hw.Slot 4#usize) (n : Std.Usize) (r : Std.U32)
@@ -1226,7 +1226,7 @@ def sha256.hw.chain_all_loop0_loop0.body
   else ok (done r)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop 1:
-    Source: 'src/sha256.rs', lines 499:16-505:17 -/
+    Source: 'src/sha256.rs', lines 510:16-516:17 -/
 @[rust_loop]
 def sha256.hw.chain_all_loop0_loop0
   (slots : Array sha256.hw.Slot 4#usize) (n : Std.Usize) (r : Std.U32)
@@ -1238,7 +1238,7 @@ def sha256.hw.chain_all_loop0_loop0
     (r, j)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop body 2:
-    Source: 'src/sha256.rs', lines 518:16-526:17 -/
+    Source: 'src/sha256.rs', lines 529:16-537:17 -/
 @[rust_loop_body]
 def sha256.hw.chain_all_loop0_loop1.body
   (n : Std.Usize) (blocks : Slice (Array Std.U8 64#usize))
@@ -1265,7 +1265,7 @@ def sha256.hw.chain_all_loop0_loop1.body
   else ok (done (blocks, slots, k))
 
 /-- [slhdsa::sha256::hw::chain_all]: loop 2:
-    Source: 'src/sha256.rs', lines 518:16-526:17 -/
+    Source: 'src/sha256.rs', lines 529:16-537:17 -/
 @[rust_loop]
 def sha256.hw.chain_all_loop0_loop1
   (blocks : Slice (Array Std.U8 64#usize))
@@ -1280,7 +1280,7 @@ def sha256.hw.chain_all_loop0_loop1
     (blocks, slots, k, j)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop body 3:
-    Source: 'src/sha256.rs', lines 499:16-505:17 -/
+    Source: 'src/sha256.rs', lines 510:16-516:17 -/
 @[rust_loop_body]
 def sha256.hw.chain_all_loop0_loop2.body
   (slots : Array sha256.hw.Slot 4#usize) (n : Std.Usize) (r : Std.U32)
@@ -1299,7 +1299,7 @@ def sha256.hw.chain_all_loop0_loop2.body
   else ok (done r)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop 3:
-    Source: 'src/sha256.rs', lines 499:16-505:17 -/
+    Source: 'src/sha256.rs', lines 510:16-516:17 -/
 @[rust_loop]
 def sha256.hw.chain_all_loop0_loop2
   (slots : Array sha256.hw.Slot 4#usize) (n : Std.Usize) (r : Std.U32)
@@ -1311,7 +1311,7 @@ def sha256.hw.chain_all_loop0_loop2
     (r, j)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop body 4:
-    Source: 'src/sha256.rs', lines 518:16-526:17 -/
+    Source: 'src/sha256.rs', lines 529:16-537:17 -/
 @[rust_loop_body]
 def sha256.hw.chain_all_loop0_loop3.body
   (n : Std.Usize) (blocks : Slice (Array Std.U8 64#usize))
@@ -1338,7 +1338,7 @@ def sha256.hw.chain_all_loop0_loop3.body
   else ok (done (blocks, slots, k))
 
 /-- [slhdsa::sha256::hw::chain_all]: loop 4:
-    Source: 'src/sha256.rs', lines 518:16-526:17 -/
+    Source: 'src/sha256.rs', lines 529:16-537:17 -/
 @[rust_loop]
 def sha256.hw.chain_all_loop0_loop3
   (blocks : Slice (Array Std.U8 64#usize))
@@ -1353,7 +1353,7 @@ def sha256.hw.chain_all_loop0_loop3
     (blocks, slots, k, j)
 
 /-- [slhdsa::sha256::hw::chain_all]: loop body 0:
-    Source: 'src/sha256.rs', lines 484:12-528:13 -/
+    Source: 'src/sha256.rs', lines 495:12-539:13 -/
 @[rust_loop_body]
 def sha256.hw.chain_all_loop0.body
   (state : Array Std.U32 8#usize) (start : Slice Std.U32)
@@ -1425,7 +1425,7 @@ def sha256.hw.chain_all_loop0.body
       ok (cont (blocks1, slots2, first, k, next))
 
 /-- [slhdsa::sha256::hw::chain_all]: loop 0:
-    Source: 'src/sha256.rs', lines 484:12-528:13 -/
+    Source: 'src/sha256.rs', lines 495:12-539:13 -/
 @[rust_loop]
 def sha256.hw.chain_all_loop0
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
@@ -1440,7 +1440,7 @@ def sha256.hw.chain_all_loop0
     (blocks, slots, first, n, next)
 
 /-- [slhdsa::sha256::hw::chain_all]:
-    Source: 'src/sha256.rs', lines 478:8-529:9 -/
+    Source: 'src/sha256.rs', lines 489:8-540:9 -/
 def sha256.hw.chain_all
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
   (start : Slice Std.U32) («end» : Slice Std.U32) :
@@ -1466,7 +1466,7 @@ def sha256.hw.chain_all
     { known := false, head := a, a1 := z, e1 := z } 0#usize 0#usize
 
 /-- [slhdsa::sha256::hw::chain_blocks]:
-    Source: 'src/sha256.rs', lines 465:4-472:5
+    Source: 'src/sha256.rs', lines 476:4-483:5
     Visibility: public -/
 def sha256.hw.chain_blocks
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
@@ -1491,7 +1491,7 @@ def sha256.hw.chain_blocks
   else ok (false, blocks)
 
 /-- [slhdsa::hash::chain_blocks_portable]: loop body 1:
-    Source: 'src/hash.rs', lines 76:8-85:9
+    Source: 'src/hash.rs', lines 77:8-86:9
     Visibility: public -/
 @[rust_loop_body]
 def hash.chain_blocks_portable_loop0_loop0.body
@@ -1540,7 +1540,7 @@ def hash.chain_blocks_portable_loop0_loop0.body
   else ok (done blocks)
 
 /-- [slhdsa::hash::chain_blocks_portable]: loop 1:
-    Source: 'src/hash.rs', lines 76:8-85:9
+    Source: 'src/hash.rs', lines 77:8-86:9
     Visibility: public -/
 @[rust_loop]
 def hash.chain_blocks_portable_loop0_loop0
@@ -1554,7 +1554,7 @@ def hash.chain_blocks_portable_loop0_loop0
     (blocks, t)
 
 /-- [slhdsa::hash::chain_blocks_portable]: loop body 0:
-    Source: 'src/hash.rs', lines 74:4-87:5
+    Source: 'src/hash.rs', lines 75:4-88:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.chain_blocks_portable_loop0.body
@@ -1575,7 +1575,7 @@ def hash.chain_blocks_portable_loop0.body
   else ok (done blocks)
 
 /-- [slhdsa::hash::chain_blocks_portable]: loop 0:
-    Source: 'src/hash.rs', lines 74:4-87:5
+    Source: 'src/hash.rs', lines 75:4-88:5
     Visibility: public -/
 @[rust_loop]
 def hash.chain_blocks_portable_loop0
@@ -1589,7 +1589,7 @@ def hash.chain_blocks_portable_loop0
     (blocks, i)
 
 /-- [slhdsa::hash::chain_blocks_portable]:
-    Source: 'src/hash.rs', lines 72:0-88:1
+    Source: 'src/hash.rs', lines 73:0-89:1
     Visibility: public -/
 @[reducible]
 def hash.chain_blocks_portable
@@ -1600,7 +1600,7 @@ def hash.chain_blocks_portable
   hash.chain_blocks_portable_loop0 state blocks start «end» 0#usize
 
 /-- [slhdsa::hash::chain_blocks]:
-    Source: 'src/hash.rs', lines 60:0-68:1
+    Source: 'src/hash.rs', lines 61:0-69:1
     Visibility: public -/
 def hash.chain_blocks
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize))
@@ -1613,7 +1613,7 @@ def hash.chain_blocks
   else hash.chain_blocks_portable state blocks1 start «end»
 
 /-- [slhdsa::wots::sk_blocks]: loop body 0:
-    Source: 'src/wots.rs', lines 34:4-37:5 -/
+    Source: 'src/wots.rs', lines 35:4-38:5 -/
 @[rust_loop_body]
 def wots.sk_blocks_loop0.body
   (sk_seed : Array Std.U8 16#usize) (sk_adrs : address.Adrs)
@@ -1633,7 +1633,7 @@ def wots.sk_blocks_loop0.body
   else ok (done blocks)
 
 /-- [slhdsa::wots::sk_blocks]: loop 0:
-    Source: 'src/wots.rs', lines 34:4-37:5 -/
+    Source: 'src/wots.rs', lines 35:4-38:5 -/
 @[rust_loop]
 def wots.sk_blocks_loop0
   (sk_seed : Array Std.U8 16#usize) (sk_adrs : address.Adrs)
@@ -1645,7 +1645,7 @@ def wots.sk_blocks_loop0
     (blocks, i)
 
 /-- [slhdsa::wots::sk_blocks]: loop body 1:
-    Source: 'src/wots.rs', lines 40:4-43:5 -/
+    Source: 'src/wots.rs', lines 41:4-44:5 -/
 @[rust_loop_body]
 def wots.sk_blocks_loop1.body
   (i : Std.U32) (blocks : Array (Array Std.U8 64#usize) 35#usize)
@@ -1664,7 +1664,7 @@ def wots.sk_blocks_loop1.body
   else ok (done blocks)
 
 /-- [slhdsa::wots::sk_blocks]: loop 1:
-    Source: 'src/wots.rs', lines 40:4-43:5 -/
+    Source: 'src/wots.rs', lines 41:4-44:5 -/
 @[rust_loop]
 def wots.sk_blocks_loop1
   (i : Std.U32) (blocks : Array (Array Std.U8 64#usize) 35#usize)
@@ -1676,7 +1676,7 @@ def wots.sk_blocks_loop1
     (blocks, i1)
 
 /-- [slhdsa::wots::sk_blocks]:
-    Source: 'src/wots.rs', lines 30:0-45:1 -/
+    Source: 'src/wots.rs', lines 31:0-46:1 -/
 def wots.sk_blocks
   (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs) :
   Result (Array (Array Std.U8 64#usize) 35#usize)
@@ -1696,7 +1696,7 @@ def wots.sk_blocks
   wots.sk_blocks_loop1 adrs.typ blocks2 0#usize
 
 /-- [slhdsa::hash::thash_values]: loop body 0:
-    Source: 'src/hash.rs', lines 116:4-119:5
+    Source: 'src/hash.rs', lines 117:4-120:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.thash_values_loop0.body
@@ -1727,7 +1727,7 @@ def hash.thash_values_loop0.body
   else ok (done buf)
 
 /-- [slhdsa::hash::thash_values]: loop 0:
-    Source: 'src/hash.rs', lines 116:4-119:5
+    Source: 'src/hash.rs', lines 117:4-120:5
     Visibility: public -/
 @[rust_loop]
 def hash.thash_values_loop0
@@ -1740,7 +1740,7 @@ def hash.thash_values_loop0
     (buf, i)
 
 /-- [slhdsa::hash::thash_values]: loop body 1:
-    Source: 'src/hash.rs', lines 126:4-129:5
+    Source: 'src/hash.rs', lines 127:4-130:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.thash_values_loop1.body
@@ -1758,7 +1758,7 @@ def hash.thash_values_loop1.body
   else ok (done st)
 
 /-- [slhdsa::hash::thash_values]: loop 1:
-    Source: 'src/hash.rs', lines 126:4-129:5
+    Source: 'src/hash.rs', lines 127:4-130:5
     Visibility: public -/
 @[rust_loop]
 def hash.thash_values_loop1
@@ -1771,7 +1771,7 @@ def hash.thash_values_loop1
     (st, off)
 
 /-- [slhdsa::hash::thash_values]:
-    Source: 'src/hash.rs', lines 112:0-131:1
+    Source: 'src/hash.rs', lines 113:0-132:1
     Visibility: public -/
 def hash.thash_values
   (seed : hash.Seed) (adrs : address.Adrs)
@@ -1795,7 +1795,7 @@ def hash.thash_values
   hash.trunc st
 
 /-- [slhdsa::wots::wots_pk_gen]:
-    Source: 'src/wots.rs', lines 48:0-53:1
+    Source: 'src/wots.rs', lines 49:0-54:1
     Visibility: public -/
 def wots.wots_pk_gen
   (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs) :
@@ -1816,7 +1816,7 @@ def wots.wots_pk_gen
   hash.thash_values seed pk_adrs blocks1
 
 /-- [slhdsa::xmss::xmss_node]:
-    Source: 'src/xmss.rs', lines 18:0-27:1
+    Source: 'src/xmss.rs', lines 19:0-28:1
     Visibility: public -/
 def xmss.xmss_node
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32)
@@ -1851,7 +1851,7 @@ partial_fixpoint
 @[global_simps, irreducible] def params.HP : Std.U32 := 9#u32
 
 /-- [slhdsa::sha256::H0]
-    Source: 'src/sha256.rs', lines 17:0-19:2
+    Source: 'src/sha256.rs', lines 18:0-20:2
     Visibility: public -/
 @[global_simps, irreducible]
 def sha256.H0 : Array Std.U32 8#usize :=
@@ -1861,7 +1861,7 @@ def sha256.H0 : Array Std.U32 8#usize :=
     ]
 
 /-- [slhdsa::hash::seed_ctx]:
-    Source: 'src/hash.rs', lines 17:0-22:1
+    Source: 'src/hash.rs', lines 18:0-23:1
     Visibility: public -/
 def hash.seed_ctx (pk_seed : Array Std.U8 16#usize) : Result hash.Seed := do
   let blk := Array.repeat 64#usize 0#u8
@@ -1877,7 +1877,7 @@ def hash.seed_ctx (pk_seed : Array Std.U8 16#usize) : Result hash.Seed := do
   ok { pk_seed, state }
 
 /-- [slhdsa::slh::slh_keygen_internal]:
-    Source: 'src/slh.rs', lines 18:0-35:1
+    Source: 'src/slh.rs', lines 19:0-36:1
     Visibility: public -/
 def slh.slh_keygen_internal
   (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
@@ -1939,7 +1939,7 @@ def slh.slh_keygen_internal
   ok (sk4, pk2)
 
 /-- [slhdsa::api::keygen]:
-    Source: 'src/api.rs', lines 25:0-32:1
+    Source: 'src/api.rs', lines 26:0-33:1
     Visibility: public -/
 def api.keygen
   (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
@@ -1964,7 +1964,7 @@ def api.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::api::public_key]:
-    Source: 'src/api.rs', lines 36:0-40:1
+    Source: 'src/api.rs', lines 37:0-41:1
     Visibility: public -/
 def api.public_key
   (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
@@ -1980,7 +1980,7 @@ def api.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::slh::with_context]:
-    Source: 'src/slh.rs', lines 125:0-132:1 -/
+    Source: 'src/slh.rs', lines 126:0-133:1 -/
 def slh.with_context
   (m : Slice Std.U8) (ctx : Slice Std.U8) : Result (alloc.vec.Vec Std.U8) := do
   let mp ← alloc.vec.Vec.push (alloc.vec.Vec.new Std.U8) 0#u8
@@ -1991,7 +1991,7 @@ def slh.with_context
   alloc.vec.Vec.extend_from_slice core.clone.CloneU8 mp2 m
 
 /-- [slhdsa::util::to_int]: loop body 0:
-    Source: 'src/util.rs', lines 16:4-19:5
+    Source: 'src/util.rs', lines 17:4-20:5
     Visibility: public -/
 @[rust_loop_body]
 def util.to_int_loop.body
@@ -2010,7 +2010,7 @@ def util.to_int_loop.body
   else ok (done total)
 
 /-- [slhdsa::util::to_int]: loop 0:
-    Source: 'src/util.rs', lines 16:4-19:5
+    Source: 'src/util.rs', lines 17:4-20:5
     Visibility: public -/
 @[rust_loop]
 def util.to_int_loop
@@ -2020,7 +2020,7 @@ def util.to_int_loop
     (total, i)
 
 /-- [slhdsa::util::to_int]:
-    Source: 'src/util.rs', lines 13:0-21:1
+    Source: 'src/util.rs', lines 14:0-22:1
     Visibility: public -/
 @[reducible]
 def util.to_int (x : Slice Std.U8) : Result Std.U64 := do
@@ -2042,7 +2042,7 @@ def util.to_int (x : Slice Std.U8) : Result Std.U64 := do
 @[global_simps, irreducible] def params.MD_BYTES : Std.Usize := 21#usize
 
 /-- [slhdsa::slh::digest_leaf]:
-    Source: 'src/slh.rs', lines 43:0-45:1 -/
+    Source: 'src/slh.rs', lines 44:0-46:1 -/
 def slh.digest_leaf (digest : Slice Std.U8) : Result Std.U32 := do
   let i ← params.MD_BYTES + params.TREE_BYTES
   let i1 ← i + params.LEAF_BYTES
@@ -2056,7 +2056,7 @@ def slh.digest_leaf (digest : Slice Std.U8) : Result Std.U32 := do
   ok (UScalar.cast .U32 i5)
 
 /-- [slhdsa::slh::digest_tree]:
-    Source: 'src/slh.rs', lines 38:0-40:1 -/
+    Source: 'src/slh.rs', lines 39:0-41:1 -/
 def slh.digest_tree (digest : Slice Std.U8) : Result Std.U64 := do
   let i ← params.MD_BYTES + params.TREE_BYTES
   let s ←
@@ -2068,7 +2068,7 @@ def slh.digest_tree (digest : Slice Std.U8) : Result Std.U64 := do
   ok (i1 &&& i3)
 
 /-- [slhdsa::xmss::climb]: loop body 0:
-    Source: 'src/xmss.rs', lines 57:4-68:5
+    Source: 'src/xmss.rs', lines 58:4-69:5
     Visibility: public -/
 @[rust_loop_body]
 def xmss.climb_loop.body
@@ -2096,7 +2096,7 @@ def xmss.climb_loop.body
   else ok (done node)
 
 /-- [slhdsa::xmss::climb]: loop 0:
-    Source: 'src/xmss.rs', lines 57:4-68:5
+    Source: 'src/xmss.rs', lines 58:4-69:5
     Visibility: public -/
 @[rust_loop]
 def xmss.climb_loop
@@ -2111,7 +2111,7 @@ def xmss.climb_loop
     (node, index, k)
 
 /-- [slhdsa::xmss::climb]:
-    Source: 'src/xmss.rs', lines 45:0-70:1
+    Source: 'src/xmss.rs', lines 46:0-71:1
     Visibility: public -/
 @[reducible]
 def xmss.climb
@@ -2123,7 +2123,7 @@ def xmss.climb
   xmss.climb_loop auth first height seed adrs node idx 0#u32
 
 /-- [slhdsa::util::base_2b]: loop body 1:
-    Source: 'src/util.rs', lines 34:8-38:9
+    Source: 'src/util.rs', lines 35:8-39:9
     Visibility: public -/
 @[rust_loop_body]
 def util.base_2b_loop0_loop0.body
@@ -2144,7 +2144,7 @@ def util.base_2b_loop0_loop0.body
   else ok (done (input, bits, total))
 
 /-- [slhdsa::util::base_2b]: loop 1:
-    Source: 'src/util.rs', lines 34:8-38:9
+    Source: 'src/util.rs', lines 35:8-39:9
     Visibility: public -/
 @[rust_loop]
 def util.base_2b_loop0_loop0
@@ -2158,7 +2158,7 @@ def util.base_2b_loop0_loop0
     (input, bits, total)
 
 /-- [slhdsa::util::base_2b]: loop body 0:
-    Source: 'src/util.rs', lines 33:4-42:5
+    Source: 'src/util.rs', lines 34:4-43:5
     Visibility: public -/
 @[rust_loop_body]
 def util.base_2b_loop0.body
@@ -2183,7 +2183,7 @@ def util.base_2b_loop0.body
   else ok (done out)
 
 /-- [slhdsa::util::base_2b]: loop 0:
-    Source: 'src/util.rs', lines 33:4-42:5
+    Source: 'src/util.rs', lines 34:4-43:5
     Visibility: public -/
 @[rust_loop]
 def util.base_2b_loop0
@@ -2198,7 +2198,7 @@ def util.base_2b_loop0
     (input, bits, total, out, i)
 
 /-- [slhdsa::util::base_2b]:
-    Source: 'src/util.rs', lines 27:0-44:1
+    Source: 'src/util.rs', lines 28:0-45:1
     Visibility: public -/
 @[reducible]
 def util.base_2b
@@ -2224,7 +2224,7 @@ def util.base_2b
 @[global_simps, irreducible] def params.LG_W : Std.U32 := 4#u32
 
 /-- [slhdsa::wots::wots_digits]: loop body 0:
-    Source: 'src/wots.rs', lines 14:4-17:5
+    Source: 'src/wots.rs', lines 15:4-18:5
     Visibility: public -/
 @[rust_loop_body]
 def wots.wots_digits_loop.body
@@ -2243,7 +2243,7 @@ def wots.wots_digits_loop.body
   else ok (done csum)
 
 /-- [slhdsa::wots::wots_digits]: loop 0:
-    Source: 'src/wots.rs', lines 14:4-17:5
+    Source: 'src/wots.rs', lines 15:4-18:5
     Visibility: public -/
 @[rust_loop]
 def wots.wots_digits_loop
@@ -2255,7 +2255,7 @@ def wots.wots_digits_loop
     (csum, i)
 
 /-- [slhdsa::wots::wots_digits]:
-    Source: 'src/wots.rs', lines 10:0-23:1
+    Source: 'src/wots.rs', lines 11:0-24:1
     Visibility: public -/
 def wots.wots_digits
   (m : Array Std.U8 16#usize) : Result (alloc.vec.Vec Std.U32) := do
@@ -2272,7 +2272,7 @@ def wots.wots_digits
   alloc.vec.Vec.extend_from_slice core.clone.CloneU32 msg s2
 
 /-- [slhdsa::wots::wots_pk_from_sig]: loop body 0:
-    Source: 'src/wots.rs', lines 74:4-77:5
+    Source: 'src/wots.rs', lines 75:4-78:5
     Visibility: public -/
 @[rust_loop_body]
 def wots.wots_pk_from_sig_loop.body
@@ -2294,7 +2294,7 @@ def wots.wots_pk_from_sig_loop.body
   else ok (done blocks)
 
 /-- [slhdsa::wots::wots_pk_from_sig]: loop 0:
-    Source: 'src/wots.rs', lines 74:4-77:5
+    Source: 'src/wots.rs', lines 75:4-78:5
     Visibility: public -/
 @[rust_loop]
 def wots.wots_pk_from_sig_loop
@@ -2307,7 +2307,7 @@ def wots.wots_pk_from_sig_loop
     (blocks, i)
 
 /-- [slhdsa::wots::wots_pk_from_sig]:
-    Source: 'src/wots.rs', lines 70:0-81:1
+    Source: 'src/wots.rs', lines 71:0-82:1
     Visibility: public -/
 def wots.wots_pk_from_sig
   (sig : Slice Std.U8) (m : Array Std.U8 16#usize) (seed : hash.Seed)
@@ -2331,7 +2331,7 @@ def wots.wots_pk_from_sig
   hash.thash_values seed pk_adrs blocks2
 
 /-- [slhdsa::xmss::xmss_pk_from_sig]:
-    Source: 'src/xmss.rs', lines 73:0-76:1
+    Source: 'src/xmss.rs', lines 74:0-77:1
     Visibility: public -/
 def xmss.xmss_pk_from_sig
   (idx : Std.U32) (sig : Slice Std.U8) (m : Array Std.U8 16#usize)
@@ -2345,7 +2345,7 @@ def xmss.xmss_pk_from_sig
   xmss.climb node idx sig params.LEN params.HP seed a2
 
 /-- [slhdsa::wots::wots_sign]: loop body 0:
-    Source: 'src/wots.rs', lines 62:4-65:5
+    Source: 'src/wots.rs', lines 63:4-66:5
     Visibility: public -/
 @[rust_loop_body]
 def wots.wots_sign_loop.body
@@ -2367,7 +2367,7 @@ def wots.wots_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::wots::wots_sign]: loop 0:
-    Source: 'src/wots.rs', lines 62:4-65:5
+    Source: 'src/wots.rs', lines 63:4-66:5
     Visibility: public -/
 @[rust_loop]
 def wots.wots_sign_loop
@@ -2380,7 +2380,7 @@ def wots.wots_sign_loop
     (sig, i)
 
 /-- [slhdsa::wots::wots_sign]:
-    Source: 'src/wots.rs', lines 56:0-67:1
+    Source: 'src/wots.rs', lines 57:0-68:1
     Visibility: public -/
 def wots.wots_sign
   (m : Array Std.U8 16#usize) (sk_seed : Array Std.U8 16#usize)
@@ -2398,7 +2398,7 @@ def wots.wots_sign
   wots.wots_sign_loop blocks1 (alloc.vec.Vec.new Std.U8) 0#usize
 
 /-- [slhdsa::xmss::xmss_sign]: loop body 0:
-    Source: 'src/xmss.rs', lines 33:4-38:5
+    Source: 'src/xmss.rs', lines 34:4-39:5
     Visibility: public -/
 @[rust_loop_body]
 def xmss.xmss_sign_loop.body
@@ -2419,7 +2419,7 @@ def xmss.xmss_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::xmss::xmss_sign]: loop 0:
-    Source: 'src/xmss.rs', lines 33:4-38:5
+    Source: 'src/xmss.rs', lines 34:4-39:5
     Visibility: public -/
 @[rust_loop]
 def xmss.xmss_sign_loop
@@ -2432,7 +2432,7 @@ def xmss.xmss_sign_loop
     (sig, j)
 
 /-- [slhdsa::xmss::xmss_sign]:
-    Source: 'src/xmss.rs', lines 30:0-40:1
+    Source: 'src/xmss.rs', lines 31:0-41:1
     Visibility: public -/
 def xmss.xmss_sign
   (m : Array Std.U8 16#usize) (sk_seed : Array Std.U8 16#usize) (idx : Std.U32)
@@ -2445,7 +2445,7 @@ def xmss.xmss_sign
   xmss.xmss_sign_loop sk_seed idx seed adrs sig 0#u32
 
 /-- [slhdsa::ht::ht_sign]: loop body 0:
-    Source: 'src/ht.rs', lines 15:4-23:5
+    Source: 'src/ht.rs', lines 16:4-24:5
     Visibility: public -/
 @[rust_loop_body]
 def ht.ht_sign_loop.body
@@ -2475,7 +2475,7 @@ def ht.ht_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::ht::ht_sign]: loop 0:
-    Source: 'src/ht.rs', lines 15:4-23:5
+    Source: 'src/ht.rs', lines 16:4-24:5
     Visibility: public -/
 @[rust_loop]
 def ht.ht_sign_loop
@@ -2490,7 +2490,7 @@ def ht.ht_sign_loop
     (sig, root, tree, leaf, j)
 
 /-- [slhdsa::ht::ht_sign]:
-    Source: 'src/ht.rs', lines 9:0-25:1
+    Source: 'src/ht.rs', lines 10:0-26:1
     Visibility: public -/
 @[reducible]
 def ht.ht_sign
@@ -2502,7 +2502,7 @@ def ht.ht_sign
     0#u32
 
 /-- [slhdsa::sha256::pad]: loop body 0:
-    Source: 'src/sha256.rs', lines 112:4-114:5 -/
+    Source: 'src/sha256.rs', lines 113:4-115:5 -/
 @[rust_loop_body]
 def sha256.pad_loop.body
   (p : alloc.vec.Vec Std.U8) :
@@ -2516,7 +2516,7 @@ def sha256.pad_loop.body
   else ok (done p)
 
 /-- [slhdsa::sha256::pad]: loop 0:
-    Source: 'src/sha256.rs', lines 112:4-114:5 -/
+    Source: 'src/sha256.rs', lines 113:4-115:5 -/
 @[rust_loop]
 def sha256.pad_loop
   (p : alloc.vec.Vec Std.U8) : Result (alloc.vec.Vec Std.U8) := do
@@ -2525,7 +2525,7 @@ def sha256.pad_loop
     p
 
 /-- [slhdsa::sha256::pad]:
-    Source: 'src/sha256.rs', lines 108:0-125:1 -/
+    Source: 'src/sha256.rs', lines 109:0-126:1 -/
 def sha256.pad
   (msg : Slice Std.U8) (pre : Std.Usize) : Result (alloc.vec.Vec Std.U8) := do
   let p ←
@@ -2562,7 +2562,7 @@ def sha256.pad
   alloc.vec.Vec.push p9 i17
 
 /-- [slhdsa::sha256::sha256_from]: loop body 0:
-    Source: 'src/sha256.rs', lines 150:4-153:5
+    Source: 'src/sha256.rs', lines 151:4-154:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.sha256_from_loop0.body
@@ -2578,7 +2578,7 @@ def sha256.sha256_from_loop0.body
   else ok (done (st, off))
 
 /-- [slhdsa::sha256::sha256_from]: loop 0:
-    Source: 'src/sha256.rs', lines 150:4-153:5
+    Source: 'src/sha256.rs', lines 151:4-154:5
     Visibility: public -/
 @[rust_loop]
 def sha256.sha256_from_loop0
@@ -2590,7 +2590,7 @@ def sha256.sha256_from_loop0
     (st, off)
 
 /-- [slhdsa::sha256::sha256_from]: loop body 1:
-    Source: 'src/sha256.rs', lines 156:4-159:5
+    Source: 'src/sha256.rs', lines 157:4-160:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.sha256_from_loop1.body
@@ -2608,7 +2608,7 @@ def sha256.sha256_from_loop1.body
   else ok (done st)
 
 /-- [slhdsa::sha256::sha256_from]: loop 1:
-    Source: 'src/sha256.rs', lines 156:4-159:5
+    Source: 'src/sha256.rs', lines 157:4-160:5
     Visibility: public -/
 @[rust_loop]
 def sha256.sha256_from_loop1
@@ -2620,7 +2620,7 @@ def sha256.sha256_from_loop1
     (st, o)
 
 /-- [slhdsa::sha256::sha256_from]:
-    Source: 'src/sha256.rs', lines 147:0-161:1
+    Source: 'src/sha256.rs', lines 148:0-162:1
     Visibility: public -/
 def sha256.sha256_from
   (state : Array Std.U32 8#usize) (pre : Std.Usize) (msg : Slice Std.U8) :
@@ -2637,7 +2637,7 @@ def sha256.sha256_from
   sha256.digest st1
 
 /-- [slhdsa::sha256::sha256]:
-    Source: 'src/sha256.rs', lines 163:0-165:1
+    Source: 'src/sha256.rs', lines 164:0-166:1
     Visibility: public -/
 def sha256.sha256 (msg : Slice Std.U8) : Result (Array Std.U8 32#usize) := do
   sha256.sha256_from sha256.H0 0#usize msg
@@ -2648,7 +2648,7 @@ def sha256.sha256 (msg : Slice Std.U8) : Result (Array Std.U8 32#usize) := do
 @[global_simps, irreducible] def params.M : Std.Usize := 30#usize
 
 /-- [slhdsa::hash::h_msg_inner]:
-    Source: 'src/hash.rs', lines 188:0-205:1 -/
+    Source: 'src/hash.rs', lines 189:0-206:1 -/
 def hash.h_msg_inner
   (r : Array Std.U8 16#usize) (pk_seed : Array Std.U8 16#usize)
   (pk_root : Array Std.U8 16#usize) (m : Slice Std.U8) :
@@ -2712,7 +2712,7 @@ def hash.h_msg_inner
     sha256.sha256 s3
 
 /-- [slhdsa::hash::h_msg]:
-    Source: 'src/hash.rs', lines 211:0-222:1
+    Source: 'src/hash.rs', lines 212:0-223:1
     Visibility: public -/
 def hash.h_msg
   (r : Array Std.U8 16#usize) (pk_seed : Array Std.U8 16#usize)
@@ -2743,7 +2743,7 @@ def hash.h_msg
   ok (to_slice_mut_back s7)
 
 /-- [slhdsa::hash::prf_msg]: loop body 0:
-    Source: 'src/hash.rs', lines 166:4-170:5
+    Source: 'src/hash.rs', lines 167:4-171:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.prf_msg_loop.body
@@ -2764,7 +2764,7 @@ def hash.prf_msg_loop.body
   else ok (done (ipad, opad))
 
 /-- [slhdsa::hash::prf_msg]: loop 0:
-    Source: 'src/hash.rs', lines 166:4-170:5
+    Source: 'src/hash.rs', lines 167:4-171:5
     Visibility: public -/
 @[rust_loop]
 def hash.prf_msg_loop
@@ -2777,7 +2777,7 @@ def hash.prf_msg_loop
     (ipad, opad, i)
 
 /-- [slhdsa::hash::prf_msg]:
-    Source: 'src/hash.rs', lines 162:0-181:1
+    Source: 'src/hash.rs', lines 163:0-182:1
     Visibility: public -/
 def hash.prf_msg
   (sk_prf : Array Std.U8 16#usize) (opt_rand : Array Std.U8 16#usize)
@@ -2820,7 +2820,7 @@ def hash.prf_msg
 @[global_simps, irreducible] def params.A : Std.U32 := 12#u32
 
 /-- [slhdsa::hash::thash]:
-    Source: 'src/hash.rs', lines 147:0-155:1
+    Source: 'src/hash.rs', lines 148:0-156:1
     Visibility: public -/
 def hash.thash
   (seed : hash.Seed) (adrs : address.Adrs) (m : Slice Std.U8) :
@@ -2844,7 +2844,7 @@ def hash.thash
   ok (to_slice_mut_back s4)
 
 /-- [slhdsa::hash::value]:
-    Source: 'src/hash.rs', lines 101:0-105:1
+    Source: 'src/hash.rs', lines 102:0-106:1
     Visibility: public -/
 def hash.value
   (block : Array Std.U8 64#usize) : Result (Array Std.U8 16#usize) := do
@@ -2858,7 +2858,7 @@ def hash.value
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::hash::pair_block]:
-    Source: 'src/hash.rs', lines 92:0-97:1
+    Source: 'src/hash.rs', lines 93:0-98:1
     Visibility: public -/
 def hash.pair_block
   (adrs : address.Adrs) (left : Array Std.U8 16#usize)
@@ -2885,7 +2885,7 @@ def hash.pair_block
   hash.short_block adrs s6
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 0:
-    Source: 'src/fors.rs', lines 120:4-127:5
+    Source: 'src/fors.rs', lines 121:4-128:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop0.body
@@ -2924,7 +2924,7 @@ def fors.fors_pk_from_sig_loop0.body
   else ok (done (blocks, idx, «end»))
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 0:
-    Source: 'src/fors.rs', lines 120:4-127:5
+    Source: 'src/fors.rs', lines 121:4-128:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop0
@@ -2941,7 +2941,7 @@ def fors.fors_pk_from_sig_loop0
     (blocks, idx, «end», i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 1:
-    Source: 'src/fors.rs', lines 131:4-134:5
+    Source: 'src/fors.rs', lines 132:4-135:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop1.body
@@ -2961,7 +2961,7 @@ def fors.fors_pk_from_sig_loop1.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 1:
-    Source: 'src/fors.rs', lines 131:4-134:5
+    Source: 'src/fors.rs', lines 132:4-135:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop1
@@ -2974,7 +2974,7 @@ def fors.fors_pk_from_sig_loop1
     (vals, i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 3:
-    Source: 'src/fors.rs', lines 138:8-150:9
+    Source: 'src/fors.rs', lines 139:8-151:9
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop2_loop0.body
@@ -3024,7 +3024,7 @@ def fors.fors_pk_from_sig_loop2_loop0.body
   else ok (done (blocks, idx, «end»))
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 3:
-    Source: 'src/fors.rs', lines 138:8-150:9
+    Source: 'src/fors.rs', lines 139:8-151:9
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop2_loop0
@@ -3042,7 +3042,7 @@ def fors.fors_pk_from_sig_loop2_loop0
     (blocks, idx, «end», i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 4:
-    Source: 'src/fors.rs', lines 153:8-156:9
+    Source: 'src/fors.rs', lines 154:8-157:9
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop2_loop1.body
@@ -3062,7 +3062,7 @@ def fors.fors_pk_from_sig_loop2_loop1.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 4:
-    Source: 'src/fors.rs', lines 153:8-156:9
+    Source: 'src/fors.rs', lines 154:8-157:9
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop2_loop1
@@ -3075,7 +3075,7 @@ def fors.fors_pk_from_sig_loop2_loop1
     (vals, i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 2:
-    Source: 'src/fors.rs', lines 136:4-158:5
+    Source: 'src/fors.rs', lines 137:4-159:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop2.body
@@ -3103,7 +3103,7 @@ def fors.fors_pk_from_sig_loop2.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 2:
-    Source: 'src/fors.rs', lines 136:4-158:5
+    Source: 'src/fors.rs', lines 137:4-159:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop2
@@ -3119,7 +3119,7 @@ def fors.fors_pk_from_sig_loop2
     (blocks, idx, «end», vals, k)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop body 5:
-    Source: 'src/fors.rs', lines 161:4-164:5
+    Source: 'src/fors.rs', lines 162:4-165:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_from_sig_loop3.body
@@ -3139,7 +3139,7 @@ def fors.fors_pk_from_sig_loop3.body
   else ok (done roots)
 
 /-- [slhdsa::fors::fors_pk_from_sig]: loop 5:
-    Source: 'src/fors.rs', lines 161:4-164:5
+    Source: 'src/fors.rs', lines 162:4-165:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_from_sig_loop3
@@ -3152,7 +3152,7 @@ def fors.fors_pk_from_sig_loop3
     (roots, i)
 
 /-- [slhdsa::fors::fors_pk_from_sig]:
-    Source: 'src/fors.rs', lines 114:0-167:1
+    Source: 'src/fors.rs', lines 115:0-168:1
     Visibility: public -/
 def fors.fors_pk_from_sig
   (sig : Slice Std.U8) (md : Slice Std.U8) (seed : hash.Seed)
@@ -3186,7 +3186,7 @@ def fors.fors_pk_from_sig
   hash.thash seed pk_adrs s4
 
 /-- [slhdsa::fors::fors_batch]: loop body 0:
-    Source: 'src/fors.rs', lines 34:4-40:5 -/
+    Source: 'src/fors.rs', lines 35:4-41:5 -/
 @[rust_loop_body]
 def fors.fors_batch_loop0.body
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32) (n : Std.Usize)
@@ -3215,7 +3215,7 @@ def fors.fors_batch_loop0.body
   else ok (done (blocks, start, «end»))
 
 /-- [slhdsa::fors::fors_batch]: loop 0:
-    Source: 'src/fors.rs', lines 34:4-40:5 -/
+    Source: 'src/fors.rs', lines 35:4-41:5 -/
 @[rust_loop]
 def fors.fors_batch_loop0
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32) (n : Std.Usize)
@@ -3231,7 +3231,7 @@ def fors.fors_batch_loop0
     (blocks, start, «end», j)
 
 /-- [slhdsa::fors::fors_batch]: loop body 1:
-    Source: 'src/fors.rs', lines 43:4-46:5 -/
+    Source: 'src/fors.rs', lines 44:4-47:5 -/
 @[rust_loop_body]
 def fors.fors_batch_loop1.body
   (i : Std.U32) (n : Std.Usize)
@@ -3250,7 +3250,7 @@ def fors.fors_batch_loop1.body
   else ok (done blocks)
 
 /-- [slhdsa::fors::fors_batch]: loop 1:
-    Source: 'src/fors.rs', lines 43:4-46:5 -/
+    Source: 'src/fors.rs', lines 44:4-47:5 -/
 @[rust_loop]
 def fors.fors_batch_loop1
   (i : Std.U32) (n : Std.Usize)
@@ -3262,7 +3262,7 @@ def fors.fors_batch_loop1
     (blocks, j)
 
 /-- [slhdsa::fors::fors_batch]: loop body 2:
-    Source: 'src/fors.rs', lines 50:4-53:5 -/
+    Source: 'src/fors.rs', lines 51:4-54:5 -/
 @[rust_loop_body]
 def fors.fors_batch_loop2.body
   (n : Std.Usize) (blocks : Array (Array Std.U8 64#usize) 128#usize)
@@ -3280,7 +3280,7 @@ def fors.fors_batch_loop2.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_batch]: loop 2:
-    Source: 'src/fors.rs', lines 50:4-53:5 -/
+    Source: 'src/fors.rs', lines 51:4-54:5 -/
 @[rust_loop]
 def fors.fors_batch_loop2
   (n : Std.Usize) (blocks : Array (Array Std.U8 64#usize) 128#usize)
@@ -3292,7 +3292,7 @@ def fors.fors_batch_loop2
     (vals, j)
 
 /-- [slhdsa::fors::fors_batch]: loop body 4:
-    Source: 'src/fors.rs', lines 58:8-64:9 -/
+    Source: 'src/fors.rs', lines 59:8-65:9 -/
 @[rust_loop_body]
 def fors.fors_batch_loop3_loop0.body
   (i : Std.U32) (z : Std.U32) (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32)
@@ -3337,7 +3337,7 @@ def fors.fors_batch_loop3_loop0.body
   else ok (done (blocks, start, «end»))
 
 /-- [slhdsa::fors::fors_batch]: loop 4:
-    Source: 'src/fors.rs', lines 58:8-64:9 -/
+    Source: 'src/fors.rs', lines 59:8-65:9 -/
 @[rust_loop]
 def fors.fors_batch_loop3_loop0
   (i : Std.U32) (z : Std.U32) (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32)
@@ -3355,7 +3355,7 @@ def fors.fors_batch_loop3_loop0
     (blocks, start, «end», j)
 
 /-- [slhdsa::fors::fors_batch]: loop body 5:
-    Source: 'src/fors.rs', lines 67:8-70:9 -/
+    Source: 'src/fors.rs', lines 68:8-71:9 -/
 @[rust_loop_body]
 def fors.fors_batch_loop3_loop1.body
   (blocks : Array (Array Std.U8 64#usize) 128#usize) (cnt : Std.Usize)
@@ -3373,7 +3373,7 @@ def fors.fors_batch_loop3_loop1.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_batch]: loop 5:
-    Source: 'src/fors.rs', lines 67:8-70:9 -/
+    Source: 'src/fors.rs', lines 68:8-71:9 -/
 @[rust_loop]
 def fors.fors_batch_loop3_loop1
   (blocks : Array (Array Std.U8 64#usize) 128#usize)
@@ -3386,7 +3386,7 @@ def fors.fors_batch_loop3_loop1
     (vals, j)
 
 /-- [slhdsa::fors::fors_batch]: loop body 3:
-    Source: 'src/fors.rs', lines 56:4-73:5 -/
+    Source: 'src/fors.rs', lines 57:4-74:5 -/
 @[rust_loop_body]
 def fors.fors_batch_loop3.body
   (i : Std.U32) (z : Std.U32) (a : Array Std.U32 8#usize) (i1 : Std.U32)
@@ -3420,7 +3420,7 @@ def fors.fors_batch_loop3.body
   else ok (done vals)
 
 /-- [slhdsa::fors::fors_batch]: loop 3:
-    Source: 'src/fors.rs', lines 56:4-73:5 -/
+    Source: 'src/fors.rs', lines 57:4-74:5 -/
 @[rust_loop]
 def fors.fors_batch_loop3
   (i : Std.U32) (z : Std.U32) (a : Array Std.U32 8#usize) (i1 : Std.U32)
@@ -3438,7 +3438,7 @@ def fors.fors_batch_loop3
     (blocks, start, «end», vals, lvl, cnt)
 
 /-- [slhdsa::fors::fors_batch]:
-    Source: 'src/fors.rs', lines 27:0-75:1 -/
+    Source: 'src/fors.rs', lines 28:0-76:1 -/
 def fors.fors_batch
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32)
   (seed : hash.Seed) (adrs : address.Adrs) :
@@ -3480,11 +3480,11 @@ def fors.fors_batch
   Array.index_usize vals2 0#usize
 
 /-- [slhdsa::fors::BATCH_HEIGHT]
-    Source: 'src/fors.rs', lines 16:0-16:28 -/
+    Source: 'src/fors.rs', lines 17:0-17:28 -/
 @[global_simps, irreducible] def fors.BATCH_HEIGHT : Std.U32 := 7#u32
 
 /-- [slhdsa::fors::fors_node]:
-    Source: 'src/fors.rs', lines 78:0-86:1
+    Source: 'src/fors.rs', lines 79:0-87:1
     Visibility: public -/
 def fors.fors_node
   (sk_seed : Array Std.U8 16#usize) (i : Std.U32) (z : Std.U32)
@@ -3505,7 +3505,7 @@ def fors.fors_node
 partial_fixpoint
 
 /-- [slhdsa::fors::fors_sk_gen]:
-    Source: 'src/fors.rs', lines 10:0-13:1
+    Source: 'src/fors.rs', lines 11:0-14:1
     Visibility: public -/
 def fors.fors_sk_gen
   (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs)
@@ -3519,7 +3519,7 @@ def fors.fors_sk_gen
   hash.thash_short seed sk_adrs s
 
 /-- [slhdsa::fors::fors_sign]: loop body 1:
-    Source: 'src/fors.rs', lines 98:8-103:9
+    Source: 'src/fors.rs', lines 99:8-104:9
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_sign_loop0_loop0.body
@@ -3543,7 +3543,7 @@ def fors.fors_sign_loop0_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::fors::fors_sign]: loop 1:
-    Source: 'src/fors.rs', lines 98:8-103:9
+    Source: 'src/fors.rs', lines 99:8-104:9
     Visibility: public -/
 @[rust_loop]
 def fors.fors_sign_loop0_loop0
@@ -3557,7 +3557,7 @@ def fors.fors_sign_loop0_loop0
     (sig, j)
 
 /-- [slhdsa::fors::fors_sign]: loop body 0:
-    Source: 'src/fors.rs', lines 93:4-105:5
+    Source: 'src/fors.rs', lines 94:4-106:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_sign_loop0.body
@@ -3584,7 +3584,7 @@ def fors.fors_sign_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::fors::fors_sign]: loop 0:
-    Source: 'src/fors.rs', lines 93:4-105:5
+    Source: 'src/fors.rs', lines 94:4-106:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_sign_loop0
@@ -3599,7 +3599,7 @@ def fors.fors_sign_loop0
     (sig, i)
 
 /-- [slhdsa::fors::fors_sign]:
-    Source: 'src/fors.rs', lines 89:0-107:1
+    Source: 'src/fors.rs', lines 90:0-108:1
     Visibility: public -/
 def fors.fors_sign
   (md : Slice Std.U8) (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed)
@@ -3612,7 +3612,7 @@ def fors.fors_sign
     0#u32
 
 /-- [slhdsa::slh::slh_sign_internal]:
-    Source: 'src/slh.rs', lines 50:0-69:1
+    Source: 'src/slh.rs', lines 51:0-70:1
     Visibility: public -/
 def slh.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3656,7 +3656,7 @@ def slh.slh_sign_internal
   alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s10
 
 /-- [slhdsa::slh::slh_sign]:
-    Source: 'src/slh.rs', lines 136:0-142:1
+    Source: 'src/slh.rs', lines 137:0-143:1
     Visibility: public -/
 def slh.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3673,7 +3673,7 @@ def slh.slh_sign
     ok (some v)
 
 /-- [slhdsa::api::sign]:
-    Source: 'src/api.rs', lines 44:0-46:1
+    Source: 'src/api.rs', lines 45:0-47:1
     Visibility: public -/
 def api.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3683,7 +3683,7 @@ def api.sign
   slh.slh_sign m ctx sk addrnd
 
 /-- [slhdsa::api::sign_deterministic]:
-    Source: 'src/api.rs', lines 50:0-53:1
+    Source: 'src/api.rs', lines 51:0-54:1
     Visibility: public -/
 def api.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -3694,7 +3694,7 @@ def api.sign_deterministic
   slh.slh_sign m ctx sk pk_seed
 
 /-- [slhdsa::ht::ht_sign_checked]: loop body 0:
-    Source: 'src/ht.rs', lines 64:4-78:5
+    Source: 'src/ht.rs', lines 65:4-79:5
     Visibility: public -/
 @[rust_loop_body]
 def ht.ht_sign_checked_loop.body
@@ -3735,7 +3735,7 @@ def ht.ht_sign_checked_loop.body
   else ok (done (sig, ok1))
 
 /-- [slhdsa::ht::ht_sign_checked]: loop 0:
-    Source: 'src/ht.rs', lines 64:4-78:5
+    Source: 'src/ht.rs', lines 65:4-79:5
     Visibility: public -/
 @[rust_loop]
 def ht.ht_sign_checked_loop
@@ -3752,7 +3752,7 @@ def ht.ht_sign_checked_loop
     (sig, msg_a, msg_b, ok1, tree, leaf, j)
 
 /-- [slhdsa::ht::ht_sign_checked]:
-    Source: 'src/ht.rs', lines 45:0-80:1
+    Source: 'src/ht.rs', lines 46:0-81:1
     Visibility: public -/
 def ht.ht_sign_checked
   (m_a : Array Std.U8 16#usize) (m_b : Array Std.U8 16#usize)
@@ -3768,7 +3768,7 @@ def ht.ht_sign_checked
     m_b ok1 idx_tree idx_leaf 0#u32
 
 /-- [slhdsa::fors::fors_pk_gen]: loop body 0:
-    Source: 'src/fors.rs', lines 177:4-181:5
+    Source: 'src/fors.rs', lines 178:4-182:5
     Visibility: public -/
 @[rust_loop_body]
 def fors.fors_pk_gen_loop.body
@@ -3787,7 +3787,7 @@ def fors.fors_pk_gen_loop.body
   else ok (done roots)
 
 /-- [slhdsa::fors::fors_pk_gen]: loop 0:
-    Source: 'src/fors.rs', lines 177:4-181:5
+    Source: 'src/fors.rs', lines 178:4-182:5
     Visibility: public -/
 @[rust_loop]
 def fors.fors_pk_gen_loop
@@ -3801,7 +3801,7 @@ def fors.fors_pk_gen_loop
     (roots, i)
 
 /-- [slhdsa::fors::fors_pk_gen]:
-    Source: 'src/fors.rs', lines 174:0-184:1
+    Source: 'src/fors.rs', lines 175:0-185:1
     Visibility: public -/
 def fors.fors_pk_gen
   (sk_seed : Array Std.U8 16#usize) (seed : hash.Seed) (adrs : address.Adrs) :
@@ -3815,7 +3815,7 @@ def fors.fors_pk_gen
   hash.thash seed pk_adrs s
 
 /-- [slhdsa::slh::slh_sign_internal_checked]:
-    Source: 'src/slh.rs', lines 81:0-105:1
+    Source: 'src/slh.rs', lines 82:0-106:1
     Visibility: public -/
 def slh.slh_sign_internal_checked
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3866,7 +3866,7 @@ def slh.slh_sign_internal_checked
   else ok none
 
 /-- [slhdsa::slh::slh_sign_checked]:
-    Source: 'src/slh.rs', lines 147:0-153:1
+    Source: 'src/slh.rs', lines 148:0-154:1
     Visibility: public -/
 def slh.slh_sign_checked
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3882,7 +3882,7 @@ def slh.slh_sign_checked
     slh.slh_sign_internal_checked s sk addrnd
 
 /-- [slhdsa::api::sign_checked]:
-    Source: 'src/api.rs', lines 58:0-60:1
+    Source: 'src/api.rs', lines 59:0-61:1
     Visibility: public -/
 def api.sign_checked
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -3892,7 +3892,7 @@ def api.sign_checked
   slh.slh_sign_checked m ctx sk addrnd
 
 /-- [slhdsa::api::sign_deterministic_checked]:
-    Source: 'src/api.rs', lines 63:0-66:1
+    Source: 'src/api.rs', lines 64:0-67:1
     Visibility: public -/
 def api.sign_deterministic_checked
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -3919,7 +3919,7 @@ def params.FORS_SIG_BYTES : Std.Usize := 2912#usize
 @[global_simps, irreducible] def params.XMSS_SIG_BYTES : Std.Usize := 704#usize
 
 /-- [slhdsa::ht::ht_verify]: loop body 0:
-    Source: 'src/ht.rs', lines 95:4-102:5
+    Source: 'src/ht.rs', lines 96:4-103:5
     Visibility: public -/
 @[rust_loop_body]
 def ht.ht_verify_loop.body
@@ -3950,7 +3950,7 @@ def ht.ht_verify_loop.body
   else ok (done node)
 
 /-- [slhdsa::ht::ht_verify]: loop 0:
-    Source: 'src/ht.rs', lines 95:4-102:5
+    Source: 'src/ht.rs', lines 96:4-103:5
     Visibility: public -/
 @[rust_loop]
 def ht.ht_verify_loop
@@ -3964,7 +3964,7 @@ def ht.ht_verify_loop
     (node, tree, leaf, j)
 
 /-- [slhdsa::ht::ht_verify]:
-    Source: 'src/ht.rs', lines 83:0-104:1
+    Source: 'src/ht.rs', lines 84:0-105:1
     Visibility: public -/
 def ht.ht_verify
   (m : Array Std.U8 16#usize) (sig : Slice Std.U8) (seed : hash.Seed)
@@ -3975,7 +3975,7 @@ def ht.ht_verify
   core.array.equality.PartialEqArray.eq core.cmp.PartialEqU8 node pk_root
 
 /-- [slhdsa::slh::slh_verify_internal]:
-    Source: 'src/slh.rs', lines 108:0-122:1
+    Source: 'src/slh.rs', lines 109:0-123:1
     Visibility: public -/
 def slh.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
@@ -4015,7 +4015,7 @@ def slh.slh_verify_internal
     ht.ht_verify pk_fors s6 seed idx_tree idx_leaf pk_root
 
 /-- [slhdsa::slh::slh_verify]:
-    Source: 'src/slh.rs', lines 156:0-162:1
+    Source: 'src/slh.rs', lines 157:0-163:1
     Visibility: public -/
 def slh.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4031,7 +4031,7 @@ def slh.slh_verify
     slh.slh_verify_internal s sig pk
 
 /-- [slhdsa::api::verify]:
-    Source: 'src/api.rs', lines 69:0-71:1
+    Source: 'src/api.rs', lines 70:0-72:1
     Visibility: public -/
 def api.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4040,26 +4040,283 @@ def api.verify
   := do
   slh.slh_verify m sig ctx pk
 
+/-- [slhdsa::encoding::PKCS8_PREFIX]
+    Source: 'src/encoding.rs', lines 15:0-18:2
+    Visibility: public -/
+@[global_simps, irreducible]
+def encoding.PKCS8_PREFIX : Array Std.U8 20#usize :=
+  Array.make 20#usize [
+    48#u8, 82#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8,
+    72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 20#u8, 4#u8, 64#u8
+    ]
+
+/-- [slhdsa::encoding::SPKI_PREFIX]
+    Source: 'src/encoding.rs', lines 21:0-22:113
+    Visibility: public -/
+@[global_simps, irreducible]
+def encoding.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 48#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 20#u8, 3#u8, 33#u8, 0#u8
+    ]
+
+/-- [slhdsa::params::SK_BYTES]
+    Source: 'src/params.rs', lines 39:0-39:31
+    Visibility: public -/
+@[global_simps, irreducible] def params.SK_BYTES : Std.Usize := 64#usize
+
+/-- [slhdsa::encoding::secret_key_from]:
+    Source: 'src/encoding.rs', lines 25:0-32:1
+    Visibility: public -/
+def encoding.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let i := Slice.len bytes
+  if i != params.SK_BYTES
+  then ok none
+  else
+    let sk := Array.repeat 64#usize 0#u8
+    let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+    let s1 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s bytes
+    let sk1 := to_slice_mut_back s1
+    ok (some sk1)
+
+/-- [slhdsa::params::PK_BYTES]
+    Source: 'src/params.rs', lines 38:0-38:31
+    Visibility: public -/
+@[global_simps, irreducible] def params.PK_BYTES : Std.Usize := 32#usize
+
+/-- [slhdsa::encoding::public_key_from]:
+    Source: 'src/encoding.rs', lines 35:0-42:1
+    Visibility: public -/
+def encoding.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let i := Slice.len bytes
+  if i != params.PK_BYTES
+  then ok none
+  else
+    let pk := Array.repeat 32#usize 0#u8
+    let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+    let s1 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s bytes
+    let pk1 := to_slice_mut_back s1
+    ok (some pk1)
+
+/-- [slhdsa::encoding::signature_len_ok]:
+    Source: 'src/encoding.rs', lines 46:0-48:1
+    Visibility: public -/
+def encoding.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  let i := Slice.len bytes
+  ok (i = params.SIG_BYTES)
+
+/-- [slhdsa::encoding::secret_keys_equal]: loop body 0:
+    Source: 'src/encoding.rs', lines 55:4-58:5
+    Visibility: public -/
+@[rust_loop_body]
+def encoding.secret_keys_equal_loop.body
+  (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) (diff : Std.U8)
+  (i : Std.Usize) :
+  Result (ControlFlow (Std.U8 × Std.Usize) Std.U8)
+  := do
+  if i < params.SK_BYTES
+  then
+    let i1 ← Array.index_usize a i
+    let i2 ← Array.index_usize b i
+    let i3 ← lift (i1 ^^^ i2)
+    let diff1 ← lift (diff ||| i3)
+    let i4 ← i + 1#usize
+    ok (cont (diff1, i4))
+  else ok (done diff)
+
+/-- [slhdsa::encoding::secret_keys_equal]: loop 0:
+    Source: 'src/encoding.rs', lines 55:4-58:5
+    Visibility: public -/
+@[rust_loop]
+def encoding.secret_keys_equal_loop
+  (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) (diff : Std.U8)
+  (i : Std.Usize) :
+  Result Std.U8
+  := do
+  loop
+    (fun (diff1, i1) => encoding.secret_keys_equal_loop.body a b diff1 i1)
+    (diff, i)
+
+/-- [slhdsa::encoding::secret_keys_equal]:
+    Source: 'src/encoding.rs', lines 52:0-60:1
+    Visibility: public -/
+def encoding.secret_keys_equal
+  (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
+  let diff ← encoding.secret_keys_equal_loop a b 0#u8 0#usize
+  ok (diff = 0#u8)
+
+/-- [slhdsa::params::PKCS8_BYTES]
+    Source: 'src/params.rs', lines 44:0-44:34
+    Visibility: public -/
+@[global_simps, irreducible] def params.PKCS8_BYTES : Std.Usize := 84#usize
+
+/-- [slhdsa::encoding::pkcs8_encode]:
+    Source: 'src/encoding.rs', lines 64:0-67:1
+    Visibility: public -/
+def encoding.pkcs8_encode
+  (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
+  Result (Array Std.U8 84#usize)
+  := do
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) out
+      { start := 0#usize, «end» := 20#usize }
+  let s1 ← lift (Array.to_slice encoding.PKCS8_PREFIX)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let out1 := index_mut_back s2
+  let (s3, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) out1
+      { start := 20#usize, «end» := params.PKCS8_BYTES }
+  let s4 ← lift (Array.to_slice sk)
+  let s5 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 s4
+  ok (index_mut_back1 s5)
+
+/-- [slhdsa::encoding::pkcs8_decode]: loop body 0:
+    Source: 'src/encoding.rs', lines 77:4-85:1
+    Visibility: public -/
+@[rust_loop_body]
+def encoding.pkcs8_decode_loop.body
+  (der : Slice Std.U8) (sk : Array Std.U8 64#usize) (i : Std.Usize) :
+  Result (ControlFlow Std.Usize (Bool × (Array Std.U8 64#usize)))
+  := do
+  if i < 20#usize
+  then
+    let i1 ← Slice.index_usize der i
+    let i2 ← Array.index_usize encoding.PKCS8_PREFIX i
+    if i1 != i2
+    then ok (done (false, sk))
+    else let i3 ← i + 1#usize
+         ok (cont i3)
+  else
+    let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+    let s1 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U8) der { start := 20#usize, «end» := params.PKCS8_BYTES }
+    let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+    let sk1 := to_slice_mut_back s2
+    ok (done (true, sk1))
+
+/-- [slhdsa::encoding::pkcs8_decode]: loop 0:
+    Source: 'src/encoding.rs', lines 77:4-85:1
+    Visibility: public -/
+@[rust_loop]
+def encoding.pkcs8_decode_loop
+  (der : Slice Std.U8) (sk : Array Std.U8 64#usize) (i : Std.Usize) :
+  Result (Bool × (Array Std.U8 64#usize))
+  := do
+  loop
+    (fun i1 => encoding.pkcs8_decode_loop.body der sk i1)
+    i
+
+/-- [slhdsa::encoding::pkcs8_decode]:
+    Source: 'src/encoding.rs', lines 72:0-85:1
+    Visibility: public -/
+def encoding.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
+  Result (Bool × (Array Std.U8 64#usize))
+  := do
+  let i := Slice.len der
+  if i != params.PKCS8_BYTES
+  then ok (false, sk)
+  else encoding.pkcs8_decode_loop der sk 0#usize
+
+/-- [slhdsa::params::SPKI_BYTES]
+    Source: 'src/params.rs', lines 45:0-45:33
+    Visibility: public -/
+@[global_simps, irreducible] def params.SPKI_BYTES : Std.Usize := 50#usize
+
+/-- [slhdsa::encoding::spki_encode]:
+    Source: 'src/encoding.rs', lines 88:0-93:1
+    Visibility: public -/
+def encoding.spki_encode
+  (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
+  let out := Array.repeat 50#usize 0#u8
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) out
+      { start := 0#usize, «end» := 18#usize }
+  let s1 ← lift (Array.to_slice encoding.SPKI_PREFIX)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let out1 := index_mut_back s2
+  let (s3, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) out1
+      { start := 18#usize, «end» := params.SPKI_BYTES }
+  let s4 ← lift (Array.to_slice pk)
+  let s5 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 s4
+  ok (index_mut_back1 s5)
+
+/-- [slhdsa::encoding::spki_decode]: loop body 0:
+    Source: 'src/encoding.rs', lines 102:4-111:1
+    Visibility: public -/
+@[rust_loop_body]
+def encoding.spki_decode_loop.body
+  (der : Slice Std.U8) (i : Std.Usize) :
+  Result (ControlFlow Std.Usize (Option (Array Std.U8 32#usize)))
+  := do
+  if i < 18#usize
+  then
+    let i1 ← Slice.index_usize der i
+    let i2 ← Array.index_usize encoding.SPKI_PREFIX i
+    if i1 != i2
+    then ok (done none)
+    else let i3 ← i + 1#usize
+         ok (cont i3)
+  else
+    let pk := Array.repeat 32#usize 0#u8
+    let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+    let s1 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U8) der { start := 18#usize, «end» := params.SPKI_BYTES }
+    let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+    let pk1 := to_slice_mut_back s2
+    ok (done (some pk1))
+
+/-- [slhdsa::encoding::spki_decode]: loop 0:
+    Source: 'src/encoding.rs', lines 102:4-111:1
+    Visibility: public -/
+@[rust_loop]
+def encoding.spki_decode_loop
+  (der : Slice Std.U8) (i : Std.Usize) :
+  Result (Option (Array Std.U8 32#usize))
+  := do
+  loop
+    (fun i1 => encoding.spki_decode_loop.body der i1)
+    i
+
+/-- [slhdsa::encoding::spki_decode]:
+    Source: 'src/encoding.rs', lines 97:0-111:1
+    Visibility: public -/
+def encoding.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let i := Slice.len der
+  if i != params.SPKI_BYTES
+  then ok none
+  else encoding.spki_decode_loop der 0#usize
+
 /-- [slhdsa::fors::BATCH]
-    Source: 'src/fors.rs', lines 17:0-17:25 -/
+    Source: 'src/fors.rs', lines 18:0-18:25 -/
 @[global_simps, irreducible] def fors.BATCH : Std.Usize := 128#usize
 
 /-- [slhdsa::hash::{impl core::clone::Clone for slhdsa::hash::Seed}::clone]:
-    Source: 'src/hash.rs', lines 10:9-10:14
+    Source: 'src/hash.rs', lines 11:9-11:14
     Visibility: public -/
 def hash.Seed.Insts.CoreCloneClone.clone
   (self : hash.Seed) : Result hash.Seed := do
   ok self
 
 /-- Trait implementation: [slhdsa::hash::{impl core::clone::Clone for slhdsa::hash::Seed}]
-    Source: 'src/hash.rs', lines 10:9-10:14 -/
+    Source: 'src/hash.rs', lines 11:9-11:14 -/
 @[reducible]
 def hash.Seed.Insts.CoreCloneClone : core.clone.Clone hash.Seed := {
   clone := hash.Seed.Insts.CoreCloneClone.clone
 }
 
 /-- Trait implementation: [slhdsa::hash::{impl core::marker::Copy for slhdsa::hash::Seed}]
-    Source: 'src/hash.rs', lines 10:16-10:20 -/
+    Source: 'src/hash.rs', lines 11:16-11:20 -/
 @[reducible]
 def hash.Seed.Insts.CoreMarkerCopy : core.marker.Copy hash.Seed := {
   cloneInst := hash.Seed.Insts.CoreCloneClone
@@ -4075,23 +4332,13 @@ def hash.Seed.Insts.CoreMarkerCopy : core.marker.Copy hash.Seed := {
     Visibility: public -/
 @[global_simps, irreducible] def params.HT_SIG_BYTES : Std.Usize := 4928#usize
 
-/-- [slhdsa::params::PK_BYTES]
-    Source: 'src/params.rs', lines 38:0-38:31
-    Visibility: public -/
-@[global_simps, irreducible] def params.PK_BYTES : Std.Usize := 32#usize
-
-/-- [slhdsa::params::SK_BYTES]
-    Source: 'src/params.rs', lines 39:0-39:31
-    Visibility: public -/
-@[global_simps, irreducible] def params.SK_BYTES : Std.Usize := 64#usize
-
 /-- [slhdsa::params::SEED_BYTES]
     Source: 'src/params.rs', lines 41:0-41:33
     Visibility: public -/
 @[global_simps, irreducible] def params.SEED_BYTES : Std.Usize := 48#usize
 
 /-- [slhdsa::sha256::hmac_sha256]: loop body 0:
-    Source: 'src/sha256.rs', lines 172:4-177:5
+    Source: 'src/sha256.rs', lines 173:4-178:5
     Visibility: public -/
 @[rust_loop_body]
 def sha256.hmac_sha256_loop.body
@@ -4115,7 +4362,7 @@ def sha256.hmac_sha256_loop.body
   else ok (done (inner, outer))
 
 /-- [slhdsa::sha256::hmac_sha256]: loop 0:
-    Source: 'src/sha256.rs', lines 172:4-177:5
+    Source: 'src/sha256.rs', lines 173:4-178:5
     Visibility: public -/
 @[rust_loop]
 def sha256.hmac_sha256_loop
@@ -4129,7 +4376,7 @@ def sha256.hmac_sha256_loop
     (inner, outer, i)
 
 /-- [slhdsa::sha256::hmac_sha256]:
-    Source: 'src/sha256.rs', lines 168:0-182:1
+    Source: 'src/sha256.rs', lines 169:0-183:1
     Visibility: public -/
 def sha256.hmac_sha256
   (key : Slice Std.U8) (msg : Slice Std.U8) :
@@ -4147,27 +4394,27 @@ def sha256.hmac_sha256
   sha256.sha256 s2
 
 /-- [slhdsa::sha256::hw_active]:
-    Source: 'src/sha256.rs', lines 190:0-199:1
+    Source: 'src/sha256.rs', lines 191:0-200:1
     Visibility: public -/
 def sha256.hw_active : Result Bool := do
   sha256.hw.arm.available
 
 /-- Trait implementation: [slhdsa::sha256::hw::{impl core::marker::Copy for slhdsa::sha256::hw::Slot}]
-    Source: 'src/sha256.rs', lines 416:20-416:24 -/
+    Source: 'src/sha256.rs', lines 427:20-427:24 -/
 @[reducible]
 def sha256.hw.Slot.Insts.CoreMarkerCopy : core.marker.Copy sha256.hw.Slot := {
   cloneInst := sha256.hw.Slot.Insts.CoreCloneClone
 }
 
 /-- [slhdsa::sha256::hw::{impl core::clone::Clone for slhdsa::sha256::hw::First}::clone]:
-    Source: 'src/sha256.rs', lines 439:13-439:18
+    Source: 'src/sha256.rs', lines 450:13-450:18
     Visibility: public -/
 def sha256.hw.First.Insts.CoreCloneClone.clone
   (self : sha256.hw.First) : Result sha256.hw.First := do
   ok self
 
 /-- Trait implementation: [slhdsa::sha256::hw::{impl core::clone::Clone for slhdsa::sha256::hw::First}]
-    Source: 'src/sha256.rs', lines 439:13-439:18 -/
+    Source: 'src/sha256.rs', lines 450:13-450:18 -/
 @[reducible]
 def sha256.hw.First.Insts.CoreCloneClone : core.clone.Clone sha256.hw.First
   := {
@@ -4175,7 +4422,7 @@ def sha256.hw.First.Insts.CoreCloneClone : core.clone.Clone sha256.hw.First
 }
 
 /-- Trait implementation: [slhdsa::sha256::hw::{impl core::marker::Copy for slhdsa::sha256::hw::First}]
-    Source: 'src/sha256.rs', lines 439:20-439:24 -/
+    Source: 'src/sha256.rs', lines 450:20-450:24 -/
 @[reducible]
 def sha256.hw.First.Insts.CoreMarkerCopy : core.marker.Copy sha256.hw.First
   := {

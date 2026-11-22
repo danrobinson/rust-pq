@@ -1,5 +1,6 @@
 //! Small byte-manipulation helpers.
 
+use alloc::vec::Vec;
 use crate::params::N;
 
 /// The `i`-th `N`-byte block of `s`.

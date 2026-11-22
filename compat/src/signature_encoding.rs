@@ -7,6 +7,9 @@ use hybrid_array::{Array, ArraySize};
 use pkcs8::{der::AnyRef, spki::AssociatedAlgorithmIdentifier, AlgorithmIdentifierRef};
 
 #[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
+#[cfg(feature = "alloc")]
 use pkcs8::{
     der::{self, asn1::BitString},
     spki::SignatureBitStringEncoding,
@@ -68,7 +71,7 @@ impl<P: ParameterSet> TryFrom<&[u8]> for Signature<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if bytes.len() != P::SigLen::USIZE {
+        if !P::sig_len_ok(bytes) {
             return Err(Error::new());
         }
         let mut sig = Array::<u8, P::SigLen>::default();

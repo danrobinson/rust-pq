@@ -1,5 +1,6 @@
 //! WOTS+ one-time signatures (FIPS 205 §5).
 
+use alloc::vec::Vec;
 use crate::address::{Adrs, WOTS_PK, WOTS_PRF};
 use crate::hash::{chain_blocks, short_block, thash_values, Seed};
 use crate::params::{LEN, LEN1, LEN2, LG_W, N, W};

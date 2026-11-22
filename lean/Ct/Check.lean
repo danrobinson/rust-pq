@@ -79,6 +79,10 @@ def nonLeaking : List Name := [
   ``Aeneas.Std.instLTUScalar, ``Aeneas.Std.UScalar.decLt, ``Aeneas.Std.instLEUScalar,
   ``Aeneas.Std.UScalarDecidableLE, ``Aeneas.Std.instDecidableEqUScalar_1, ``bne,
   ``Aeneas.Std.instBEqUScalar_1, ``instDecidableEqBool,
+  -- Turning such a comparison into a `Bool` value (`diff == 0` returned, not branched on): a
+  -- flag-setting comparison. Only the decidability instances listed above can reach it, so it
+  -- cannot stand for a comparison of arrays, which is the instrumented `PartialEqArray.eq`.
+  ``Decidable.decide,
   -- Literals.
   ``OfNat.ofNat, ``instOfNatNat, ``instOfNat, ``Aeneas.Std.U8.ofNat, ``Aeneas.Std.U32.ofNat,
   ``Aeneas.Std.U64.ofNat, ``Aeneas.Std.Usize.ofNat, ``Aeneas.Std.I32.ofInt,

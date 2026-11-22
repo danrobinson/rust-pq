@@ -1,5 +1,6 @@
 //! The hypertree (FIPS 205 §7).
 
+use alloc::vec::Vec;
 use crate::address::Adrs;
 use crate::hash::Seed;
 use crate::params::{D, HP, N, XMSS_SIG_BYTES};

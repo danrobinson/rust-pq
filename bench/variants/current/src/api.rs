@@ -13,6 +13,7 @@
 //! are not inlined, so all their working storage lies below the caller's
 //! frame when they return, where the caller can overwrite it.
 
+use alloc::vec::Vec;
 use crate::params::{N, PK_BYTES, SEED_BYTES, SK_BYTES};
 use crate::slh::{slh_keygen_internal, slh_sign, slh_sign_checked, slh_verify};
 use crate::util::block;

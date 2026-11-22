@@ -61,7 +61,7 @@
 //! # Differences from RustCrypto's crate
 //!
 //! * Only [`Sha2_128s`] exists. The other eleven parameter sets are missing.
-//! * This crate needs the standard library; upstream is `no_std`.
+//! * This crate is `no_std` like upstream, but always needs an allocator.
 //! * A [`SigningKey`] is always wiped when dropped (upstream does so only
 //!   with its `zeroize` feature), its `Debug` output does not print the
 //!   secret, and comparing two signing keys takes time independent of where
@@ -81,8 +81,13 @@
 //!
 //! [`slh-dsa`]: https://github.com/RustCrypto/signatures/tree/master/slh-dsa
 
+#![no_std]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
+
+extern crate alloc;
+
+use alloc::vec::Vec;
 
 pub use signature;
 

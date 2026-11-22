@@ -25,6 +25,7 @@ import Ct.Sim
 import Ct.SignFacts
 import Ct.Sign
 import Ct.Theorems
+import Ct.Encoding
 /-!
 # `Ct`: constant-time proofs for the Aeneas translation of the SLH-DSA crate
 
@@ -56,4 +57,6 @@ import Ct.Theorems
 * `Ct/SignFacts.lean` functional facts used by signing (from `Slhdsa/Proofs` via erasure).
 * `Ct/Sign.lean`     the signing simulators `slhdsa_leak.Sim.*` and the simulation theorems.
 * `Ct/Theorems.lean` the headline theorems (K), (S), (V) with `#print axioms`.
+* `Ct/Encoding.lean` `encoding.rs`: key comparison, raw keys, PKCS#8 and SPKI (with its
+                     headline statements and `#print axioms`).
 -/

@@ -3,6 +3,8 @@
 use crate::{SignatureLen, SigningKeyLen, VerifyingKeyLen};
 use hybrid_array::sizes::{U32, U64, U7856};
 use crate::scrub::scrub_stack;
+use alloc::vec::Vec;
+use zeroize::Zeroize;
 
 /// The verified functions, on byte slices of the parameter set's lengths.
 /// Each one that works with the secret seed overwrites the stack it used
@@ -28,6 +30,22 @@ pub(crate) trait Core {
     fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool;
     /// `slh_verify` with a context string.
     fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool;
+
+    /// Accept `bytes` as a private key: writes it to `sk` and returns `true`
+    /// if it has the right length.
+    fn sk_from(bytes: &[u8], sk: &mut [u8]) -> bool;
+    /// Accept `bytes` as a public key, likewise.
+    fn pk_from(bytes: &[u8], pk: &mut [u8]) -> bool;
+    /// Whether `bytes` has the length of a signature.
+    fn sig_len_ok(bytes: &[u8]) -> bool;
+    /// Whether two private keys are equal, looking at every byte.
+    fn sk_eq(a: &[u8], b: &[u8]) -> bool;
+    /// The public key held in a private key.
+    fn pk_of(sk: &[u8], pk: &mut [u8]);
+    /// The PKCS#8 DER encoding of a private key, handed to `f`, then wiped.
+    fn with_pkcs8<T>(sk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T;
+    /// The SubjectPublicKeyInfo DER encoding of a public key, handed to `f`.
+    fn with_spki<T>(pk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T;
 }
 
 /// A parameter set of FIPS 205. Only [`Sha2_128s`] implements it.
@@ -120,6 +138,54 @@ impl Core for Sha2_128s {
     }
 
     fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool {
-        slhdsa::slh_verify(m, sig, ctx, fixed(pk))
+        slhdsa::verify(m, sig, ctx, fixed(pk))
+    }
+
+    fn sk_from(bytes: &[u8], sk: &mut [u8]) -> bool {
+        let mut parsed = slhdsa::encoding::secret_key_from(bytes);
+        let ok = match &parsed {
+            Some(key) => {
+                sk.copy_from_slice(key);
+                true
+            }
+            None => false,
+        };
+        parsed.zeroize();
+        scrub_stack();
+        ok
+    }
+
+    fn pk_from(bytes: &[u8], pk: &mut [u8]) -> bool {
+        match slhdsa::encoding::public_key_from(bytes) {
+            Some(key) => {
+                pk.copy_from_slice(&key);
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn sig_len_ok(bytes: &[u8]) -> bool {
+        slhdsa::encoding::signature_len_ok(bytes)
+    }
+
+    fn sk_eq(a: &[u8], b: &[u8]) -> bool {
+        slhdsa::encoding::secret_keys_equal(fixed(a), fixed(b))
+    }
+
+    fn pk_of(sk: &[u8], pk: &mut [u8]) {
+        pk.copy_from_slice(&slhdsa::public_key(fixed(sk)));
+    }
+
+    fn with_pkcs8<T>(sk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T {
+        let mut der = [0u8; slhdsa::params::PKCS8_BYTES];
+        slhdsa::encoding::pkcs8_encode(fixed(sk), &mut der);
+        let out = f(&der);
+        der.zeroize();
+        out
+    }
+
+    fn with_spki<T>(pk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T {
+        f(&slhdsa::encoding::spki_encode(fixed(pk)))
     }
 }

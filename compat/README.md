@@ -61,17 +61,34 @@ build, and bytes copied out with `to_bytes` are the caller's to wipe.
 
 ## What is and is not verified
 
-Key generation, signing and verification are calls to the verified crate's interface
-(`slhdsa::keygen`, `sign`, `sign_deterministic`, `verify`). The layout of a private key, the
-context-string framing and the choice of randomness for a deterministic signature are
-decided there, inside the proofs. This crate adds what is **not** covered by them: the types
-and trait plumbing, the random source, copying a multi-part message into one buffer, the
-encodings (the `pkcs8` crate), and the wiping.
+Every decision this crate makes is made by a function of the verified crate:
+
+- key generation, signing and verification (`slhdsa::keygen`, `sign`, `sign_deterministic`,
+  `sign_checked`, `verify`): the layout of a private key, the context-string framing, the
+  choice of randomness for a deterministic signature;
+- which byte strings are accepted as keys and signatures, and the comparison of two private
+  keys (`slhdsa::encoding`);
+- the PKCS#8 and SubjectPublicKeyInfo encodings (`slhdsa::encoding::pkcs8_encode`,
+  `spki_encode`): for this parameter set each is a fixed prefix followed by the key, and
+  decoding an encoding is proved to give the key back.
+
+What is left here, and is **not** covered by the proofs:
+
+- the trait implementations and conversions between the fixed-size array types, each of
+  which forwards to one of the functions above;
+- the loop that appends the parts of a multi-part message into one buffer (the proof tools
+  cannot express a slice of slices);
+- drawing random bytes from the caller's or the operating system's random source;
+- *decoding* PKCS#8 and SubjectPublicKeyInfo, which the `pkcs8` crate's traits do before this
+  crate sees the key bytes (the bytes it hands over then go through the verified parser);
+  and that crate's check of the verified encoding on the way out;
+- the wiping.
 
 ## Differences from RustCrypto's crate
 
 - Only `Sha2_128s`. The other eleven parameter sets do not exist here.
-- Needs the standard library (RustCrypto's crate is `no_std`).
+- `no_std` like RustCrypto's crate, but always needs an allocator. (The default `getrandom`
+  feature needs a target the `getrandom` crate supports; turn it off on bare metal.)
 - A `SigningKey` is always wiped; its `Debug` output leaves the secret out; comparing two
   signing keys looks at every byte.
 

@@ -334,6 +334,28 @@ check, **make the check opt-in** so that default signing does the same work as R
 - **Benchmark**: entry `verified-api` added (the adapter); `bench/variants/current` re-synced.
   **Not rerun yet**: the numbers in `bench/RESULTS.md` predate this round.
 
+## `no_std`, and the adapter's logic moved into verified code (2026-11-21, evening)
+
+Owner's request: prove the adapter rather than leave it as trusted glue; `no_std`.
+- **`no_std`.** `rust/` is `#![no_std]` + `alloc`; translated definitions unchanged. With
+  `hw-sha2`, `std` is linked only where the feature test needs the operating system (not on
+  `target_os = "none"`, where `available()` is the build's `target_feature`, nor where the target
+  guarantees the instructions). `compat/` is `no_std` + `alloc`. Built for `aarch64-unknown-none`
+  (core: default, `hw-sha2`, `hw-sha2` with `+sha2`; adapter: `--no-default-features --features
+  alloc`; `getrandom` has no bare-metal backend). The rustup target was added on this machine.
+- **`rust/src/encoding.rs`** (translated, proved): `secret_key_from`, `public_key_from`,
+  `signature_len_ok`, `secret_keys_equal`, `pkcs8_encode`/`decode`, `spki_encode`/`decode`.
+  `lean/Slhdsa/EncodingTheorems.lean` (12 statements): values, exactness of the decoders,
+  round trips, injectivity, with the DER prefixes as literal lists. `lean/Ct/Encoding.lean`:
+  constant-time statements. Both packages. The adapter's encoders now emit the verified bytes
+  (identical to what the `pkcs8` crate produced; `tests/dropin.rs` compares with RustCrypto).
+- **Checker whitelist change:** `Decidable.decide` added to `nonLeaking` in `lean/Ct/Check.lean`
+  (a comparison returned as a `Bool` in `secret_keys_equal` and `signature_len_ok`); reason in
+  the file. Counts: 240/280 definitions, 208/244 erasure theorems.
+- **Residue in `compat/` that is not proved:** forwarding trait impls and array conversions; the
+  multi-part join loop (Aeneas: "unsupported nested borrows" for `&[&[u8]]`); random sources; the
+  `pkcs8` crate's decoding and its validation of our encoding; wiping.
+
 ## Constant time proved for the default build (`lean/Ct`, 2026-11-21)
 
 `lean/CT_STATUS.md` is the reference. In short: `lean/Ct/` instruments the verified translation's

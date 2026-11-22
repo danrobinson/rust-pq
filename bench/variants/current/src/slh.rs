@@ -3,6 +3,7 @@
 //! Private key: SK.seed ‖ SK.prf ‖ PK.seed ‖ PK.root. Public key: PK.seed ‖ PK.root.
 //! Randomness is always supplied by the caller.
 
+use alloc::vec::Vec;
 use crate::address::{Adrs, FORS_TREE};
 use crate::fors::{fors_pk_from_sig, fors_pk_gen, fors_sign};
 use crate::hash::{h_msg, prf_msg, seed_ctx};

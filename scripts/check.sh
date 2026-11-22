@@ -29,7 +29,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 # The security statements of security/, compiled against the hw-sha2 build's translation.
 # (It compiles its own copies of the security libraries: about four minutes from clean.)
 (cd security-hw && lake build)
-if grep -rnE --include='*.lean' "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Slhdsa/ApiTheorems.lean lean/Spec lean/Ct lean/Ct.lean lean-hw/Ct lean-hw/Ct.lean \
+if grep -rnE --include='*.lean' "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Slhdsa/ApiTheorems.lean lean/Slhdsa/EncodingTheorems.lean lean/Spec lean/Ct lean/Ct.lean lean-hw/Ct lean-hw/Ct.lean \
      security/Link security/E2E security/Reduction security/Ideal security/Link.lean security/E2E.lean security/Reduction.lean security/Ideal.lean \
      lean-hw/Arm.lean lean-hw/ArmTest.lean lean-hw/Slhdsa | grep -v "no .native_decide"; then
   echo "FOUND a placeholder or extra axiom"; exit 1

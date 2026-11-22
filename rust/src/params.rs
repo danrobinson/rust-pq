@@ -39,3 +39,7 @@ pub const PK_BYTES: usize = 32;
 pub const SK_BYTES: usize = 64;
 /// The random bytes key generation consumes: `SK.seed ‖ SK.prf ‖ PK.seed`.
 pub const SEED_BYTES: usize = 48; // 3 * N
+/// Length of the PKCS#8 encoding of a private key, and of the
+/// SubjectPublicKeyInfo encoding of a public key.
+pub const PKCS8_BYTES: usize = 84; // 20 + SK_BYTES
+pub const SPKI_BYTES: usize = 50; // 18 + PK_BYTES

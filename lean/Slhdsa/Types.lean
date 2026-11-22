@@ -32,7 +32,7 @@ structure address.Adrs where
   word3 : Std.U32
 
 /-- [slhdsa::hash::Seed]
-    Source: 'src/hash.rs', lines 11:0-14:1
+    Source: 'src/hash.rs', lines 12:0-15:1
     Visibility: public -/
 structure hash.Seed where
   pk_seed : Array Std.U8 16#usize

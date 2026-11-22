@@ -45,12 +45,12 @@ is the text of the verified translation, `Slhdsa/Funs.lean`, copied verbatim by
 `scripts/ct-gen.sh` and elaborated where the primitives it names are the
 instrumented ones. Two things tie it to the verified program:
 
-- [Ct/Check.lean](Ct/Check.lean) inspects all resulting definitions (221 in
-  the default build, 261 with `hw-sha2`) and rejects any that reaches a
+- [Ct/Check.lean](Ct/Check.lean) inspects all resulting definitions (240 in
+  the default build, 280 with `hw-sha2`) and rejects any that reaches a
   primitive that is neither instrumented nor on a short list of ones that
   leak nothing in this model.
-- [Ct/Erase.lean](Ct/Erase.lean) proves, for each function and constant (190
-  and 226), that dropping the trace gives exactly the verified function.
+- [Ct/Erase.lean](Ct/Erase.lean) proves, for each function and constant (208
+  and 244), that dropping the trace gives exactly the verified function.
 
 ## The `hw-sha2` build
 
@@ -98,6 +98,11 @@ block that reaches it is built from a public address.
   corollary.
 - **A context longer than 255 bytes** (`sign_long_context`): the trace is one
   branch.
+- **Keys in transit** ([Ct/Encoding.lean](Ct/Encoding.lean)): comparing two
+  private keys and encoding a key have the same trace whatever the keys;
+  accepting bytes as a key reveals only their length; decoding an encoded key
+  reveals only its length and where its fixed 20-byte (18 for a public key)
+  prefix first departs from the expected one.
 - **Verification** (`verify_ct`): all of its inputs are public.
 
 The only hypothesis is the message-length bound of the functional theorems.

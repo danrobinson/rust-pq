@@ -43,6 +43,14 @@ own theorems, in [lean/Slhdsa/ApiTheorems.lean](lean/Slhdsa/ApiTheorems.lean)
 | | `…_checked_verifies` | whatever it returns verifies under the public key held in the private key, for any private key at all |
 | | `…_checked_complete` | for a well-formed private key it always returns a signature |
 
+**Encodings.** [rust/src/encoding.rs](rust/src/encoding.rs) decides which byte
+strings are accepted as keys and signatures, compares private keys, and
+produces the PKCS#8 and SubjectPublicKeyInfo encodings of keys (for this
+parameter set, a fixed prefix followed by the key).
+[lean/Slhdsa/EncodingTheorems.lean](lean/Slhdsa/EncodingTheorems.lean) proves
+each against a literal statement of the bytes, that decoding accepts exactly
+the encoder's outputs and returns the key, and that the comparison is equality.
+
 The checked signer ([below](#the-interface-to-use-compat)) is not part of FIPS
 205. [lean/Spec/Checked.lean](lean/Spec/Checked.lean) says what it computes, and
 [lean/Spec/Correctness.lean](lean/Spec/Correctness.lean) proves the scheme
@@ -197,15 +205,17 @@ dependency line, with no change to its source:
 slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 ```
 
-- **What is inside the proofs.** Every call goes to the verified interface
-  module (`slhdsa::keygen`, `sign`, `sign_deterministic`, `verify`). The layout
-  of a private key, the context-string framing and the choice of randomness
-  for a deterministic signature are decided there.
-- **What is not.** The key and signature types and their trait plumbing, the
-  random source, copying a multi-part message into one buffer, the encodings
-  (the `pkcs8` crate), and the wiping. These are tested against RustCrypto's
-  crate: one piece of source compiled against both must give the same 86
-  results.
+- **What is inside the proofs.** Every decision the adapter makes is made by
+  a verified function: key generation, signing and verification
+  (`slhdsa::keygen`, `sign`, `sign_deterministic`, `verify`), which bytes are
+  accepted as keys and signatures, the comparison of private keys, and the
+  PKCS#8 and SubjectPublicKeyInfo encodings (`slhdsa::encoding`).
+- **What is not.** The trait implementations and array conversions, each a
+  forward to one of those functions; the loop that joins a multi-part message
+  (the proof tools cannot express a slice of slices); drawing random bytes;
+  the `pkcs8` crate's parsing of an encoded key before the adapter sees it;
+  and the wiping. The adapter is tested against RustCrypto's crate: one piece
+  of source compiled against both must give the same 86 results.
 - **Additions.** Keys from the operating system's random source and hedged
   signing (the default of FIPS 205).
 - **Wiping.** A signing key keeps its secret in its own allocation, wiped on
@@ -224,7 +234,8 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
   the work of the standard and no more. The check costs 1.87× the signing
   time. What is proved about it is listed above; that it detects faults is an
   argument, not a theorem, since the model has no faults in it.
-- **Limits.** Only this one parameter set, and it needs the standard library.
+- **Limits.** Only this one parameter set. Both crates are `no_std`, but they
+  need an allocator, which RustCrypto's does not.
 
 ## What is not proven
 
@@ -261,7 +272,7 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 
 ## Layout
 
-- `rust/` — the crate. Plain safe Rust: no `unsafe`, traits, iterators or closures
+- `rust/` — the crate. Plain safe `no_std` Rust: no `unsafe`, traits, iterators or closures
   (the eighteen intrinsic wrappers of the opt-in `hw-sha2` backend aside; see
   [Performance](#performance)).
 - `lean/Spec/` — the specification (`Sha256.lean`, `SlhDsa.lean`).

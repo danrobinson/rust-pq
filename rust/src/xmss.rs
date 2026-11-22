@@ -1,5 +1,6 @@
 //! XMSS Merkle trees over WOTS+ keys (FIPS 205 §6).
 
+use alloc::vec::Vec;
 use crate::address::{Adrs, TREE, WOTS_HASH};
 use crate::hash::{thash_short, Seed};
 use crate::params::{HP, LEN, N};

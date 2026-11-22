@@ -5,7 +5,6 @@ use ::signature::{
     rand_core::{CryptoRng, TryCryptoRng},
     Error, KeypairRef, MultipartSigner, RandomizedMultipartSigner, RandomizedSigner, Signer,
 };
-use hybrid_array::typenum::Unsigned;
 use hybrid_array::{Array, ArraySize};
 use pkcs8::{
     der::AnyRef,
@@ -14,10 +13,10 @@ use pkcs8::{
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "alloc")]
-use pkcs8::{
-    der::{self, asn1::OctetStringRef},
-    EncodePrivateKey,
-};
+use pkcs8::{der, EncodePrivateKey};
+
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 /// A trait specifying the length of a serialized signing key for a given parameter set
 pub trait SigningKeyLen: VerifyingKeyLen {
@@ -61,11 +60,7 @@ impl<P: ParameterSet> core::fmt::Debug for SigningKey<P> {
 /// Looks at every byte, wherever the keys differ.
 impl<P: ParameterSet> PartialEq for SigningKey<P> {
     fn eq(&self, other: &Self) -> bool {
-        let mut diff = 0u8;
-        for (a, b) in self.bytes.iter().zip(other.bytes.iter()) {
-            diff |= a ^ b;
-        }
-        diff == 0
+        P::sk_eq(&self.bytes, &other.bytes)
     }
 }
 
@@ -275,15 +270,15 @@ impl<P: ParameterSet> TryFrom<&[u8]> for SigningKey<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if bytes.len() != P::SkLen::USIZE {
+        let mut sk = Box::new(Array::<u8, P::SkLen>::default());
+        if !P::sk_from(bytes, sk.as_mut_slice()) {
             return Err(Error::new());
         }
-        let verifying_key = VerifyingKey::try_from(&bytes[2 * P::N..])?;
-        let mut sk = Box::new(Array::<u8, P::SkLen>::default());
-        sk.copy_from_slice(bytes);
+        let mut pk = Array::<u8, P::VkLen>::default();
+        P::pk_of(&sk, &mut pk);
         Ok(SigningKey {
             bytes: sk,
-            verifying_key,
+            verifying_key: VerifyingKey { bytes: pk },
         })
     }
 }
@@ -352,20 +347,9 @@ where
     P: ParameterSet,
 {
     fn to_pkcs8_der(&self) -> pkcs8::Result<der::SecretDocument> {
-        let algorithm_identifier = pkcs8::AlgorithmIdentifierRef {
-            oid: P::ALGORITHM_OID,
-            parameters: None,
-        };
-
-        let mut private_key = self.to_bytes();
-        let document = OctetStringRef::new(&private_key)
-            .map_err(pkcs8::Error::from)
-            .and_then(|octets| {
-                let pkcs8_key = pkcs8::PrivateKeyInfoRef::new(algorithm_identifier, octets);
-                Ok(der::SecretDocument::encode_msg(&pkcs8_key)?)
-            });
-        private_key.zeroize();
-        document
+        // The encoding is the verified crate's; the `der` crate only checks
+        // that it is well formed and takes ownership of it.
+        P::with_pkcs8(&self.bytes, |encoding| Ok(der::SecretDocument::try_from(encoding)?))
     }
 }
 
