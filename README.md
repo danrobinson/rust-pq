@@ -385,6 +385,17 @@ queries. VCVio's documentation puts this at about 127 bits for
 lemma connecting the oracle scheme to concrete primitives is false for its
 SHA-2 instantiation (`not_hprf`), so that step is proven here by another route.
 
+The same bound holds for the interface with context strings, which is the one
+the crate's interface functions implement: `E2E.pure_rom_security`,
+`E2E.rust_pure_rom_security_bytes` and, for `api::keygen`, `sign`,
+`sign_deterministic` and `verify`, `E2E.api_pure_rom_security` and
+`E2E.api_pure_rom_security_bytes`
+([security/E2E/PureRom.lean](security/E2E/PureRom.lean),
+[PureRomBytes.lean](security/E2E/PureRomBytes.lean)). Nothing grows: a forger
+against that interface is turned into one against the internal interface with
+the same numbers of hash and signing queries, and the bound does not depend on
+message length.
+
 ### Not covered by either
 
 - **Randomness.** The Rust functions are the deterministic cores; sampling the

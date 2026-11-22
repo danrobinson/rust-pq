@@ -374,9 +374,13 @@ headline theorems are restated with them (`api_pure_security`, `…_linear`, `�
 existing bounds. On a well-formed key the checked signers equal the plain ones
 (`api_sign_checked_eq_sign`, `api_keygen_checked_eq`). Key generation is stated on the split of
 the 48 seed bytes into three blocks, deterministic signing on the split of the private key; both
-splits always exist and are unique. Not done: a random-oracle form, because the only
-random-oracle theorem with a Rust part is for the internal interface, which `api` does not
-expose.
+splits always exist and are unique.
+- **Random-oracle form** (added later the same day): `security/E2E/GuardedRom.lean`,
+  `CodedRom.lean`, `PureRom.lean`, `PureRomBytes.lean` lift the internal random-oracle theorem to
+  the context-string interface, typed and on bytes (`pure_rom_security`,
+  `rust_pure_rom_security_bytes`, `api_pure_rom_security`, `api_pure_rom_security_bytes`). The
+  bound is the internal `securityBound … qh qs` at the same `qh`, `qs`; the internal bound is
+  reused through a wrapper forger, not re-proved. Both security packages build.
 
 ## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
 

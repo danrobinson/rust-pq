@@ -7,3 +7,7 @@ import E2E.Bytes
 import E2E.Headline
 import E2E.HeadlineGen
 import E2E.Api
+import E2E.GuardedRom
+import E2E.CodedRom
+import E2E.PureRom
+import E2E.PureRomBytes
