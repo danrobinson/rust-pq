@@ -211,6 +211,9 @@ pub fn hw_active() -> bool {
 /// > `hw::chain_blocks` returns `true`, it has left in `blocks` what the
 /// > portable loops of [`crate::hash::chain_blocks`] leave there.
 ///
+/// (This tree's kernel is generic in the hash length; its proofs are under
+/// `../lean-hw/Slhdsa/Proofs/Hw`.)
+///
 /// The proofs cover this module except its submodule `arm`, the eighteen
 /// functions that call the intrinsics; what those compute is taken from a
 /// model of the instructions (`lean-hw/Arm.lean`). The crate's `unsafe` is in
@@ -225,8 +228,13 @@ pub fn hw_active() -> bool {
 /// hash apart, and the unit always has a step ready. Two more savings apply
 /// to a chain step: the first four rounds use only the first sixteen bytes of
 /// the block, which a chain never changes, so they are done once per chain;
-/// and only the first sixteen bytes of the result are kept, which do not
-/// depend on the last update of the second half of the state.
+/// and for n = 16 only the first sixteen bytes of the result are kept,
+/// which do not depend on the last update of the second half of the state.
+///
+/// In this tree the chain kernel is generic in the hash length `N` (16, 24
+/// or 32): the value occupies block bytes 22..22 + N, so N/4 words of the
+/// result are kept and, for N > 16, words 4.. of the value are carried in a
+/// second vector. The wrappers in `arm` are the single-set crate's.
 #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
 #[allow(unsafe_code)]
 pub(crate) mod hw {
@@ -423,19 +431,31 @@ pub(crate) mod hw {
     }
 
     /// One chain being worked on: the parts of its block that stay fixed, the
-    /// current 16-byte value as four big-endian words, and where it is.
+    /// current `N`-byte value as big-endian words, and where it is.
+    ///
+    /// The value occupies bytes 22..22 + N: W5..W9 for N = 16, W5..W11 for
+    /// N = 24, W5..W13 for N = 32, each time starting and ending in the middle
+    /// of a word. The fixed words are the rest of the block with the value
+    /// and the step counter cleared.
     #[derive(Clone, Copy)]
     struct Slot {
         /// W0..W3.
         m0: V,
         /// W4 with its low half (the top of the step counter) cleared; W5..W7 zero.
         c1: V,
-        /// W9's low half and W10, W11: what follows the value; W8 zero.
+        /// The fixed part of W8..W11 (for N = 16: W9's low half and W10, W11;
+        /// for N = 24: W11's low half; for N = 32: nothing).
         c2: V,
-        /// W12..W15.
-        m3: V,
+        /// The fixed part of W12..W15 (for N = 32: W13's low half, W14, W15).
+        c3: V,
         /// The value: block bytes 22..38.
         x: V,
+        /// The rest of the value for N > 16: block bytes 38..38 + (N − 16),
+        /// in the first N/4 − 4 words, the other words zero. Zero for N = 16.
+        xb: V,
+        /// For N = 24, the block bytes 46..54 that follow the value, in words
+        /// 2 and 3 (words 0, 1 zero); zero otherwise. Written back with `xb`.
+        tail: V,
         /// The working variables after rounds 0..3, which use only W0..W3
         /// and so are the same for every step of this chain.
         a1: V,
@@ -459,6 +479,8 @@ pub(crate) mod hw {
     struct Lanes {
         /// The value going into each lane's current step.
         x: [V; 4],
+        /// Its words 4..N/4 (N > 16).
+        xb: [V; 4],
         abcd: [V; 4],
         efgh: [V; 4],
         /// The four most recent schedule vectors of each lane.
@@ -466,19 +488,26 @@ pub(crate) mod hw {
     }
 
     const MASK1: [u32; 4] = [0xffff_0000, 0, 0, 0];
+    /// The fixed part of W8..W11 for N = 16, and of W12..W15 for N = 32.
     const MASK2: [u32; 4] = [0, 0x0000_ffff, 0xffff_ffff, 0xffff_ffff];
+    /// The fixed part of W8..W11 for N = 24.
+    const MASK2_24: [u32; 4] = [0, 0, 0, 0x0000_ffff];
+    const ALL: [u32; 4] = [0xffff_ffff; 4];
+    const LOW2: [u32; 4] = [0xffff_ffff, 0xffff_ffff, 0, 0];
+    const HIGH2: [u32; 4] = [0, 0, 0xffff_ffff, 0xffff_ffff];
 
     /// [`crate::hash::chain_blocks`], four chains at a time, or `false` if
     /// this CPU lacks the instructions (or the arguments are ones the
-    /// portable code panics on, which is then left to it).
+    /// portable code panics on, which is then left to it, or `N` is not one
+    /// of 16, 24, 32).
     #[inline]
     #[allow(unused_unsafe)]
-    pub fn chain_blocks(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) -> bool {
-        if !arm::available() || start.len() < blocks.len() || end.len() < blocks.len() {
+    pub fn chain_blocks<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) -> bool {
+        if !(N == 16 || N == 24 || N == 32) || !arm::available() || start.len() < blocks.len() || end.len() < blocks.len() {
             return false;
         }
         // SAFETY: `neon` and `sha2` were detected just above.
-        unsafe { chain_all(state, blocks, start, end) };
+        unsafe { chain_all::<N>(state, blocks, start, end) };
         true
     }
 
@@ -486,9 +515,9 @@ pub(crate) mod hw {
         /// Chains are taken in order into four slots. The slots run until the
         /// first of them has no steps left; finished chains are written back
         /// to their blocks and the free slots take the next chains.
-        fn chain_all(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
+        fn chain_all<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
             let z = arm::zero();
-            let mut slots = [Slot { m0: z, c1: z, c2: z, m3: z, x: z, a1: z, e1: z, t: 0, end: 0, lane: 0 }; 4];
+            let mut slots = [Slot { m0: z, c1: z, c2: z, c3: z, x: z, xb: z, tail: z, a1: z, e1: z, t: 0, end: 0, lane: 0 }; 4];
             let mut first = First { known: false, head: [0u8; 16], a1: z, e1: z };
             let mut n = 0;
             let mut next = 0;
@@ -496,7 +525,7 @@ pub(crate) mod hw {
                 // Give every free slot the next chain that has steps to do.
                 while n < 4 && next < blocks.len() {
                     if start[next] < end[next] {
-                        slots[n] = enter(state, &blocks[next], start[next], end[next], next, &mut first);
+                        slots[n] = enter::<N>(state, &blocks[next], start[next], end[next], next, &mut first);
                         n += 1;
                     }
                     next += 1;
@@ -515,13 +544,13 @@ pub(crate) mod hw {
                     j += 1;
                 }
                 if n == 4 {
-                    run::<4>(state, &mut slots, r);
+                    run::<N, 4>(state, &mut slots, r);
                 } else if n == 3 {
-                    run::<3>(state, &mut slots, r);
+                    run::<N, 3>(state, &mut slots, r);
                 } else if n == 2 {
-                    run::<2>(state, &mut slots, r);
+                    run::<N, 2>(state, &mut slots, r);
                 } else {
-                    run::<1>(state, &mut slots, r);
+                    run::<N, 1>(state, &mut slots, r);
                 }
                 // Write back the finished chains and close the gaps.
                 let mut k = 0;
@@ -531,7 +560,7 @@ pub(crate) mod hw {
                         slots[k] = slots[j];
                         k += 1;
                     } else {
-                        leave(&slots[j], &mut blocks[slots[j].lane]);
+                        leave::<N>(&slots[j], &mut blocks[slots[j].lane]);
                     }
                     j += 1;
                 }
@@ -542,7 +571,7 @@ pub(crate) mod hw {
         /// A chain into a slot: the fixed words of its block, its value, and
         /// rounds 0..3, which are taken from `first` if the block starts with
         /// the same sixteen bytes as the last one entered.
-        fn enter(state: &[u32; 8], block: &[u8; 64], t: u32, end: u32, lane: usize, first: &mut First) -> Slot {
+        fn enter<const N: usize>(state: &[u32; 8], block: &[u8; 64], t: u32, end: u32, lane: usize, first: &mut First) -> Slot {
             let m0 = arm::load_be(block, 0);
             let mut head = [0u8; 16];
             head.copy_from_slice(&block[0..16]);
@@ -555,12 +584,30 @@ pub(crate) mod hw {
                 first.a1 = arm::sha256h(abcd0, efgh0, w);
                 first.e1 = arm::sha256h2(efgh0, abcd0, w);
             }
+            let z = arm::zero();
+            // Masks of the fixed parts of W8..W11 and W12..W15, of the value's
+            // words in bytes 38..54, and of what follows the value there.
+            let (k2, k3, kb, kt) = if N == 16 {
+                (MASK2, ALL, [0u32; 4], [0u32; 4])
+            } else if N == 24 {
+                (MASK2_24, ALL, LOW2, HIGH2)
+            } else {
+                ([0u32; 4], MASK2, ALL, [0u32; 4])
+            };
+            let (xb, tail) = if N == 16 {
+                (z, z)
+            } else {
+                let b = arm::load_be(block, 38);
+                (arm::and(b, arm::load_words(&kb, 0)), arm::and(b, arm::load_words(&kt, 0)))
+            };
             Slot {
                 m0,
                 c1: arm::and(arm::load_be(block, 16), arm::load_words(&MASK1, 0)),
-                c2: arm::and(arm::load_be(block, 32), arm::load_words(&MASK2, 0)),
-                m3: arm::load_be(block, 48),
+                c2: arm::and(arm::load_be(block, 32), arm::load_words(&k2, 0)),
+                c3: arm::and(arm::load_be(block, 48), arm::load_words(&k3, 0)),
                 x: arm::load_be(block, 22),
+                xb,
+                tail,
                 a1: first.a1,
                 e1: first.e1,
                 t,
@@ -572,12 +619,15 @@ pub(crate) mod hw {
         /// A finished chain back to its block: the value, and the counter of
         /// the last step done (which is what the portable code leaves there).
         /// The slot has done at least one step.
-        fn leave(slot: &Slot, block: &mut [u8; 64]) {
+        fn leave<const N: usize>(slot: &Slot, block: &mut [u8; 64]) {
             let t = slot.t - 1;
             block[18] = (t >> 24) as u8;
             block[19] = (t >> 16) as u8;
             block[20] = (t >> 8) as u8;
             block[21] = t as u8;
+            if N > 16 {
+                arm::store_be(block, 38, arm::or(slot.xb, slot.tail));
+            }
             arm::store_be(block, 22, slot.x);
         }
 
@@ -585,8 +635,9 @@ pub(crate) mod hw {
         /// of `L` runs `15·LANE/L` ticks behind lane 0. `PHASE` 0 is the first
         /// period of a run (a lane joins at its offset), 1 a middle period, 2
         /// the last (a lane that joined late finishes its last hash).
-        fn lane_tick<const L: usize, const PHASE: usize, const J: usize, const LANE: usize>(
+        fn lane_tick<const N: usize, const L: usize, const PHASE: usize, const J: usize, const LANE: usize>(
             abcd0: V,
+            efgh0: V,
             slots: &[Slot; 4],
             p: u32,
             s: &mut Lanes,
@@ -595,12 +646,12 @@ pub(crate) mod hw {
                 let off = (15 * LANE) / L;
                 if PHASE == 0 {
                     if J >= off {
-                        lane_step::<L, J, LANE>(abcd0, slots, p, s);
+                        lane_step::<N, L, J, LANE>(abcd0, efgh0, slots, p, s);
                     }
                 } else if PHASE == 1 {
-                    lane_step::<L, J, LANE>(abcd0, slots, p, s);
+                    lane_step::<N, L, J, LANE>(abcd0, efgh0, slots, p, s);
                 } else if J < off {
-                    lane_step::<L, J, LANE>(abcd0, slots, p, s);
+                    lane_step::<N, L, J, LANE>(abcd0, efgh0, slots, p, s);
                 }
             }
         }
@@ -609,12 +660,18 @@ pub(crate) mod hw {
         /// starts a hash before step 1 and the work that ends one after step
         /// 15. `p` is the number of the period, which is the number of the
         /// hash a lane starts in it.
-        fn lane_step<const L: usize, const J: usize, const LANE: usize>(abcd0: V, slots: &[Slot; 4], p: u32, s: &mut Lanes) {
+        fn lane_step<const N: usize, const L: usize, const J: usize, const LANE: usize>(
+            abcd0: V,
+            efgh0: V,
+            slots: &[Slot; 4],
+            p: u32,
+            s: &mut Lanes,
+        ) {
             let off = (15 * LANE) / L;
             let i = (J + 15 - off) % 15 + 1;
             if i == 1 {
                 // A new hash. The value sits 16 bits off the word boundaries
-                // (bytes 22..38), after the step counter.
+                // (bytes 22..22 + N), after the step counter.
                 let z = arm::zero();
                 let t = slots[LANE].t + p;
                 let hi = arm::shr16(s.x[LANE]);
@@ -623,8 +680,20 @@ pub(crate) mod hw {
                     arm::or(slots[LANE].c1, arm::pair(t >> 16, t << 16)),
                     arm::or(arm::ext3(z, hi), arm::ext2(z, lo)),
                 );
-                let m2 = arm::or(slots[LANE].c2, arm::or(arm::ext2(lo, z), arm::ext3(hi, z)));
-                let m3 = slots[LANE].m3;
+                // W8..W11 and W12..W15. For N > 16 the value's words 4..
+                // continue into W9..W11 (N = 24) or W9..W13 (N = 32).
+                let (m2, m3) = if N == 16 {
+                    (arm::or(slots[LANE].c2, arm::or(arm::ext2(lo, z), arm::ext3(hi, z))), slots[LANE].c3)
+                } else {
+                    let hib = arm::shr16(s.xb[LANE]);
+                    let lob = arm::shl16(s.xb[LANE]);
+                    let m2 = arm::or(slots[LANE].c2, arm::or(arm::ext2(lo, lob), arm::ext3(hi, hib)));
+                    if N == 24 {
+                        (m2, slots[LANE].c3)
+                    } else {
+                        (m2, arm::or(slots[LANE].c3, arm::or(arm::ext2(lob, z), arm::ext3(hib, z))))
+                    }
+                };
                 // Rounds 0..3 are already done; W16..W19 are still wanted.
                 s.abcd[LANE] = slots[LANE].a1;
                 s.efgh[LANE] = slots[LANE].e1;
@@ -633,9 +702,9 @@ pub(crate) mod hw {
             let w = arm::add(s.m[LANE][i % 4], arm::load_words(&super::K, 4 * i));
             let prev = s.abcd[LANE];
             s.abcd[LANE] = arm::sha256h(prev, s.efgh[LANE], w);
-            // Only the first four words of the result are kept, so the last
-            // update of the other four is not needed.
-            if i < 15 {
+            // For N = 16 only the first four words of the result are kept, so
+            // the last update of the other four is not needed.
+            if i < 15 || N > 16 {
                 s.efgh[LANE] = arm::sha256h2(s.efgh[LANE], prev, w);
             }
             if i < 12 {
@@ -647,41 +716,59 @@ pub(crate) mod hw {
             }
             if i == 15 {
                 s.x[LANE] = arm::add(s.abcd[LANE], abcd0);
+                if N == 24 {
+                    s.xb[LANE] = arm::and(arm::add(s.efgh[LANE], efgh0), arm::load_words(&LOW2, 0));
+                } else if N > 24 {
+                    s.xb[LANE] = arm::add(s.efgh[LANE], efgh0);
+                }
             }
         }
 
         /// One tick: every lane takes one step.
-        fn tick<const L: usize, const PHASE: usize, const J: usize>(abcd0: V, slots: &[Slot; 4], p: u32, s: &mut Lanes) {
-            lane_tick::<L, PHASE, J, 0>(abcd0, slots, p, s);
-            lane_tick::<L, PHASE, J, 1>(abcd0, slots, p, s);
-            lane_tick::<L, PHASE, J, 2>(abcd0, slots, p, s);
-            lane_tick::<L, PHASE, J, 3>(abcd0, slots, p, s);
+        fn tick<const N: usize, const L: usize, const PHASE: usize, const J: usize>(
+            abcd0: V,
+            efgh0: V,
+            slots: &[Slot; 4],
+            p: u32,
+            s: &mut Lanes,
+        ) {
+            lane_tick::<N, L, PHASE, J, 0>(abcd0, efgh0, slots, p, s);
+            lane_tick::<N, L, PHASE, J, 1>(abcd0, efgh0, slots, p, s);
+            lane_tick::<N, L, PHASE, J, 2>(abcd0, efgh0, slots, p, s);
+            lane_tick::<N, L, PHASE, J, 3>(abcd0, efgh0, slots, p, s);
         }
 
         /// One period of fifteen ticks.
-        fn period<const L: usize, const PHASE: usize>(abcd0: V, slots: &[Slot; 4], p: u32, s: &mut Lanes) {
-            tick::<L, PHASE, 0>(abcd0, slots, p, s);
-            tick::<L, PHASE, 1>(abcd0, slots, p, s);
-            tick::<L, PHASE, 2>(abcd0, slots, p, s);
-            tick::<L, PHASE, 3>(abcd0, slots, p, s);
-            tick::<L, PHASE, 4>(abcd0, slots, p, s);
-            tick::<L, PHASE, 5>(abcd0, slots, p, s);
-            tick::<L, PHASE, 6>(abcd0, slots, p, s);
-            tick::<L, PHASE, 7>(abcd0, slots, p, s);
-            tick::<L, PHASE, 8>(abcd0, slots, p, s);
-            tick::<L, PHASE, 9>(abcd0, slots, p, s);
-            tick::<L, PHASE, 10>(abcd0, slots, p, s);
-            tick::<L, PHASE, 11>(abcd0, slots, p, s);
-            tick::<L, PHASE, 12>(abcd0, slots, p, s);
-            tick::<L, PHASE, 13>(abcd0, slots, p, s);
-            tick::<L, PHASE, 14>(abcd0, slots, p, s);
+        fn period<const N: usize, const L: usize, const PHASE: usize>(
+            abcd0: V,
+            efgh0: V,
+            slots: &[Slot; 4],
+            p: u32,
+            s: &mut Lanes,
+        ) {
+            tick::<N, L, PHASE, 0>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 1>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 2>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 3>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 4>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 5>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 6>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 7>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 8>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 9>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 10>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 11>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 12>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 13>(abcd0, efgh0, slots, p, s);
+            tick::<N, L, PHASE, 14>(abcd0, efgh0, slots, p, s);
         }
     }
 
     /// `steps` steps of the first `L` slots (`1 <= L <= 4`, `steps >= 1`,
     /// each slot with at least `steps` steps left), entirely in registers:
-    /// each step rebuilds W4..W9 from the counter and the previous value,
-    /// compresses, and keeps the first four words of the result as the next
+    /// each step rebuilds the words W4.. that hold the counter and the value
+    /// (W4..W9 for N = 16, W4..W11 for N = 24, W4..W13 for N = 32),
+    /// compresses, and keeps the first N/4 words of the result as the next
     /// value.
     ///
     /// The round instructions of all lanes go through one execution unit, and
@@ -690,42 +777,50 @@ pub(crate) mod hw {
     /// and no two lanes are between hashes at the same time.
     #[inline]
     #[cfg_attr(not(target_feature = "sha2"), target_feature(enable = "neon,sha2"))]
-    fn run<const L: usize>(state: &[u32; 8], slots: &mut [Slot; 4], steps: u32) {
+    fn run<const N: usize, const L: usize>(state: &[u32; 8], slots: &mut [Slot; 4], steps: u32) {
         let abcd0 = arm::load_words(state, 0);
+        let efgh0 = arm::load_words(state, 4);
         let z = arm::zero();
-        let mut s = Lanes { x: [slots[0].x, slots[1].x, slots[2].x, slots[3].x], abcd: [z; 4], efgh: [z; 4], m: [[z; 4]; 4] };
-        period::<L, 0>(abcd0, slots, 0, &mut s);
+        let mut s = Lanes {
+            x: [slots[0].x, slots[1].x, slots[2].x, slots[3].x],
+            xb: [slots[0].xb, slots[1].xb, slots[2].xb, slots[3].xb],
+            abcd: [z; 4],
+            efgh: [z; 4],
+            m: [[z; 4]; 4],
+        };
+        period::<N, L, 0>(abcd0, efgh0, slots, 0, &mut s);
         let mut p: u32 = 1;
         while p < steps {
-            period::<L, 1>(abcd0, slots, p, &mut s);
+            period::<N, L, 1>(abcd0, efgh0, slots, p, &mut s);
             p += 1;
         }
-        period::<L, 2>(abcd0, slots, p, &mut s);
+        period::<N, L, 2>(abcd0, efgh0, slots, p, &mut s);
         if 0 < L {
-            slots[0] = advanced(&slots[0], s.x[0], steps);
+            slots[0] = advanced(&slots[0], s.x[0], s.xb[0], steps);
         }
         if 1 < L {
-            slots[1] = advanced(&slots[1], s.x[1], steps);
+            slots[1] = advanced(&slots[1], s.x[1], s.xb[1], steps);
         }
         if 2 < L {
-            slots[2] = advanced(&slots[2], s.x[2], steps);
+            slots[2] = advanced(&slots[2], s.x[2], s.xb[2], steps);
         }
         if 3 < L {
-            slots[3] = advanced(&slots[3], s.x[3], steps);
+            slots[3] = advanced(&slots[3], s.x[3], s.xb[3], steps);
         }
     }
 
-    /// The slot after `steps` more steps that left it at value `x`.
+    /// The slot after `steps` more steps that left it at value `x`, `xb`.
     #[inline]
-    fn advanced(slot: &Slot, x: V, steps: u32) -> Slot {
-        Slot { x, t: slot.t + steps, ..*slot }
+    fn advanced(slot: &Slot, x: V, xb: V, steps: u32) -> Slot {
+        Slot { x, xb, t: slot.t + steps, ..*slot }
     }
 
     /// What each wrapper of [`arm`] returns on this processor, against the
     /// record in `vectors/arm-wrappers.txt`. The Lean model of the wrappers
     /// (`lean-hw/Slhdsa/FunsExternal.lean`) is run on the same file
     /// (`lean-hw/ArmTest.lean`), so the two agree on every case recorded.
-    /// `ARM_VECTORS_WRITE=1` rewrites the file from this processor.
+    /// With `ARM_VECTORS_WRITE=1` in the environment the test (re)writes the
+    /// record from this processor instead of only reading it.
     #[cfg(test)]
     mod vectors {
         use super::arm::{self, V};

@@ -2,7 +2,7 @@
 name = "slhdsa_current"
 version = "0.1.0"
 edition = "2021"
-description = "Copy of ../../../rust/src (the optimised verified crate), with an optional SHA-256 compression counter (feature `count`). Used only for counting."
+description = "Frozen copy of rust/src of the single-set crate at git commit 26aa3d8 (the optimised SLH-DSA-SHA2-128s crate), with an optional SHA-256 compression counter (feature `count`). Used only for counting."
 publish = false
 
 [features]

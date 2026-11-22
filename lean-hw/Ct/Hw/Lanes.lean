@@ -1,13 +1,18 @@
 import Ct.Hash
 
 /-!
-# Constant time: the four-lane kernel of `sha256::hw::chain_all`, the round part
+# Constant time: the four-lane kernel of `sha256::hw::chain_all`, the round part (generic in `N`)
+
+Adapted from the single-set tree's `lean-hw/Ct/Hw/Lanes.lean` (git `26aa3d8`) (copied and edited, not linked:
+this tree's kernel takes the hash length `N` and the second half `efgh0` of the seed state, and
+carries the value's words 4.. in `xb`).
 
 `lane_step`, `lane_tick`, `tick`, `period` and `run` work on the vector registers of up to four
 lanes. Their branches, divisions, remainders and indices are on the const-generic parameters
-(`L` lanes, the `PHASE`, the tick `J`, the `LANE`) and on the period `p` and the step count
-`steps`: all public. The slots' secret parts (the message words and first-round state) and the
-lanes' registers only pass through the register-only wrappers. So two runs with the same public
+(the hash length `N`, `L` lanes, the `PHASE`, the tick `J`, the `LANE`) and on the period `p`
+and the step count `steps`: all public. The new branches of this tree (`N = 16`, `N = 24`,
+`N > 16`, `N > 24`) are on `N`, which both runs share. The slots' secret parts (the message words and first-round state) and the
+lanes' registers (`x`, `xb`, `abcd`, `efgh`, the schedule) only pass through the register-only wrappers. So two runs with the same public
 parameters have the same trace, whatever the slots and lanes.
 
 `run` also advances the slots' step counters by `steps`; its postcondition says that the public
@@ -55,8 +60,9 @@ theorem SlotsRel.set {a a' : List Slot} (h : a.map pub = a'.map pub) (i : Nat) {
     (hs : pub s = pub s') : (a.set i s).map pub = (a'.set i s').map pub := by
   rw [List.map_set, List.map_set, h, hs]
 
-@[ct_rel] theorem advanced (slot slot' : Slot) (x x' : Vec) (steps : U32) (h : pub slot = pub slot') :
-    Rel (sha256.hw.advanced slot x steps) (sha256.hw.advanced slot' x' steps)
+@[ct_rel] theorem advanced (slot slot' : Slot) (x x' xb xb' : Vec) (steps : U32)
+    (h : pub slot = pub slot') :
+    Rel (sha256.hw.advanced slot x xb steps) (sha256.hw.advanced slot' x' xb' steps)
       (fun r r' => pub r = pub r') := by
   obtain ⟨ht, he, hl⟩ := pub_eq h
   unfold sha256.hw.advanced
@@ -64,54 +70,54 @@ theorem SlotsRel.set {a a' : List Slot} (h : a.map pub = a'.map pub) (i : Nat) {
   ct_steps
   simp_all [pub]
 
-@[ct_rel] theorem lane_step (L J LANE : Usize) (abcd0 abcd0' : Vec)
+@[ct_rel] theorem lane_step (N L J LANE : Usize) (abcd0 abcd0' efgh0 efgh0' : Vec)
     (slots slots' : Array Slot 4#usize) (p : U32) (s s' : slhdsa.sha256.hw.Lanes) :
-    Rel (sha256.hw.lane_step L J LANE abcd0 slots p s)
-      (sha256.hw.lane_step L J LANE abcd0' slots' p s') (fun _ _ => True) := by
+    Rel (sha256.hw.lane_step N L J LANE abcd0 efgh0 slots p s)
+      (sha256.hw.lane_step N L J LANE abcd0' efgh0' slots' p s') (fun _ _ => True) := by
   unfold sha256.hw.lane_step
   ct_steps
 
-@[ct_rel] theorem lane_tick (L PHASE J LANE : Usize) (abcd0 abcd0' : Vec)
+@[ct_rel] theorem lane_tick (N L PHASE J LANE : Usize) (abcd0 abcd0' efgh0 efgh0' : Vec)
     (slots slots' : Array Slot 4#usize) (p : U32) (s s' : slhdsa.sha256.hw.Lanes) :
-    Rel (sha256.hw.lane_tick L PHASE J LANE abcd0 slots p s)
-      (sha256.hw.lane_tick L PHASE J LANE abcd0' slots' p s') (fun _ _ => True) := by
+    Rel (sha256.hw.lane_tick N L PHASE J LANE abcd0 efgh0 slots p s)
+      (sha256.hw.lane_tick N L PHASE J LANE abcd0' efgh0' slots' p s') (fun _ _ => True) := by
   unfold sha256.hw.lane_tick
   ct_steps
 
-@[ct_rel] theorem tick (L PHASE J : Usize) (abcd0 abcd0' : Vec)
+@[ct_rel] theorem tick (N L PHASE J : Usize) (abcd0 abcd0' efgh0 efgh0' : Vec)
     (slots slots' : Array Slot 4#usize) (p : U32) (s s' : slhdsa.sha256.hw.Lanes) :
-    Rel (sha256.hw.tick L PHASE J abcd0 slots p s)
-      (sha256.hw.tick L PHASE J abcd0' slots' p s') (fun _ _ => True) := by
+    Rel (sha256.hw.tick N L PHASE J abcd0 efgh0 slots p s)
+      (sha256.hw.tick N L PHASE J abcd0' efgh0' slots' p s') (fun _ _ => True) := by
   unfold sha256.hw.tick
   ct_steps
 
-@[ct_rel] theorem period (L PHASE : Usize) (abcd0 abcd0' : Vec)
+@[ct_rel] theorem period (N L PHASE : Usize) (abcd0 abcd0' efgh0 efgh0' : Vec)
     (slots slots' : Array Slot 4#usize) (p : U32) (s s' : slhdsa.sha256.hw.Lanes) :
-    Rel (sha256.hw.period L PHASE abcd0 slots p s)
-      (sha256.hw.period L PHASE abcd0' slots' p s') (fun _ _ => True) := by
+    Rel (sha256.hw.period N L PHASE abcd0 efgh0 slots p s)
+      (sha256.hw.period N L PHASE abcd0' efgh0' slots' p s') (fun _ _ => True) := by
   unfold sha256.hw.period
   ct_steps
 
-theorem run_loop_body (L : Usize) (slots slots' : Array Slot 4#usize) (steps : U32)
-    (abcd0 abcd0' : Vec) (s s' : slhdsa.sha256.hw.Lanes) (p : U32) :
-    Rel (sha256.hw.run_loop.body L slots steps abcd0 s p)
-      (sha256.hw.run_loop.body L slots' steps abcd0' s' p)
+theorem run_loop_body (N L : Usize) (slots slots' : Array Slot 4#usize) (steps : U32)
+    (abcd0 abcd0' efgh0 efgh0' : Vec) (s s' : slhdsa.sha256.hw.Lanes) (p : U32) :
+    Rel (sha256.hw.run_loop.body N L slots steps abcd0 efgh0 s p)
+      (sha256.hw.run_loop.body N L slots' steps abcd0' efgh0' s' p)
       (CFRel (fun a b => a.2 = b.2) (fun a b => a.2 = b.2)) := by
   unfold sha256.hw.run_loop.body
   ct_steps
   all_goals simp_all
 
-@[ct_rel] theorem run_loop (L : Usize) (slots slots' : Array Slot 4#usize) (steps : U32)
-    (abcd0 abcd0' : Vec) (s s' : slhdsa.sha256.hw.Lanes) (p : U32) :
-    Rel (sha256.hw.run_loop L slots steps abcd0 s p)
-      (sha256.hw.run_loop L slots' steps abcd0' s' p) (fun a b => a.2 = b.2) := by
+@[ct_rel] theorem run_loop (N L : Usize) (slots slots' : Array Slot 4#usize) (steps : U32)
+    (abcd0 abcd0' efgh0 efgh0' : Vec) (s s' : slhdsa.sha256.hw.Lanes) (p : U32) :
+    Rel (sha256.hw.run_loop N L slots steps abcd0 efgh0 s p)
+      (sha256.hw.run_loop N L slots' steps abcd0' efgh0' s' p) (fun a b => a.2 = b.2) := by
   unfold sha256.hw.run_loop
   refine Rel.loop (fun a b => a.2 = b.2) ?_ rfl
   rintro ⟨x, j⟩ ⟨x', j'⟩ (rfl : j = j')
-  exact run_loop_body L slots slots' steps abcd0 abcd0' x x' j
+  exact run_loop_body N L slots slots' steps abcd0 abcd0' efgh0 efgh0' x x' j
 
 instance : Inhabited Slot := ⟨⟨⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩,
-  ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, 0#u32, 0#u32, 0#usize⟩⟩
+  ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, 0#u32, 0#u32, 0#usize⟩⟩
 
 /-- `ct_step`, but a nested conditional whose result is an array of slots is stepped with the
 intermediate relation `SlotsRel` (instead of the trivial one). -/
@@ -133,10 +139,10 @@ macro "slots_tac" : tactic => `(tactic| (
 section
 attribute [local ct_rel] slots_index
 
-/-- `run`: the trace depends on `L` and `steps` only; the slots' public parts stay equal. -/
-@[ct_rel] theorem run (L : Usize) (state state' : Array U32 8#usize)
+/-- `run`: the trace depends on `N`, `L` and `steps` only; the slots' public parts stay equal. -/
+@[ct_rel] theorem run (N L : Usize) (state state' : Array U32 8#usize)
     (slots slots' : Array Slot 4#usize) (steps : U32) (h : SlotsRel slots slots') :
-    Rel (sha256.hw.run L state slots steps) (sha256.hw.run L state' slots' steps)
+    Rel (sha256.hw.run N L state slots steps) (sha256.hw.run N L state' slots' steps)
       (fun r r' => SlotsRel r r') := by
   unfold sha256.hw.run
   ct_steps_s

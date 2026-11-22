@@ -1,0 +1,105 @@
+
+=== P20: qf = 2^60, qs = 2^20, l = 2^26 (x = 1048576)
+  current bound (suf_ideal_closed_tight8, unrounded):
+    ITSR n = qf + 2qs + 2(qs+1) = 2^60.00
+    I.a reuseSum exact (Stirling closed form)                      2^  -95.52
+    I.a reuseSum_le_prod (form used in the Lean numerics)          2^  -77.91
+    I.b (q + qc*Lc + (qs+1)(x+3))^2 / 2^256                        2^ -132.91
+    II  QlinT8 / 2^128                                             2^  -63.25
+          27*qf                                                    2^  -63.25
+          qs*16771392 (re-signing hashing)                         2^  -84.00
+          qs*14x (message blocks)                                  2^  -84.19
+          one-off 29487855+13x                                     2^ -102.64
+    III polyP8 / 2^256                                             2^  -79.91
+          (Qc+N)^2                                                 2^  -94.00
+          (Qc+qs(l+1)+2)^2                                         2^ -136.00
+          18(2Qc+22N+21)^2 + 18(2Qc+22N+9)^2 (T_len/T_k internal CVs, L12) 2^  -79.91
+          linear rest                                              2^ -164.16
+    TOTAL current (I.a exact)                                      2^  -63.25
+    TOTAL current (I.a prod form)                                  2^  -63.25
+  generic attacks (lower bound on any true bound):
+    SK.seed search qf/2^128                                        2^  -68.00
+    FORS/ITSR qf*p(qs)                                             2^ -151.00
+    floor (sum)                                                    2^  -68.00
+  predicted direct bound, c=2 (plan 3):
+    (2qf + C0)/2^128                                               2^  -67.00
+    (qf+1)*cover_targets(qs)                                       2^ -151.00
+    (Qtot+2)^2/2^257                                               2^ -137.00
+    TOTAL direct                                                   2^  -67.00
+    Qtot = 2^60.00
+    TOTAL direct, refined c=1                                      2^  -68.00
+    fallback: direct leg II + ITSR fulllog (n=qf+qs+1)             2^  -67.00
+       of which ITSR fulllog                                       2^  -95.52
+    fallback: direct leg II + ITSR fulllog_prod (n=qf+qs+1)        2^  -67.00
+       of which ITSR fulllog_prod                                  2^  -77.91
+  gain current -> direct: 3.75 bits; direct vs floor: 1.00 bits
+
+=== P40: qf = 2^64, qs = 2^40, l = 2^26 (x = 1048576)
+  current bound (suf_ideal_closed_tight8, unrounded):
+    ITSR n = qf + 2qs + 2(qs+1) = 2^64.00
+    I.a reuseSum exact (Stirling closed form)                      2^  -69.73
+    I.a reuseSum_le_prod (form used in the Lean numerics)          2^  -63.75
+    I.b (q + qc*Lc + (qs+1)(x+3))^2 / 2^256                        2^  -94.13
+    II  QlinT8 / 2^128                                             2^  -59.15
+          27*qf                                                    2^  -59.25
+          qs*16771392 (re-signing hashing)                         2^  -64.00
+          qs*14x (message blocks)                                  2^  -64.19
+          one-off 29487855+13x                                     2^ -102.64
+    III polyP8 / 2^256                                             2^  -79.91
+          (Qc+N)^2                                                 2^  -94.00
+          (Qc+qs(l+1)+2)^2                                         2^ -124.66
+          18(2Qc+22N+21)^2 + 18(2Qc+22N+9)^2 (T_len/T_k internal CVs, L12) 2^  -79.91
+          linear rest                                              2^ -164.16
+    TOTAL current (I.a exact)                                      2^  -59.15
+    TOTAL current (I.a prod form)                                  2^  -59.09
+  generic attacks (lower bound on any true bound):
+    SK.seed search qf/2^128                                        2^  -64.00
+    FORS/ITSR qf*p(qs)                                             2^ -127.00
+    floor (sum)                                                    2^  -64.00
+  predicted direct bound, c=2 (plan 3):
+    (2qf + C0)/2^128                                               2^  -63.00
+    (qf+1)*cover_targets(qs)                                       2^ -127.00
+    (Qtot+2)^2/2^257                                               2^ -128.34
+    TOTAL direct                                                   2^  -63.00
+    Qtot = 2^64.33
+    TOTAL direct, refined c=1                                      2^  -64.00
+    fallback: direct leg II + ITSR fulllog (n=qf+qs+1)             2^  -62.99
+       of which ITSR fulllog                                       2^  -69.73
+    fallback: direct leg II + ITSR fulllog_prod (n=qf+qs+1)        2^  -62.33
+       of which ITSR fulllog_prod                                  2^  -63.75
+  gain current -> direct: 3.85 bits; direct vs floor: 1.00 bits
+
+=== P64: qf = 2^64, qs = 2^64, l = 2^26 (x = 1048576)
+  current bound (suf_ideal_closed_tight8, unrounded):
+    ITSR n = qf + 2qs + 2(qs+1) = 2^66.32
+    I.a reuseSum exact (Stirling closed form)                      2^  -47.13
+    I.a reuseSum_le_prod (form used in the Lean numerics)          2^  -45.69
+    I.b (q + qc*Lc + (qs+1)(x+3))^2 / 2^256                        2^  -46.13
+    II  QlinT8 / 2^128                                             2^  -39.09
+          27*qf                                                    2^  -59.25
+          qs*16771392 (re-signing hashing)                         2^  -40.00
+          qs*14x (message blocks)                                  2^  -40.19
+          one-off 29487855+13x                                     2^ -102.64
+    III polyP8 / 2^256                                             2^  -70.48
+          (Qc+N)^2                                                 2^  -77.81
+          (Qc+qs(l+1)+2)^2                                         2^  -77.74
+          18(2Qc+22N+21)^2 + 18(2Qc+22N+9)^2 (T_len/T_k internal CVs, L12) 2^  -70.50
+          linear rest                                              2^ -160.41
+    TOTAL current (I.a exact)                                      2^  -39.08
+    TOTAL current (I.a prod form)                                  2^  -39.07
+  generic attacks (lower bound on any true bound):
+    SK.seed search qf/2^128                                        2^  -64.00
+    FORS/ITSR qf*p(qs)                                             2^  -69.75
+    floor (sum)                                                    2^  -63.97
+  predicted direct bound, c=2 (plan 3):
+    (2qf + C0)/2^128                                               2^  -63.00
+    (qf+1)*cover_targets(qs)                                       2^  -69.73
+    (Qtot+2)^2/2^257                                               2^  -84.92
+    TOTAL direct                                                   2^  -62.99
+    Qtot = 2^86.04
+    TOTAL direct, refined c=1                                      2^  -63.97
+    fallback: direct leg II + ITSR fulllog (n=qf+qs+1)             2^  -60.54
+       of which ITSR fulllog                                       2^  -60.83
+    fallback: direct leg II + ITSR fulllog_prod (n=qf+qs+1)        2^  -57.22
+       of which ITSR fulllog_prod                                  2^  -57.25
+  gain current -> direct: 23.91 bits; direct vs floor: 0.99 bits

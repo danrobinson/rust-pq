@@ -1,567 +1,359 @@
 # formal-sig
 
-A Rust implementation of **SLH-DSA-SHA2-128s** (FIPS 205, the standardised
-SPHINCS+) with a machine-checked proof, in Lean 4, that the Rust code computes
-exactly what the standard specifies.
+A Rust implementation of **SLH-DSA with SHA-2** (FIPS 205, the standardised SPHINCS+), all six
+SHA-2 parameter sets (SLH-DSA-SHA2-128s, 128f, 192s, 192f, 256s, 256f), with machine-checked
+proofs, in Lean 4, that the Rust code computes exactly what the standard specifies, that its
+branches and memory accesses do not depend on secrets, and that the scheme it computes is secure
+under named hash assumptions.
+
+Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
+lived in a subdirectory beside it. The six-set tree has replaced it; the single-set tree is git
+commit `26aa3d8`. What the single-set tree had and this one does not is listed in
+[HANDOFF.md](HANDOFF.md) ("What the single-set tree had that this tree does not").
 
 ## What is proven
 
-For the Rust functions in [rust/src](rust/src), as translated to Lean by
-[Aeneas](https://github.com/AeneasVerif/aeneas), the theorems in
-[lean/Slhdsa/Theorems.lean](lean/Slhdsa/Theorems.lean) state:
+The crate ([rust](rust)) has one implementation with the hash length `n` as a const generic and
+the rest of the parameter set passed at run time, and a module per set (`slhdsa::sha2_128s`, …,
+`slhdsa::sha2_256f`) with fixed-size key types. For each set's functions, as translated to Lean by
+[Aeneas](https://github.com/AeneasVerif/aeneas), [lean/Slhdsa/Theorems.lean](lean/Slhdsa/Theorems.lean)
+states (namespace `slhdsa.sha2_<set>`; 37 theorems):
 
-| Rust function | Theorem | Says |
+| Rust function (`sets::sha2_<set>::…`) | Theorem | Says |
 |---|---|---|
 | `slh_keygen_internal` | `keygen_correct` | returns the keys of FIPS 205 Algorithm 18 |
 | `slh_sign_internal` | `sign_internal_correct` | returns the signature of Algorithm 19 |
 | `slh_verify_internal` | `verify_internal_correct` | returns the verdict of Algorithm 20, for every input |
 | `slh_sign` | `sign_correct` | Algorithm 22 (pure signing with context) |
 | `slh_verify` | `verify_correct` | Algorithm 24 |
-| `sha256` | `sha256_correct` | is SHA-256 (FIPS 180-4) |
+| `sha256::sha256`, `sha512::sha512` | `sha256_correct`, `sha512_correct` | are SHA-256 and SHA-512 (FIPS 180-4) |
 
-Each theorem also says the function returns normally: no panic, no arithmetic
-overflow, no out-of-bounds index, no non-termination. The only hypothesis is
-`Room`, that the message is short enough to hash: under 2^61 bytes, which is
-the limit of SHA-256 itself and beyond any real machine's memory.
+Each theorem also says the function returns normally: no panic, no arithmetic overflow, no
+out-of-bounds index, no non-termination. The only hypothesis is `Room`, that the message is short
+enough to hash (`m.length + 152` resp. `+ 409` for the pure functions at n = 16, `+ 304` / `+ 561`
+at n = 24, 32, below `usize::MAX` and `2^61`). The same statements are proved for the generic
+functions at any valid parameter set (`slhdsa.generic.*`).
 
-The proofs use no `sorry` and no axioms beyond Lean's three standard ones
-(`propext`, `Classical.choice`, `Quot.sound`); the file ends with
-`#print axioms` for each theorem.
+The proofs use no `sorry` and no axioms beyond Lean's three standard ones (`propext`,
+`Classical.choice`, `Quot.sound`); every headline file ends with `#print axioms` for each theorem.
 
-**The interface, and signing then verifying.** The crate's interface module
-([rust/src/api.rs](rust/src/api.rs)) and its optional checked signer have their
-own theorems, in [lean/Slhdsa/ApiTheorems.lean](lean/Slhdsa/ApiTheorems.lean)
-(29 statements, same axioms):
+**The interface, and signing then verifying.** The interface functions and the optional checked
+signer have their own theorems, in [lean/Slhdsa/ApiTheorems.lean](lean/Slhdsa/ApiTheorems.lean)
+(29 statements per set):
 
 | Rust function | Theorems | Say |
 |---|---|---|
-| `api::keygen` | `api_keygen_correct`, `api_keygen_keyOk` | Algorithm 21 on the three blocks of its random bytes; the key it writes is well formed |
-| `api::sign`, `api::sign_deterministic` | `api_sign_correct`, `api_sign_deterministic_correct` | Algorithm 22, hedged and with `PK.seed` as the randomness |
-| `api::verify`, `api::public_key` | `api_verify_correct`, `api_public_key_correct` | Algorithm 24; the last two blocks of the private key |
+| `keygen` | `api_keygen_correct`, `api_keygen_keyOk` | Algorithm 21 on the three blocks of its random bytes; the key it writes is well formed |
+| `sign`, `sign_deterministic` | `api_sign_correct`, `api_sign_deterministic_correct` | Algorithm 22, hedged and with `PK.seed` as the randomness |
+| `verify`, `public_key` | `api_verify_correct`, `api_public_key_correct` | Algorithm 24; the last two blocks of the private key |
 | any signer, then `verify` | `complete`, `complete_internal`, `api_complete_sign`, … | for a key from key generation, the signature that signing returns is accepted by verification |
 | `sign_checked` and the functions under it | `…_checked_correct` | whenever it returns a signature, it is the signature of the standard |
 | | `…_checked_verifies` | whatever it returns verifies under the public key held in the private key, for any private key at all |
 | | `…_checked_complete` | for a well-formed private key it always returns a signature |
 
-**Encodings.** [rust/src/encoding.rs](rust/src/encoding.rs) decides which byte
-strings are accepted as keys and signatures, compares private keys, and
-produces the PKCS#8 and SubjectPublicKeyInfo encodings of keys (for this
-parameter set, a fixed prefix followed by the key).
-[lean/Slhdsa/EncodingTheorems.lean](lean/Slhdsa/EncodingTheorems.lean) proves
-each against a literal statement of the bytes, that decoding accepts exactly
-the encoder's outputs and returns the key, and that the comparison is equality.
+**Encodings.** `encoding` decides which byte strings are accepted as keys and signatures, compares
+private keys, and produces the PKCS#8 and SubjectPublicKeyInfo encodings of keys (for each set a
+fixed prefix followed by the key). [lean/Slhdsa/EncodingTheorems.lean](lean/Slhdsa/EncodingTheorems.lean)
+(12 statements per set) proves each against a literal statement of the bytes, that decoding
+accepts exactly the encoder's outputs and returns the key, and that the comparison is equality.
 
-The checked signer ([below](#the-interface-to-use-compat)) is not part of FIPS
-205. [lean/Spec/Checked.lean](lean/Spec/Checked.lean) says what it computes, and
-[lean/Spec/Correctness.lean](lean/Spec/Correctness.lean) proves the scheme
-correct at the level of the specification: a WOTS+, XMSS or FORS signature
-leads back to the public key it was made under.
+**Against the single-set statements.** [lean/Spec/Old128.lean](lean/Spec/Old128.lean) is a
+verbatim copy of the single-set tree's SLH-DSA-SHA2-128s specification;
+[lean/Spec/Compat128.lean](lean/Spec/Compat128.lean) proves the parameterised specification at
+`Spec.sha2_128s` equal to it, function by function, and
+[lean/Slhdsa/Compat128.lean](lean/Slhdsa/Compat128.lean) restates the 24 128s theorems that mention
+the specification against it: literally the single-set tree's statements, up to the name of the
+Rust function.
 
-**Constant time.** [lean/Ct](lean/Ct) proves that the branches and memory
-accesses of key generation reveal nothing, and that those of signing reveal
-only what can be computed from the public key, the message and the signature;
-see [Constant time](#constant-time-leanct-see-leanct_statusmd).
+The checked signer is not part of FIPS 205. [lean/Spec/Checked.lean](lean/Spec/Checked.lean) says
+what it computes, and [lean/Spec/Correctness.lean](lean/Spec/Correctness.lean) proves the scheme
+correct at the level of the specification, for every valid parameter set.
 
-All of this is proved for both ways of building the crate: the default
-build ([lean](lean)), and the build with the opt-in `hw-sha2` feature
-([lean-hw](lean-hw)), which runs SHA-256 on the processor's SHA-256
-instructions. The second proof rests on one thing the first does not, a model
+**Constant time.** [lean/Ct](lean/Ct) proves that the branches and memory accesses of key
+generation reveal nothing, and that those of signing reveal only what can be computed from the
+public key, the message and the signature, for every set
+([lean/CT_STATUS.md](lean/CT_STATUS.md)).
+
+All of this is proved for both ways of building the crate: the default build ([lean](lean)), and
+the build with the opt-in `hw-sha2` feature ([lean-hw](lean-hw)), which runs SHA-256 on the
+processor's SHA-256 instructions. The second proof rests on one thing the first does not, a model
 of those instructions; see [below](#opt-in-hardware-sha-2-hw-sha2).
 
-"What the standard specifies" means the Lean transcription in
-[lean/Spec](lean/Spec): about 420 lines over lists of bytes, depending only on
-core Lean. The SHA-256 and HMAC inside the Rust crate are verified too, so no
-hash function is assumed correct.
+"What the standard specifies" means the Lean transcription in [lean/Spec](lean/Spec): about 700
+lines over lists of bytes (SHA-256, SHA-512, the scheme for any parameter record, the six SHA-2
+rows of FIPS 205 Table 2), depending only on core Lean. The SHA-256, SHA-512 and HMAC inside the
+Rust crate are verified too, so no hash function is assumed correct.
 
-## All six SHA-2 parameter sets ([multi/](multi))
-
-[multi/](multi) holds the same design generalised to SLH-DSA-SHA2-128s, 128f,
-192s, 192f, 256s and 256f: one implementation with the hash length as a
-compile-time parameter and the rest of the parameter set passed at run time.
-It has, for every set and for both the portable and the `hw-sha2` build:
-functional correctness against a parameterised FIPS 205 specification,
-constant time, the security link (standard-model reduction and the
-context-string random-oracle theorem), and a RustCrypto-style adapter crate
-([multi/compat](multi/compat)) with the wiping tests. `multi/scripts/check.sh`
-re-checks all of it; [multi/STATUS.md](multi/STATUS.md) has the statements
-and the list of what is not done. For 128s its statements are shown equal to
-this tree's.
-
-Not in `multi/`: the six SHAKE parameter sets; a verified hardware SHA-512
-(the `hw-sha512` feature is experimental and unproved, and without it the
-192/256 sets hash tree nodes in portable code); the quantum-random-oracle
-result; binary-level timing evidence. The rest of this file describes the
-single-set tree.
+Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
 ## What is tested
 
-- The Rust crate passes the NIST ACVP vectors for SLH-DSA-SHA2-128s: 10 key
-  generation, 28 signing, 28 verification (`cargo test --release`).
-- The Lean specification, compiled and run on the same vectors, matches all 28
-  verification cases, 2 key generation cases and 4 signing cases, one from each
-  signing group (`lake build spectest`; the spec is slow, so it runs a subset).
-- The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for
-  call: one piece of source compiled against both must give the same 86
-  results; and its wiping is checked by searching the stack and freed heap
-  memory for the secrets (`cd compat && cargo test`).
+- The Rust crate passes the NIST ACVP vectors for all six sets: per set 10 key generation, 28
+  signing, 28 verification (`cargo test --release`), and agrees byte for byte with RustCrypto's
+  `slh-dsa` 0.2.0-rc.5 on keys, signatures (hedged and deterministic, with contexts) and
+  encodings (`tests/rustcrypto.rs`).
+- The Lean specification, compiled and run on the same vectors, matches every verification case
+  of every set (`lake build spectest`; `scripts/check.sh full` also runs the slow key generation
+  and signing cases).
+- The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for call: one piece of
+  source compiled against both must give the same 516 results; and its wiping is checked by
+  searching the stack and freed heap memory for the secrets, for every set
+  (`cd compat && cargo test`).
 
 ## Performance
 
-Measured on Apple Silicon (M5 Ultra), default release build, median of two
-rounds ([bench/RESULTS.md](bench/RESULTS.md), run 5; `bench/run.sh` reproduces
-it):
+Apple M5 Ultra, release builds, median of three runs (method and every number: [STATUS.md](STATUS.md),
+"Measurements"); "RC" is RustCrypto's `slh-dsa` 0.2.0-rc.5 in the same binary, using hardware
+SHA-2 in the `hw-sha2` columns:
 
-| | keygen | sign | verify |
-|---|---|---|---|
-| this crate | 39.9 ms | 304 ms | 316 µs |
-| this crate, `hw-sha2` (below) | 3.91 ms | 30.2 ms | 35.4 µs |
-| RustCrypto `slh-dsa` | 8.28 ms | 62.5 ms | 63.8 µs |
-| OpenSSL 4.1 | 7.30 ms | 55.8 ms | 58.6 µs |
-| slhdsa-c (portable C) | 28.6 ms | 218 ms | 225 µs |
-| `fips205` as shipped | 61.2 ms | 471 ms | 479 µs |
+| set | keygen, default | sign, default | verify, default | keygen, `hw-sha2` | sign, `hw-sha2` | verify, `hw-sha2` | RC sign |
+|---|---|---|---|---|---|---|---|
+| 128s | 40.85 ms | 310.9 ms | 322.8 µs | 3.93 ms | 30.29 ms | 36.4 µs | 62.55 ms |
+| 128f | 619.8 µs | 14.77 ms | 943.4 µs | 61.0 µs | 1.51 ms | 99.3 µs | 2.99 ms |
+| 192s | 58.35 ms | 550.6 ms | 451.5 µs | 6.88 ms | 115.5 ms | 119.2 µs | 124.6 ms |
+| 192f | 915.0 µs | 24.42 ms | 1.28 ms | 105.5 µs | 4.41 ms | 241.1 µs | 5.41 ms |
+| 256s | 38.69 ms | 494.6 ms | 667.5 µs | 4.74 ms | 126.6 ms | 170.2 µs | 114.5 ms |
+| 256f | 2.42 ms | 50.29 ms | 1.33 ms | 291.7 µs | 9.40 ms | 271.7 µs | 11.15 ms |
 
-The default build is about 5 times slower than RustCrypto and OpenSSL, which
-use the ARM SHA-2 instructions; safe Rust in the Aeneas subset cannot. With
-the opt-in `hw-sha2` feature the crate is about 2.1 times as fast as
-RustCrypto and 1.85 times as fast as OpenSSL at key generation and signing,
-and 1.8 and 1.7 times at verification. Verifying a 1 MiB message, which is
-mostly hashing the message, takes 352 µs against 364 µs and 405 µs.
+The default build uses only safe Rust in the Aeneas subset and is about 1.4 times slower than
+RustCrypto's portable build. With `hw-sha2` it is faster than RustCrypto (hardware SHA-2) at
+every operation of the 128 and f sets and at 192s key generation and signing, and slower at 192s
+verification and at most of 256s, because SHA-512 (used by `H`, `T_l`, `H_msg` and `PRF_msg` at
+n = 24, 32) is still portable there. The experimental, unverified feature `hw-sha512` removes most
+of that gap.
 
-The crate interoperates with RustCrypto, `fips205`, OpenSSL and slhdsa-c in
-both builds: same keys from the same seeds, signatures verify both ways, and
-deterministic signatures are byte-identical.
+The comparisons with OpenSSL 4.1, `fips205`, slhdsa-c and PQClean in [bench/RESULTS.md](bench/RESULTS.md)
+were measured on the single-set crate (SLH-DSA-SHA2-128s; for 128s the six-set crate is within
+2.5% of it). `bench/run.sh` now benchmarks the six-set crate's 128s functions under the same
+names, and `cargo bench --bench sets` in `bench/` the six sets against RustCrypto.
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)
 
-`cargo build --features hw-sha2` runs SHA-256 on the ARMv8 SHA-256
-instructions when the CPU has them. It is off by default, and AArch64 only so
-far: on other architectures, or on a CPU without the instructions, the
-portable code runs.
+`cargo build --features hw-sha2` runs SHA-256 on the ARMv8 SHA-256 instructions when the CPU has
+them. It is off by default, and AArch64 only so far: on other architectures, or on a CPU without
+the instructions, the portable code runs.
 
-**What is proved.** The backend, module `hw` of
-[rust/src/sha256.rs](rust/src/sha256.rs), has two layers:
+**What is proved.** The backend, module `hw` of [rust/src/sha256.rs](rust/src/sha256.rs), has two
+layers:
 
-- `hw::arm`: eighteen functions, each one to three intrinsics (loads and
-  stores, add, or, and, two shifts, two `EXT`s, the four SHA-256 instructions,
-  and the test for the CPU feature). This is the only code Aeneas does not
-  translate.
-- Everything else: the single-block kernel, and the kernel that works on four
-  hash chains at once. Aeneas translates it like the rest of the crate. Apart
-  from the wrappers, the only `unsafe` is at the two calls that enter the
-  kernel once the CPU feature has been tested.
+- `hw::arm`: eighteen functions, each one to three intrinsics (loads and stores, add, or, and, two
+  shifts, two `EXT`s, the four SHA-256 instructions, and the test for the CPU feature). This is
+  the only code Aeneas does not translate.
+- Everything else: the single-block kernel, and the kernel that works on four hash chains at
+  once, generic in the hash length (16, 24 or 32 bytes). Aeneas translates it like the rest of
+  the crate. Apart from the wrappers, the only `unsafe` is at the two calls that enter the kernel
+  once the CPU feature has been tested.
 
-[lean-hw](lean-hw) holds Aeneas's translation of the crate built with the
-feature. [lean-hw/Arm.lean](lean-hw/Arm.lean) gives the instructions their
-meaning: a transcription of the pseudocode of `SHA256H`, `SHA256H2`,
-`SHA256SU0` and `SHA256SU1` in the Arm Architecture Reference Manual, and of
-the plain vector operations. [lean-hw/Slhdsa/FunsExternal.lean](lean-hw/Slhdsa/FunsExternal.lean)
-defines each of the eighteen functions in terms of it. From those definitions
-the six theorems above are proved for this build too, whichever answer the
-feature test gives: `lean-hw/Slhdsa/Theorems.lean` is the same file as the
-default build's, and so are all proof files but two. The two that differ are
-about `sha256::compress` and `hash::chain_blocks`, the functions the backend
-stands in for. Their proofs
-([lean-hw/Slhdsa/Proofs/Hw](lean-hw/Slhdsa/Proofs/Hw), about 2,300 lines) show
-that sixteen steps of the instructions are the compression function of FIPS
-180-4, and that the four-lane kernel leaves every block as the portable loops
-would.
+[lean-hw](lean-hw) holds Aeneas's translation of the crate built with the feature.
+[lean-hw/Arm.lean](lean-hw/Arm.lean) gives the instructions their meaning: a transcription of the
+pseudocode of `SHA256H`, `SHA256H2`, `SHA256SU0` and `SHA256SU1` in the Arm Architecture Reference
+Manual, and of the plain vector operations.
+[lean-hw/Slhdsa/FunsExternal.lean](lean-hw/Slhdsa/FunsExternal.lean) defines each of the eighteen
+functions in terms of it. From those definitions the theorems above are proved for this build
+too, whichever answer the feature test gives: the headline files of `lean-hw` are those of the
+default build (links), and so are all proof files except those about `sha256::compress` and
+`hash::chain_blocks`, the functions the backend stands in for. Their proofs
+([lean-hw/Slhdsa/Proofs/Hw](lean-hw/Slhdsa/Proofs/Hw)) show that sixteen steps of the instructions
+are the compression function of FIPS 180-4, and that the four-lane kernel leaves every block as
+the portable loops would, for each of the three hash lengths.
 
 **What that rests on**, beyond what the default build's proof rests on:
 
-- *The instruction model is the processor's behaviour.* This is tested, not
-  proved. [vectors/arm-wrappers.txt](vectors/arm-wrappers.txt) records what
-  the wrappers return on an Apple M5 for 1,745 inputs; `cargo test --features
-  hw-sha2` checks the record against the processor it runs on, and
-  [lean-hw/ArmTest.lean](lean-hw/ArmTest.lean) runs the model on the same
-  record. They agree on every case.
-- *Each wrapper does what its definition says*: that the intrinsic it calls is
-  the instruction named, and that its bounds check covers the memory it
-  touches. The wrappers are short enough to read against their definitions.
-  With the vector type and its `clone` that is twenty-one trusted definitions
-  in three files (`Arm.lean`, `Slhdsa/TypesExternal.lean`,
-  `Slhdsa/FunsExternal.lean`).
-- *What the feature test means.* The model has one unknown, whether the
-  processor has the instructions, and every wrapper except the test itself
-  fails when it does not, as the Rust is undefined there. The two functions
-  that enter the kernel test first (that is where the module's other two
-  `unsafe` blocks are), and the proofs get the fact they need from that test:
-  with it missing or inverted the theorems could not be proved
-  ([lean-hw/Slhdsa/Proofs/Hw/Guard.lean](lean-hw/Slhdsa/Proofs/Hw/Guard.lean)).
-  What stays trusted is that `std`'s feature detection answers truthfully.
+- *The instruction model is the processor's behaviour.* This is tested, not proved.
+  [vectors/arm-wrappers.txt](vectors/arm-wrappers.txt) records what the wrappers return on an
+  Apple M5 for 1,745 inputs; `cargo test --features hw-sha2` checks the record against the
+  processor it runs on, and [lean-hw/ArmTest.lean](lean-hw/ArmTest.lean) runs the model on the
+  same record. They agree on every case.
+- *Each wrapper does what its definition says*: that the intrinsic it calls is the instruction
+  named, and that its bounds check covers the memory it touches. With the vector type and its
+  `clone` that is twenty-one trusted definitions in three files (`Arm.lean`,
+  `Slhdsa/TypesExternal.lean`, `Slhdsa/FunsExternal.lean`).
+- *What the feature test means.* Every wrapper except the test itself fails in the model when the
+  processor lacks the instructions, and the proofs get the fact they need from the code's own test
+  ([lean-hw/Slhdsa/Proofs/Hw/Guard.lean](lean-hw/Slhdsa/Proofs/Hw/Guard.lean)). What stays trusted
+  is that `std`'s feature detection answers truthfully.
 
-An independent review of these trusted pieces and of the context-string
-security statements is in
-[reports/Trusted statements review.md](<reports/Trusted statements review.md>):
-it found no definition wrong. Its one substantive finding, that the proofs did
-not depend on the feature test, is what the previous point repaired.
-
-The backend is also tested as a whole: `compress` against the `sha2` crate on
-200,000 random and 5,140 edge-case inputs, `chain_blocks` against a reference
-written from that function on 7,360 random batches
-([rust/tests/compress.rs](rust/tests/compress.rs)), the NIST vectors, and the
-interoperability check.
-
-**Where the speed comes from.** The verified code is arranged so that hashes
-that do not depend on each other reach `chain_blocks` together (the 35 chains
-of a WOTS+ key, the leaves and levels of a FORS subtree, the 14 FORS trees of a
-verification). One step of it is `F`, `PRF` or `H`: write the step number into
-a block, compress it, and put the first 16 bytes of the result back. The
-processor has one unit for the SHA-256 round instructions, and a single hash
-keeps it waiting, because each step needs the result of the one before. The
-backend works on four chains at once, staggered so the unit always has work,
-and skips the rounds whose inputs or outputs a chain step does not use. In the
-default build the same function is a plain loop.
+An independent review of these trusted pieces and of the context-string security statements of
+the single-set tree is in [reports/Trusted statements review.md](<reports/Trusted statements review.md>).
+`scripts/check-arm.sh` replays the record on another AArch64 machine (needs only Rust; so far run
+on the M5 only).
 
 ## The interface to use ([compat/](compat))
 
-The verified crate works on byte arrays. [compat/](compat) is the crate a
-program should depend on: it puts the interface of RustCrypto's `slh-dsa` 0.2
-around the verified functions, with the same `SigningKey`, `VerifyingKey` and
-`Signature` types, the `signature` crate's traits, and the PKCS#8 encodings. A
-program that uses `slh-dsa` with `Sha2_128s` switches by changing its
-dependency line, with no change to its source:
+The verified crate works on byte arrays. [compat/](compat) puts the interface of RustCrypto's
+`slh-dsa` 0.2 around the verified functions, for the six SHA-2 sets (`Sha2_128s` … `Sha2_256f`):
+the same `SigningKey`, `VerifyingKey` and `Signature` types, the `signature` crate's traits, and
+the PKCS#8 encodings. A program that uses `slh-dsa` with the SHA-2 sets switches by changing its
+dependency line:
 
 ```toml
 slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 ```
 
-- **What is inside the proofs.** Every decision the adapter makes is made by
-  a verified function: key generation, signing and verification
-  (`slhdsa::keygen`, `sign`, `sign_deterministic`, `verify`), which bytes are
-  accepted as keys and signatures, the comparison of private keys, and the
-  PKCS#8 and SubjectPublicKeyInfo encodings (`slhdsa::encoding`).
-- **What is not.** The trait implementations and array conversions, each a
-  forward to one of those functions; the loop that joins a multi-part message
-  (the proof tools cannot express a slice of slices); drawing random bytes;
-  the `pkcs8` crate's parsing of an encoded key before the adapter sees it;
-  and the wiping. The adapter is tested against RustCrypto's crate: one piece
-  of source compiled against both must give the same 86 results.
-- **Additions.** Keys from the operating system's random source and hedged
-  signing (the default of FIPS 205).
-- **Wiping.** A signing key keeps its secret in its own allocation, wiped on
-  drop. The verified code keeps everything derived from the secret on the
-  stack, and the adapter overwrites that stack after each key generation and
-  signature. Two tests search the stack and every freed heap block for 208
-  forms of the seeds and values derived from them and find none (and find
-  some in their controls). This is tested, not proved, and does not reach
-  processor registers.
-- **Optional guard against faults.** `try_sign_checked` computes each value
-  that a one-time key signs twice, by routes that share no work, and compares
-  before releasing the signature. That detects the published fault attack on
-  this family (a fault in one tree gives a wrong root that the next layer
-  signs, in a signature that still verifies). RustCrypto's crate and OpenSSL
-  do not do this, and the default signing methods here do not either: they do
-  the work of the standard and no more. The check costs 1.87× the signing
-  time. What is proved about it is listed above; that it detects faults is an
-  argument, not a theorem, since the model has no faults in it.
-- **Limits.** Only this one parameter set. Both crates are `no_std`, but they
-  need an allocator, which RustCrypto's does not.
+- **Inside the proofs:** every decision the adapter makes is made by a verified function (key
+  generation, signing, verification, which bytes are accepted as keys and signatures, the
+  comparison of private keys, the PKCS#8 and SubjectPublicKeyInfo encodings).
+- **Not:** the trait implementations and array conversions, each a forward to one of those
+  functions; the loop that joins a multi-part message; drawing random bytes; the `pkcs8` crate's
+  parsing of an encoded key; and the wiping (tested, not proved, and not of processor registers).
+- **Optional guard against faults.** `try_sign_checked` computes each value that a one-time key
+  signs twice, by routes that share no work, and compares before releasing the signature. That
+  detects the published fault attack on this family. RustCrypto's crate and OpenSSL do not do
+  this, and the default signing methods do not either. What is proved about it is listed above;
+  that it detects faults is an argument, not a theorem.
+
+Details: [compat/README.md](compat/README.md).
 
 ## What is not proven
 
-- **That SHA-256 has the properties the security proof needs.** Unforgeability
-  is reduced to named hash properties, which remain assumptions; see
-  [Security](#security).
-- **The specification is the standard.** `lean/Spec` is a hand transcription
-  of FIPS 205; it is checked against NIST's vectors, not proven against the PDF.
-  Two deliberate departures in form, not value: loops are written as folds, and
-  the hypertree treats layer 0 inside its loop.
-- **The toolchain.** The proof is about Aeneas's translation of the Rust MIR.
-  Charon, Aeneas and rustc are trusted, as is the Lean kernel.
-- **The processor, for `hw-sha2`.** The meaning of the SHA-256 instructions is
-  a transcription of Arm's pseudocode, checked against one processor on
-  recorded inputs; and the eighteen functions that call the intrinsics are
-  read, not translated. See [Opt-in hardware SHA-2](#opt-in-hardware-sha-2-hw-sha2).
-- **Side channels, beyond the source.** For the default build it is proved
-  that the branches and memory accesses of key generation and signing reveal
-  only public data ([Constant time](#constant-time-leanct-see-leanct_statusmd)).
-  That is a statement about the Rust source: the compiler, the processor's
-  instruction timing, speculation, power and faults are outside it. For the
-  `hw-sha2` build it assumes that the vector and SHA-256 instructions take
-  time independent of their operands.
-- **Other parameter sets in the main tree.** `rust/` and `lean/` are SHA2-128s
-  only; all six SHA-2 sets are covered in the separate `multi/` copy. The pre-hash variants
-  (HashSLH-DSA) are not implemented. The verified crate takes seeds and
-  `addrnd` from the caller; drawing them from the operating system is done in
-  `compat/`, outside the proofs.
-- **Wiping** (FIPS 205 §3.1). Done by `compat/` and tested there, not proved,
-  and only as far as memory goes: see [above](#the-interface-to-use-compat).
-  A program that calls the verified crate directly gets no wiping.
-- **Faults.** Nothing is proved about a disturbed computation. The optional
-  checked signer is a countermeasure with an argument behind it, not a theorem.
+- **That SHA-2 has the properties the security proof needs.** Unforgeability is reduced to named
+  hash properties, which remain assumptions; see [Security](#security).
+- **The specification is the standard.** `lean/Spec` is a hand transcription of FIPS 205; it is
+  checked against NIST's vectors, not proven against the PDF.
+- **The toolchain.** The proof is about Aeneas's translation of the Rust MIR. Charon, Aeneas and
+  rustc are trusted, as is the Lean kernel.
+- **The processor, for `hw-sha2`.** See [above](#opt-in-hardware-sha-2-hw-sha2). `hw-sha512` is
+  not translated and not proved.
+- **Side channels, beyond the source.** The constant-time theorems are about the Rust source: the
+  compiler, the processor's instruction timing, speculation, power and faults are outside them.
+- **The SHAKE parameter sets and the pre-hash variants** (HashSLH-DSA) are not implemented. The
+  verified crate takes seeds and `addrnd` from the caller; drawing them from the operating system
+  is done in `compat/`, outside the proofs.
+- **Wiping** (FIPS 205 §3.1): done by `compat/` and tested there, not proved.
+- **Faults.** Nothing is proved about a disturbed computation.
 
 ## Layout
 
-- `rust/` — the crate. Plain safe `no_std` Rust: no `unsafe`, traits, iterators or closures
-  (the eighteen intrinsic wrappers of the opt-in `hw-sha2` backend aside; see
-  [Performance](#performance)).
-- `lean/Spec/` — the specification (`Sha256.lean`, `SlhDsa.lean`).
-- `lean/Slhdsa/Types.lean`, `Funs.lean` — generated by Aeneas; do not edit.
-- `lean/Slhdsa/Proofs/` — one file per layer: `Sha256Core`, `Sha256`, `Hash`,
-  `Util`, `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`; and `CompressTop`, `ChainTop`,
-  the two that depend on the build.
-- `lean-hw/` — the same for the crate built with `hw-sha2`: Aeneas's
-  translation, the instruction model (`Arm.lean`, `Slhdsa/FunsExternal.lean`),
-  the proofs about the hardware kernels (`Slhdsa/Proofs/Hw/`), and links to
-  the proof files of `lean/` that do not depend on the build.
-- `lean/Slhdsa/Theorems.lean`, `ApiTheorems.lean` — the headline statements.
-- `lean/Ct/`, `lean-hw/Ct/` — the constant-time proof for each build: leakage
-  model, the instrumented copy of the translation, and the theorems
-  (`Ct/Theorems.lean`, shared).
-- `lean/Spec/Checked.lean`, `Correctness.lean` — the checked signer over the
-  specification, and the proof that signing then verifying succeeds.
-- `security/` — the link to VCVio's security theorem (`Link`) and the
-  end-to-end statements from the Rust code (`E2E`).
-- `security-hw/` — the same libraries compiled against `lean-hw`: the security
-  statements for the `hw-sha2` build. It has no source of its own.
-- `vectors/` — the NIST vectors used by both test suites, and the record of
-  the intrinsic wrappers on a processor.
-- `compat/` — the interface to use: RustCrypto's `slh-dsa` types and traits
-  around the verified crate, with operating-system randomness, wiping, and the
-  optional checked signer. Glue, not verified.
-- `bench/` — benchmark against other libraries, with interoperability checks.
-- `opt/` — working copy in which the hashing optimisation was developed and
-  re-verified; `opt/original/` holds the crate and proofs from before it.
-- `scripts/extract.sh`, `scripts/extract-hw.sh` — regenerate the Lean
-  translation of the default build and of the `hw-sha2` build from the Rust.
-- `scripts/check.sh` — run everything.
-- `scripts/check-arm.sh` — on another AArch64 machine: replay the record of
-  the intrinsic wrappers on that processor and run the tests on the hardware
-  backend. Needs only Rust.
+- `rust/` — the crate (`no_std` + `alloc`, safe Rust in the Aeneas subset apart from the `hw-sha2`
+  wrappers): generic modules (`hash`, `wots`, `xmss`, `fors`, `ht`, `slh`, `api`, `encoding`,
+  `sha256`, `sha512`) and the per-set modules (`sets.rs`).
+- `lean/` — `Spec/` (the specification), `Slhdsa/Types.lean`, `Funs.lean` (generated by Aeneas;
+  do not edit), `Slhdsa/Proofs/` (one file per layer), the headline files
+  `Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean`, `Ct/` (constant time),
+  `SpecTest.lean`, `CT_STATUS.md`.
+- `lean-hw/` — the same for the crate built with `hw-sha2`: its translation, the instruction model
+  (`Arm.lean`, `Slhdsa/{Types,Funs}External.lean`), the kernel proofs (`Slhdsa/Proofs/Hw/`), its
+  `Ct/`, `ArmTest.lean`, and links to the files of `lean/` that do not depend on the build.
+- `security/` — the security theorems (`MLink`, `MReduction`, `ME2E`, `MIdeal` for the six sets;
+  the generic `Reduction`, `Ideal`, `Link`, `E2E` they build on); `security/STATUS.md`.
+- `security-hw/` — the same libraries compiled against `lean-hw`. No source of its own.
+- `quantum/` — the quantum-random-oracle analysis of SLH-DSA-SHA2-128s ([below](#quantum-adversaries-quantum-see-quantumstatusmd)).
+- `compat/` — the RustCrypto-style adapter (glue, not verified).
+- `bench/` — benchmarks against other libraries, with interoperability checks.
+- `ct-evidence/` — binary-level constant-time evidence (emulator traces, dudect timing,
+  disassembly), recorded on the single-set crate and repointed at this one.
+- `vectors/` — the NIST vectors for the six sets, and the record of the intrinsic wrappers on a
+  processor.
+- `scripts/` — `extract.sh`, `extract-hw.sh` (regenerate the translations), `ct-gen.sh` (the
+  instrumented copy for the constant-time proofs), `gen/` (generators of the per-set Lean files),
+  `extract_vectors.py`, `check.sh` (run everything), `check-arm.sh` (another processor).
+- `reports/`, `research_notes/` — reports and notes.
 
 ## Reproducing
 
-Needs Rust (rustup), Lean (elan), and Aeneas with Charon built under
-`.tools/aeneas` (OCaml 5.3 via opam; see the Aeneas README). Then:
+Needs Rust (rustup), Lean (elan), Aeneas with Charon built under `.tools/aeneas` (OCaml 5.3 via
+opam; see the Aeneas README), and, for `security/`, VCVio at `.tools/VCVio-upstream`
+([security/README.md](security/README.md)). Then:
 
 ```bash
-./scripts/check.sh
+./scripts/check.sh                     # everything except the quantum check
+(cd quantum && scripts/check-integration.sh)
 ```
 
 ## Security
 
-Two machine-checked security theorems are attached to the Rust code, in one
-Lean workspace ([security/](security)), with standard axioms only. They are
-attached to both builds: [security-hw](security-hw) compiles the same files
-against the translation of the crate built with `hw-sha2`, so every statement
-in this section also holds for that build, given its instruction model. Both
-theorems go through the same link: the Rust key generation, signing and verification
-compute the same bytes as the executable SLH-DSA-SHA2-128s of the
-[VCVio](https://github.com/Verified-zkEVM/VCVio) library
-(`E2E.end_to_end`, via [security/Link](security/Link), which proves `lean/Spec`
-equal to VCVio's definitions including SHA-256, HMAC and MGF1).
-
-The statements below name the functions `slh_keygen_internal`, `slh_sign`,
-`slh_verify` and their internal forms. [security/E2E/Api.lean](security/E2E/Api.lean)
-restates the ones for the interface with context strings for the functions
-programs actually call (`api::keygen`, `sign`, `sign_deterministic`, `verify`):
-`E2E.api_pure_security`, `E2E.api_pure_standard_model_security_split` and
-`Ideal.api_ideal_security_closed_pure`, with the bounds unchanged. It also
-proves that on a key from key generation the optional checked signer returns
-exactly what the plain signer returns (`E2E.api_keygen_checked_eq`), so it is
-the same signing oracle and the same theorems apply to it.
+Machine-checked security theorems, with standard axioms only, in one Lean workspace
+([security/](security)); [security-hw](security-hw) compiles the same files against the
+translation of the crate built with `hw-sha2`, so every statement here also holds for that build,
+given its instruction model. They go through one link: the Rust functions compute the same bytes
+as the executable SLH-DSA-SHA2 scheme of the [VCVio](https://github.com/Verified-zkEVM/VCVio)
+library at that set (`MLink`: `lean/Spec` equals VCVio's definitions, including SHA-256, SHA-512,
+HMAC and MGF1, for each of the six sets). All names below are per set,
+`ME2E.sha2_<set>.…`; [security/STATUS.md](security/STATUS.md) has the statements verbatim.
 
 ### Standard model: reduction to named hash properties
 
-`E2E.standard_model_security_split` and `E2E.pure_standard_model_security_split`
-([security/E2E/FinalSplit.lean](security/E2E/FinalSplit.lean)), proven in
-[security/Reduction](security/Reduction): with the real SHA-2 functions and no
-random oracle, every chosen-message forger, strong or existential, against the
-internal algorithms or against sign/verify with context strings, has advantage
-at most the sum of twelve advantages of explicitly constructed adversaries:
+`rust_security` and `rust_pure_security`: the Rust key generation, signing and verification (the
+internal functions, resp. the ones with context strings) never panic and are pointwise the
+deterministic cores of the byte-level scheme; and, with the real SHA-2 functions and no random
+oracle, every chosen-message forger, strong or existential, against that scheme has advantage at
+most the sum of twelve advantages of explicitly constructed adversaries: PRF security of `PRF`
+and of `PRF_msg`; interleaved target subset resilience of `H_msg`; decisional second-preimage
+resistance of `F` plus 3 × second-preimage resistance at the FORS leaves; second-preimage
+resistance of `F`, `H`, `T_len` and `T_k`; and (w − 2) × undetectability, preimage resistance and
+second-preimage resistance of `F` along the WOTS chains (proved in `security/Reduction`,
+instantiated by `MReduction`). `api_pure_security` restates it for the interface functions
+(`keygen`, `sign`, `sign_deterministic`, `verify`), and `api_keygen_checked_eq` shows that on a key
+from key generation the optional checked signer returns exactly what the plain signer returns, so
+the same theorems apply to it. Which SHA-2 function each game is about differs between the n = 16
+and the n = 24, 32 sets (SHA-512 for `H`, `T_l`, `H_msg`, `PRF_msg` there).
 
-- PRF security of `PRF` (on the scheme's secret-key addresses) and of `PRF_msg`;
-- interleaved target subset resilience of `H_msg`;
-- decisional second-preimage resistance of `F` plus 3 x second-preimage
-  resistance of `F`, at the FORS leaves;
-- second-preimage resistance of `F`, `H`, `T_len` and `T_k`;
-- 14 x undetectability, preimage resistance and second-preimage resistance of
-  `F` along the WOTS chains.
-
-All are the multi-target, distinct-tweak games of the SPHINCS+ literature. The
-shape follows Hulsing-Kudinov (ePrint 2022/346) and its EasyCrypt
-formalisation (ePrint 2024/910), which covers existential unforgeability of
-abstract SPHINCS+; the strong-unforgeability and context-string statements,
-and the tie to an implementation, are additional here. Two independent
-reviews of the Lean source found the statements sound and the games genuine.
-
-Limits of this theorem:
-
-- **The twelve right-hand terms are assumptions** about the SHA-256-based
-  functions. Nothing proves them small.
-- **Reduction cost.** Three of the adversaries are polynomial in the number of
-  signing queries. The other nine register between about 2^63 and 2^79.8
-  targets, because these games fix targets before the public seed is revealed.
-  The paper's and EasyCrypt's reductions have the same shape. There is no
-  formal running-time statement.
-- **Single key, pure mode** (no pre-hash variant). The statement here is for
-  classical adversaries; the lift to quantum forgers is in `quantum/`.
-- **Typed signatures and bytes.** The statements above are over VCVio's typed
-  signatures. `E2E.bytes_standard_model_security` and
-  `E2E.pure_bytes_standard_model_security`
-  ([security/E2E/Bytes.lean](security/E2E/Bytes.lean)) give the same bounds for
-  the game played on byte strings, with the scheme defined from the functions
-  the Rust code is proved to compute.
-- One second-preimage term on `F` has no counterpart in the paper, and the
-  FORS-tree and XMSS-tree hashes share one `H` term.
+The shape follows Hülsing–Kudinov (ePrint 2022/346) and its EasyCrypt formalisation (ePrint
+2024/910). Limits: the twelve right-hand terms are assumptions about the SHA-2-based functions,
+not proved small; three adversaries are polynomial in the number of signing queries, the other
+nine register about 2^63 to 2^82 targets (these games fix targets before the public seed is
+revealed); no running-time statement; single key, pure mode only.
 
 ### Random-oracle model
 
-`E2E.end_to_end` also carries VCVio's random-oracle bound (`security_128s`):
-with the tweakable hash, `H_msg` and `PRF_msg` as three independent random
-oracles, the strong forging advantage is at most
-`securityBound params (256^16) 2 1 qh qs` for `qh` hash and `qs` signing
-queries. VCVio's documentation puts this at about 127 bits for
-`qh = qs = 2^64`; that figure is theirs, not rechecked here. VCVio's generic
-lemma connecting the oracle scheme to concrete primitives is false for its
-SHA-2 instantiation (`not_hprf`), so that step is proven here by another route.
+`pure_rom_security`, `rust_pure_rom_security_bytes`, `api_pure_rom_security(_bytes)`: with the
+tweakable hash, `H_msg` and `PRF_msg` as three independent random oracles, the strong forging
+advantage against the context-string interface the Rust functions implement is at most VCVio's
+`securityBound params (256^n) 2 1 qh qs` for `qh` hash and `qs` signing queries, at every set.
+Nothing transfers this bound to the SHA-2 instantiation (that is the random-oracle methodology).
 
-The same bound holds for the interface with context strings, which is the one
-the crate's interface functions implement: `E2E.pure_rom_security`,
-`E2E.rust_pure_rom_security_bytes` and, for `api::keygen`, `sign`,
-`sign_deterministic` and `verify`, `E2E.api_pure_rom_security` and
-`E2E.api_pure_rom_security_bytes`
-([security/E2E/PureRom.lean](security/E2E/PureRom.lean),
-[PureRomBytes.lean](security/E2E/PureRomBytes.lean)). Nothing grows: a forger
-against that interface is turned into one against the internal interface with
-the same numbers of hash and signing queries, and the bound does not depend on
-message length.
+### Ideal compression function (SLH-DSA-SHA2-128s)
 
-### Not covered by either
-
-- **Randomness.** The Rust functions are the deterministic cores; sampling the
-  seeds and `addrnd` uniformly is the caller's job.
-- **Signature count.** Security degrades with the number of signatures as the
-  standard says (2^64 for this parameter set); nothing enforces a limit.
-
-Building it needs upstream VCVio cloned at `.tools/VCVio-upstream`; see
-[security/README.md](security/README.md).
-
-## Further work in this repository
-
-These extend the results above. Each has its own status file with exact
-statements; the summaries here say what is and is not established.
-
-### All six SHA-2 parameter sets ([multi/](multi))
-
-A parameter-generic Rust implementation (with SHA-512 and HMAC-SHA-512) and
-the same guarantees for SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}:
-refinement to a parameterised FIPS 205 spec (37 headline theorems), all NIST
-ACVP non-pre-hash vectors passing, and the link to VCVio plus the
-standard-model reduction instantiated per set
-([multi/security](multi/security), 129 headline theorems). It is a separate
-copy and has not been merged into `rust/` and `lean/`. Checks:
-`multi/scripts/check.sh` and `multi/security/scripts/check.sh`.
-
-### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
-
-- **Proven:** the standard-model reduction holds for every quantum forger that
-  makes classical signing queries, for all headline variants, with each
-  reduction machine certified to be the classical reduction code around the
-  forger's program.
-- **Proven, for a uniformly random function with quantum queries:** bounds of
-  order q^2/2^128, independent of the number of targets, for the exact adaptive
-  second-preimage, preimage, undetectability, decisional second-preimage
-  (when no quantum queries precede the seed reveal) and PRF games; subset resilience
-  with the SPHINCS+ covering sum when hash queries follow the last signing query.
-- **Proven, composed theorem for the scheme:**
-  `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
-  ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)).
-  With the four hash components independent random functions on capped
-  domains, reached through one quantum oracle, every quantum forger with at
-  most `q` oracle calls and `qs` classical signing queries, within the
-  message-length caps, has advantage at most an explicit bound. The only
-  hypotheses are on the forger. Machine-checked numeric point: at most 2^-22
-  at 2^40 oracle calls and 2^20 signatures.
-- **Limits of that theorem:** the reduction's own hash evaluations (about two
-  million per signature) are charged as quantum queries, so the bound exceeds
-  1 from about 2^28 signatures, or from about 2^53 oracle calls at 2^20
-  signatures (evaluated numerically, not machine-checked). Outside the caps
-  the hash functions are constants, so equivalence with unbounded random
-  oracles is informal. Subset resilience keeps its reprogramming loss, which
-  dominates the bound. Nothing is established about SHA-2 itself. An
-  independent statement-level review is in
-  [quantum/AUDIT-closed.md](quantum/AUDIT-closed.md).
-
-### Ideal compression function ([security/Ideal](security/Ideal), see `security/IDEAL_STATUS.md`)
-
-With SHA-256's compression function a random table that every adversary may
-query, and everything else the real construction, each of the twelve
-assumptions has an explicit bound in the adversary's own queries, independent
-of the number of targets except over 2^256. An independent review found these
-sound.
-
-The composed bound is proven with hypotheses on the forger only:
-`suf_ideal_closed` and `euf_ideal_closed`
-([security/Ideal/Realize/Final.lean](security/Ideal/Realize/Final.lean)). A
-forger making at most `qf` compression queries and `qs` signing queries, on
-messages of at most `ℓ` bytes, forges with probability at most an explicit
-bound. Machine-checked points, for messages up to 2^26 bytes:
+With SHA-256's compression function a random table that every adversary may query, and
+everything else the real construction, `security/Ideal` bounds each of the twelve assumptions in
+the adversary's own queries and composes them: `Ideal.suf_ideal_closed_tight8`,
+`euf_ideal_closed_tight8` and their context-string forms, with hypotheses on the forger only.
+`MIdeal.sha2_128s.rust_ideal_security_closed_tight8`, `…_pure_tight8` and
+`api_ideal_security_closed_pure_tight8` state this next to the Rust functions of the 128s set.
+Machine-checked points, messages up to 2^26 bytes:
 
 | signatures | forger's compression queries | forgery probability at most |
 |---|---|---|
-| 2^20 | 2^60 − 2^46 | 2^-70 + 2^-128 + 2^-61 |
-| 2^40 | 2^64 | 2^-50 + 2^-88 + 2^-41 |
-| 2^64 | 2^64 | 2^-44 + 2^-43 + 2^-31 |
+| 2^20 | 2^60 | 2^-77 + 2^-132 + 2^-63 |
+| 2^40 | 2^64 | 2^-63 + 2^-94 + 2^-59 |
+| 2^64 | 2^64 | 2^-45 + 2^-46 + 2^-39 |
 
-`rust_ideal_security_closed`
-([security/Ideal/RustFinalClosed.lean](security/Ideal/RustFinalClosed.lean))
-states this next to the Rust refinement, for the internal interface (FIPS 205
-Algorithms 18-20). `suf_ideal_pure_closed`, `euf_ideal_pure_closed`
-([security/Ideal/Realize/FinalPure.lean](security/Ideal/Realize/FinalPure.lean))
-and `rust_ideal_security_closed_pure`
-([security/Ideal/RustFinalClosedPure.lean](security/Ideal/RustFinalClosedPure.lean))
-are the same for sign/verify with a context string, on byte strings: the bound
-is the internal one with the message length `ℓ` replaced by `ℓ + 257` (two
-header bytes and a context of at most 255), so the table above holds for
-messages up to 2^26 − 257 bytes.
+Limits: the subset-resilience leg is vacuous once `qf + 4·qs + 2` (compression queries plus four
+times the signatures) reaches about 2^70; the statement averages over random tables and says
+nothing about the real compression function; no Davies–Meyer model; 128s only (the other sets
+would need the counting re-instantiated and, at n = 24, 32, an ideal SHA-512 compression
+function). What would tighten it: `security/status/TIGHT.md`.
 
-Limits: the subset-resilience leg is vacuous once the forger's compression
-queries plus twice the signatures reach about 2^70; the security statement
-averages over random tables and says nothing about the real compression
-function. Nothing is proven in the cipher-based (Davies-Meyer) model. An
-independent statement-level review of the internal-interface theorems is in
-[security/status/AUDIT-closed.md](security/status/AUDIT-closed.md); the
-context-string extension was made after it and has not been reviewed.
+### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
 
-### Constant time ([lean/Ct](lean/Ct), see `lean/CT_STATUS.md`)
+`slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
+([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):
+for SLH-DSA-SHA2-128s at the external pure byte interface, with the four hash components (Thash,
+H_msg, PRF, PRF_msg) independent uniformly random functions on length-capped domains (extended
+by constants outside the caps), reached through one quantum oracle, every quantum forger with at
+most `q` oracle calls and `qs` classical signing queries within the caps has SUF-CMA (EUF-CMA)
+advantage, averaged over the functions, at most an explicit bound; hypotheses on the forger only,
+and `35 ≤ c.tl`. Machine-checked numeric point: at most 2^-22 at 2^40 oracle calls and 2^20
+signatures. The scheme in it is `Reduction.pureBytesAlg Link.vp (randPrims ω) …`, the same generic
+definition whose real-SHA-2 instance the Rust functions compute (`MIdeal.sha2_128s.pure_bytes_end_to_end`),
+but no theorem relates the capped random functions to SHA-2 or to the Rust code: there is no
+Rust-level quantum statement (there was none in the single-set tree either). Limits: the
+reduction's own hash evaluations are charged as quantum queries, so the bound exceeds 1 from
+about 2^28 signatures; equivalence with unbounded random oracles is informal; an independent
+statement-level review is in [quantum/AUDIT-closed.md](quantum/AUDIT-closed.md).
 
-For both builds, a Lean proof shows that what key generation and signing
-reveal through branches, memory-access indices, lengths and division operands
-is nothing, or is computable from public data:
+### Not covered
 
-- **Key generation:** any two runs have the same trace, whatever the seeds.
-- **Signing:** the trace of a run that returns a signature equals the trace of
-  a simulator that is given only the public key, the message, the context and
-  that signature.
-- **Verification:** all inputs are public.
+- **Randomness.** The Rust functions are the deterministic cores; sampling the seeds and
+  `addrnd` uniformly is the caller's job.
+- **Signature count.** Security degrades with the number of signatures as the standard says;
+  nothing enforces a limit.
 
-The traced program is the verified translation's own text, elaborated against
-instrumented primitives; a checker rejects any use of an un-instrumented one,
-and erasing the trace is proved to give back the verified functions. The
-statements are in [lean/Ct/Theorems.lean](lean/Ct/Theorems.lean) (standard
-axioms only).
+## Binary-level evidence ([ct-evidence](ct-evidence))
 
-It is a source-level statement. It does not cover the compiler, the
-processor's instruction timing (on Arm that needs the data-independent-timing
-mode, which the application must switch on), speculative execution, power or
-faults. For the `hw-sha2` build ([lean-hw/Ct](lean-hw/Ct)) the intrinsic
-wrappers get a leakage model of their own, in which the vector and SHA-256
-instructions are assumed to reveal nothing about their operands.
-
-**Binary-level evidence.** [rust/ct-evidence](rust/ct-evidence) checks the two compiled builds on one machine (Apple M5,
-results of 2026-11-21 in [RESULTS.md](rust/ct-evidence/RESULTS.md)):
-
-- **Traces, under an emulator:** control flow, memory addresses, allocation
-  sizes and copy lengths were identical across secrets in every comparison,
-  in both builds: 3,433 secret pairs over 61 component experiments each, and
-  the whole signers with the published values pinned (136 pairs default, 264
-  `hw-sha2`). Controls that must differ did.
-- **Timing:** whole signing, key generation and everything above the hash
-  level showed no difference between secrets. Short hash calls did, with the
-  processor's data-independent-timing mode off: for example an all-zero input
-  block compresses about 0.5 to 1.1 percent faster. With that mode on, nothing
-  was distinguishable in either build. Since the instruction and address
-  traces for those inputs are identical, the difference arises in the
-  processor; the crate does not switch the mode on, and an application that
-  needs data-independent timing must.
+On the single-set crate (results of 2026-11-21, [ct-evidence/RESULTS.md](ct-evidence/RESULTS.md)):
+under an emulator, control flow, memory addresses, allocation sizes and copy lengths were identical
+across secrets in every comparison, in both builds; in timing (dudect), nothing above the hash
+level was distinguishable, and short hash calls were distinguishable only with the processor's
+data-independent-timing mode off. The harness now builds against this crate's 128s functions; on
+it only the emulator's self-check (`cttrace hwcheck`) has been run.

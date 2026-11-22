@@ -1,1 +1,0 @@
-../../lean/Ct/Theorems.lean

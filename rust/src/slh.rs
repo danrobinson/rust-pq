@@ -1,67 +1,73 @@
-//! SLH-DSA key generation, signing and verification (FIPS 205 §9, §10).
+//! SLH-DSA key generation, signing and verification (FIPS 205 §9, §10),
+//! for any parameter set.
 //!
-//! Private key: SK.seed ‖ SK.prf ‖ PK.seed ‖ PK.root. Public key: PK.seed ‖ PK.root.
-//! Randomness is always supplied by the caller.
+//! Private key: SK.seed ‖ SK.prf ‖ PK.seed ‖ PK.root (4n bytes). Public key:
+//! PK.seed ‖ PK.root (2n bytes). Randomness is always supplied by the
+//! caller. `N` must be `p.n`. Keys are slices here and must have those
+//! lengths; the modules `sha2_128s` … `sha2_256f` wrap these functions with
+//! fixed-size array types.
 
 use alloc::vec::Vec;
 use crate::address::{Adrs, FORS_TREE};
 use crate::fors::{fors_pk_from_sig, fors_pk_gen, fors_sign};
 use crate::hash::{h_msg, prf_msg, seed_ctx};
 use crate::ht::{ht_sign, ht_sign_checked, ht_verify};
-use crate::params::{
-    D, FORS_SIG_BYTES, HP, LEAF_BYTES, MD_BYTES, N, PK_BYTES, SIG_BYTES, SK_BYTES, TREE_BYTES,
-};
+use crate::params::Params;
 use crate::util::{block, to_int};
 use crate::xmss::xmss_node;
 
-/// Algorithm 18, `slh_keygen_internal`. Returns `(SK, PK)`.
+/// Algorithm 18, `slh_keygen_internal`. Writes `SK` (4n bytes) to `sk` and
+/// `PK` (2n bytes) to `pk`.
 #[inline(never)]
-pub fn slh_keygen_internal(
+pub fn slh_keygen_internal<const N: usize>(
+    p: &Params,
     sk_seed: &[u8; N],
     sk_prf: &[u8; N],
     pk_seed: &[u8; N],
-) -> ([u8; SK_BYTES], [u8; PK_BYTES]) {
-    let adrs = Adrs::new().with_layer(D - 1);
-    let seed = seed_ctx(pk_seed);
-    let pk_root = xmss_node(sk_seed, 0, HP, &seed, adrs);
-    let mut sk = [0u8; SK_BYTES];
+    sk: &mut [u8],
+    pk: &mut [u8],
+) {
+    let adrs = Adrs::new().with_layer(p.d - 1);
+    let seed = seed_ctx::<N>(pk_seed);
+    let pk_root = xmss_node::<N>(sk_seed, 0, p.hp, &seed, adrs);
     sk[0..N].copy_from_slice(sk_seed);
     sk[N..2 * N].copy_from_slice(sk_prf);
     sk[2 * N..3 * N].copy_from_slice(pk_seed);
     sk[3 * N..4 * N].copy_from_slice(&pk_root);
-    let mut pk = [0u8; PK_BYTES];
     pk[0..N].copy_from_slice(pk_seed);
     pk[N..2 * N].copy_from_slice(&pk_root);
-    (sk, pk)
 }
 
-/// The tree index encoded in the message digest: 54 bits.
-fn digest_tree(digest: &[u8]) -> u64 {
-    to_int(&digest[MD_BYTES..MD_BYTES + TREE_BYTES]) & ((1u64 << 54) - 1)
+/// The tree index encoded in the message digest: h − h/d bits (at most 64).
+fn digest_tree(p: &Params, digest: &[u8]) -> u64 {
+    let lo = p.md_bytes();
+    to_int(&digest[lo..lo + p.tree_bytes()]) & (u64::MAX >> (64 - p.tree_bits()))
 }
 
-/// The leaf index encoded in the message digest: 9 bits.
-fn digest_leaf(digest: &[u8]) -> u32 {
-    (to_int(&digest[MD_BYTES + TREE_BYTES..MD_BYTES + TREE_BYTES + LEAF_BYTES]) & ((1u64 << HP) - 1)) as u32
+/// The leaf index encoded in the message digest: h/d bits.
+fn digest_leaf(p: &Params, digest: &[u8]) -> u32 {
+    let lo = p.md_bytes() + p.tree_bytes();
+    (to_int(&digest[lo..lo + p.leaf_bytes()]) & ((1u64 << p.hp) - 1)) as u32
 }
 
 /// Algorithm 19, `slh_sign_internal`. `addrnd` is the per-signature
 /// randomness; pass `PK.seed` for the deterministic variant.
 #[inline(never)]
-pub fn slh_sign_internal(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Vec<u8> {
-    let sk_seed = block(sk, 0);
-    let sk_prf = block(sk, 1);
-    let pk_seed = block(sk, 2);
-    let pk_root = block(sk, 3);
-    let r = prf_msg(&sk_prf, addrnd, m);
-    let digest = h_msg(&r, &pk_seed, &pk_root, m);
-    let idx_tree = digest_tree(&digest);
-    let idx_leaf = digest_leaf(&digest);
+pub fn slh_sign_internal<const N: usize>(p: &Params, m: &[u8], sk: &[u8], addrnd: &[u8; N]) -> Vec<u8> {
+    let sk_seed = block::<N>(sk, 0);
+    let sk_prf = block::<N>(sk, 1);
+    let pk_seed = block::<N>(sk, 2);
+    let pk_root = block::<N>(sk, 3);
+    let r = prf_msg::<N>(&sk_prf, addrnd, m);
+    let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, m);
+    let idx_tree = digest_tree(p, &digest);
+    let idx_leaf = digest_leaf(p, &digest);
     let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
-    let seed = seed_ctx(&pk_seed);
-    let sig_fors = fors_sign(&digest[0..MD_BYTES], &sk_seed, &seed, adrs);
-    let pk_fors = fors_pk_from_sig(&sig_fors, &digest[0..MD_BYTES], &seed, adrs);
-    let sig_ht = ht_sign(&pk_fors, &sk_seed, &seed, idx_tree, idx_leaf);
+    let seed = seed_ctx::<N>(&pk_seed);
+    let md = &digest[0..p.md_bytes()];
+    let sig_fors = fors_sign::<N>(p, md, &sk_seed, &seed, adrs);
+    let pk_fors = fors_pk_from_sig::<N>(p, &sig_fors, md, &seed, adrs);
+    let sig_ht = ht_sign::<N>(p, &pk_fors, &sk_seed, &seed, idx_tree, idx_leaf);
     let mut sig: Vec<u8> = Vec::new();
     sig.extend_from_slice(&r);
     sig.extend_from_slice(&sig_fors);
@@ -79,21 +85,27 @@ pub fn slh_sign_internal(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Vec
 /// produces, or the computation was disturbed. Costs a little under twice
 /// the hashing of `slh_sign_internal`.
 #[inline(never)]
-pub fn slh_sign_internal_checked(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-    let sk_seed = block(sk, 0);
-    let sk_prf = block(sk, 1);
-    let pk_seed = block(sk, 2);
-    let pk_root = block(sk, 3);
-    let r = prf_msg(&sk_prf, addrnd, m);
-    let digest = h_msg(&r, &pk_seed, &pk_root, m);
-    let idx_tree = digest_tree(&digest);
-    let idx_leaf = digest_leaf(&digest);
+pub fn slh_sign_internal_checked<const N: usize>(
+    p: &Params,
+    m: &[u8],
+    sk: &[u8],
+    addrnd: &[u8; N],
+) -> Option<Vec<u8>> {
+    let sk_seed = block::<N>(sk, 0);
+    let sk_prf = block::<N>(sk, 1);
+    let pk_seed = block::<N>(sk, 2);
+    let pk_root = block::<N>(sk, 3);
+    let r = prf_msg::<N>(&sk_prf, addrnd, m);
+    let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, m);
+    let idx_tree = digest_tree(p, &digest);
+    let idx_leaf = digest_leaf(p, &digest);
     let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
-    let seed = seed_ctx(&pk_seed);
-    let sig_fors = fors_sign(&digest[0..MD_BYTES], &sk_seed, &seed, adrs);
-    let pk_fors_a = fors_pk_from_sig(&sig_fors, &digest[0..MD_BYTES], &seed, adrs);
-    let pk_fors_b = fors_pk_gen(&sk_seed, &seed, adrs);
-    let (sig_ht, ok) = ht_sign_checked(&pk_fors_a, &pk_fors_b, &sk_seed, &seed, idx_tree, idx_leaf, &pk_root);
+    let seed = seed_ctx::<N>(&pk_seed);
+    let md = &digest[0..p.md_bytes()];
+    let sig_fors = fors_sign::<N>(p, md, &sk_seed, &seed, adrs);
+    let pk_fors_a = fors_pk_from_sig::<N>(p, &sig_fors, md, &seed, adrs);
+    let pk_fors_b = fors_pk_gen::<N>(p, &sk_seed, &seed, adrs);
+    let (sig_ht, ok) = ht_sign_checked::<N>(p, &pk_fors_a, &pk_fors_b, &sk_seed, &seed, idx_tree, idx_leaf, &pk_root);
     if ok {
         let mut sig: Vec<u8> = Vec::new();
         sig.extend_from_slice(&r);
@@ -106,20 +118,22 @@ pub fn slh_sign_internal_checked(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]
 }
 
 /// Algorithm 20, `slh_verify_internal`.
-pub fn slh_verify_internal(m: &[u8], sig: &[u8], pk: &[u8; PK_BYTES]) -> bool {
-    if sig.len() != SIG_BYTES {
+pub fn slh_verify_internal<const N: usize>(p: &Params, m: &[u8], sig: &[u8], pk: &[u8]) -> bool {
+    let sig_bytes = p.sig_bytes();
+    if sig.len() != sig_bytes {
         return false;
     }
-    let pk_seed = block(pk, 0);
-    let pk_root = block(pk, 1);
-    let r = block(sig, 0);
-    let digest = h_msg(&r, &pk_seed, &pk_root, m);
-    let idx_tree = digest_tree(&digest);
-    let idx_leaf = digest_leaf(&digest);
+    let fors_end = N + p.fors_sig_bytes();
+    let pk_seed = block::<N>(pk, 0);
+    let pk_root = block::<N>(pk, 1);
+    let r = block::<N>(sig, 0);
+    let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, m);
+    let idx_tree = digest_tree(p, &digest);
+    let idx_leaf = digest_leaf(p, &digest);
     let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
-    let seed = seed_ctx(&pk_seed);
-    let pk_fors = fors_pk_from_sig(&sig[N..N + FORS_SIG_BYTES], &digest[0..MD_BYTES], &seed, adrs);
-    ht_verify(&pk_fors, &sig[N + FORS_SIG_BYTES..SIG_BYTES], &seed, idx_tree, idx_leaf, &pk_root)
+    let seed = seed_ctx::<N>(&pk_seed);
+    let pk_fors = fors_pk_from_sig::<N>(p, &sig[N..fors_end], &digest[0..p.md_bytes()], &seed, adrs);
+    ht_verify::<N>(p, &pk_fors, &sig[fors_end..sig_bytes], &seed, idx_tree, idx_leaf, &pk_root)
 }
 
 /// `M' = toByte(0, 1) ‖ toByte(|ctx|, 1) ‖ ctx ‖ M` (Algorithms 22 and 24).
@@ -134,30 +148,36 @@ fn with_context(m: &[u8], ctx: &[u8]) -> Vec<u8> {
 
 /// Algorithm 22, `slh_sign` (pure signing), with caller-supplied randomness.
 /// Returns `None` if the context string is longer than 255 bytes.
-pub fn slh_sign(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
+pub fn slh_sign<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8], addrnd: &[u8; N]) -> Option<Vec<u8>> {
     if ctx.len() > 255 {
         return None;
     }
     let mp = with_context(m, ctx);
-    Some(slh_sign_internal(&mp, sk, addrnd))
+    Some(slh_sign_internal::<N>(p, &mp, sk, addrnd))
 }
 
 /// Algorithm 22 with recomputation: [`slh_sign`] on
 /// [`slh_sign_internal_checked`]. `None` if the context string is longer than
 /// 255 bytes or a recomputation disagreed.
-pub fn slh_sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
+pub fn slh_sign_checked<const N: usize>(
+    p: &Params,
+    m: &[u8],
+    ctx: &[u8],
+    sk: &[u8],
+    addrnd: &[u8; N],
+) -> Option<Vec<u8>> {
     if ctx.len() > 255 {
         return None;
     }
     let mp = with_context(m, ctx);
-    slh_sign_internal_checked(&mp, sk, addrnd)
+    slh_sign_internal_checked::<N>(p, &mp, sk, addrnd)
 }
 
 /// Algorithm 24, `slh_verify` (pure verification).
-pub fn slh_verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8; PK_BYTES]) -> bool {
+pub fn slh_verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool {
     if ctx.len() > 255 {
         return false;
     }
     let mp = with_context(m, ctx);
-    slh_verify_internal(&mp, sig, pk)
+    slh_verify_internal::<N>(p, &mp, sig, pk)
 }

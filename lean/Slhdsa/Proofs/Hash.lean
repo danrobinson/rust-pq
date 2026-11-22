@@ -1,4 +1,5 @@
-import Slhdsa.Proofs.Sha256
+import Slhdsa.Proofs.Sha512
+import Slhdsa.Proofs.Util
 open Aeneas Aeneas.Std Result
 
 /-! Addresses and the SLH-DSA hash functions. -/
@@ -107,62 +108,75 @@ theorem toByte_zero_4 : Spec.toByte 0 4 = List.replicate 4 0#8 := by decide
 
 theorem toByte_zero_48 : Spec.toByte 0 48 = List.replicate 48 0#8 := by decide
 
-/-- A `Seed` is consistent: its state is the SHA-256 compression of the
-first block `PK.seed ‖ toByte(0, 48)` of every tweakable hash. -/
-def SeedOk (s : hash.Seed) : Prop :=
-  wv s.state.val = Spec.SHA256.compress Spec.SHA256.H0 (bytes s.pk_seed.val ++ List.replicate 48 0#8)
+theorem toByte_zero (k : Nat) : Spec.toByte 0 k = List.replicate k 0#8 := by
+  apply List.ext_getElem
+  · simp [Spec.toByte]
+  · intro i h1 h2
+    simp [Spec.toByte]
+
+/-- The hash lengths of the SHA-2 parameter sets of FIPS 205. -/
+def NOk (N : Usize) : Prop := N.val = 16 ∨ N.val = 24 ∨ N.val = 32
+
+theorem NOk.le32 {N : Usize} (h : NOk N) : N.val ≤ 32 := by unfold NOk at h; omega
+theorem NOk.ge16 {N : Usize} (h : NOk N) : 16 ≤ N.val := by unfold NOk at h; omega
+
+/-- The tweakable hash of §11.2 with SHA-256 (`F`, `PRF`, and for `n = 16`
+also `H` and `T_l`). -/
+def th256 (n : Nat) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) : Spec.Bytes :=
+  (Spec.sha256 (pk ++ Spec.toByte 0 (64 - n) ++ a.compress ++ m)).take n
+
+/-- The tweakable hash of §11.2.2 with SHA-512 (`H` and `T_l` for `n > 16`). -/
+def th512 (n : Nat) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) : Spec.Bytes :=
+  (Spec.sha512 (pk ++ Spec.toByte 0 (128 - n) ++ a.compress ++ m)).take n
+
+theorem F_eq (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
+    Spec.F P pk a m = th256 P.n pk a m := rfl
+theorem PRF_eq (P : Spec.Params) (pk sk : Spec.Bytes) (a : Spec.Adrs) :
+    Spec.PRF P pk sk a = th256 P.n pk a sk := rfl
+theorem H_eq (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
+    Spec.H P pk a m = if P.n = 16 then th256 P.n pk a m else th512 P.n pk a m := rfl
+theorem T_eq_H (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
+    Spec.T P pk a m = Spec.H P pk a m := rfl
+
+/-- A `Seed` is consistent: its SHA-256 state is the compression of the first
+block `PK.seed ‖ toByte(0, 64 − n)` of every SHA-256 tweakable hash, and for
+`n > 16` its SHA-512 state is that of `PK.seed ‖ toByte(0, 128 − n)`. -/
+def SeedOk {N : Usize} (s : hash.Seed N) : Prop :=
+  wv s.state.val = Spec.SHA256.compress Spec.SHA256.H0
+    (bytes s.pk_seed.val ++ List.replicate (64 - N.val) 0#8) ∧
+  (N.val ≠ 16 → S512.wv s.state512.val = Spec.SHA512.compress Spec.SHA512.H0
+    (bytes s.pk_seed.val ++ List.replicate (128 - N.val) 0#8))
+
+theorem setSlice_rep {α} (l : List α) (k : Nat) (x : α) (h : l.length ≤ k) :
+    (List.replicate k x).setSlice! 0 l = l ++ List.replicate (k - l.length) x := by
+  have hm : min l.length k = l.length := by omega
+  simp [List.setSlice!, hm, List.drop_replicate]
+
+theorem bytes_replicate (k : Nat) (x : U8) : bytes (List.replicate k x) = List.replicate k x.bv := by
+  simp [bytes]
 
 @[step]
-theorem seed_ctx_spec (pk : Array U8 16#usize) :
+theorem seed_ctx_spec {N : Usize} (hN : NOk N) (pk : Array U8 N) :
     hash.seed_ctx pk ⦃ r => r.pk_seed = pk ∧ SeedOk r ⦄ := by
   unfold hash.seed_ctx
-  simp only [global_simps]
+  have hN32 := hN.le32
+  have hpl : pk.val.length = N.val := by simp
   step*
-  have hb : (index_mut_back s2).val = pk.val ++ List.replicate 48 0#u8 := by
-    rw [s_post2, s2_post, s1_post]
-    simp [List.setSlice!]
-  simp only [SeedOk]
-  rw [state_post, s3_post]
-  simp only [Array.val_to_slice, hb, List.drop_zero, bytes_append]
-  rw [List.take_of_length_le (by simp)]
-  simp [bytes]
-  rfl
-
-/-- The tweakable hash, continuing from the compressed first block. -/
-theorem thash_eq (pk : Spec.Bytes) (hpk : pk.length = 16) (a : Spec.Adrs) (m : Spec.Bytes) :
-    Spec.thash pk a m = (ser (hashFrom (Spec.SHA256.compress Spec.SHA256.H0
-      (pk ++ List.replicate 48 0#8)) (padFrom 64 (a.compress ++ m)))).take 16 := by
-  unfold Spec.thash
-  rw [show 64 - Spec.n = 48 from rfl, toByte_zero_48,
-    show ∀ a b c d : Spec.Bytes, a ++ b ++ c ++ d = (a ++ b) ++ (c ++ d) from by intros; simp,
-    sha256_prefix64 _ _ (by simp [hpk])]
-  rfl
-
-@[step]
-theorem thash_spec (pk : hash.Seed) (hpk : SeedOk pk) (a : address.Adrs) (m : Slice U8)
-    (hm : m.length ≤ 1024) :
-    hash.thash pk a m ⦃ r =>
-      bytes r.val = Spec.thash (bytes pk.pk_seed.val) (adrsS a) (bytes m.val) ⦄ := by
-  unfold hash.thash
-  have hN : params.N.val = 16 := by simp [params.N]
-  simp only [step_simps]
-  let* ⟨ a1, a1_post ⟩ ← adrs_compress_spec
-  let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ buf, buf_post, buf_len ⟩ ← hash_extend_from_slice_u8_spec
-  let* ⟨ buf1, buf1_post, buf1_len ⟩ ← hash_extend_from_slice_u8_spec
-  have hl : buf1.length = 22 + m.length := by
-    simp [buf1_len, buf_len, s_post]
-  let* ⟨ d, d_post ⟩ ← sha256_from_spec
-  · simp only [Room, vec_deref_length]; scalar_tac
-  let* ⟨ s4, to_slice_mut_back, s4_post, to_slice_mut_back_post ⟩ ← Array.to_slice_mut_spec
-  let* ⟨ s5, s5_post, s5_post1 ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
-  let* ⟨ s6, s6_post ⟩ ← core.slice.Slice.copy_from_slice.step_spec
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s5).val = s5.val :=
-    Array.from_slice_val _ _ (by scalar_tac)
-  simp only [to_slice_mut_back_post, s6_post, hv, s5_post, hN, List.slice]
-  rw [thash_eq _ (by simp) , ← hpk, ← a1_post]
-  simp [d_post, vec_deref_val, buf1_post, buf_post, s_post]
-
+  · refine ⟨?_, fun _ => ?_⟩
+    · rw [state_post, s3_post, Array.val_to_slice, s_post2, s2_post, s1_post, Array.val_to_slice,
+        H0_eq, Array.repeat_val, setSlice_rep _ _ _ (by simp; omega), hpl, List.drop_zero,
+        List.take_of_length_le (by simp; omega)]
+      simp [bytes_replicate]
+    · rw [state5121_post, s7_post, Array.val_to_slice, s4_post2, s6_post, s5_post,
+        Array.val_to_slice, S512.H0_eq, Array.repeat_val, setSlice_rep _ _ _ (by simp; omega), hpl,
+        List.drop_zero, List.take_of_length_le (by simp; omega)]
+      simp [bytes_replicate]
+  · refine ⟨?_, fun h => ?_⟩
+    · rw [state_post, s3_post, Array.val_to_slice, s_post2, s2_post, s1_post, Array.val_to_slice,
+        H0_eq, Array.repeat_val, setSlice_rep _ _ _ (by simp; omega), hpl, List.drop_zero,
+        List.take_of_length_le (by simp; omega)]
+      simp [bytes_replicate]
+    · exfalso; apply h; scalar_tac
 theorem toByte8_small (x : Nat) (hx : x < 65536) :
     Spec.toByte x 8 = [0#8, 0#8, 0#8, 0#8, 0#8, 0#8, BitVec.ofNat 8 (x >>> 8), BitVec.ofNat 8 x] := by
   have z : ∀ k, 16 ≤ k → x >>> k = 0 := by
@@ -251,26 +265,56 @@ theorem short_block_spec (adrs : address.Adrs) (m : Slice U8) (hm : m.length ≤
     simp [bytes, h3, h4, h39, List.replicate_add]
 
 @[step]
-theorem trunc_spec (st : Array U32 8#usize) :
-    hash.trunc st ⦃ r => bytes r.val = (ser (wv st.val)).take 16 ⦄ := by
+theorem trunc_spec (N : Usize) (hN : N.val ≤ 32) (st : Array U32 8#usize) :
+    hash.trunc N st ⦃ r => bytes r.val = (ser (wv st.val)).take N.val ⦄ := by
   unfold hash.trunc
-  simp only [global_simps]
   step*
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s1).val = s1.val :=
+  have hv : (Array.from_slice (Array.repeat N 0#u8) s1).val = s1.val :=
     Array.from_slice_val _ _ (by scalar_tac)
   rw [to_slice_mut_back_post, s2_post, hv, s1_post, ← d_post]
   simp [List.slice]
 
-/-- `thash_short` in terms of its three parts: a block holding the padded
-`ADRSc ‖ M`, one compression from the seed state, and the truncated digest. -/
-theorem thash_short_parts (pk : hash.Seed) (hpk : SeedOk pk) (A : Spec.Adrs) (M : Spec.Bytes)
-    (blk : Array U8 64#usize) (st : Array U32 8#usize) (r : Array U8 16#usize)
-    (h1 : bytes blk.val = padFrom 64 (A.compress ++ M))
-    (h2 : wv st.val = Spec.SHA256.compress (wv pk.state.val) (bytes blk.val))
-    (h3 : bytes r.val = (ser (wv st.val)).take 16) :
-    bytes r.val = Spec.thash (bytes pk.pk_seed.val) A M := by
-  have hlen : (bytes blk.val).length = 64 := by simp
-  rw [thash_eq _ (by simp), h3, h2, ← h1, hashFrom_one _ _ hlen, ← hpk]
+@[step]
+theorem trunc512_spec (N : Usize) (hN : N.val ≤ 64) (st : Array U64 8#usize) :
+    hash.trunc512 N st ⦃ r => bytes r.val = (S512.ser (S512.wv st.val)).take N.val ⦄ := by
+  unfold hash.trunc512
+  step*
+  have hv : (Array.from_slice (Array.repeat N 0#u8) s1).val = s1.val :=
+    Array.from_slice_val _ _ (by scalar_tac)
+  rw [to_slice_mut_back_post, s2_post, hv, s1_post, ← d_post]
+  simp [List.slice]
+
+/-- The SHA-256 tweakable hash, continuing from the compressed first block. -/
+theorem th256_eq (n : Nat) (pk : Spec.Bytes) (hpk : pk.length = n) (hn : n ≤ 64) (a : Spec.Adrs)
+    (m : Spec.Bytes) :
+    th256 n pk a m = (ser (hashFrom (Spec.SHA256.compress Spec.SHA256.H0
+      (pk ++ List.replicate (64 - n) 0#8)) (padFrom 64 (a.compress ++ m)))).take n := by
+  unfold th256
+  rw [toByte_zero,
+    show ∀ a b c d : Spec.Bytes, a ++ b ++ c ++ d = (a ++ b) ++ (c ++ d) from by intros; simp,
+    sha256_prefix64 _ _ (by simp [hpk]; omega)]
+
+/-- The SHA-512 tweakable hash, continuing from the compressed first block. -/
+theorem th512_eq (n : Nat) (pk : Spec.Bytes) (hpk : pk.length = n) (hn : n ≤ 128) (a : Spec.Adrs)
+    (m : Spec.Bytes) :
+    th512 n pk a m = (S512.ser (S512.hashFrom (Spec.SHA512.compress Spec.SHA512.H0
+      (pk ++ List.replicate (128 - n) 0#8)) (S512.padFrom 128 (a.compress ++ m)))).take n := by
+  unfold th512
+  rw [toByte_zero,
+    show ∀ a b c d : Spec.Bytes, a ++ b ++ c ++ d = (a ++ b) ++ (c ++ d) from by intros; simp,
+    S512.sha512_prefix128 _ _ (by simp [hpk]; omega)]
+
+theorem adrs_compress_length (A : Spec.Adrs) : A.compress.length = 22 := by
+  rw [compress_eq]; rfl
+
+/-- One compression of the block of a short message, from the seed state, is the tweakable hash. -/
+theorem th256_one (n : Nat) (pk : Spec.Bytes) (hpk : pk.length = n) (hn : n ≤ 64) (A : Spec.Adrs)
+    (m : Spec.Bytes) (hm : m.length ≤ 33) :
+    (ser (Spec.SHA256.compress (Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate (64 - n) 0#8))
+      (padFrom 64 (A.compress ++ m)))).take n = th256 n pk A m := by
+  have hl : (padFrom 64 (A.compress ++ m)).length = 64 := by
+    rw [padFrom_short _ _ (adrs_compress_length A) hm]; simp [adrs_compress_length]; omega
+  rw [th256_eq n pk hpk hn, hashFrom_one _ _ hl]
 
 /-- The compression of a 64-byte array from its start, as an equation. -/
 theorem compress_ok_wv (state : Array U32 8#usize) (blk : Array U8 64#usize) (st : Array U32 8#usize)
@@ -283,248 +327,236 @@ theorem compress_ok_wv (state : Array U32 8#usize) (blk : Array U8 64#usize) (st
   rw [hp]
   simp [List.take_of_length_le]
 
+/-- `F` and `PRF`: one SHA-256 block after the seed state. -/
 @[step]
-theorem thash_short_spec (pk : hash.Seed) (hpk : SeedOk pk) (a : address.Adrs) (m : Slice U8)
-    (hm : m.length ≤ 33) :
-    hash.thash_short pk a m ⦃ r =>
-      bytes r.val = Spec.thash (bytes pk.pk_seed.val) (adrsS a) (bytes m.val) ⦄ := by
+theorem thash_short_spec {N : Usize} (hN : NOk N) (seed : hash.Seed N) (hs : SeedOk seed)
+    (a : address.Adrs) (m : Slice U8) (hm : m.length ≤ 33) :
+    hash.thash_short seed a m ⦃ r =>
+      bytes r.val = th256 N.val (bytes seed.pk_seed.val) (adrsS a) (bytes m.val) ⦄ := by
   unfold hash.thash_short
+  have hN32 := hN.le32
   let* ⟨ blk, blk_post ⟩ ← short_block_spec
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
   let* ⟨ st, st_post ⟩ ← compress_spec
   let* ⟨ r, r_post ⟩ ← trunc_spec
   rw [s_post, Array.val_to_slice, List.drop_zero,
     List.take_of_length_le (show (bytes blk.val).length ≤ 64 by simp)] at st_post
-  exact thash_short_parts pk hpk _ _ blk st r blk_post st_post r_post
+  rw [r_post, st_post, hs.1, blk_post, th256_one _ _ (by simp) (by omega) _ _ (by simpa using hm)]
 
-/-- The key padded to a block, `K ‖ toByte(0, 48)`, as machine bytes. -/
-def padKey (sk_prf : Array U8 16#usize) : List U8 := sk_prf.val ++ List.replicate 48 0#u8
+/-- Writing a piece into the zero part of a block. -/
+theorem setSlice_app {α} (X s : List α) (k : Nat) (z : α) (i : Nat) (hi : i = X.length)
+    (hs : s.length ≤ k) :
+    (X ++ List.replicate k z).setSlice! i s = X ++ s ++ List.replicate (k - s.length) z := by
+  subst hi
+  have hm : min s.length (X.length + k - X.length) = s.length := by omega
+  have hm2 : min s.length k = s.length := by omega
+  simp [List.setSlice!, hm, hm2, List.drop_replicate, List.take_append]
 
-theorem prf_msg_loop_spec (sk_prf : Array U8 16#usize) (ipad opad : Array U8 64#usize) (i : Usize)
-    (hi : i.val ≤ 16)
-    (hin : ipad.val = ((padKey sk_prf).map (· ^^^ 54#u8)).take i.val ++
-      List.replicate (64 - i.val) 54#u8)
-    (hout : opad.val = ((padKey sk_prf).map (· ^^^ 92#u8)).take i.val ++
-      List.replicate (64 - i.val) 92#u8) :
-    hash.prf_msg_loop sk_prf ipad opad i ⦃ r =>
-      r.1.val = (padKey sk_prf).map (· ^^^ 54#u8) ∧ r.2.val = (padKey sk_prf).map (· ^^^ 92#u8) ⦄ := by
-  have hKl : (padKey sk_prf).length = 64 := by simp [padKey]
-  unfold hash.prf_msg_loop
-  apply loop.spec_decr_nat
-    (measure := fun (q : Array U8 64#usize × Array U8 64#usize × Usize) => 16 - q.2.2.val)
-    (inv := fun q => q.2.2.val ≤ 16 ∧
-      q.1.val = ((padKey sk_prf).map (· ^^^ 54#u8)).take q.2.2.val ++
-        List.replicate (64 - q.2.2.val) 54#u8 ∧
-      q.2.1.val = ((padKey sk_prf).map (· ^^^ 92#u8)).take q.2.2.val ++
-        List.replicate (64 - q.2.2.val) 92#u8)
-  · rintro ⟨ipad, opad, i⟩ ⟨hi, hin, hout⟩
-    simp only [hash.prf_msg_loop.body]
-    simp only at hi hin hout
-    have hN : params.N.val = 16 := by simp [params.N]
-    split
-    · rename_i hlt
-      have hlt' : i.val < 16 := by scalar_tac
-      step*
-      have hpk : (padKey sk_prf)[i.val]! = i1 := by
-        rw [i1_post]; simp [padKey, List.getElem!_eq_getElem?_getD, List.getElem?_append_left, hlt']
-      have key : ∀ c : U8, (((padKey sk_prf).map (· ^^^ c)).take i.val ++
-          List.replicate (64 - i.val) c).set i.val (i1 ^^^ c) =
-          ((padKey sk_prf).map (· ^^^ c)).take (i.val + 1) ++
-          List.replicate (64 - (i.val + 1)) c := by
-        intro c
-        have hl : i.val < ((padKey sk_prf).map (· ^^^ c)).length := by simp [hKl]; omega
-        rw [show 64 - i.val = (64 - (i.val + 1)) + 1 by omega, List.replicate_succ,
-          set_mid _ _ _ _ _ (by simp [hKl]; omega), List.take_succ_eq_append_getElem hl]
-        simp only [List.getElem_map, List.append_assoc, List.singleton_append]
-        rw [← getElem!_eq _ _ (by omega), hpk]
-      refine ⟨by scalar_tac, ?_, ?_, by scalar_tac⟩
-      · rw [i4_post, a_post, Array.set_val_eq, hin, ← key]
-        congr 1; scalar_tac
-      · rw [i4_post, a1_post, Array.set_val_eq, hout, ← key]
-        congr 1; scalar_tac
-    · have h16 : i.val = 16 := by scalar_tac
-      simp only [step_simps]
-      have tail : ∀ c : U8, 0#u8 ^^^ c = c →
-          ((padKey sk_prf).map (· ^^^ c)).take 16 ++ List.replicate 48 c =
-          (padKey sk_prf).map (· ^^^ c) := by
-        intro c hc
-        simp [padKey, hc]
-      rw [h16] at hin hout
-      exact ⟨by rw [hin]; exact tail _ (by decide), by rw [hout]; exact tail _ (by decide)⟩
-  · exact ⟨hi, hin, hout⟩
+/-- Three pieces written one after another into a zero block. -/
+theorem build3 {α} (A L R : List α) (z : α) (K i j : Nat) (hi : i = A.length)
+    (hj : j = A.length + L.length) (h : A.length + L.length + R.length ≤ K) :
+    (((List.replicate K z).setSlice! 0 A).setSlice! i L).setSlice! j R =
+      A ++ L ++ R ++ List.replicate (K - A.length - L.length - R.length) z := by
+  subst hi hj
+  rw [show List.replicate K z = [] ++ List.replicate K z by simp,
+    setSlice_app [] A K z 0 rfl (by omega), List.nil_append,
+    setSlice_app A L (K - A.length) z A.length rfl (by omega),
+    setSlice_app (A ++ L) R (K - A.length - L.length) z (A.length + L.length) (by simp) (by omega)]
+
+/-- The padding byte and the two length bytes at the end of a block. -/
+theorem set3_tail {α} (X : List α) (k : Nat) (z u v w : α) (i j l : Nat) (hi : i = X.length)
+    (hj : j = X.length + k + 1) (hl : l = X.length + k + 2) :
+    (((X ++ List.replicate (k + 3) z).set i u).set j v).set l w =
+      X ++ u :: (List.replicate k z ++ [v, w]) := by
+  subst hi hj hl
+  apply List.ext_getElem
+  · simp
+  · intro n h1 h2
+    simp only [List.length_set, List.length_append, List.length_replicate] at h1
+    simp only [List.getElem_set, List.getElem_append, List.getElem_cons, List.getElem_replicate,
+      List.length_append, List.length_replicate, List.length_cons, List.length_nil]
+    split_ifs <;> (try subst_vars) <;> first | rfl | omega | skip
+
+theorem toByte16_small (x : Nat) (hx : x < 65536) :
+    Spec.toByte x 16 = List.replicate 14 0#8 ++ [BitVec.ofNat 8 (x >>> 8), BitVec.ofNat 8 x] := by
+  have z : ∀ k, 16 ≤ k → x >>> k = 0 := by
+    intro k hk
+    rw [Nat.shiftRight_eq_div_pow]
+    exact Nat.div_eq_of_lt (lt_of_lt_of_le hx (by
+      calc 65536 = 2 ^ 16 := by norm_num
+        _ ≤ 2 ^ k := Nat.pow_le_pow_right (by decide) hk))
+  simp only [Spec.toByte, show List.range 16 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    from rfl, List.map_cons, List.map_nil]
+  simp [z]
+
+/-- One 128-byte block holding `ADRSc ‖ m` and the SHA-512 padding of the
+whole message after a first block, when `|m| ≤ 89`. -/
+theorem padFrom512_short (c m : Spec.Bytes) (hc : c.length = 22) (hm : m.length ≤ 89) :
+    S512.padFrom 128 (c ++ m) = c ++ m ++ 0x80#8 :: (List.replicate (103 - m.length) 0#8 ++
+      [BitVec.ofNat 8 ((8 * (150 + m.length)) >>> 8), BitVec.ofNat 8 (8 * (150 + m.length))]) := by
+  have e1 : (239 - (c ++ m).length % 128) % 128 = 89 - m.length := by simp [hc]; omega
+  have e2 : 8 * (128 + (c ++ m).length) = 8 * (150 + m.length) := by simp [hc]; omega
+  rw [S512.padFrom, e1, e2, toByte16_small _ (by omega)]
+  have : 103 - m.length = (89 - m.length) + 14 := by omega
+  simp [this, List.replicate_add]
+
+theorem padFrom_short' (c m : Spec.Bytes) (hc : c.length = 22) (hm : m.length ≤ 33) :
+    padFrom 64 (c ++ m) = c ++ m ++ 0x80#8 :: (List.replicate (39 - m.length) 0#8 ++
+      [BitVec.ofNat 8 ((8 * (86 + m.length)) >>> 8), BitVec.ofNat 8 (8 * (86 + m.length))]) := by
+  rw [padFrom_short _ _ hc hm]
+  have : 39 - m.length = (33 - m.length) + 6 := by omega
+  simp [this, List.replicate_add]
+
+theorem cast_u8_usize (x : Usize) : U8.bv (UScalar.cast .U8 x) = BitVec.ofNat 8 x.val := cast_u8_bv x
 
 @[step]
-theorem prf_msg_spec (sk_prf opt_rand : Array U8 16#usize) (m : Slice U8) (hm : Room m.length 152) :
-    hash.prf_msg sk_prf opt_rand m ⦃ r =>
-      bytes r.val = Spec.PRFmsg (bytes sk_prf.val) (bytes opt_rand.val) (bytes m.val) ⦄ := by
-  unfold hash.prf_msg
-  have hN : params.N.val = 16 := by simp [params.N]
-  have hR := hm
-  simp only [Room] at hR
-  simp only [step_simps]
-  step with prf_msg_loop_spec as ⟨ipad1, opad1, hin, hout⟩
-  · simp
-  · simp
+theorem pair_block_spec (adrs : address.Adrs) (l r : Array U8 16#usize) :
+    hash.pair_block adrs l r ⦃ b =>
+      bytes b.val = padFrom 64 ((adrsS adrs).compress ++ (bytes l.val ++ bytes r.val)) ⦄ := by
+  unfold hash.pair_block
+  step*
+  · rcases System.Platform.numBits_eq with h | h <;> simp [h]
+  · have hb3 : (index_mut_back2 s8).val = a.val ++ l.val ++ r.val ++ List.replicate 10 0#u8 := by
+      rw [s6_post2, s8_post, s7_post, Array.val_to_slice, s3_post2, s5_post, s4_post,
+        Array.val_to_slice, s_post2, s2_post, s1_post, Array.val_to_slice, Array.repeat_val,
+        build3 _ _ _ _ _ _ _ (by simp) (by simp [i_post]) (by simp)]
+      simp
+    have hfin : b.val = (a.val ++ l.val ++ r.val) ++ 128#u8 :: (List.replicate 7 0#u8 ++ [i6, i7]) := by
+      rw [b_post, blk5_post, blk4_post]
+      simp only [Array.set_val_eq]
+      rw [hb3, show List.replicate 10 0#u8 = List.replicate (7 + 3) 0#u8 from rfl]
+      exact set3_tail _ 7 0#u8 _ _ _ _ _ _ (by simp [i3_post, i1_post]) (by simp) (by simp)
+    have hbits : bits.val = 8 * (86 + 32) := by rw [bits_post, i4_post, i1_post]
+    have h6 : i6.bv = BitVec.ofNat 8 ((8 * (86 + 32)) >>> 8) := by
+      rw [i6_post, cast_u8_usize, i5_post, hbits]
+    have h7 : i7.bv = BitVec.ofNat 8 (8 * (86 + 32)) := by
+      rw [i7_post, cast_u8_usize, hbits]
+    rw [hfin, padFrom_short' _ _ (adrs_compress_length _) (by simp), ← a_post]
+    simp [bytes, h6, h7]
+
+theorem hashFrom512_one (st : List Spec.SHA512.Word) (P : Spec.Bytes) (hP : P.length = 128) :
+    S512.hashFrom st P = Spec.SHA512.compress st P := by
+  simp [S512.hashFrom, hP, Spec.SHA512.blockAt, List.take_of_length_le]
+
+/-- One SHA-512 compression of the block of a message of at most 89 bytes,
+from the SHA-512 seed state, is the SHA-512 tweakable hash. -/
+theorem th512_one (n : Nat) (pk : Spec.Bytes) (hpk : pk.length = n) (hn : n ≤ 128) (A : Spec.Adrs)
+    (m : Spec.Bytes) (hm : m.length ≤ 89) :
+    (S512.ser (Spec.SHA512.compress (Spec.SHA512.compress Spec.SHA512.H0
+      (pk ++ List.replicate (128 - n) 0#8)) (S512.padFrom 128 (A.compress ++ m)))).take n =
+      th512 n pk A m := by
+  have hl : (S512.padFrom 128 (A.compress ++ m)).length = 128 := by
+    rw [padFrom512_short _ _ (adrs_compress_length A) hm]; simp [adrs_compress_length]; omega
+  rw [th512_eq n pk hpk hn, hashFrom512_one _ _ hl]
+
+/-- `H(PK.seed, ADRS, left ‖ right)`. -/
+@[step]
+theorem thash_pair_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+    (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs) (l r : Array U8 N) :
+    hash.thash_pair seed adrs l r ⦃ v =>
+      bytes v.val = Spec.H P (bytes seed.pk_seed.val) (adrsS adrs) (bytes l.val ++ bytes r.val) ⦄ := by
+  unfold hash.thash_pair
+  have hN32 := hN.le32
+  split
+  · rename_i h16
+    subst h16
+    let* ⟨ blk, blk_post ⟩ ← pair_block_spec
+    let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
+    let* ⟨ st, st_post ⟩ ← compress_spec
+    let* ⟨ v, v_post ⟩ ← trunc_spec
+    rw [s_post, Array.val_to_slice, List.drop_zero,
+      List.take_of_length_le (show (bytes blk.val).length ≤ 64 by simp)] at st_post
+    have hP16 : P.n = 16 := by simpa using hPN
+    have := th256_one 16 (bytes seed.pk_seed.val) (by simp) (by omega) (adrsS adrs)
+      (bytes l.val ++ bytes r.val) (by simp)
+    rw [H_eq, if_pos hP16, v_post, st_post, hs.1, blk_post]
+    simpa [hP16] using this
+  · rename_i h16
+    have hn16 : N.val ≠ 16 := fun h => h16 (by scalar_tac)
+    step*
+    all_goals try (rcases System.Platform.numBits_eq with h | h <;> simp [h]; done)
+    all_goals try (simp only [Slice.length, s4_post, Array.val_to_slice] at s3_post1 ⊢; scalar_tac)
+    all_goals try (simp only [Slice.length, s7_post, Array.val_to_slice] at s6_post1 ⊢; scalar_tac)
+    have hl : l.val.length = N.val := by simp
+    have hr : r.val.length = N.val := by simp
+    have hb3 : (index_mut_back2 s8).val = a.val ++ l.val ++ r.val ++
+        List.replicate (128 - 22 - N.val - N.val) 0#u8 := by
+      rw [s6_post2, s8_post, s7_post, Array.val_to_slice, s3_post2, s5_post, s4_post,
+        Array.val_to_slice, s_post2, s2_post, s1_post, Array.val_to_slice, Array.repeat_val,
+        build3 _ _ _ _ _ _ _ (by simp) (by simp [i_post]) (by simp; omega)]
+      simp [hl]
+    have hfin : blk6.val = (a.val ++ l.val ++ r.val) ++ 128#u8 ::
+        (List.replicate (103 - 2 * N.val) 0#u8 ++ [i6, i7]) := by
+      rw [blk6_post, blk5_post, blk4_post]
+      simp only [Array.set_val_eq]
+      rw [hb3, show 128 - 22 - N.val - N.val = (103 - 2 * N.val) + 3 by omega]
+      exact set3_tail _ _ 0#u8 _ _ _ _ _ _ (by simp [i3_post, i1_post, hl, hr]; omega)
+        (by simp [hl, hr]; omega) (by simp [hl, hr]; omega)
+    have hbits : bits.val = 8 * (150 + 2 * N.val) := by rw [bits_post, i4_post, i1_post]; ring
+    have h6 : i6.bv = BitVec.ofNat 8 ((8 * (150 + 2 * N.val)) >>> 8) := by
+      rw [i6_post, cast_u8_usize, i5_post, hbits]
+    have h7 : i7.bv = BitVec.ofNat 8 (8 * (150 + 2 * N.val)) := by
+      rw [i7_post, cast_u8_usize, hbits]
+    have hblk : bytes blk6.val = S512.padFrom 128 ((adrsS adrs).compress ++ (bytes l.val ++ bytes r.val)) := by
+      rw [hfin, padFrom512_short _ _ (adrs_compress_length _) (by simp; omega), ← a_post]
+      simp [bytes, h6, h7, hl, hr, two_mul]
+    rw [s9_post, Array.val_to_slice, List.drop_zero,
+      List.take_of_length_le (show (bytes blk6.val).length ≤ 128 by simp)] at st_post
+    have := th512_one N.val (bytes seed.pk_seed.val) (by simp) (by omega) (adrsS adrs)
+      (bytes l.val ++ bytes r.val) (by simp; omega)
+    rw [H_eq, if_neg (by omega), v_post, st_post, hs.2 hn16, hblk, hPN]
+    exact this
+
+/-- `T_l` on any message (in practice the `k` FORS roots). -/
+@[step]
+theorem thash_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+    (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs) (m : Slice U8)
+    (hm : m.length ≤ 4096) :
+    hash.thash seed adrs m ⦃ r =>
+      bytes r.val = Spec.T P (bytes seed.pk_seed.val) (adrsS adrs) (bytes m.val) ⦄ := by
+  unfold hash.thash
+  have hN32 := hN.le32
+  let* ⟨ a1, a1_post ⟩ ← adrs_compress_spec
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
   let* ⟨ buf, buf_post, buf_len ⟩ ← hash_extend_from_slice_u8_spec
   let* ⟨ buf1, buf1_post, buf1_len ⟩ ← hash_extend_from_slice_u8_spec
-  have hl : buf1.length = 16 + m.length := by
+  have hl : buf1.length = 22 + m.length := by
     simp [buf1_len, buf_len, s_post]
-  let* ⟨ s1, s1_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ inner_state, inner_state_post ⟩ ← compress_spec
-  let* ⟨ inner, inner_post ⟩ ← sha256_from_spec
-  · simp only [Room, vec_deref_length]; scalar_tac
-  let* ⟨ s3, s3_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ outer_state, outer_state_post ⟩ ← compress_spec
-  let* ⟨ s4, s4_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ d, d_post ⟩ ← sha256_from_spec
-  · simp only [Room, s4_post]; scalar_tac
-  let* ⟨ s5, to_slice_mut_back, s5_post, to_slice_mut_back_post ⟩ ← Array.to_slice_mut_spec
-  let* ⟨ s6, s6_post, s6_post1 ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
-  let* ⟨ s7, s7_post ⟩ ← core.slice.Slice.copy_from_slice.step_spec
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s6).val = s6.val :=
-    Array.from_slice_val _ _ (by scalar_tac)
-  simp only [to_slice_mut_back_post, s7_post, hv, s6_post, hN, List.slice]
-  have hI : ∀ (x : Array U8 64#usize) (c : U8) (c' : Spec.Byte), c.bv = c' →
-      x.val = (padKey sk_prf).map (· ^^^ c) →
-      bytes x.val = (bytes sk_prf.val ++ List.replicate 48 0#8).map (· ^^^ c') := by
-    intro x c c' hc hx
-    rw [hx, bytes_map_xor, hc]
-    simp [padKey, bytes]
-  have hIl : ∀ (x : Array U8 64#usize), (bytes x.val).length = 64 := by intro x; simp
-  have e1 : ((List.drop 0 (bytes s1.val)).take 64) = bytes ipad1.val := by
-    simp [s1_post]
-  have e3 : ((List.drop 0 (bytes s3.val)).take 64) = bytes opad1.val := by
-    simp [s3_post]
-  rw [e1, H0_eq] at inner_state_post
-  rw [e3, H0_eq] at outer_state_post
-  rw [inner_state_post, ← sha256_prefix64 _ _ (hIl _)] at inner_post
-  rw [outer_state_post, ← sha256_prefix64 _ _ (hIl _)] at d_post
-  have hkl : ¬ (bytes sk_prf.val).length > 64 := by simp
-  simp only [Spec.PRFmsg, Spec.hmacSha256, hkl, ↓reduceIte, Spec.n]
-  have h48 : 64 - (bytes sk_prf.val).length = 48 := by simp
-  have e54 : (54#u8).bv = 0x36#8 := by decide
-  have e92 : (92#u8).bv = 0x5c#8 := by decide
-  have hi' := hI _ _ _ e54 hin
-  have ho' := hI _ _ _ e92 hout
-  rw [h48, ← hi', ← ho']
-  simp [d_post, s4_post, inner_post, vec_deref_val, buf1_post, buf_post, s_post]
-
-/-- The inner hash of `H_msg`: for a message of at least 16 bytes the first
-block is assembled and the rest hashed in place; the result is the same
-SHA-256 either way. -/
-@[step]
-theorem h_msg_inner_spec (r pk_seed pk_root : Array U8 16#usize) (m : Slice U8)
-    (hm : Room m.length 120) :
-    hash.h_msg_inner r pk_seed pk_root m ⦃ d =>
-      bytes d.val = Spec.sha256
-        (bytes r.val ++ bytes pk_seed.val ++ bytes pk_root.val ++ bytes m.val) ⦄ := by
-  unfold hash.h_msg_inner
-  have hN : params.N.val = 16 := by simp [params.N]
-  have hR := hm
-  simp only [Room] at hR
-  simp only [step_simps]
+  have hbuf : bytes buf1.val = (adrsS adrs).compress ++ bytes m.val := by
+    simp [buf1_post, buf_post, s_post, a1_post]
   split
-  · rename_i hlen
-    have hlen16 : 16 ≤ m.length := by scalar_tac
-    simp only [global_simps]
-    step*
-    · simp [s12_post]
-    · simp only [Room]; scalar_tac
-    · have hb1 : (index_mut_back s2).val = r.val ++ List.replicate 48 0#u8 := by
-        rw [s_post2, s2_post, s1_post]
-        simp [List.setSlice!]
-      have hb2 : (index_mut_back1 s5).val = r.val ++ pk_seed.val ++ List.replicate 32 0#u8 := by
-        rw [s3_post2, s5_post, s4_post, hb1, Array.val_to_slice,
-          show List.replicate 48 0#u8 = List.replicate 16 0#u8 ++ List.replicate 32 0#u8
-            by simp,
-          ← List.append_assoc]
-        exact setSlice!_mid _ _ _ _ _ (by simp) (by simp)
-      have hb3 : (index_mut_back2 s8).val =
-          r.val ++ pk_seed.val ++ pk_root.val ++ List.replicate 16 0#u8 := by
-        rw [s6_post2, s8_post, s7_post, hb2, Array.val_to_slice,
-          show List.replicate 32 0#u8 = List.replicate 16 0#u8 ++ List.replicate 16 0#u8
-            by simp,
-          ← List.append_assoc]
-        exact setSlice!_mid _ _ _ _ _ (by simp [i1_post]) (by simp)
-      have hb4 : (index_mut_back3 s11).val =
-          r.val ++ pk_seed.val ++ pk_root.val ++ m.val.take 16 := by
-        rw [s9_post2, s11_post, s10_post, hb3]
-        have := setSlice!_mid (r.val ++ pk_seed.val ++ pk_root.val) (List.replicate 16 0#u8) []
-          (List.slice 0 16 m.val) i2.val (by simp [i2_post]) (by simp [List.slice]; scalar_tac)
-        simpa [List.slice] using this
-      -- the first block, and the rest of the message
-      have hB : bytes (index_mut_back3 s11).val =
-          bytes r.val ++ bytes pk_seed.val ++ bytes pk_root.val ++ (bytes m.val).take 16 := by
-        rw [hb4]; simp
-      have hBl : (bytes r.val ++ bytes pk_seed.val ++ bytes pk_root.val ++
-          (bytes m.val).take 16).length = 64 := by
-        simp; scalar_tac
-      have hs13 : bytes s13.val = (bytes m.val).drop 16 := by
-        simp [s13_post, List.slice]
-      have hst : wv st.val = Spec.SHA256.compress Spec.SHA256.H0
-          (bytes r.val ++ bytes pk_seed.val ++ bytes pk_root.val ++ (bytes m.val).take 16) := by
-        rw [st_post, s12_post, Array.val_to_slice, hB, List.drop_zero,
-          List.take_of_length_le (Nat.le_of_eq hBl)]
-        rfl
-      rw [d_post, hst, hs13, ← sha256_prefix64 _ _ hBl]
-      simp only [List.append_assoc, List.take_append_drop]
-  · let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-    let* ⟨ buf, buf_post, buf_len ⟩ ← hash_extend_from_slice_u8_spec
-    let* ⟨ s1, s1_post ⟩ ← Array.to_slice.step_spec
-    let* ⟨ buf1, buf1_post, buf1_len ⟩ ← hash_extend_from_slice_u8_spec
-    let* ⟨ s2, s2_post ⟩ ← Array.to_slice.step_spec
-    let* ⟨ buf2, buf2_post, buf2_len ⟩ ← hash_extend_from_slice_u8_spec
-    let* ⟨ buf3, buf3_post, buf3_len ⟩ ← hash_extend_from_slice_u8_spec
-    have hl : buf3.length = 48 + m.length := by
-      simp [buf3_len, buf2_len, buf1_len, buf_len, s_post, s1_post, s2_post]
-    let* ⟨ inner, inner_post ⟩ ← sha256_spec
+  · rename_i h16
+    have hn : N.val = 16 := by scalar_tac
+    let* ⟨ d, d_post ⟩ ← sha256_from_spec
     · simp only [Room, vec_deref_length]; scalar_tac
-    simp [inner_post, vec_deref_val, buf3_post, buf2_post, buf1_post, buf_post, s_post, s1_post,
-      s2_post]
-
-@[step]
-theorem h_msg_spec (r pk_seed pk_root : Array U8 16#usize) (m : Slice U8) (hm : Room m.length 120) :
-    hash.h_msg r pk_seed pk_root m ⦃ d =>
-      bytes d.val = Spec.Hmsg (bytes r.val) (bytes pk_seed.val) (bytes pk_root.val) (bytes m.val) ⦄ := by
-  unfold hash.h_msg
-  have hM : params.M.val = 30 := by simp [params.M]
-  simp only [step_simps]
-  let* ⟨ inner, inner_post ⟩ ← h_msg_inner_spec
-  let* ⟨ s4, s4_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ seed, seed_post, seed_len ⟩ ← hash_extend_from_slice_u8_spec
-  let* ⟨ s5, s5_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ seed1, seed1_post, seed1_len ⟩ ← hash_extend_from_slice_u8_spec
-  let* ⟨ s6, s6_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ seed2, seed2_post, seed2_len ⟩ ← hash_extend_from_slice_u8_spec
-  let* ⟨ s7, s7_post ⟩ ← Array.to_slice.step_spec
-  let* ⟨ seed3, seed3_post, seed3_len ⟩ ← hash_extend_from_slice_u8_spec
-  have hl2 : seed3.length = 68 := by
-    simp [seed3_len, seed2_len, seed1_len, seed_len, s4_post, s5_post, s6_post, s7_post]
-  let* ⟨ d, d_post ⟩ ← sha256_spec
-  · simp only [Room, vec_deref_length]; scalar_tac
-  let* ⟨ s9, to_slice_mut_back, s9_post, to_slice_mut_back_post ⟩ ← Array.to_slice_mut_spec
-  let* ⟨ s10, s10_post, s10_post1 ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
-  let* ⟨ s11, s11_post ⟩ ← core.slice.Slice.copy_from_slice.step_spec
-  have hv : (Array.from_slice (Array.repeat 30#usize 0#u8) s10).val = s10.val :=
-    Array.from_slice_val _ _ (by scalar_tac)
-  simp only [to_slice_mut_back_post, s11_post, hv, s10_post, hM, List.slice]
-  simp [Spec.Hmsg, Spec.mgf1, Spec.m, toByte_zero_4, d_post, inner_post, vec_deref_val,
-    seed3_post, seed2_post, seed1_post, seed_post,
-    s4_post, s5_post, s6_post, s7_post]
+    step*
+    have hv : (Array.from_slice (Array.repeat N 0#u8) s3).val = s3.val :=
+      Array.from_slice_val _ _ (by scalar_tac)
+    simp only [to_slice_mut_back_post, s4_post, hv, s3_post, List.slice]
+    rw [T_eq_H, H_eq, if_pos (by omega), hPN, th256_eq _ _ (by simp) (by omega), ← hs.1, ← hbuf]
+    simp [d_post, vec_deref_val]
+  · rename_i h16
+    have hn : N.val ≠ 16 := fun h => h16 (by scalar_tac)
+    let* ⟨ d, d_post ⟩ ← S512.sha512_from_spec
+    step*
+    have hv : (Array.from_slice (Array.repeat N 0#u8) s3).val = s3.val :=
+      Array.from_slice_val _ _ (by scalar_tac)
+    simp only [to_slice_mut_back_post, s4_post, hv, s3_post, List.slice]
+    rw [T_eq_H, H_eq, if_neg (by omega), hPN, th512_eq _ _ (by simp) (by omega), ← hs.2 hn, ← hbuf]
+    simp [d_post, vec_deref_val]
 
 /-! Iterated single-block hashing in place: `chain_blocks` and its pure model. -/
 
 /-- One step of `chain_blocks` on a block, on spec bytes: write `t` into the
-last address word (bytes 18..22), then replace the value (bytes 22..38) by
-`Trunc_n` of the compression of the block from `st`. -/
-def stepBlock (st : List Spec.SHA256.Word) (B : Spec.Bytes) (t : Nat) : Spec.Bytes :=
+last address word (bytes 18..22), then replace the value (bytes 22..22 + n)
+by `Trunc_n` of the compression of the block from `st`. -/
+def stepBlock (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (t : Nat) : Spec.Bytes :=
   let B' := B.take 18 ++ Spec.toByte t 4 ++ B.drop 22
-  B'.take 22 ++ (ser (Spec.SHA256.compress st B')).take 16 ++ B'.drop 38
+  B'.take 22 ++ (ser (Spec.SHA256.compress st B')).take n ++ B'.drop (22 + n)
 
 /-- The steps `s`, …, `e − 1` of `chain_blocks` on one block (none if `e ≤ s`). -/
-def runBlock (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s e : Nat) : Spec.Bytes :=
-  (List.range (e - s)).foldl (fun B k => stepBlock st B (s + k)) B
+def runBlock (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s e : Nat) : Spec.Bytes :=
+  (List.range (e - s)).foldl (fun B k => stepBlock n st B (s + k)) B
 
 theorem sha_compress_length (st : List Spec.SHA256.Word) (B : Spec.Bytes) :
     (Spec.SHA256.compress st B).length = 8 := by
@@ -537,9 +569,6 @@ theorem toByte4_eq (t : Nat) : Spec.toByte t 4 =
     [BitVec.ofNat 8 (t >>> 24), BitVec.ofNat 8 (t >>> 16), BitVec.ofNat 8 (t >>> 8), BitVec.ofNat 8 t] := by
   simp [Spec.toByte, show List.range 4 = [0, 1, 2, 3] from rfl]
 
-theorem adrs_compress_length (A : Spec.Adrs) : A.compress.length = 22 := by
-  rw [compress_eq]; rfl
-
 theorem compress_word3 (A : Spec.Adrs) (t : Nat) :
     { A with word3 := t }.compress = A.compress.take 18 ++ Spec.toByte t 4 := by
   rw [compress_eq, compress_eq, toByte4_eq]; rfl
@@ -547,7 +576,6 @@ theorem compress_word3 (A : Spec.Adrs) (t : Nat) :
 theorem compress_typ (A : Spec.Adrs) (ty : Nat) :
     A.compress.set 9 (BitVec.ofNat 8 ty) = { A with typ := ty }.compress := by
   rw [compress_eq, compress_eq]; rfl
-
 
 /-- The padding after a 22-byte address and a message of `k ≤ 33` bytes, in one block. -/
 def padTail (k : Nat) : Spec.Bytes :=
@@ -578,42 +606,43 @@ theorem counter_self (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length ≤ 33) :
       padFrom 64 (A.compress ++ m) := by
   rw [counter_set _ _ hm]
 
-/-- One step on the block of a 16-byte value. -/
-theorem stepBlock_short (st : List Spec.SHA256.Word) (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length = 16)
-    (t : Nat) :
-    stepBlock st (padFrom 64 (A.compress ++ m)) t =
+/-- One step on the block of an `n`-byte value. -/
+theorem stepBlock_short (n : Nat) (hn : n ≤ 32) (st : List Spec.SHA256.Word) (A : Spec.Adrs)
+    (m : Spec.Bytes) (hm : m.length = n) (t : Nat) :
+    stepBlock n st (padFrom 64 (A.compress ++ m)) t =
       padFrom 64 ({ A with word3 := t }.compress ++
-        (ser (Spec.SHA256.compress st (padFrom 64 ({ A with word3 := t }.compress ++ m)))).take 16) := by
+        (ser (Spec.SHA256.compress st (padFrom 64 ({ A with word3 := t }.compress ++ m)))).take n) := by
   unfold stepBlock
   simp only []
   rw [counter_set _ _ (by omega)]
-  have hl : ((ser (Spec.SHA256.compress st (padFrom 64 ({ A with word3 := t }.compress ++ m)))).take 16).length = 16 := by
-    simp [ser_length, sha_compress_length]
+  have hl : ((ser (Spec.SHA256.compress st (padFrom 64 ({ A with word3 := t }.compress ++ m)))).take n).length = n := by
+    simp [ser_length, sha_compress_length]; omega
   have hc := adrs_compress_length { A with word3 := t }
   have e1 : (padFrom 64 ({ A with word3 := t }.compress ++ m)).take 22 = { A with word3 := t }.compress := by
     rw [padFrom_blk _ _ (by omega), List.take_left' hc]
-  have e2 : (padFrom 64 ({ A with word3 := t }.compress ++ m)).drop 38 = padTail 16 := by
+  have e2 : (padFrom 64 ({ A with word3 := t }.compress ++ m)).drop (22 + n) = padTail n := by
     rw [padFrom_blk _ _ (by omega), ← List.append_assoc, List.drop_left' (by simp [hc, hm]), hm]
   rw [e1, e2]
-  generalize List.take 16 (ser (Spec.SHA256.compress st
+  generalize List.take n (ser (Spec.SHA256.compress st
     (padFrom 64 ({ A with word3 := t }.compress ++ m)))) = H at hl ⊢
   rw [padFrom_blk _ H (by omega), hl]
   simp
 
 /-- The value held in a block that has been stepped. -/
-theorem stepBlock_value (st : List Spec.SHA256.Word) (B : Spec.Bytes) (hB : B.length = 64) (t : Nat) :
-    ((stepBlock st B t).drop 22).take 16 =
-      (ser (Spec.SHA256.compress st (B.take 18 ++ Spec.toByte t 4 ++ B.drop 22))).take 16 := by
+theorem stepBlock_value (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (hB : B.length = 64)
+    (hn : n ≤ 32) (t : Nat) :
+    ((stepBlock n st B t).drop 22).take n =
+      (ser (Spec.SHA256.compress st (B.take 18 ++ Spec.toByte t 4 ++ B.drop 22))).take n := by
   unfold stepBlock
   simp only []
-  have hl : ((ser (Spec.SHA256.compress st (B.take 18 ++ Spec.toByte t 4 ++ B.drop 22))).take 16).length = 16 := by
-    simp [ser_length, sha_compress_length]
+  have hl : ((ser (Spec.SHA256.compress st (B.take 18 ++ Spec.toByte t 4 ++ B.drop 22))).take n).length = n := by
+    simp [ser_length, sha_compress_length]; omega
   have h22 : ((B.take 18 ++ Spec.toByte t 4 ++ B.drop 22).take 22).length = 22 := by
     simp [Spec.toByte]; omega
   rw [List.append_assoc, List.drop_left' h22, List.take_left' hl]
 
-theorem block_value (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length ≤ 33) :
-    ((padFrom 64 (A.compress ++ m)).drop 22).take 16 = (m ++ padTail m.length).take 16 := by
+theorem block_value (n : Nat) (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length ≤ 33) :
+    ((padFrom 64 (A.compress ++ m)).drop 22).take n = (m ++ padTail m.length).take n := by
   rw [padFrom_blk _ _ hm, List.drop_left' (adrs_compress_length A)]
 
 theorem block_set_typ (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length ≤ 33) (ty : Nat) :
@@ -632,104 +661,85 @@ theorem hashFrom_length (st : List Spec.SHA256.Word) (hst : st.length = 8) (P : 
     | cons x l ih => intro st _; exact ih _ (sha_compress_length _ _)
   exact this _ _ hst
 
-theorem thash_length (pk : Spec.Bytes) (hpk : pk.length = 16) (A : Spec.Adrs) (m : Spec.Bytes) :
-    (Spec.thash pk A m).length = 16 := by
-  rw [thash_eq pk hpk]
-  simp [ser_length, hashFrom_length _ (sha_compress_length _ _)]
+theorem th256_length (n : Nat) (hn : n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = n) (A : Spec.Adrs)
+    (m : Spec.Bytes) : (th256 n pk A m).length = n := by
+  rw [th256_eq n pk hpk (by omega)]
+  simp [ser_length, hashFrom_length _ (sha_compress_length _ _)]; omega
 
-/-- One compression of the block of a short message, from the seed state, is the tweakable hash. -/
-theorem thash_one (pk : Spec.Bytes) (hpk : pk.length = 16) (A : Spec.Adrs) (m : Spec.Bytes)
-    (hm : m.length ≤ 33) :
-    (ser (Spec.SHA256.compress (Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate 48 0#8))
-      (padFrom 64 (A.compress ++ m)))).take 16 = Spec.thash pk A m := by
-  rw [thash_eq pk hpk, hashFrom_one _ _ (padFrom_blk_length _ _ hm)]
+theorem chain_succ (P : Spec.Params) (x : Spec.Bytes) (s n : Nat) (pk : Spec.Bytes) (A : Spec.Adrs) :
+    Spec.chain P x s (n + 1) pk A = Spec.F P pk { A with word3 := s + n } (Spec.chain P x s n pk A) := by
+  simp only [Spec.chain, List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
 
-theorem chain_succ (x : Spec.Bytes) (s n : Nat) (pk : Spec.Bytes) (A : Spec.Adrs) :
-    Spec.chain x s (n + 1) pk A = Spec.thash pk { A with word3 := s + n } (Spec.chain x s n pk A) := by
-  simp only [Spec.chain, List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil, Spec.F]
-
-theorem chain_length (pk : Spec.Bytes) (hpk : pk.length = 16) (x : Spec.Bytes) (hx : x.length = 16)
-    (s n : Nat) (A : Spec.Adrs) : (Spec.chain x s n pk A).length = 16 := by
-  cases n with
+theorem chain_length (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+    (x : Spec.Bytes) (hx : x.length = P.n) (s k : Nat) (A : Spec.Adrs) :
+    (Spec.chain P x s k pk A).length = P.n := by
+  cases k with
   | zero => simpa [Spec.chain] using hx
-  | succ n => rw [chain_succ]; exact thash_length pk hpk _ _
+  | succ k => rw [chain_succ, F_eq]; exact th256_length _ hn pk hpk _ _
 
-theorem runBlock_succ (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s n : Nat) :
-    runBlock st B s (s + (n + 1)) = stepBlock st (runBlock st B s (s + n)) (s + n) := by
+theorem runBlock_succ (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s k : Nat) :
+    runBlock n st B s (s + (k + 1)) = stepBlock n st (runBlock n st B s (s + k)) (s + k) := by
   simp [runBlock, List.range_succ, List.foldl_append]
 
-theorem runBlock_le (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s e : Nat) (h : e ≤ s) :
-    runBlock st B s e = B := by
+theorem runBlock_le (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s e : Nat) (h : e ≤ s) :
+    runBlock n st B s e = B := by
   simp [runBlock, Nat.sub_eq_zero_of_le h]
 
-theorem runBlock_one (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s : Nat) :
-    runBlock st B s (s + 1) = stepBlock st B s := by
+theorem runBlock_one (n : Nat) (st : List Spec.SHA256.Word) (B : Spec.Bytes) (s : Nat) :
+    runBlock n st B s (s + 1) = stepBlock n st B s := by
   simp [runBlock]
 
 /-- `B` is the block holding the value `v` at an address that is `A` up to its last word. -/
 def ValBlk (A : Spec.Adrs) (v B : Spec.Bytes) : Prop :=
   ∃ w, B = padFrom 64 ({ A with word3 := w }.compress ++ v)
 
+/-- The seed state of the SHA-256 tweakable hashes for `PK.seed`. -/
+def seedState (n : Nat) (pk : Spec.Bytes) : List Spec.SHA256.Word :=
+  Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate (64 - n) 0#8)
+
 /-- One step with the seed state is `F` (or `PRF`) at the address of the step. -/
-theorem stepBlock_thash (pk : Spec.Bytes) (hpk : pk.length = 16) (st : List Spec.SHA256.Word)
-    (hst : st = Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate 48 0#8))
-    (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length = 16) (t : Nat) :
-    stepBlock st (padFrom 64 (A.compress ++ m)) t =
-      padFrom 64 ({ A with word3 := t }.compress ++ Spec.thash pk { A with word3 := t } m) := by
-  rw [stepBlock_short _ _ _ hm, hst, thash_one pk hpk _ _ (by omega)]
+theorem stepBlock_thash (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+    (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length = P.n) (t : Nat) :
+    stepBlock P.n (seedState P.n pk) (padFrom 64 (A.compress ++ m)) t =
+      padFrom 64 ({ A with word3 := t }.compress ++ Spec.F P pk { A with word3 := t } m) := by
+  rw [stepBlock_short _ hn _ _ _ hm, seedState, th256_one _ pk hpk (by omega) _ _ (by omega), F_eq]
 
 /-- A run of steps with the seed state is `chain`. -/
-theorem runBlock_chain (pk : Spec.Bytes) (hpk : pk.length = 16) (st : List Spec.SHA256.Word)
-    (hst : st = Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate 48 0#8))
-    (A : Spec.Adrs) (m B : Spec.Bytes) (hm : m.length = 16) (hB : ValBlk A m B) (s n : Nat) :
-    ValBlk A (Spec.chain m s n pk A) (runBlock st B s (s + n)) := by
-  induction n with
+theorem runBlock_chain (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+    (A : Spec.Adrs) (m B : Spec.Bytes) (hm : m.length = P.n) (hB : ValBlk A m B) (s k : Nat) :
+    ValBlk A (Spec.chain P m s k pk A) (runBlock P.n (seedState P.n pk) B s (s + k)) := by
+  induction k with
   | zero => simpa [runBlock, Spec.chain] using hB
-  | succ n ih =>
+  | succ k ih =>
     obtain ⟨w, hw⟩ := ih
-    rw [runBlock_succ, hw, stepBlock_thash pk hpk st hst _ _ (chain_length pk hpk m hm s n A),
+    rw [runBlock_succ, hw, stepBlock_thash P hn pk hpk _ _ (chain_length P hn pk hpk m hm s k A),
       chain_succ]
-    exact ⟨s + n, rfl⟩
+    exact ⟨s + k, rfl⟩
 
-theorem ValBlk_value (A : Spec.Adrs) (v B : Spec.Bytes) (hv : v.length = 16) (hB : ValBlk A v B) :
-    (B.drop 22).take 16 = v := by
+theorem ValBlk_value (n : Nat) (A : Spec.Adrs) (v B : Spec.Bytes) (hv : v.length = n) (hn : n ≤ 33)
+    (hB : ValBlk A v B) : (B.drop 22).take n = v := by
   obtain ⟨w, rfl⟩ := hB
-  rw [block_value _ _ (by omega), List.take_left' hv]
+  rw [block_value _ _ _ (by omega), List.take_left' hv]
 
-/-- The value of a pair block after its one step, numbered by its own last address word: `H`. -/
-theorem stepBlock_pair_value (pk : Spec.Bytes) (hpk : pk.length = 16) (st : List Spec.SHA256.Word)
-    (hst : st = Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate 48 0#8))
+/-- The value of a block after its one step, numbered by its own last address
+word: the SHA-256 tweakable hash of the block's message. -/
+theorem stepBlock_pair_value (n : Nat) (hn : n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = n)
     (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length ≤ 33) :
-    ((stepBlock st (padFrom 64 (A.compress ++ m)) A.word3).drop 22).take 16 = Spec.thash pk A m := by
-  rw [stepBlock_value _ _ (padFrom_blk_length _ _ hm), counter_self _ _ hm, hst, thash_one pk hpk _ _ hm]
+    ((stepBlock n (seedState n pk) (padFrom 64 (A.compress ++ m)) A.word3).drop 22).take n =
+      th256 n pk A m := by
+  rw [stepBlock_value _ _ _ (padFrom_blk_length _ _ hm) hn, counter_self _ _ hm, seedState,
+    th256_one n pk hpk (by omega) _ _ hm]
 
 @[step]
-theorem value_spec (block : Array U8 64#usize) :
-    hash.value block ⦃ r => bytes r.val = ((bytes block.val).drop 22).take 16 ⦄ := by
+theorem value_spec (N : Usize) (hN : N.val ≤ 32) (block : Array U8 64#usize) :
+    hash.value N block ⦃ r => bytes r.val = ((bytes block.val).drop 22).take N.val ⦄ := by
   unfold hash.value
   step*
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s1).val = s1.val :=
-    Array.from_slice_val _ _ (by scalar_tac)
-  rw [to_slice_mut_back_post, s2_post, hv, s1_post]
-  simp [List.slice, bytes]
-
-@[step]
-theorem pair_block_spec (adrs : address.Adrs) (l r : Array U8 16#usize) :
-    hash.pair_block adrs l r ⦃ b =>
-      bytes b.val = padFrom 64 ((adrsS adrs).compress ++ (bytes l.val ++ bytes r.val)) ⦄ := by
-  unfold hash.pair_block
-  simp only [global_simps]
-  step*
-  have hb1 : (index_mut_back s2).val = [] ++ l.val ++ List.replicate 16 0#u8 := by
-    rw [s_post2, s2_post, s1_post, Array.val_to_slice,
-      show (Array.repeat 32#usize 0#u8).val = [] ++ List.replicate 16 0#u8 ++ List.replicate 16 0#u8
-        by simp]
-    exact setSlice!_mid _ _ _ _ _ rfl (by simp)
-  have hb2 : (index_mut_back1 s5).val = l.val ++ r.val ++ [] := by
-    rw [s3_post2, s5_post, s4_post, Array.val_to_slice, hb1, List.nil_append,
-      show l.val ++ List.replicate 16 0#u8 = l.val ++ List.replicate 16 0#u8 ++ [] by simp]
-    exact setSlice!_mid _ _ _ _ _ (by simp) (by simp)
-  simp [b_post, s6_post, hb2]
+  · simp only [Slice.length, s_post, Array.repeat_val, List.length_replicate]; scalar_tac
+  · have hv : (Array.from_slice (Array.repeat N 0#u8) s1).val = s1.val :=
+      Array.from_slice_val _ _ (by scalar_tac)
+    rw [to_slice_mut_back_post, s2_post, hv, s1_post]
+    simp [List.slice, bytes, i_post]
 
 theorem set4_eq {α} (l : List α) (h : 22 ≤ l.length) (a b c d : α) :
     (((l.set 18 a).set 19 b).set 20 c).set 21 d = l.take 18 ++ [a, b, c, d] ++ l.drop 22 := by
@@ -750,8 +760,7 @@ theorem bytes_setSlice (l s : List U8) (i : Nat) (h : i + s.length ≤ l.length)
   simp [List.setSlice!, hm]
 
 theorem cast_u8_bv32 (x : U32) : U8.bv (UScalar.cast .U8 x) = BitVec.ofNat 8 x.val := cast_u8_bv x
-
-theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
+theorem chain_blocks_inner_spec (N : Usize) (hN : N.val ≤ 32) (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
     («end» : Slice U32) (i : Usize) (s0 : Nat)
     (hi : i.val < blocks0.length) (he : i.val < «end».length)
     (blocks : Slice (Array U8 64#usize)) (t : U32)
@@ -759,23 +768,24 @@ theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
     (hother : ∀ j, j ≠ i.val → blocks.val[j]! = blocks0.val[j]!)
     (hst : s0 ≤ t.val) (hte : t.val ≤ («end».val[i.val]!).val ∨ t.val = s0)
     (hcur : bytes (blocks.val[i.val]!).val =
-      runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 t.val) :
-    hash.chain_blocks_portable_loop0_loop0 state blocks «end» i t ⦃ r =>
+      runBlock N.val (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 t.val) :
+    hash.chain_blocks_portable_loop0_loop0 N state blocks «end» i t ⦃ r =>
       r.length = blocks0.length ∧ (∀ j, j ≠ i.val → r.val[j]! = blocks0.val[j]!) ∧
       bytes (r.val[i.val]!).val =
-        runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 («end».val[i.val]!).val ⦄ := by
+        runBlock N.val (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 («end».val[i.val]!).val ⦄ := by
   unfold hash.chain_blocks_portable_loop0_loop0
   apply loop.spec_decr_nat
     (measure := fun (p : Slice (Array U8 64#usize) × U32) => («end».val[i.val]!).val - p.2.val)
     (inv := fun p => p.1.length = blocks0.length ∧ (∀ j, j ≠ i.val → p.1.val[j]! = blocks0.val[j]!) ∧
       s0 ≤ p.2.val ∧ (p.2.val ≤ («end».val[i.val]!).val ∨ p.2.val = s0) ∧
       bytes (p.1.val[i.val]!).val =
-        runBlock (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 p.2.val)
+        runBlock N.val (wv state.val) (bytes (blocks0.val[i.val]!).val) s0 p.2.val)
   · rintro ⟨blocks, t⟩ ⟨h1, h2, h3, h4, h5⟩
     simp only [hash.chain_blocks_portable_loop0_loop0.body]
     simp only at h1 h2 h3 h4 h5
     step*
     all_goals try (simp [*]; done)
+    all_goals try (simp only [Slice.length, s2_post, Array.val_to_slice] at s1_post1 ⊢; scalar_tac)
     · have hil : i.val < blocks.val.length := by scalar_tac
       have htlt : t.val < («end».val[i.val]!).val := by
         rw [getElem!_eq _ _ (by scalar_tac), ← i1_post]; scalar_tac
@@ -795,12 +805,12 @@ theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
       have hst' : wv st.val = Spec.SHA256.compress (wv state.val) (bytes a7.val) := by
         rw [st_post, s_post, e8, Array.val_to_slice, List.drop_zero,
           List.take_of_length_le (by simp)]
-      have hfin : bytes (index_mut_back5 s3).val = stepBlock (wv state.val) (bytes (blocks.val[i.val]).val) t.val := by
+      have hfin : bytes (index_mut_back5 s3).val = stepBlock N.val (wv state.val) (bytes (blocks.val[i.val]).val) t.val := by
         rw [s1_post2, s3_post, s2_post, e9, Array.val_to_slice]
         unfold stepBlock
         simp only []
         rw [← h7]
-        rw [bytes_setSlice _ _ _ (by simp), d_post, hst']
+        rw [bytes_setSlice _ _ _ (by simp; omega), d_post, hst']
         simp
       refine ⟨by simp [index_mut_back4_post, index_mut_back3_post, index_mut_back2_post,
           index_mut_back1_post, index_mut_back_post, h1], ?_, by omega, ?_, ?_, ?_⟩
@@ -825,26 +835,26 @@ theorem chain_blocks_inner_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
       rw [h5]
       rcases h4 with h4 | h4
       · rw [show t.val = («end».val[i.val]!).val by omega]
-      · rw [h4, runBlock_le _ _ _ _ (by omega), runBlock_le _ _ _ _ (by omega)]
+      · rw [h4, runBlock_le _ _ _ _ _ (by omega), runBlock_le _ _ _ _ _ (by omega)]
   · exact ⟨hlen, hother, hst, hte, hcur⟩
 
-theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
+theorem chain_blocks_loop0_spec (N : Usize) (hN : N.val ≤ 32) (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
     (start «end» : Slice U32)
     (hs : blocks0.length ≤ start.length) (he : blocks0.length ≤ «end».length)
     (blocks : Slice (Array U8 64#usize)) (i : Usize)
     (hi : i.val ≤ blocks0.length) (hlen : blocks.length = blocks0.length)
     (hdone : ∀ j, j < i.val → bytes (blocks.val[j]!).val =
-      runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val)
+      runBlock N.val (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val)
     (hrest : ∀ j, i.val ≤ j → blocks.val[j]! = blocks0.val[j]!) :
-    hash.chain_blocks_portable_loop0 state blocks start «end» i ⦃ r =>
+    hash.chain_blocks_portable_loop0 N state blocks start «end» i ⦃ r =>
       r.length = blocks0.length ∧ ∀ j, j < blocks0.length → bytes (r.val[j]!).val =
-        runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val ⦄ := by
+        runBlock N.val (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val ⦄ := by
   unfold hash.chain_blocks_portable_loop0
   apply loop.spec_decr_nat
     (measure := fun (p : Slice (Array U8 64#usize) × Usize) => blocks0.length - p.2.val)
     (inv := fun p => p.2.val ≤ blocks0.length ∧ p.1.length = blocks0.length ∧
       (∀ j, j < p.2.val → bytes (p.1.val[j]!).val =
-        runBlock (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val) ∧
+        runBlock N.val (wv state.val) (bytes (blocks0.val[j]!).val) (start.val[j]!).val («end».val[j]!).val) ∧
       (∀ j, p.2.val ≤ j → p.1.val[j]! = blocks0.val[j]!))
   · rintro ⟨blocks, i⟩ ⟨h1, h2, h3, h4⟩
     simp only [hash.chain_blocks_portable_loop0.body]
@@ -853,7 +863,7 @@ theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
     spec_split
     · let* ⟨ t, t_post ⟩ ← Slice.index_usize_spec
       have hib : i.val < blocks0.length := by scalar_tac
-      let* ⟨ b1, b1_len, b1_other, b1_cur ⟩ ← chain_blocks_inner_spec state blocks «end» i t.val
+      let* ⟨ b1, b1_len, b1_other, b1_cur ⟩ ← chain_blocks_inner_spec N hN state blocks «end» i t.val
         (by scalar_tac) (by scalar_tac) blocks t rfl (fun _ _ => rfl) (le_refl _) (Or.inr rfl)
         (by simp [runBlock])
       let* ⟨ i2, i2_post ⟩ ← Usize.add_spec
@@ -874,136 +884,360 @@ theorem chain_blocks_loop0_spec (state : Array U32 8#usize) (blocks0 : Slice (Ar
   · exact ⟨hi, hlen, hdone, hrest⟩
 
 /-- `chain_blocks_portable`: block `i` takes the steps `start[i]`, …, `end[i] − 1`. -/
-theorem chain_blocks_portable_spec (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
+theorem chain_blocks_portable_spec (N : Usize) (hN : N.val ≤ 32) (state : Array U32 8#usize) (blocks : Slice (Array U8 64#usize))
     (start «end» : Slice U32)
     (hs : blocks.length ≤ start.length) (he : blocks.length ≤ «end».length) :
-    hash.chain_blocks_portable state blocks start «end» ⦃ r =>
+    hash.chain_blocks_portable N state blocks start «end» ⦃ r =>
       r.length = blocks.length ∧ ∀ i, i < blocks.length → bytes (r.val[i]!).val =
-        runBlock (wv state.val) (bytes (blocks.val[i]!).val) (start.val[i]!).val («end».val[i]!).val ⦄ := by
+        runBlock N.val (wv state.val) (bytes (blocks.val[i]!).val) (start.val[i]!).val («end».val[i]!).val ⦄ := by
   unfold hash.chain_blocks_portable
-  exact chain_blocks_loop0_spec state blocks start «end» hs he blocks 0#usize (by simp) rfl
+  exact chain_blocks_loop0_spec N hN state blocks start «end» hs he blocks 0#usize (by simp) rfl
     (fun j hj => by simp at hj) (fun _ _ => rfl)
 
-/-- The value held in a 64-byte block (bytes 22..38). -/
-def blkVal (b : Array U8 64#usize) : Spec.Bytes := ((bytes b.val).drop 22).take 16
+/-! `T_len` on the values held in the chain blocks (`thash_values`). -/
 
-theorem blkVal_length (b : Array U8 64#usize) : (blkVal b).length = 16 := by
-  simp [blkVal]
+/-- The `n`-byte value held in a 64-byte block (bytes 22..22 + n). -/
+def blkVal (n : Nat) (b : Array U8 64#usize) : Spec.Bytes := ((bytes b.val).drop 22).take n
 
-theorem flatMap_blkVal_length (blocks : List (Array U8 64#usize)) (i : Nat) :
-    ((List.range i).flatMap fun (j : Nat) => blkVal blocks[j]!).length = 16 * i := by
+theorem blkVal_length (n : Nat) (hn : n ≤ 42) (b : Array U8 64#usize) : (blkVal n b).length = n := by
+  simp [blkVal]; omega
+
+theorem flatMap_blkVal_length (n : Nat) (hn : n ≤ 42) (blocks : List (Array U8 64#usize)) (i : Nat) :
+    ((List.range i).flatMap fun (j : Nat) => blkVal n blocks[j]!).length = n * i := by
   induction i with
   | zero => simp
-  | succ i ih => rw [List.range_succ, List.flatMap_append]; simp [blkVal_length]; ring
+  | succ i ih => rw [List.range_succ, List.flatMap_append]; simp [blkVal_length n hn]; ring
 
-theorem hash_LEN_eq : params.LEN = 35#usize := by simp [global_simps]
+theorem foldl_range_congr {β} (f g : β → Nat → β) (k : Nat) (b : β)
+    (h : ∀ j b, j < k → f b j = g b j) :
+    (List.range k).foldl f b = (List.range k).foldl g b := by
+  induction k generalizing b with
+  | zero => rfl
+  | succ k ih =>
+    rw [List.range_succ, List.foldl_append, List.foldl_append, ih _ (fun j b hj => h j b (by omega))]
+    simp [h k _ (by omega)]
 
-theorem thash_values_loop0_spec (blocks : Array (Array U8 64#usize) 35#usize) (C : Spec.Bytes)
-    (hC : C.length = 22) (buf : Array U8 640#usize) (i : Usize) (hi : i.val ≤ 35)
-    (hinv : bytes buf.val = C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal blocks.val[j]!) ++
-      List.replicate (618 - 16 * i.val) 0#8) :
-    hash.thash_values_loop0 blocks buf i ⦃ r =>
-      bytes r.val = C ++ (List.range 35).flatMap (fun (j : Nat) => blkVal blocks.val[j]!) ++
-        List.replicate 58 0#8 ⦄ := by
+/-- The buffer of `thash_values` with SHA-256: `ADRSc ‖ M`, zeros, and the
+padding written at the right places; its first `total` bytes are the padded message. -/
+theorem padbuf64 (X : Spec.Bytes) (B total : Nat) (htot : total = (X.length + 9 + 63) / 64 * 64)
+    (hB : total ≤ B) (hbits : 8 * (64 + X.length) < 65536) :
+    ((((X ++ List.replicate (B - X.length) 0#8).set X.length 0x80#8).set (total - 2)
+      (BitVec.ofNat 8 ((8 * (64 + X.length)) >>> 8))).set (total - 1)
+      (BitVec.ofNat 8 (8 * (64 + X.length)))).take total = padFrom 64 X := by
+  have hk : B - X.length = (total - X.length - 3 + 3) + (B - total) := by omega
+  rw [hk, List.replicate_add, ← List.append_assoc, List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    set3_tail _ _ _ _ _ _ _ _ _ rfl (by omega) (by omega),
+    List.take_left' (by simp; omega)]
+  rw [padFrom, toByte8_small _ hbits]
+  have hz : total - X.length - 3 = (119 - X.length % 64) % 64 + 6 := by omega
+  rw [hz]
+  simp [List.replicate_add]
+
+/-- The same with SHA-512. -/
+theorem padbuf128 (X : Spec.Bytes) (B total : Nat) (htot : total = (X.length + 17 + 127) / 128 * 128)
+    (hB : total ≤ B) (hbits : 8 * (128 + X.length) < 65536) :
+    ((((X ++ List.replicate (B - X.length) 0#8).set X.length 0x80#8).set (total - 2)
+      (BitVec.ofNat 8 ((8 * (128 + X.length)) >>> 8))).set (total - 1)
+      (BitVec.ofNat 8 (8 * (128 + X.length)))).take total = S512.padFrom 128 X := by
+  have hk : B - X.length = (total - X.length - 3 + 3) + (B - total) := by omega
+  rw [hk, List.replicate_add, ← List.append_assoc, List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    List.set_append_left _ _ (by simp only [List.length_append, List.length_replicate, List.length_set]; omega),
+    set3_tail _ _ _ _ _ _ _ _ _ rfl (by omega) (by omega),
+    List.take_left' (by simp; omega)]
+  rw [S512.padFrom, toByte16_small _ hbits]
+  have hz : total - X.length - 3 = (239 - X.length % 128) % 128 + 14 := by omega
+  rw [hz]
+  simp [List.replicate_add]
+
+theorem thash_values_loop0_spec (N : Usize) (hN : NOk N) (blocks : Slice (Array U8 64#usize))
+    (hb : N.val * blocks.length ≤ 618)
+    (C : Spec.Bytes) (hC : C.length = 22) (buf : Array U8 640#usize) (i : Usize)
+    (hi : i.val ≤ blocks.length)
+    (hinv : bytes buf.val = C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+      List.replicate (618 - N.val * i.val) 0#8) :
+    hash.thash_values_loop0 N blocks buf i ⦃ r =>
+      bytes r.val = C ++ (List.range blocks.length).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+        List.replicate (618 - N.val * blocks.length) 0#8 ⦄ := by
+  have hN32 := hN.le32
   unfold hash.thash_values_loop0
   apply loop.spec_decr_nat
-    (measure := fun (p : Array U8 640#usize × Usize) => 35 - p.2.val)
-    (inv := fun p => p.2.val ≤ 35 ∧ bytes p.1.val = C ++
-      (List.range p.2.val).flatMap (fun (j : Nat) => blkVal blocks.val[j]!) ++
-      List.replicate (618 - 16 * p.2.val) 0#8)
+    (measure := fun (p : Array U8 640#usize × Usize) => blocks.length - p.2.val)
+    (inv := fun p => p.2.val ≤ blocks.length ∧ bytes p.1.val = C ++
+      (List.range p.2.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+      List.replicate (618 - N.val * p.2.val) 0#8)
   · rintro ⟨buf, i⟩ ⟨h1, h2⟩
-    simp only [hash.thash_values_loop0.body, hash_LEN_eq, global_simps]
+    simp only [hash.thash_values_loop0.body]
     simp only at h1 h2
-    step*
-    refine ⟨by scalar_tac, ?_, by scalar_tac⟩
-    have hil : i.val < 35 := by scalar_tac
-    have hF := flatMap_blkVal_length blocks.val i.val
-    have hlen : (C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal blocks.val[j]!)).length =
-        i2.val := by simp only [List.length_append, hC, hF, i2_post, i1_post]
-    have hs1 : bytes s1.val = blkVal blocks.val[i.val]! := by
-      rw [s1_post, a_post, getElem!_eq _ _ (by scalar_tac)]
-      simp [blkVal, List.slice]
-    have hs1len : s1.val.length = 16 := by scalar_tac
-    have hbl : buf.val.length = 640 := by simp
-    rw [s_post2, s2_post, bytes_setSlice _ _ _ (by rw [hs1len, hbl]; scalar_tac), h2, hs1len, hs1,
-      List.take_left' hlen, ← List.drop_drop, List.drop_left' hlen, i5_post,
-      List.range_succ, List.flatMap_append, List.drop_replicate]
-    simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.append_assoc]
-    congr 3
+    split
+    · rename_i hlt
+      have hil : i.val < blocks.length := by scalar_tac
+      have hmul : N.val * i.val + N.val ≤ 618 := by
+        have := le_trans (Nat.mul_le_mul_left N.val (show i.val + 1 ≤ blocks.length by omega)) hb
+        rw [Nat.mul_succ] at this; exact this
+      step*
+      all_goals try (simp only [Slice.length] at *; scalar_tac)
+      refine ⟨by scalar_tac, ?_, by scalar_tac⟩
+      have hF := flatMap_blkVal_length N.val (by omega) blocks.val i.val
+      have hlen : (C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!)).length =
+          i3.val := by simp only [List.length_append, hC, hF, i3_post, i2_post]
+      have hs1 : bytes s1.val = blkVal N.val blocks.val[i.val]! := by
+        rw [s1_post, a_post, getElem!_eq _ _ (by scalar_tac)]
+        simp [blkVal, List.slice, i6_post]
+      have hs1len : s1.val.length = N.val := by scalar_tac
+      have hbl : buf.val.length = 640 := by simp
+      have hsl : i3.val + s1.val.length ≤ buf.val.length := by
+        rw [hs1len, hbl, i3_post, i2_post]; omega
+      rw [s_post2, s2_post, bytes_setSlice _ _ _ hsl, h2, hs1len, hs1,
+        List.take_left' hlen, ← List.drop_drop, List.drop_left' hlen, i7_post,
+        List.range_succ, List.flatMap_append, List.drop_replicate]
+      simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.append_assoc]
+      congr 3
+      rw [Nat.mul_add, Nat.mul_one, Nat.sub_sub]
+    · rename_i hge
+      have he : i.val = blocks.length := by scalar_tac
+      simp only [step_simps]
+      rw [he] at h2; exact h2
   · exact ⟨hi, hinv⟩
 
-theorem thash_values_loop1_spec (buf : Array U8 640#usize) (S0 : List Spec.SHA256.Word)
-    (st : Array U32 8#usize) (off : Usize)
-    (hoff : off.val % 64 = 0) (hle : off.val ≤ 640)
+theorem thash_values_loop2_spec (N : Usize) (hN : NOk N) (blocks : Slice (Array U8 64#usize))
+    (hb : N.val * blocks.length ≤ 2282)
+    (C : Spec.Bytes) (hC : C.length = 22) (buf : Array U8 2304#usize) (i : Usize)
+    (hi : i.val ≤ blocks.length)
+    (hinv : bytes buf.val = C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+      List.replicate (2282 - N.val * i.val) 0#8) :
+    hash.thash_values_loop2 N blocks buf i ⦃ r =>
+      bytes r.val = C ++ (List.range blocks.length).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+        List.replicate (2282 - N.val * blocks.length) 0#8 ⦄ := by
+  have hN32 := hN.le32
+  unfold hash.thash_values_loop2
+  apply loop.spec_decr_nat
+    (measure := fun (p : Array U8 2304#usize × Usize) => blocks.length - p.2.val)
+    (inv := fun p => p.2.val ≤ blocks.length ∧ bytes p.1.val = C ++
+      (List.range p.2.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!) ++
+      List.replicate (2282 - N.val * p.2.val) 0#8)
+  · rintro ⟨buf, i⟩ ⟨h1, h2⟩
+    simp only [hash.thash_values_loop2.body]
+    simp only at h1 h2
+    split
+    · rename_i hlt
+      have hil : i.val < blocks.length := by scalar_tac
+      have hmul : N.val * i.val + N.val ≤ 2282 := by
+        have := le_trans (Nat.mul_le_mul_left N.val (show i.val + 1 ≤ blocks.length by omega)) hb
+        rw [Nat.mul_succ] at this; exact this
+      step*
+      all_goals try (simp only [Slice.length] at *; scalar_tac)
+      refine ⟨by scalar_tac, ?_, by scalar_tac⟩
+      have hF := flatMap_blkVal_length N.val (by omega) blocks.val i.val
+      have hlen : (C ++ (List.range i.val).flatMap (fun (j : Nat) => blkVal N.val blocks.val[j]!)).length =
+          i3.val := by simp only [List.length_append, hC, hF, i3_post, i2_post]
+      have hs1 : bytes s1.val = blkVal N.val blocks.val[i.val]! := by
+        rw [s1_post, a_post, getElem!_eq _ _ (by scalar_tac)]
+        simp [blkVal, List.slice, i6_post]
+      have hs1len : s1.val.length = N.val := by scalar_tac
+      have hbl : buf.val.length = 2304 := by simp
+      have hsl : i3.val + s1.val.length ≤ buf.val.length := by
+        rw [hs1len, hbl, i3_post, i2_post]; omega
+      rw [s_post2, s2_post, bytes_setSlice _ _ _ hsl, h2, hs1len, hs1,
+        List.take_left' hlen, ← List.drop_drop, List.drop_left' hlen, i7_post,
+        List.range_succ, List.flatMap_append, List.drop_replicate]
+      simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, List.append_assoc]
+      congr 3
+      rw [Nat.mul_add, Nat.mul_one, Nat.sub_sub]
+    · rename_i hge
+      have he : i.val = blocks.length := by scalar_tac
+      simp only [step_simps]
+      rw [he] at h2; exact h2
+  · exact ⟨hi, hinv⟩
+
+theorem hashFrom_take (S0 : List Spec.SHA256.Word) (P : Spec.Bytes) (t : Nat) (ht : t % 64 = 0)
+    (hle : t ≤ P.length) :
+    hashFrom S0 (P.take t) = (List.range (t / 64)).foldl
+      (fun st k => Spec.SHA256.compress st (Spec.SHA256.blockAt P k)) S0 := by
+  unfold hashFrom
+  rw [List.length_take, Nat.min_eq_left hle]
+  apply foldl_range_congr
+  intro j b hj
+  congr 1
+  simp only [Spec.SHA256.blockAt, List.drop_take]
+  rw [List.take_take, Nat.min_eq_left (by omega)]
+
+theorem hashFrom512_take (S0 : List Spec.SHA512.Word) (P : Spec.Bytes) (t : Nat) (ht : t % 128 = 0)
+    (hle : t ≤ P.length) :
+    S512.hashFrom S0 (P.take t) = (List.range (t / 128)).foldl
+      (fun st k => Spec.SHA512.compress st (Spec.SHA512.blockAt P k)) S0 := by
+  unfold S512.hashFrom
+  rw [List.length_take, Nat.min_eq_left hle]
+  apply foldl_range_congr
+  intro j b hj
+  congr 1
+  simp only [Spec.SHA512.blockAt, List.drop_take]
+  rw [List.take_take, Nat.min_eq_left (by omega)]
+
+theorem thash_values_loop1_spec (buf : Array U8 640#usize) (total : Usize) (S0 : List Spec.SHA256.Word)
+    (st : Array U32 8#usize) (off : Usize) (ht : total.val % 64 = 0) (htle : total.val ≤ 640)
+    (hoff : off.val % 64 = 0) (hle : off.val ≤ total.val)
     (hinv : wv st.val = (List.range (off.val / 64)).foldl
       (fun st k => Spec.SHA256.compress st (Spec.SHA256.blockAt (bytes buf.val) k)) S0) :
-    hash.thash_values_loop1 buf st off ⦃ r => wv r.val = hashFrom S0 (bytes buf.val) ⦄ := by
+    hash.thash_values_loop1 buf total st off ⦃ r =>
+      wv r.val = hashFrom S0 ((bytes buf.val).take total.val) ⦄ := by
   unfold hash.thash_values_loop1
   apply loop.spec_decr_nat
-    (measure := fun (q : Array U32 8#usize × Usize) => 640 - q.2.val)
-    (inv := fun q => q.2.val % 64 = 0 ∧ q.2.val ≤ 640 ∧
+    (measure := fun (q : Array U32 8#usize × Usize) => total.val - q.2.val)
+    (inv := fun q => q.2.val % 64 = 0 ∧ q.2.val ≤ total.val ∧
       wv q.1.val = (List.range (q.2.val / 64)).foldl
         (fun st k => Spec.SHA256.compress st (Spec.SHA256.blockAt (bytes buf.val) k)) S0)
   · rintro ⟨st, off⟩ ⟨hoff, hle, hinv⟩
     simp only [hash.thash_values_loop1.body]
     simp only at hoff hle hinv
-    have h64 : off.val = 640 ∨ off.val + 64 ≤ 640 := by omega
-    step*
-    · refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
+    split
+    · rename_i hlt
+      have h64 : off.val + 64 ≤ total.val := by scalar_tac
+      step*
+      refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
       have e : off1.val / 64 = off.val / 64 + 1 := by scalar_tac
       have e2 : 64 * (off.val / 64) = off.val := by omega
       rw [e, List.range_succ, List.foldl_append, ← hinv, st1_post, s_post]
       simp [Spec.SHA256.blockAt, e2]
-    · have : off.val = 640 := by scalar_tac
+    · rename_i hge
+      have : off.val = total.val := by scalar_tac
+      simp only [step_simps]
       rw [this] at hinv
-      rw [hinv, hashFrom]
-      simp
+      rw [hinv, hashFrom_take _ _ _ ht (by simp; omega)]
   · exact ⟨hoff, hle, hinv⟩
 
-theorem toByte_5168 : Spec.toByte (8 * (64 + 582)) 8 = [0#8, 0#8, 0#8, 0#8, 0#8, 0#8, 0x14#8, 0x30#8] := by
-  decide
+theorem thash_values_loop3_spec (buf : Array U8 2304#usize) (total : Usize) (S0 : List Spec.SHA512.Word)
+    (st : Array U64 8#usize) (off : Usize) (ht : total.val % 128 = 0) (htle : total.val ≤ 2304)
+    (hoff : off.val % 128 = 0) (hle : off.val ≤ total.val)
+    (hinv : S512.wv st.val = (List.range (off.val / 128)).foldl
+      (fun st k => Spec.SHA512.compress st (Spec.SHA512.blockAt (bytes buf.val) k)) S0) :
+    hash.thash_values_loop3 buf total st off ⦃ r =>
+      S512.wv r.val = S512.hashFrom S0 ((bytes buf.val).take total.val) ⦄ := by
+  unfold hash.thash_values_loop3
+  apply loop.spec_decr_nat
+    (measure := fun (q : Array U64 8#usize × Usize) => total.val - q.2.val)
+    (inv := fun q => q.2.val % 128 = 0 ∧ q.2.val ≤ total.val ∧
+      S512.wv q.1.val = (List.range (q.2.val / 128)).foldl
+        (fun st k => Spec.SHA512.compress st (Spec.SHA512.blockAt (bytes buf.val) k)) S0)
+  · rintro ⟨st, off⟩ ⟨hoff, hle, hinv⟩
+    simp only [hash.thash_values_loop3.body]
+    simp only at hoff hle hinv
+    split
+    · rename_i hlt
+      have h128 : off.val + 128 ≤ total.val := by scalar_tac
+      step*
+      refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
+      have e : off1.val / 128 = off.val / 128 + 1 := by scalar_tac
+      have e2 : 128 * (off.val / 128) = off.val := by omega
+      rw [e, List.range_succ, List.foldl_append, ← hinv, st1_post, s_post]
+      simp [Spec.SHA512.blockAt, e2]
+    · rename_i hge
+      have : off.val = total.val := by scalar_tac
+      simp only [step_simps]
+      rw [this] at hinv
+      rw [hinv, hashFrom512_take _ _ _ ht (by simp; omega)]
+  · exact ⟨hoff, hle, hinv⟩
 
-/-- The buffer of `thash_values`: `ADRSc ‖ M` and its padding, for a 560-byte `M`. -/
-theorem padFrom_values (C M : Spec.Bytes) (hC : C.length = 22) (hM : M.length = 560) :
-    (((C ++ M ++ List.replicate 58 0#8).set 582 0x80#8).set 638 0x14#8).set 639 0x30#8 =
-      padFrom 64 (C ++ M) := by
-  have hl : (C ++ M).length = 582 := by simp [hC, hM]
-  rw [padFrom, hl, toByte_5168, List.append_assoc C M, List.set_append_right _ _ (by omega),
-    List.set_append_right _ _ (by omega), List.set_append_right _ _ (by omega), hC,
-    List.set_append_right _ _ (by omega), List.set_append_right _ _ (by omega),
-    List.set_append_right _ _ (by omega), hM]
-  simp only [List.append_assoc]
-  congr 2
+theorem len_cases {N : Usize} (hN : NOk N) :
+    (N.val = 16 ∧ N.val * (2 * N.val + 3) = 560) ∨ (N.val = 24 ∧ N.val * (2 * N.val + 3) = 1224) ∨
+    (N.val = 32 ∧ N.val * (2 * N.val + 3) = 2144) := by
+  rcases hN with h | h | h <;> simp [h]
 
+/-- `T_len` of the values held in the `len` chain blocks. -/
 @[step]
-theorem thash_values_spec (pk : hash.Seed) (hpk : SeedOk pk) (adrs : address.Adrs)
-    (blocks : Array (Array U8 64#usize) 35#usize) :
-    hash.thash_values pk adrs blocks ⦃ r =>
-      bytes r.val = Spec.thash (bytes pk.pk_seed.val) (adrsS adrs)
-        ((List.range 35).flatMap fun (j : Nat) => blkVal blocks.val[j]!) ⦄ := by
+theorem thash_values_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+    (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs)
+    (blocks : Slice (Array U8 64#usize)) (hb : blocks.length = 2 * N.val + 3) :
+    hash.thash_values seed adrs blocks ⦃ r =>
+      bytes r.val = Spec.T P (bytes seed.pk_seed.val) (adrsS adrs)
+        ((List.range blocks.length).flatMap fun (j : Nat) => blkVal N.val blocks.val[j]!) ⦄ := by
   unfold hash.thash_values
-  step*
-  have hb1 : bytes (index_mut_back s2).val = (adrsS adrs).compress ++ List.replicate 618 0#8 := by
-    have hr : (Array.repeat 640#usize 0#u8).val = List.replicate 640 0#u8 := Array.repeat_val ..
-    rw [s_post2, s2_post, s1_post, Array.val_to_slice, hr,
-      bytes_setSlice _ _ _ (by simp only [List.length_replicate]; scalar_tac), ← a_post]
-    simp only [bytes, List.map_replicate, List.take_zero, List.nil_append, List.drop_replicate]
-    have : (a.val).length = 22 := by simp
-    rw [this]; rfl
-  let* ⟨ buf2, buf2_post ⟩ ← thash_values_loop0_spec blocks (adrsS adrs).compress
-    (adrs_compress_length _) (index_mut_back s2) 0#usize (by simp) (by rw [hb1]; rfl)
-  let* ⟨ buf3, buf3_post ⟩ ← Array.update_spec
-  let* ⟨ buf4, buf4_post ⟩ ← Array.update_spec
-  let* ⟨ a1, a1_post ⟩ ← Array.update_spec
-  have hP : bytes a1.val = padFrom 64 ((adrsS adrs).compress ++
-      (List.range 35).flatMap fun (j : Nat) => blkVal blocks.val[j]!) := by
-    rw [a1_post, buf4_post, buf3_post]
-    simp only [Array.set_val_eq, bytes_set]
-    rw [buf2_post]
-    exact padFrom_values _ _ (adrs_compress_length _) (by simpa using flatMap_blkVal_length blocks.val 35)
-  let* ⟨ st, st_post ⟩ ← thash_values_loop1_spec a1 (wv pk.state.val) pk.state 0#usize
-    (by simp) (by simp) (by simp)
-  let* ⟨ r, r_post ⟩ ← trunc_spec
-  rw [r_post, st_post, hP, thash_eq _ (by simp), ← hpk]
-
-end slhdsa
+  have hN32 := hN.le32
+  have hL := len_cases hN
+  have hM := flatMap_blkVal_length N.val (by omega) blocks.val blocks.length
+  have hbl : blocks.len.val = 2 * N.val + 3 := by simp [hb]
+  let* ⟨ i1, i1_post ⟩ ← Usize.mul_spec
+  · rw [hbl]; rcases hL with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> scalar_tac
+  let* ⟨ mlen, mlen_post ⟩ ← Usize.add_spec
+  · rw [i1_post, hbl]; rcases hL with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> scalar_tac
+  have hmlen : mlen.val = 22 + N.val * blocks.length := by rw [mlen_post, i1_post, hbl, hb]
+  split
+  · rename_i h16
+    have hn : N.val = 16 := by scalar_tac
+    have hml : mlen.val = 582 := by rw [hmlen, hb, hn]
+    step*
+    have hb1 : bytes (index_mut_back s2).val = (adrsS adrs).compress ++ List.replicate 618 0#8 := by
+      rw [s_post2, s2_post, s1_post, Array.val_to_slice, Array.repeat_val,
+        setSlice_rep _ _ _ (by simp), bytes_append, a_post, bytes_replicate,
+        show (640#usize).val - a.val.length = 618 by simp]
+      rfl
+    let* ⟨ buf2, buf2_post ⟩ ← thash_values_loop0_spec N hN blocks (by rw [hb, hn]; omega) (adrsS adrs).compress
+      (adrs_compress_length _) (index_mut_back s2) 0#usize (by simp)
+      (by rw [hb1, show (0#usize).val = 0 from rfl]
+          simp only [List.range_zero, List.flatMap_nil, List.append_nil, Nat.mul_zero, Nat.sub_zero])
+    step*
+    · rcases System.Platform.numBits_eq with h | h <;> simp [h]
+    · have htot : total.val = 640 := by
+        rw [total_post, i4_post, i3_post, i2_post, hml]
+      have hbits : bits.val = 8 * (64 + 582) := by rw [bits_post, i5_post, hml]
+      have hP : (bytes a1.val).take total.val =
+          padFrom 64 ((adrsS adrs).compress ++
+            (List.range blocks.length).flatMap fun (j : Nat) => blkVal N.val blocks.val[j]!) := by
+        have hX : ((adrsS adrs).compress ++
+            (List.range blocks.length).flatMap fun (j : Nat) => blkVal N.val blocks.val[j]!).length = 582 := by
+          rw [List.length_append, adrs_compress_length, hM, hb, hn]
+        rw [← padbuf64 _ 640 total.val (by rw [hX, htot]) (by omega) (by rw [hX]; omega)]
+        rw [a1_post, buf4_post, buf3_post]
+        simp only [Array.set_val_eq, bytes_set]
+        rw [buf2_post, hX, hml, i7_post, i9_post, htot, i8_post, i10_post, cast_u8_usize, cast_u8_usize,
+          i6_post, hbits]
+        congr 4
+        all_goals (try simp only [hb, hn])
+      let* ⟨ st, st_post ⟩ ← thash_values_loop1_spec a1 total (wv seed.state.val) seed.state 0#usize
+        (by rw [htot]) (by rw [htot]) (by simp) (by simp) (by simp)
+      let* ⟨ r, r_post ⟩ ← trunc_spec
+      rw [r_post, st_post, hP, T_eq_H, H_eq, if_pos (by omega), hPN, th256_eq _ _ (by simp) (by omega),
+        ← hs.1]
+  · rename_i h16
+    have hn : N.val ≠ 16 := fun h => h16 (by scalar_tac)
+    have hml : mlen.val ≤ 2166 ∧ 1246 ≤ mlen.val := by
+      rw [hmlen, hb]; rcases hL with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> omega
+    step*
+    have hb1 : bytes (index_mut_back s2).val = (adrsS adrs).compress ++ List.replicate 2282 0#8 := by
+      rw [s_post2, s2_post, s1_post, Array.val_to_slice, Array.repeat_val,
+        setSlice_rep _ _ _ (by simp), bytes_append, a_post, bytes_replicate,
+        show (2304#usize).val - a.val.length = 2282 by simp]
+      rfl
+    let* ⟨ buf2, buf2_post ⟩ ← thash_values_loop2_spec N hN blocks
+      (by rw [hb]; rcases hL with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> omega) (adrsS adrs).compress
+      (adrs_compress_length _) (index_mut_back s2) 0#usize (by simp)
+      (by rw [hb1, show (0#usize).val = 0 from rfl]
+          simp only [List.range_zero, List.flatMap_nil, List.append_nil, Nat.mul_zero, Nat.sub_zero])
+    step*
+    · rcases System.Platform.numBits_eq with h | h <;> simp [h]
+    · have htot : total.val = (mlen.val + 17 + 127) / 128 * 128 := by
+        rw [total_post, i4_post, i3_post, i2_post]
+      have htle : total.val ≤ 2304 := by
+        rw [htot, hmlen, hb]; rcases hL with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> omega
+      have hbits : bits.val = 8 * (128 + mlen.val) := by rw [bits_post, i5_post]; ring
+      have hX : ((adrsS adrs).compress ++
+          (List.range blocks.length).flatMap fun (j : Nat) => blkVal N.val blocks.val[j]!).length =
+          mlen.val := by
+        rw [List.length_append, adrs_compress_length, hM, hmlen]
+      have hP : (bytes a1.val).take total.val =
+          S512.padFrom 128 ((adrsS adrs).compress ++
+            (List.range blocks.length).flatMap fun (j : Nat) => blkVal N.val blocks.val[j]!) := by
+        rw [← padbuf128 _ 2304 total.val (by rw [hX, htot]) htle (by rw [hX]; omega)]
+        rw [a1_post, buf4_post, buf3_post]
+        simp only [Array.set_val_eq, bytes_set]
+        rw [buf2_post, hX, i7_post, i9_post, i8_post, i10_post, cast_u8_usize, cast_u8_usize,
+          i6_post, hbits]
+        congr 4
+        all_goals (try (congr 2; rw [hmlen]; omega))
+      let* ⟨ st, st_post ⟩ ← thash_values_loop3_spec a1 total (S512.wv seed.state512.val)
+        seed.state512 0#usize (by rw [htot]; omega) htle (by simp) (by simp) (by simp)
+      let* ⟨ r, r_post ⟩ ← trunc512_spec
+      rw [r_post, st_post, hP, T_eq_H, H_eq, if_neg (by omega), hPN,
+        th512_eq _ _ (by simp) (by omega), ← hs.2 hn]

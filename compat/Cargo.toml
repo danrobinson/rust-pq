@@ -1,9 +1,9 @@
 [package]
 name = "slhdsa-compat"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 publish = false
-description = "The RustCrypto `slh-dsa` interface for SLH-DSA-SHA2-128s, backed by the formally verified `slhdsa` crate"
+description = "The RustCrypto `slh-dsa` interface for the six SLH-DSA-SHA2 parameter sets, backed by the formally verified `slhdsa` crate of `../rust`"
 
 # Standalone: not a member of any workspace, own target directory.
 [workspace]
@@ -24,6 +24,9 @@ zeroize = []
 getrandom = ["dep:getrandom"]
 # Pass-through to the verified crate: ARMv8 SHA-256 instructions.
 hw-sha2 = ["slhdsa/hw-sha2"]
+# Pass-through to the verified crate: ARMv8.2 SHA-512 instructions for the
+# sets with n = 24, 32. EXPERIMENTAL and NOT covered by any proof.
+hw-sha512 = ["slhdsa/hw-sha512"]
 
 [dependencies]
 slhdsa = { path = "../rust" }

@@ -3,6 +3,10 @@
 //! crate's): `sha256::compress` on random states and blocks, and
 //! `hash::chain_blocks` on random blocks, step ranges and batch sizes.
 //!
+//! In this tree `chain_blocks` is generic in the hash length `N`: a step
+//! keeps the first `N` bytes of the digest (16, 24 or 32) at bytes 22..22 + N.
+//! Every test of the chain runs at all three.
+//!
 //! Run both ways: `cargo test` checks the portable (verified) code, and
 //! `cargo test --features hw-sha2` checks the hardware backend.
 
@@ -78,15 +82,15 @@ fn compress_panics_past_the_end() {
 
 /// What `chain_blocks` is specified to do, written with the reference
 /// compression: block `i` takes steps `start[i]..end[i]`; a step writes its
-/// number at bytes 18..22 and then replaces bytes 22..38 by the first 16
+/// number at bytes 18..22 and then replaces bytes 22..22 + N by the first N
 /// bytes of the digest of the block's compression.
-fn chain_reference(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
+fn chain_reference<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
     for i in 0..blocks.len() {
         let mut t = start[i];
         while t < end[i] {
             blocks[i][18..22].copy_from_slice(&t.to_be_bytes());
             let st = reference(state, &blocks[i]);
-            for w in 0..4 {
+            for w in 0..N / 4 {
                 blocks[i][22 + 4 * w..26 + 4 * w].copy_from_slice(&st[w].to_be_bytes());
             }
             t += 1;
@@ -97,7 +101,7 @@ fn chain_reference(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end
 /// One random case: `n` blocks, each with a step range drawn by `range`, and
 /// with first 16 bytes drawn by `head` (the backend caches work that depends
 /// only on those bytes, so equal and unequal neighbours both matter).
-fn chain_case(
+fn chain_case<const N: usize>(
     rng: &mut Rng,
     n: usize,
     range: &mut dyn FnMut(&mut Rng, usize) -> (u32, u32),
@@ -124,10 +128,10 @@ fn chain_case(
         end.push(9);
     }
     let mut want = blocks.clone();
-    chain_reference(&state, &mut want, &start, &end);
-    slhdsa::hash::chain_blocks(&state, &mut blocks, &start, &end);
+    chain_reference::<N>(&state, &mut want, &start, &end);
+    slhdsa::hash::chain_blocks::<N>(&state, &mut blocks, &start, &end);
     for i in 0..n {
-        assert_eq!(blocks[i], want[i], "{what}: {n} blocks, block {i}, steps {}..{}", start[i], end[i]);
+        assert_eq!(blocks[i], want[i], "N = {N}, {what}: {n} blocks, block {i}, steps {}..{}", start[i], end[i]);
     }
 }
 
@@ -136,8 +140,22 @@ fn chain_case(
 /// where the step number carries from one byte or word of the block into
 /// the next.
 #[test]
-fn chain_blocks_matches_reference() {
-    let mut rng = Rng(0x4348_4149_4e53);
+fn chain_blocks_matches_reference_16() {
+    chain_blocks_matches_reference::<16>()
+}
+
+#[test]
+fn chain_blocks_matches_reference_24() {
+    chain_blocks_matches_reference::<24>()
+}
+
+#[test]
+fn chain_blocks_matches_reference_32() {
+    chain_blocks_matches_reference::<32>()
+}
+
+fn chain_blocks_matches_reference<const N: usize>() {
+    let mut rng = Rng(0x4348_4149_4e53 + N as u64);
     let bases: [u32; 9] = [0, 1, 250, 0xfff8, 0xffff, 0x1_0000, 0xff_fff8, 0x7fff_fff8, u32::MAX - 20];
     let mut random_head = |rng: &mut Rng, _i: usize, h: &mut [u8; 16]| rng.fill(h);
     let mut same_head = |_rng: &mut Rng, _i: usize, h: &mut [u8; 16]| *h = [0x5a; 16];
@@ -151,9 +169,9 @@ fn chain_blocks_matches_reference() {
     for round in 0..40u32 {
         for n in (0..=41usize).chain([64, 70, 128, 140]) {
             // As in WOTS+ key generation: every chain takes the same steps.
-            chain_case(&mut rng, n, &mut |_, _| (0, 15), &mut same_head, "uniform 0..15");
+            chain_case::<N>(&mut rng, n, &mut |_, _| (0, 15), &mut same_head, "uniform 0..15");
             // As in WOTS+ signing and verification: mixed lengths.
-            chain_case(
+            chain_case::<N>(
                 &mut rng,
                 n,
                 &mut |rng, _| {
@@ -164,7 +182,7 @@ fn chain_blocks_matches_reference() {
                 "mixed lengths",
             );
             // As in FORS and the tree levels: one step each, numbered by an index.
-            chain_case(
+            chain_case::<N>(
                 &mut rng,
                 n,
                 &mut |rng, i| {
@@ -175,7 +193,7 @@ fn chain_blocks_matches_reference() {
                 "single steps",
             );
             // Anything: empty and reversed ranges, counters near carries.
-            chain_case(
+            chain_case::<N>(
                 &mut rng,
                 n,
                 &mut |rng, _| {
@@ -198,12 +216,18 @@ fn chain_blocks_matches_reference() {
 /// the same steps gives the same result at any position, next to anything.
 #[test]
 fn chain_blocks_chains_are_independent() {
-    let mut rng = Rng(0x4c41_4e45);
+    chains_are_independent::<16>();
+    chains_are_independent::<24>();
+    chains_are_independent::<32>();
+}
+
+fn chains_are_independent<const N: usize>() {
+    let mut rng = Rng(0x4c41_4e45 + N as u64);
     let state = slhdsa::sha256::H0;
     let mut probe = [0u8; 64];
     rng.fill(&mut probe);
     let mut want = [probe];
-    chain_reference(&state, &mut want, &[3], &[11]);
+    chain_reference::<N>(&state, &mut want, &[3], &[11]);
     for n in 1..=12usize {
         for pos in 0..n {
             let mut blocks = vec![[0u8; 64]; n];
@@ -217,8 +241,8 @@ fn chain_blocks_chains_are_independent() {
             blocks[pos] = probe;
             start[pos] = 3;
             end[pos] = 11;
-            slhdsa::hash::chain_blocks(&state, &mut blocks, &start, &end);
-            assert_eq!(blocks[pos], want[0], "batch of {n}, position {pos}");
+            slhdsa::hash::chain_blocks::<N>(&state, &mut blocks, &start, &end);
+            assert_eq!(blocks[pos], want[0], "N = {N}, batch of {n}, position {pos}");
         }
     }
 }
@@ -227,7 +251,7 @@ fn chain_blocks_chains_are_independent() {
 #[should_panic]
 fn chain_blocks_panics_if_a_range_is_missing() {
     let mut blocks = [[0u8; 64]; 5];
-    slhdsa::hash::chain_blocks(&slhdsa::sha256::H0, &mut blocks, &[0; 5], &[1; 4]);
+    slhdsa::hash::chain_blocks::<16>(&slhdsa::sha256::H0, &mut blocks, &[0; 5], &[1; 4]);
 }
 
 /// With the feature on, the backend must be in use exactly when the CPU has
@@ -239,6 +263,43 @@ fn hardware_backend_is_active_where_the_cpu_has_it() {
     let cpu_has_it = std::arch::is_aarch64_feature_detected!("sha2");
     assert_eq!(slhdsa::sha256::hw_active(), cpu_has_it);
     // Every Apple Silicon CPU has it; a failure here means detection is broken.
+    #[cfg(target_vendor = "apple")]
+    assert!(cpu_has_it);
+}
+
+/// The SHA-512 compression function (portable in every build) against the
+/// `sha2` crate's, at offsets inside a longer buffer.
+#[test]
+fn sha512_compress_matches_reference() {
+    let mut rng = Rng(0x5348_4135_3132);
+    let mut data = [0u8; 128 + 41];
+    for case in 0..50_000u32 {
+        let mut state = [0u64; 8];
+        for s in state.iter_mut() {
+            *s = rng.next();
+        }
+        rng.fill(&mut data);
+        let off = (case % 42) as usize;
+        let mut want = state;
+        sha2::compress512(&mut want, &[GenericArray::clone_from_slice(&data[off..off + 128])]);
+        assert_eq!(slhdsa::sha512::compress(&state, &data, off), want, "case {case}");
+    }
+}
+
+#[test]
+#[should_panic]
+fn chain_blocks_panics_if_a_range_is_missing_32() {
+    let mut blocks = [[0u8; 64]; 5];
+    slhdsa::hash::chain_blocks::<32>(&slhdsa::sha256::H0, &mut blocks, &[0; 4], &[1; 5]);
+}
+
+/// With `hw-sha512`, the SHA-512 backend must be in use exactly when the CPU
+/// has the instructions.
+#[cfg(all(feature = "hw-sha512", target_arch = "aarch64"))]
+#[test]
+fn sha512_hardware_backend_is_active_where_the_cpu_has_it() {
+    let cpu_has_it = std::arch::is_aarch64_feature_detected!("sha3");
+    assert_eq!(slhdsa::sha512::hw_active(), cpu_has_it);
     #[cfg(target_vendor = "apple")]
     assert!(cpu_has_it);
 }

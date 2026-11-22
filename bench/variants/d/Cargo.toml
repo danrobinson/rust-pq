@@ -2,7 +2,7 @@
 name = "slhdsa_d"
 version = "0.1.0"
 edition = "2021"
-description = "Variant D: the current (optimised) verified crate ../../../rust/src + ARMv8 SHA-256 instructions in compress only, as in variant C. Not verified."
+description = "Variant D: the optimised single-set verified crate (rust/src at git commit 26aa3d8) + ARMv8 SHA-256 instructions in compress only, as in variant C. Not verified."
 publish = false
 
 [features]

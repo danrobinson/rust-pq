@@ -1,37 +1,177 @@
 #!/bin/sh
-# Re-run every check: Rust tests, re-extraction, Lean proofs, axiom audit.
+# Re-run every check of the repository except the quantum one
+# (quantum/scripts/check-integration.sh): the Rust tests in every build (NIST
+# ACVP vectors for all six sets, interoperability with RustCrypto, the
+# interface and checked-signer tests, the hash kernels against the `sha2`
+# crate), both re-extractions with Charon + Aeneas and their opaque/axiom
+# checks, the refinement proofs of the default build (lean/Slhdsa/Proofs, the
+# headline files Theorems, ApiTheorems, EncodingTheorems and Compat128) with a
+# check that every headline theorem depends only on propext, Classical.choice
+# and Quot.sound, the same proofs for the hw-sha2 build (lean-hw, over its
+# instruction model, with the model's test on the recorded processor outputs
+# and the same placeholder and axiom checks), the Lean specification against
+# the NIST verification vectors, the constant-time proofs of both builds, the
+# security theorems over both builds (security/, security-hw/), and the
+# RustCrypto-style adapter (compat/).
+#
+#   scripts/check.sh          everything except the slow spec runs
+#   scripts/check.sh full     also runs the spec on keygen and signing vectors
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
+
 (cd rust && cargo test --release)
-# The opt-in hardware backend: the same tests against it, and its intrinsic
-# wrappers against the record in vectors/arm-wrappers.txt.
 (cd rust && cargo test --release --features hw-sha2)
-# The RustCrypto-compatible adapter (unverified glue): the same source against
-# both crates, with and without the hardware backend.
-(cd compat && cargo test && cargo test --features hw-sha2)
-# The default build: translation, proofs, specification tests.
-./scripts/extract.sh
-(cd lean && lake build && lake build spectest)
-# Constant time (default build): regenerate the instrumented copy of the translation, then the
-# checker, the erasure theorems and the headline statements.
+# The experimental, unverified hardware SHA-512 (see STATUS.md), with and without hw-sha2.
+(cd rust && cargo test --release --features hw-sha2,hw-sha512)
+(cd rust && cargo test --release --features hw-sha512)
+
+# The default build: no opaque function, no axiom.
+./scripts/extract.sh > /dev/null 2>&1 || { echo "extraction FAILED"; exit 1; }
+if ls lean/Slhdsa | grep -q External; then
+  echo "FOUND opaque/external declarations in the extraction"; exit 1
+fi
+if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean/Slhdsa/Funs.lean lean/Slhdsa/Types.lean; then
+  echo "FOUND an axiom or opaque declaration in the extraction"; exit 1
+fi
+(cd lean && lake build Slhdsa Spec spectest)
+
+# No sorry, axiom, native_decide or bv_decide anywhere in the Lean sources.
+if grep -rnwE "sorry|admit|native_decide|bv_decide" lean/Slhdsa lean/Spec lean/Spec.lean lean/Slhdsa.lean \
+   || grep -rnE "^[[:space:]]*(axiom|opaque) " lean/Slhdsa lean/Spec; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the proofs"; exit 1
+fi
+
+# Every `#print axioms` of the headline files reports the three standard axioms.
+for f in Theorems ApiTheorems EncodingTheorems Compat128; do
+  n=$(grep -c "^#print axioms" "lean/Slhdsa/$f.lean")
+  out=$(cd lean && lake env lean "Slhdsa/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "axiom check FAILED for $f.lean ($good of $n)"; exit 1
+  fi
+  echo "$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
+
+# The hw-sha2 build: everything but the intrinsic wrappers of sha256::hw::arm,
+# which are defined by the model in lean-hw (Arm.lean, Slhdsa/FunsExternal.lean).
+out=$(./scripts/extract-hw.sh 2>&1) || { echo "$out"; echo "hw-sha2 extraction FAILED"; exit 1; }
+echo "$out" | grep "declarations left"
+if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean-hw/Slhdsa/Funs.lean lean-hw/Slhdsa/Types.lean; then
+  echo "FOUND an axiom or opaque declaration in the hw-sha2 extraction"; exit 1
+fi
+# The proofs of the hw-sha2 build (lean-hw/Slhdsa): the same headline files as
+# lean/ (linked), over this translation; the build-independent proof files
+# linked from lean/Slhdsa/Proofs; this package's own CompressTop.lean,
+# ChainTop.lean and Hw/*.lean (the wrappers, the single-block kernel, and the
+# chain kernel generic in N).
+(cd lean-hw && lake build)
+
+# The model of the wrappers on the cases recorded from a processor
+# (vectors/arm-wrappers.txt).
+(cd lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
+
+# No sorry, axiom, native_decide or bv_decide in any Lean source the hw-sha2
+# proofs compile, links followed (the generated translation, this package's
+# files, the linked proof files, the wrapper model and Arm.lean).
+# (`Arm.haveSha2` is an `opaque` Boolean by design, see lean-hw/Arm.lean;
+# it is a constant, not an axiom, and the axiom checks below would show one.)
+hwsrc=$(find -L lean-hw/Slhdsa lean-hw/Slhdsa.lean lean-hw/ArmTest.lean -name '*.lean')
+if grep -nwE "sorry|admit|native_decide|bv_decide" $hwsrc lean-hw/Arm.lean \
+   || grep -nE "^[[:space:]]*(axiom|opaque) " $hwsrc \
+   || grep -nE "^[[:space:]]*axiom " lean-hw/Arm.lean; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the hw-sha2 proofs"; exit 1
+fi
+
+# Every `#print axioms` of the headline files, compiled against the hw-sha2
+# translation, reports the three standard axioms.
+for f in Theorems ApiTheorems EncodingTheorems Compat128; do
+  n=$(grep -c "^#print axioms" "lean-hw/Slhdsa/$f.lean")
+  out=$(cd lean-hw && lake env lean "Slhdsa/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "hw-sha2 axiom check FAILED for $f.lean ($good of $n)"; exit 1
+  fi
+  echo "lean-hw $f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
+# And the hardware-specific statements: the two top-level hand-offs, the
+# kernels, and the guard theorems for a processor without the instructions.
+hwthms="slhdsa.chain_blocks_spec slhdsa.compress_spec slhdsa.hw_chain_all_spec
+  slhdsa.hw_compress_block_spec slhdsa.compress_block_undef slhdsa.chain_all_undef
+  slhdsa.compress_block_no_spec slhdsa.chain_all_no_spec"
+n=0
+prog="import Slhdsa.Proofs.ChainTop
+import Slhdsa.Proofs.CompressTop"
+for t in $hwthms; do n=$((n + 1)); prog="$prog
+#print axioms $t"; done
+out=$(cd lean-hw && echo "$prog" | lake env lean --stdin 2>&1)
+good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+  echo "$out" | head -20
+  echo "hw-sha2 axiom check FAILED for the kernel and guard theorems ($good of $n)"; exit 1
+fi
+echo "lean-hw kernel and guard theorems: $n, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+
+mode=ver
+[ "$1" = "full" ] && mode=all
+for s in 128s 128f 192s 192f 256s 256f; do
+  (cd lean && .lake/build/bin/spectest $s $mode) &
+done
+fail=0
+for job in $(jobs -p); do wait "$job" || fail=1; done
+[ "$fail" -eq 0 ] || { echo "spec test FAILED"; exit 1; }
+# Constant time (portable build): regenerate the instrumented copy of the translation and the
+# per-set headline files, then the checker, the erasure theorems and the headline statements.
 ./scripts/ct-gen.sh
+python3 -I scripts/gen/ct_thms.py > /dev/null
 (cd lean && lake build Ct)
-(cd security && lake build)
-# The build with hw-sha2: translation, proofs (the same six theorems, over the
-# instruction model in lean-hw/Arm.lean), and that model on the recorded cases.
-./scripts/extract-hw.sh
-(cd lean-hw && lake build && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
-# Constant time for the hw-sha2 build: the same statements, over this build's translation and a
-# leakage model of the intrinsic wrappers (lean-hw/Ct/ModelBuild.lean).
+if grep -RnwE "sorry|admit|native_decide|bv_decide" lean/Ct lean/Ct.lean \
+   || grep -RnE "^[[:space:]]*(axiom|opaque) " lean/Ct lean/Ct.lean; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the constant-time proofs"; exit 1
+fi
+for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+  n=$(grep -c "^#print axioms" "lean/Ct/$f.lean")
+  out=$(cd lean && lake env lean "Ct/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "axiom check FAILED for Ct/$f.lean ($good of $n)"; exit 1
+  fi
+  echo "Ct/$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
+
+# Constant time (hw-sha2 build): the same headline files over the hw translation.
 ./scripts/ct-gen.sh hw
 (cd lean-hw && lake build Ct)
-# The security statements of security/, compiled against the hw-sha2 build's translation.
-# (It compiles its own copies of the security libraries: about four minutes from clean.)
-(cd security-hw && lake build)
-if grep -rnE --include='*.lean' "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Slhdsa/ApiTheorems.lean lean/Slhdsa/EncodingTheorems.lean lean/Spec lean/Ct lean/Ct.lean lean-hw/Ct lean-hw/Ct.lean \
-     security/Link security/E2E security/Reduction security/Ideal security/Link.lean security/E2E.lean security/Reduction.lean security/Ideal.lean \
-     lean-hw/Arm.lean lean-hw/ArmTest.lean lean-hw/Slhdsa | grep -v "no .native_decide"; then
-  echo "FOUND a placeholder or extra axiom"; exit 1
+if grep -RnwE "sorry|admit|native_decide|bv_decide" lean-hw/Ct lean-hw/Ct.lean \
+   || grep -RnE "^[[:space:]]*(axiom|opaque) " lean-hw/Ct lean-hw/Ct.lean; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the hw constant-time proofs"; exit 1
 fi
-echo "All checks passed. For the (slow) spec-vs-NIST run: lean/.lake/build/bin/spectest vectors/slh-dsa-sha2-128s.json"
+for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+  n=$(grep -c "^#print axioms" "lean-hw/Ct/$f.lean")
+  out=$(cd lean-hw && lake env lean "Ct/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "axiom check FAILED for lean-hw Ct/$f.lean ($good of $n)"; exit 1
+  fi
+  echo "lean-hw Ct/$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
+
+# Security link, both builds.
+# (Each prints its last line; on failure, its last 40 lines, and the check stops.)
+for d in security security-hw; do
+  out=$(cd "$d" && scripts/check.sh 2>&1) || { echo "$out" | tail -40; echo "$d check FAILED"; exit 1; }
+  echo "$d: $(echo "$out" | grep "headline theorems reported") $(echo "$out" | tail -1)"
+done
+
+# Adapter crate.
+for feat in "" "--features hw-sha2"; do
+  # shellcheck disable=SC2086
+  out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }
+  echo "$out" | grep "test result"
+done
+
+echo "All checks passed."

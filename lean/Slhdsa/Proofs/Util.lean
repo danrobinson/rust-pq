@@ -1,24 +1,105 @@
-import Slhdsa.Proofs.Basic
+import Slhdsa.Proofs.Params
 open Aeneas Aeneas.Std Result
 
 /-! Byte-string helpers: `block`, `toInt`, `base_2^b`. -/
 
 namespace slhdsa
 
-@[simp, scalar_tac_simps]
-theorem params_N_val : params.N.val = 16 := by simp [params.N]
+/-- Appending a slice of bytes to a vector of bytes. -/
+@[local step]
+theorem util_extend_from_slice_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
+    (h : v.length + s.length ≤ Usize.max) :
+    alloc.vec.Vec.extend_from_slice core.clone.CloneU8 v s ⦃ r =>
+      r.val = v.val ++ s.val ∧ r.length = v.length + s.length ⦄ := by
+  unfold alloc.vec.Vec.extend_from_slice
+  simp only [h, ↓reduceDIte]
+  apply WP.spec_bind (List.clone_spec (by intros; simp [liftFun1]))
+  intro l hl
+  simp [hl]
 
 @[step]
-theorem block_spec (s : Slice U8) (i : Usize) (h : (i.val + 1) * 16 ≤ s.length) :
-    util.block s i ⦃ r => r.val = (s.val.drop (i.val * 16)).take 16 ∧
-      bytes r.val = Spec.block (bytes s.val) i.val ⦄ := by
+theorem block_spec (N : Usize) (s : Slice U8) (i : Usize) (h : (i.val + 1) * N.val ≤ s.length) :
+    util.block N s i ⦃ r => r.val = (s.val.drop (i.val * N.val)).take N.val ⦄ := by
   unfold util.block
-  have hN := params_N_val
+  have hmul : (i.val + 1) * N.val = i.val * N.val + N.val := by
+    rw [Nat.add_mul, Nat.one_mul]
+  have hs : s.length ≤ Usize.max := by scalar_tac
   step*
-  have hv : (Array.from_slice (Array.repeat 16#usize 0#u8) s2).val = s2.val :=
-    Array.from_slice_val _ _ (by scalar_tac)
-  simp only [to_slice_mut_back_post, s3_post, hv, s2_post, i2_post, i1_post, hN, Spec.block, Spec.n]
-  simp [List.slice]
+  · simp only [Slice.length, s1_post, Array.repeat_val, List.length_replicate]; scalar_tac
+  · have hv : (Array.from_slice (Array.repeat N 0#u8) s2).val = s2.val :=
+      Array.from_slice_val _ _ (by scalar_tac)
+    simp only [to_slice_mut_back_post, s3_post, hv, s2_post, i2_post, i1_post]
+    simp [List.slice]
+
+/-- `block_spec` in the specification's terms. -/
+theorem bytes_block (p : Spec.Params) (s r : List U8) (i : Nat)
+    (h : r = (s.drop (i * p.n)).take p.n) :
+    bytes r = Spec.block p (bytes s) i := by
+  subst h
+  simp [Spec.block]
+
+theorem bytes_inj (l l' : List U8) : bytes l = bytes l' ↔ l = l' := by
+  constructor
+  · intro h
+    apply List.map_injective_iff.2 _ h
+    intro a b hab
+    exact U8.bv_eq_imp_eq _ _ hab
+  · rintro rfl; rfl
+
+theorem bytes_eq_loop_spec (x y : Slice U8) (hlen : x.length = y.length) :
+    util.bytes_eq_loop x y 0#u8 0#usize ⦃ r => (r = 0#u8 ↔ x.val = y.val) ⦄ := by
+  unfold util.bytes_eq_loop
+  apply loop.spec_decr_nat (measure := fun (p : U8 × Usize) => x.length - p.2.val)
+    (inv := fun p => p.2.val ≤ x.length ∧
+      (p.1.bv = 0#8 ↔ x.val.take p.2.val = y.val.take p.2.val))
+  · rintro ⟨diff, i⟩ ⟨hi, hinv⟩
+    simp only [util.bytes_eq_loop.body]
+    simp only at hi hinv
+    step*
+    · have hx : i.val < x.val.length := by scalar_tac
+      have hy : i.val < y.val.length := by scalar_tac
+      refine ⟨by scalar_tac, ?_, by scalar_tac⟩
+      have hd : diff1.bv = diff.bv ||| ((x.val)[i.val].bv ^^^ (y.val)[i.val].bv) := by
+        simp [diff1_post1, i4_post1, i2_post, i3_post]
+      rw [hd, i5_post, List.take_succ_eq_append_getElem hx, List.take_succ_eq_append_getElem hy,
+        BitVec.or_eq_zero_iff, BitVec.xor_eq_zero_iff, hinv]
+      constructor
+      · rintro ⟨h1, h2⟩
+        rw [h1, U8.bv_eq_imp_eq _ _ h2]
+      · intro h
+        have h' := List.append_inj h (by simp; omega)
+        exact ⟨h'.1, by simpa using congrArg UScalar.bv (List.singleton_inj.1 h'.2)⟩
+    · have h1 : x.val.take i.val = x.val := List.take_of_length_le (by scalar_tac)
+      have h2 : y.val.take i.val = y.val := List.take_of_length_le (by scalar_tac)
+      rw [h1, h2] at hinv
+      rw [← hinv]
+      constructor
+      · rintro rfl; rfl
+      · intro h; exact U8.bv_eq_imp_eq _ _ h
+  · exact ⟨by scalar_tac, by simp⟩
+
+@[step]
+theorem bytes_eq_spec (x y : Slice U8) :
+    util.bytes_eq x y ⦃ r => r = (bytes x.val == bytes y.val) ⦄ := by
+  unfold util.bytes_eq
+  by_cases hlen : x.length = y.length
+  · have hl := bytes_eq_loop_spec x y hlen
+    have hne : ¬ (Slice.len x != Slice.len y) = true := by
+      simp; scalar_tac
+    simp only [hne, Bool.false_eq_true, ↓reduceIte]
+    step with hl
+    by_cases hxy : x.val = y.val
+    · simp [diff_post.2 hxy, hxy]
+    · have h1 : ¬ diff = 0#u8 := fun h => hxy (diff_post.1 h)
+      have h2 : ¬ bytes x.val = bytes y.val := fun h => hxy ((bytes_inj _ _).1 h)
+      simp [h1, h2]
+  · have hne : (Slice.len x != Slice.len y) = true := by
+      simp; scalar_tac
+    simp only [hne, ↓reduceIte]
+    have h2 : ¬ bytes x.val = bytes y.val := fun h => hlen (by
+      have := congrArg List.length h
+      simpa using this)
+    simp [h2]
 
 theorem toInt_snoc (l : Spec.Bytes) (b : Spec.Byte) :
     Spec.toInt (l ++ [b]) = 256 * Spec.toInt l + b.toNat := by

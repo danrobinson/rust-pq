@@ -3,23 +3,30 @@
 use alloc::vec::Vec;
 use crate::address::Adrs;
 use crate::hash::Seed;
-use crate::params::{D, HP, N, XMSS_SIG_BYTES};
+use crate::params::Params;
 use crate::xmss::{xmss_node, xmss_pk_from_sig, xmss_sign};
 
 /// Algorithm 12, `ht_sign`.
-pub fn ht_sign(m: &[u8; N], sk_seed: &[u8; N], seed: &Seed, idx_tree: u64, idx_leaf: u32) -> Vec<u8> {
+pub fn ht_sign<const N: usize>(
+    p: &Params,
+    m: &[u8; N],
+    sk_seed: &[u8; N],
+    seed: &Seed<N>,
+    idx_tree: u64,
+    idx_leaf: u32,
+) -> Vec<u8> {
     let mut sig: Vec<u8> = Vec::new();
     let mut root = *m;
     let mut tree = idx_tree;
     let mut leaf = idx_leaf;
     let mut j: u32 = 0;
-    while j < D {
+    while j < p.d {
         let adrs = Adrs::new().with_layer(j).with_tree(tree);
-        let s = xmss_sign(&root, sk_seed, leaf, seed, adrs);
-        root = xmss_pk_from_sig(leaf, &s, &root, seed, adrs);
+        let s = xmss_sign::<N>(p, &root, sk_seed, leaf, seed, adrs);
+        root = xmss_pk_from_sig::<N>(p, leaf, &s, &root, seed, adrs);
         sig.extend_from_slice(&s);
-        leaf = (tree & ((1u64 << HP) - 1)) as u32;
-        tree >>= HP;
+        leaf = (tree & ((1u64 << p.hp) - 1)) as u32;
+        tree >>= p.hp;
         j += 1;
     }
     sig
@@ -43,11 +50,12 @@ pub fn ht_sign(m: &[u8; N], sk_seed: &[u8; N], seed: &Seed, idx_tree: u64, idx_l
 ///
 /// Returns the signature, and whether every pair agreed. When they did, the
 /// signature is the one [`ht_sign`] returns for `m_a`.
-pub fn ht_sign_checked(
+pub fn ht_sign_checked<const N: usize>(
+    p: &Params,
     m_a: &[u8; N],
     m_b: &[u8; N],
     sk_seed: &[u8; N],
-    seed: &Seed,
+    seed: &Seed<N>,
     idx_tree: u64,
     idx_leaf: u32,
     pk_root: &[u8; N],
@@ -62,43 +70,45 @@ pub fn ht_sign_checked(
     let mut tree = idx_tree;
     let mut leaf = idx_leaf;
     let mut j: u32 = 0;
-    while j < D {
+    while j < p.d {
         let adrs = Adrs::new().with_layer(j).with_tree(tree);
-        let s = xmss_sign(&msg_a, sk_seed, leaf, seed, adrs);
-        let root_a = xmss_pk_from_sig(leaf, &s, &msg_b, seed, adrs);
-        let root_b = if j + 1 < D { xmss_node(sk_seed, 0, HP, seed, adrs) } else { *pk_root };
+        let s = xmss_sign::<N>(p, &msg_a, sk_seed, leaf, seed, adrs);
+        let root_a = xmss_pk_from_sig::<N>(p, leaf, &s, &msg_b, seed, adrs);
+        let root_b = if j + 1 < p.d { xmss_node::<N>(sk_seed, 0, p.hp, seed, adrs) } else { *pk_root };
         if !(root_a == root_b) {
             ok = false;
         }
         sig.extend_from_slice(&s);
         msg_a = root_a;
         msg_b = root_b;
-        leaf = (tree & ((1u64 << HP) - 1)) as u32;
-        tree >>= HP;
+        leaf = (tree & ((1u64 << p.hp) - 1)) as u32;
+        tree >>= p.hp;
         j += 1;
     }
     (sig, ok)
 }
 
-/// Algorithm 13, `ht_verify`. `sig` holds `D` XMSS signatures.
-pub fn ht_verify(
+/// Algorithm 13, `ht_verify`. `sig` holds `d` XMSS signatures.
+pub fn ht_verify<const N: usize>(
+    p: &Params,
     m: &[u8; N],
     sig: &[u8],
-    seed: &Seed,
+    seed: &Seed<N>,
     idx_tree: u64,
     idx_leaf: u32,
     pk_root: &[u8; N],
 ) -> bool {
+    let xs = p.xmss_sig_bytes();
     let mut node = *m;
     let mut tree = idx_tree;
     let mut leaf = idx_leaf;
     let mut j: u32 = 0;
-    while j < D {
+    while j < p.d {
         let adrs = Adrs::new().with_layer(j).with_tree(tree);
-        let off = j as usize * XMSS_SIG_BYTES;
-        node = xmss_pk_from_sig(leaf, &sig[off..off + XMSS_SIG_BYTES], &node, seed, adrs);
-        leaf = (tree & ((1u64 << HP) - 1)) as u32;
-        tree >>= HP;
+        let off = j as usize * xs;
+        node = xmss_pk_from_sig::<N>(p, leaf, &sig[off..off + xs], &node, seed, adrs);
+        leaf = (tree & ((1u64 << p.hp) - 1)) as u32;
+        tree >>= p.hp;
         j += 1;
     }
     node == *pk_root

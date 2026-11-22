@@ -231,11 +231,11 @@ dependencies = [
 
 [[package]]
 name = "slhdsa"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "slhdsa-compat"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "const-oid",
  "getrandom",

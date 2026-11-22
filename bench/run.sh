@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Reproduces everything in RESULTS.md:  ./run.sh            (ROUNDS=2 by default)
 #
-#   1. checks variants/base == ../opt/original/rust/src (= `verified-before`) and
-#      variants/current == ../rust/src, then ACVP tests of all copies under variants/
+#   1. checks that the frozen copies variants/base (= `verified-before`) and variants/current
+#      still equal opt/original/rust/src and rust/src of the single-set tree they were taken
+#      from (git commit 26aa3d8, read with `git show`), then ACVP tests of all copies under
+#      variants/. `verified` and `verified-api` are the current six-set crate's 128s functions
+#      (../rust, ../compat).
 #   2. interoperability check (src/bin/interop.rs)
 #   3. SHA-256 compression counts (count/)
 #   4. ROUNDS rounds; each round runs three build configurations back to back,
@@ -39,17 +42,18 @@ mkdir -p "$OUT"
   echo "load at start: $(uptime)"
 } | tee -a "$OUT/env.txt"
 
-echo "== copies under variants/ still match their sources (modulo the cfg(feature = \"count\") counter)"
-strip_counter() { grep -v -e 'feature = "count"' -e 'COMPRESSIONS' -e 'Benchmark-only: number of compression' "$1"; }
-for pair in "variants/base/src:../opt/original/rust/src" "variants/current/src:../rust/src"; do
+echo "== frozen copies under variants/ still match the single-set tree (git 26aa3d8; modulo the cfg(feature = \"count\") counter)"
+strip_counter() { grep -v -e 'feature = "count"' -e 'COMPRESSIONS' -e 'Benchmark-only: number of compression'; }
+OLD=26aa3d8
+for pair in "variants/base/src:opt/original/rust/src" "variants/current/src:rust/src"; do
   copy=${pair%%:*}; orig=${pair##*:}
-  [ -d "$orig" ] || { echo "missing $orig"; exit 1; }
-  for f in "$orig"/*.rs; do
-    if ! diff -qB <(strip_counter "$f") <(strip_counter "$copy/$(basename "$f")") >/dev/null; then
-      echo "STALE COPY: $copy/$(basename "$f") differs from $f (re-copy it)"; exit 1
+  files=$(git -C .. ls-tree --name-only "$OLD" "$orig/" | grep '\.rs$') || { echo "cannot read $OLD:$orig (needs the git history)"; exit 1; }
+  for f in $files; do
+    if ! diff -qB <(git -C .. show "$OLD:$f" | strip_counter) <(strip_counter < "$copy/$(basename "$f")") >/dev/null; then
+      echo "STALE COPY: $copy/$(basename "$f") differs from $OLD:$f"; exit 1
     fi
   done
-  echo "$copy == $orig"
+  echo "$copy == $OLD:$orig"
 done | tee "$OUT/copies.txt"
 
 echo "== ACVP tests of the variant copies"

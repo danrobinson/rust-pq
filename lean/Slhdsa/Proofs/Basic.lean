@@ -47,10 +47,24 @@ def nats (l : List U32) : List Nat := l.map (·.val)
 def adrsS (a : address.Adrs) : Spec.Adrs :=
   ⟨a.layer.val, a.tree.val, a.typ.val, a.keypair.val, a.word2.val, a.word3.val⟩
 
+/-- The spec-level view of a parameter set. The Rust crate fixes `lg_w = 4`. -/
+def paramsS (p : params.Params) : Spec.Params :=
+  ⟨p.n.val, p.h.val, p.d.val, p.hp.val, p.a.val, p.k.val, 4, p.m.val⟩
+
+@[simp] theorem paramsS_n (p : params.Params) : (paramsS p).n = p.n.val := rfl
+@[simp] theorem paramsS_h (p : params.Params) : (paramsS p).h = p.h.val := rfl
+@[simp] theorem paramsS_d (p : params.Params) : (paramsS p).d = p.d.val := rfl
+@[simp] theorem paramsS_hp (p : params.Params) : (paramsS p).hp = p.hp.val := rfl
+@[simp] theorem paramsS_a (p : params.Params) : (paramsS p).a = p.a.val := rfl
+@[simp] theorem paramsS_k (p : params.Params) : (paramsS p).k = p.k.val := rfl
+@[simp] theorem paramsS_lgw (p : params.Params) : (paramsS p).lgw = 4 := rfl
+@[simp] theorem paramsS_m (p : params.Params) : (paramsS p).m = p.m.val := rfl
+
 /-- A byte string of length `len` is short enough to be hashed with `slack`
 further bytes around it: the buffer fits in memory and its bit length fits
 in the 64-bit SHA-256 length field (FIPS 180-4 defines SHA-256 only below
-2^61 bytes). No real machine can hold a message that violates it. -/
+2^61 bytes; SHA-512 below 2^125). No real machine can hold a message that
+violates it. -/
 def Room (len slack : Nat) : Prop := len + slack ≤ Usize.max ∧ len + slack < 2 ^ 61
 
 end slhdsa

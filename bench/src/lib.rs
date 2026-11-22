@@ -69,10 +69,13 @@ macro_rules! slhdsa_like {
     };
 }
 
-/// The verified crate, ../rust. With this crate's `hw` feature it is built with its
-/// opt-in `hw-sha2` backend and named accordingly.
+/// The per-set module of the verified crate (../rust) for SLH-DSA-SHA2-128s: the same
+/// signatures as the single-set crate's top-level functions.
+use slhdsa::sha2_128s as slhdsa_128s;
+/// The verified crate, ../rust (its SLH-DSA-SHA2-128s functions). With this crate's `hw`
+/// feature it is built with its opt-in `hw-sha2` backend and named accordingly.
 pub fn verified() -> Impl {
-    slhdsa_like!(if cfg!(feature = "hw") { "verified+hw-sha2" } else { "verified" }, slhdsa)
+    slhdsa_like!(if cfg!(feature = "hw") { "verified+hw-sha2" } else { "verified" }, slhdsa_128s)
 }
 /// The interface programs are meant to use (../compat): RustCrypto's types and traits
 /// around the verified crate. The same functions as `verified`, reached through the key
@@ -104,7 +107,7 @@ pub fn verified_api() -> Impl {
         }),
     }
 }
-/// The pre-optimisation verified crate (copy in variants/base, see Cargo.toml).
+/// The pre-optimisation single-set verified crate (frozen copy in variants/base, see Cargo.toml).
 pub fn verified_before() -> Impl {
     slhdsa_like!("verified-before", slhdsa_base)
 }

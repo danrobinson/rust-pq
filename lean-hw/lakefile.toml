@@ -1,23 +1,28 @@
 name = "slhdsa_hw"
 defaultTargets = ["Slhdsa"]
-# Reuse the dependency checkouts (Mathlib cache included) of ../lean.
+# Reuse the dependency checkouts of ../lean.
 packagesDir = "../lean/.lake/packages"
 
 [[require]]
 name = "aeneas"
 path = "../.tools/aeneas/backends/lean"
 
-# The FIPS 205 transcription, compiled in place from ../lean (not copied).
+# The generic FIPS 205 transcription, compiled in place from ../lean (not copied).
 [[lean_lib]]
 name = "Spec"
 srcDir = "../lean"
 
-# The meaning of the NEON and SHA-256 instructions the hardware backend uses.
+# The instruction model of the hardware backend (`Arm.lean`, trusted: a transcription of the
+# Arm ARM pseudocode of the instructions the eighteen wrappers of `sha256::hw::arm` call).
 [[lean_lib]]
 name = "Arm"
 
-# The Aeneas translation of the crate built with `hw-sha2`, and its proofs.
-# Proof files that do not depend on the build are symbolic links into ../lean.
+# The Aeneas translation of rust/ built with `hw-sha2` (scripts/extract-hw.sh), and its
+# proofs. Proof files that do not depend on the build, and the headline files, are symbolic
+# links into ../lean/Slhdsa. This package's own files: the wrapper model
+# (`Slhdsa/{Types,Funs}External.lean`, trusted, with `Arm.lean`), `Slhdsa/Proofs/CompressTop.lean`,
+# `Slhdsa/Proofs/ChainTop.lean` and `Slhdsa/Proofs/Hw/*.lean` (the single-block kernel, the
+# wrappers, and the chain kernel generic in `N`).
 [[lean_lib]]
 name = "Slhdsa"
 

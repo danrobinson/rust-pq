@@ -6,7 +6,7 @@ Project: /Users/danrobinson/Projects/formal-sig/security (Lean 4.36, Mathlib v4.
 ## Rules
 - Only create/edit files under security/Ideal/ (and scratch files under security/scratch/ideal/<your-name>/).
   NEVER edit security/Link, security/E2E, security/Reduction, security/lakefile.toml, lean/, rust/,
-  quantum/, multi/, .tools/.
+  quantum/, .tools/ (and the former `multi` subdirectory).
 - No `sorry`, `axiom`, `native_decide`, `bv_decide` in your final files. (`decide` is fine.)
   If something cannot be proved, turn it into an explicit named hypothesis of the theorem and say so
   in your report; never leave a silent gap.

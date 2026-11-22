@@ -1,7 +1,9 @@
-//! Coarse breakdown of where the (current, optimised) verified crate's signing time goes, using
+//! Coarse breakdown of where the verified crate's SLH-DSA-SHA2-128s signing time goes, using
 //! its public sub-functions (it is not modified). Also usable as a target for
 //! a sampling profiler:  `profile loop` signs forever.
 use slhdsa::address::{Adrs, FORS_TREE};
+use slhdsa::params::SHA2_128S as P;
+use slhdsa::sha2_128s as v;
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -21,36 +23,36 @@ fn per_call<F: FnMut()>(n: u32, mut f: F) -> f64 {
 }
 
 fn main() {
-    let (sk, _pk) = slhdsa::slh_keygen_internal(&[0x11; 16], &[0x22; 16], &[0x33; 16]);
+    let (sk, _pk) = v::slh_keygen_internal(&[0x11; 16], &[0x22; 16], &[0x33; 16]);
     let pk_seed: [u8; 16] = sk[32..48].try_into().unwrap();
     let sk_seed: [u8; 16] = sk[0..16].try_into().unwrap();
     let m = [7u8; 32];
-    // Internal functions take the precomputed seed context since the optimisation (opt/README.md).
-    let seed = slhdsa::hash::seed_ctx(&pk_seed);
+    // Internal functions take the precomputed seed context.
+    let seed = slhdsa::hash::seed_ctx::<16>(&pk_seed);
     if std::env::args().nth(1).as_deref() == Some("loop") {
         loop {
-            black_box(slhdsa::slh_sign(&m, &[], &sk, &pk_seed));
+            black_box(v::slh_sign(&m, &[], &sk, &pk_seed));
         }
     }
     let sign = per_call(3, || {
-        black_box(slhdsa::slh_sign(black_box(&m), &[], &sk, &pk_seed));
+        black_box(v::slh_sign(black_box(&m), &[], &sk, &pk_seed));
     });
     let adrs = Adrs::new().with_tree(5).with_type(FORS_TREE).with_keypair(3);
     let md = [0x5au8; 21];
     let fors = per_call(3, || {
-        black_box(slhdsa::fors::fors_sign(black_box(&md), &sk_seed, &seed, adrs));
+        black_box(slhdsa::fors::fors_sign::<16>(&P, black_box(&md), &sk_seed, &seed, adrs));
     });
     let ht = per_call(3, || {
-        black_box(slhdsa::ht::ht_sign(black_box(&[1u8; 16]), &sk_seed, &seed, 12345, 77));
+        black_box(slhdsa::ht::ht_sign::<16>(&P, black_box(&[1u8; 16]), &sk_seed, &seed, 12345, 77));
     });
     let wots_pk = per_call(200, || {
-        black_box(slhdsa::wots::wots_pk_gen(&sk_seed, black_box(&seed), Adrs::new()));
+        black_box(slhdsa::wots::wots_pk_gen::<16>(&sk_seed, black_box(&seed), Adrs::new()));
     });
     let thash_f = per_call(1_000_000, || {
-        black_box(slhdsa::hash::thash_short(&seed, black_box(&adrs), black_box(&[3u8; 16])));
+        black_box(slhdsa::hash::thash_short::<16>(&seed, black_box(&adrs), black_box(&[3u8; 16])));
     });
     let thash_h = per_call(1_000_000, || {
-        black_box(slhdsa::hash::thash_short(&seed, black_box(&adrs), black_box(&[3u8; 32])));
+        black_box(slhdsa::hash::thash_short::<16>(&seed, black_box(&adrs), black_box(&[3u8; 32])));
     });
     let sha_102 = per_call(1_000_000, || {
         black_box(slhdsa::sha256::sha256(black_box(&[1u8; 102])));

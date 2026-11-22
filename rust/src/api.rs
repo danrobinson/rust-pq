@@ -1,5 +1,7 @@
 //! The interface to use: key generation, signing and verification as FIPS 205
-//! §10 defines them, with the random bytes supplied by the caller.
+//! §10 defines them, with the random bytes supplied by the caller. Generic
+//! over the parameter set; the modules `sha2_128s` … `sha2_256f` give each
+//! set these functions with fixed-size key types (`sha2_128s::api`, …).
 //!
 //! [`sign`] and [`sign_deterministic`] are the signer of the standard and do
 //! exactly its work. [`sign_checked`] and [`sign_deterministic_checked`]
@@ -14,59 +16,61 @@
 //! frame when they return, where the caller can overwrite it.
 
 use alloc::vec::Vec;
-use crate::params::{N, PK_BYTES, SEED_BYTES, SK_BYTES};
+use crate::params::Params;
 use crate::slh::{slh_keygen_internal, slh_sign, slh_sign_checked, slh_verify};
 use crate::util::block;
 
 /// Algorithm 21, `slh_keygen`, given its random bytes: `seeds` is
 /// `SK.seed ‖ SK.prf ‖ PK.seed`, three fresh random `n`-byte strings in the
-/// order the standard draws them. Writes the private key to `sk` and the
-/// public key to `pk`.
+/// order the standard draws them. Writes the private key (4n bytes) to `sk`
+/// and the public key (2n bytes) to `pk`.
 #[inline(never)]
-pub fn keygen(seeds: &[u8; SEED_BYTES], sk: &mut [u8; SK_BYTES], pk: &mut [u8; PK_BYTES]) {
-    let sk_seed = block(seeds, 0);
-    let sk_prf = block(seeds, 1);
-    let pk_seed = block(seeds, 2);
-    let (s, p) = slh_keygen_internal(&sk_seed, &sk_prf, &pk_seed);
-    sk.copy_from_slice(&s);
-    pk.copy_from_slice(&p);
+pub fn keygen<const N: usize>(p: &Params, seeds: &[u8], sk: &mut [u8], pk: &mut [u8]) {
+    let sk_seed = block::<N>(seeds, 0);
+    let sk_prf = block::<N>(seeds, 1);
+    let pk_seed = block::<N>(seeds, 2);
+    slh_keygen_internal::<N>(p, &sk_seed, &sk_prf, &pk_seed, sk, pk);
 }
 
 /// The public key held in a private key: its last two blocks,
-/// `PK.seed ‖ PK.root`.
-pub fn public_key(sk: &[u8; SK_BYTES]) -> [u8; PK_BYTES] {
-    let mut pk = [0u8; PK_BYTES];
+/// `PK.seed ‖ PK.root`, written to `pk` (2n bytes).
+pub fn public_key<const N: usize>(sk: &[u8], pk: &mut [u8]) {
     pk.copy_from_slice(&sk[2 * N..4 * N]);
-    pk
 }
 
 /// Algorithm 22, `slh_sign`, hedged: `addrnd` is `n` fresh random bytes.
 /// `None` if `ctx` is longer than 255 bytes.
-pub fn sign(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-    slh_sign(m, ctx, sk, addrnd)
+pub fn sign<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8], addrnd: &[u8; N]) -> Option<Vec<u8>> {
+    slh_sign::<N>(p, m, ctx, sk, addrnd)
 }
 
 /// Algorithm 22, `slh_sign`, deterministic variant: `PK.seed` takes the place
 /// of the random bytes.
-pub fn sign_deterministic(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
-    let pk_seed = block(sk, 2);
-    slh_sign(m, ctx, sk, &pk_seed)
+pub fn sign_deterministic<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8]) -> Option<Vec<u8>> {
+    let pk_seed = block::<N>(sk, 2);
+    slh_sign::<N>(p, m, ctx, sk, &pk_seed)
 }
 
 /// [`sign`] with recomputation: the same signature, or `None` if `ctx` is
 /// longer than 255 bytes or a recomputation disagreed (the key is not one
 /// that key generation produces, or the computation was disturbed).
-pub fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-    slh_sign_checked(m, ctx, sk, addrnd)
+pub fn sign_checked<const N: usize>(
+    p: &Params,
+    m: &[u8],
+    ctx: &[u8],
+    sk: &[u8],
+    addrnd: &[u8; N],
+) -> Option<Vec<u8>> {
+    slh_sign_checked::<N>(p, m, ctx, sk, addrnd)
 }
 
 /// [`sign_deterministic`] with recomputation; see [`sign_checked`].
-pub fn sign_deterministic_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
-    let pk_seed = block(sk, 2);
-    slh_sign_checked(m, ctx, sk, &pk_seed)
+pub fn sign_deterministic_checked<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8]) -> Option<Vec<u8>> {
+    let pk_seed = block::<N>(sk, 2);
+    slh_sign_checked::<N>(p, m, ctx, sk, &pk_seed)
 }
 
 /// Algorithm 24, `slh_verify`.
-pub fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8; PK_BYTES]) -> bool {
-    slh_verify(m, sig, ctx, pk)
+pub fn verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool {
+    slh_verify::<N>(p, m, sig, ctx, pk)
 }

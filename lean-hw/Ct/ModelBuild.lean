@@ -2,14 +2,21 @@ import Ct.Model
 import Slhdsa.FunsExternal
 
 /-!
-# The leakage model, build-specific part: the `hw-sha2` build (TRUSTED)
+# The leakage model, build-specific part: the six-set crate built with `hw-sha2` (TRUSTED)
 
-The translation of the crate built with `hw-sha2` calls eighteen functions that Aeneas does not
-translate: the intrinsic wrappers of the Rust module `sha256::hw::arm` and the `Clone` of
-`uint32x4_t`. Their meaning is `Slhdsa/FunsExternal.lean`. This file is their leakage model:
-in the instrumented program each wrapper is its `FunsExternal` definition, run through
-`Ct.Leak.prim`, with the following events. It is part of the trusted leakage table, like
-`Ct/Model.lean`.
+The union of two existing tables, nothing new:
+
+* the eighteen intrinsic wrappers of `sha256::hw::arm`, the `Clone` of `uint32x4_t` and
+  `massert`: the single-set tree's `lean-hw/Ct/ModelBuild.lean` (git `26aa3d8`), COPIED (not linked, because
+  both files define `Ct.Build.modelConsts`) with every definition and event unchanged. This
+  tree's `hw-sha2` translation calls the same eighteen wrappers, defined by the same
+  `Slhdsa/FunsExternal.lean` (the single-set tree's file, unchanged); the kernel
+  generic in `N` uses no other wrapper. `diff` against the single-set tree's file shows, below the
+  documentation, only the added `Slice.index_mut` block and its entry in `modelConsts`;
+* `core.slice.index.Slice.index_mut`: this tree's portable `../lean/Ct/ModelBuild.lean`,
+  copied unchanged (mutable sub-slices of slices emit the range, as `Slice.index`).
+
+The single-set tree's description of the wrappers' events, quoted:
 
 | wrapper                                      | event emitted                                   |
 |----------------------------------------------|-------------------------------------------------|
@@ -20,6 +27,7 @@ in the instrumented program each wrapper is its `FunsExternal` definition, run t
 | `store_be b at v`                            | `range at (at + 16) b.length`                   |
 | `uint32x4_t`'s `clone`                       | none                                            |
 | `massert c` (Aeneas's `assert!`)             | `branch (decide c)`                             |
+| `core.slice.index.Slice.index_mut inst s r`  | `inst`'s event on `s` (`range`/`index`)         |
 
 * `available` (`is_aarch64_feature_detected!`) emits nothing of its own. The `if` on its result
   is recorded as a branch like any other `if` of the program: whether the processor has the
@@ -35,12 +43,12 @@ in the instrumented program each wrapper is its `FunsExternal` definition, run t
 * A run that fails (out of bounds, or an instruction without the feature: every wrapper but
   `available` is `fail .undef` when `Arm.haveSha2 = false`) has no trace, as elsewhere in the
   library: `Leak.prim` of a failing computation fails.
-* `massert` does not occur in the default build's text; it is Aeneas's translation of
-  `assert!`, an `if` that panics, and is recorded as a branch.
+* `massert` is Aeneas's translation of `assert!`, an `if` that panics, and is recorded as a
+  branch.
 
 `Ct/Check.lean` accepts exactly the names of `Ct.Build.modelConsts` below in addition to the
-model of `Ct/Model.lean`; in particular the un-instrumented `slhdsa.sha256.hw.arm.*` are
-rejected. Erasure is immediate (`Leak.erase_prim`), and `Ct/Erase.lean` uses it.
+model of `Ct/Model.lean`; in particular the un-instrumented `slhdsa.sha256.hw.arm.*` and
+`Aeneas.Std.core.slice.index.Slice.index_mut` are rejected (`Ct/CheckTestBuild.lean`).
 -/
 
 open Aeneas Aeneas.Std
@@ -126,6 +134,13 @@ abbrev core.core_arch.arm_shared.neon.uint32x4_t.Insts.CoreCloneClone.clone (v :
 abbrev massert (c : Prop) [Decidable c] : Ct.Leak Unit :=
   Leak.prim [.branch (decide c)] (Aeneas.Std.massert c)
 
+/-! ## Mutable sub-slices of slices (this tree's portable `Ct/ModelBuild.lean`, unchanged) -/
+
+abbrev core.slice.index.Slice.index_mut {T I Output : Type _}
+    (inst : LSliceIndex I (Aeneas.Std.Slice T) Output) (s : Aeneas.Std.Slice T) (i : I) :
+    Ct.Leak (Output × (Output → Aeneas.Std.Slice T)) :=
+  Leak.prim (inst.ev i s) (Aeneas.Std.core.slice.index.Slice.index_mut inst.base s i)
+
 end slhdsa_leak
 
 namespace Ct.Build
@@ -143,7 +158,8 @@ def modelConsts : List Lean.Name := [
   ``slhdsa_leak.sha256.hw.arm.load_words, ``slhdsa_leak.sha256.hw.arm.load_be,
   ``slhdsa_leak.sha256.hw.arm.store_be,
   ``slhdsa_leak.core.core_arch.arm_shared.neon.uint32x4_t.Insts.CoreCloneClone.clone,
-  ``slhdsa_leak.massert
+  ``slhdsa_leak.massert,
+  ``slhdsa_leak.core.slice.index.Slice.index_mut
 ]
 
 end Ct.Build

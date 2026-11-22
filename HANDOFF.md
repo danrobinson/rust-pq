@@ -1,523 +1,321 @@
-# Handoff — state at 2026-11-21
+# Handoff — state at 2026-11-22
 
-Both composed theorems are finished: neither has a hypothesis left that is not about the forger.
-The repository is under git from 2026-11-21 (first commit `d2a5a9b` is the whole project as it
-stood then; nothing is pushed anywhere). For what the project proves overall, read `README.md`;
-this file covers the two composed theorems, the Rust optimisation, the opt-in hardware backend
-(its performance and its proof) and the benchmark.
+The repository is the **six-set tree**: one verified Rust implementation of SLH-DSA-SHA2-{128s,
+128f, 192s, 192f, 256s, 256f} with functional-correctness, constant-time and security proofs, for
+the default build and the `hw-sha2` build. On 2026-11-22 it replaced the single-set tree
+(SLH-DSA-SHA2-128s only), which until then was the top level while the six-set tree lived in a
+subdirectory beside it. **The single-set tree is git commit `26aa3d8`**; nothing of it is lost
+from history. For what is proved read `README.md`; details: `STATUS.md` (crate and functional
+proofs), `lean/CT_STATUS.md` (constant time), `security/STATUS.md` (security),
+`security-hw/README.md`, `quantum/STATUS.md`, `compat/README.md`, `ct-evidence/README.md`.
 
-This file replaces the handoff of 2026-11-20, which described both theorems as unfinished.
-`quantum/HANDOFF.md` and `security/Ideal/HANDOFF.md` are that older state and are kept for the
-record only.
+This file replaces the handoff of 2026-11-21 (git `26aa3d8:HANDOFF.md`), which described the
+single-set tree. `quantum/HANDOFF*.md` and `security/Ideal/HANDOFF.md` are older states, kept for
+the record.
 
-## Summary
+## The restructuring of 2026-11-22
 
-| | Quantum random oracle | Ideal compression function |
-|---|---|---|
-| Headline | `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed` (`quantum/Integration/SlhDsaComposedClosed.lean:64`, `:93`) | `suf_ideal_closed`, `euf_ideal_closed` (`security/Ideal/Realize/Final.lean:74`, `:91`) |
-| Hypotheses | on the forger: `hq`, `hqs`, `hcap`; and `35 ≤ c.tl` | on the forger: `hqf`, `hqs`, `hlong`, `hout`; and arithmetic `QcAll qf qs ℓ ≤ 2^126` |
-| Formerly assumed, now proved | `hInd` and all eleven bridge statements | all twelve realisers |
-| Numeric, machine-checked | `≤ 2^-22` at `q = 2^40`, `qs = 2^20` (`…_qrom_enc_closed_num`, `SlhDsaComposedClosedNum.lean:187`, `:200`) | three points, table below (`Final.lean:108`–`:183`) |
-| Rust-level statement | — | `rust_ideal_security_closed` (`security/Ideal/RustFinalClosed.lean:36`) |
-| Build (coordinator ran) | `scripts/check-integration.sh` PASS: default target 7248 jobs, 103 `security` modules fresh, 46 Integration files compiled from scratch, 348 theorems, standard axioms only | `lake build` 8035 jobs; 1529 axiom reports parsed, all standard; no `sorry` |
-| Independent audit | `quantum/AUDIT-closed.md`: nothing false or overstated; caveats below | `security/status/AUDIT-closed.md`: nothing false or overstated; caveats below |
+**Moved** (with `mv`, build caches included): the six-set `rust`, `lean` (with its `.lake`),
+`lean-hw`, `security-hw`, `compat` to the top level; the six-set `security` project merged into
+`security/` (its `.lake` replaced the single-set build); its `scripts` and `vectors` merged into
+`scripts/`, `vectors/` (the 128s vector file was identical); its `STATUS.md` is now `STATUS.md`,
+its `CT_STATUS.md` `lean/CT_STATUS.md` (with the single-set `lean/CT_STATUS.md` appended as
+"Part 3: the method"); `rust/ct-evidence` (the binary timing harness) to `ct-evidence/`.
 
-Ideal-model numeric points (SUF and EUF, messages up to 2^26 bytes):
+**Borrowed files made real.** `lean/` and `lean-hw/` had used single-set files by symbolic link or
+by compiling them in place; these are now ordinary files, unchanged:
+`lean/Ct/{Arith,Attr,CheckTest,CompressTop,Do,Facts,Heads,Leak,Model,Rel,Sha256,Sha256Core,Sim}.lean`;
+`lean-hw/Arm.lean` (the `Arm` library now has the default source directory), `ArmTest.lean`,
+`Slhdsa/{Types,Funs}External.lean`, `Slhdsa/Proofs/CompressTop.lean`,
+`Slhdsa/Proofs/Hw/{Model,Rounds,Compress,Wrappers}.lean`, `Ct/CompressTop.lean`. Every remaining
+symbolic link points inside the tree (`lean-hw` into `lean`).
 
-| signatures `qs` | forger's compression queries `qf` | forgery probability at most |
-|---|---|---|
-| ≤ 2^20 | ≤ 2^60 − 2^46 | 2^-70 + 2^-128 + 2^-61 |
-| ≤ 2^40 | ≤ 2^64 | 2^-50 + 2^-88 + 2^-41 |
-| ≤ 2^64 | ≤ 2^64 | 2^-44 + 2^-43 + 2^-31 |
+**Deleted** (tracked content, all in `26aa3d8`):
+- the single-set `rust/` (crate and tests), `lean/`, `lean-hw/`, `security-hw/`, `compat/`;
+  `opt/` (the working copy of the 2026-11-20 optimisation, including `opt/original` and the
+  differential harness `opt/difftest`); the single-set `scripts/{check,ct-gen,extract,extract-hw}.sh`;
+- in `security/`: `Link/{Climb,Encoding,Fors,Hypertree,Keygen,Main,Sign,SignParts,Wots,Xmss}.lean`
+  and the originals of `Link/{Basic,Hash,Verify,Sha256}.lean`;
+  `E2E/{Api,Bytes,External,Final,FinalSplit,Headline,HeadlineGen,Main,PureRom,PureRomBytes,Reduction}.lean`;
+  `Ideal/Rust*.lean` (13 files); the single-set `lakefile.toml`, `README.md`.
+- Untracked build products went with their directories (the single-set `lean/.lake`,
+  `security/.lake`, `security-hw/.lake`, cargo `target/`s).
 
-## What exactly is proved (the auditors' wording)
+**Kept in `security/`, unmodified:** `Reduction/**` (including `Reduction/Gen`, which uses only
+`Link.vp`, `Link.prims` and now compiles over the stand-ins; it was not built by the six-set
+project before), `Ideal/**` except `Ideal/Rust*.lean`, `Link/Security.lean`,
+`E2E/{GuardedRom,CodedRom}.lean`, `status/` (one dated correction in `R-final.md`), `scratch/`,
+`REDUCTION_STATUS.md`, `IDEAL_STATUS.md` (each given a dated note at the top). The exception, as
+planned: `Reduction/PrfDomainNonVacuity.lean` is now the stand-in (the original minus
+`prf_128s_spec` and its `#print axioms`, 7 lines).
 
-**Ideal compression function.** SHA-256's compression function is replaced by a uniformly random
-function, used for every SHA-256 call of SLH-DSA-SHA2-128s, and the forger may query it. For
-every `opt_rand` sampler that depends only on (PK.seed, PK.root), and every forger that on every
-execution path makes at most `qf` table queries and `qs` signing queries on messages of at most
-`ℓ` bytes and outputs a message of at most `ℓ` bytes: the probability (over the table, the
-uniform seeds, `opt_rand` and the forger's coins) of a strong forgery is at most
-`epsItsrF qf (2·qs) qf (itsrQc qs) (itsrLc ℓ) qs ℓ + (66·QcAll + 40)/2^128 + polyP …/2^256`
-(EUF likewise). The scheme is the INTERNAL interface, FIPS 205 Algorithms 18–20.
+**Stand-ins.** `Link/{Basic,Hash,Verify,Sha256}.lean` are the six-set project's Spec-free stand-ins
+at the original paths; only their module docstrings were reworded. The shim-fidelity diff was run
+one last time before the originals were deleted: `PrfDomainNonVacuity` 0 added / 7 removed,
+`Link/Sha256` (docstring aside) 0 added / 251 removed, both as expected; the table with all five
+files is in `security/STATUS.md`, "The stand-ins". The diff step was then removed from
+`security/scripts/check.sh`.
 
-**Quantum random oracle.** For any caps `c` with `c.tl ≥ 35`, the four hash components (Thash,
-H_msg, PRF, PRF_msg) are independent uniform random functions on the capped domains, extended by
-constants outside. The scheme is the EXTERNAL pure byte interface (Algorithms 21/22/24, context
-strings). For every quantum forger — one fixed program with arbitrary finite workspace and
-initial state, whose only access to the hashes is one quantum oracle `|x,y⟩ ↦ |x, y + H(x)⟩`
-(bytewise addition mod 256) on the disjoint union of the four domains, plus classical signing —
-that on every path makes at most `q` oracle calls and `qs` signing queries, all within the caps:
-its SUF-CMA (resp. EUF-CMA) advantage, averaged over the functions, is at most
-`composedBoundFinal q qs (openCounts128s qs).noPrfMsg`.
+**Lake.** `security/lakefile.toml`: libraries `Spec`, `Slhdsa` (from `../lean`), `Link`,
+`Reduction`, `E2E`, `Ideal` (each with its root file `Link.lean`, …, which imports every module of
+the directory; the explicit module lists, which existed only to exclude single-set files, are
+gone, and the six-set project's `Shim`, `LinkSecurity`, `E2ERom`, `ReductionOpen` libraries are
+merged into these), `MLink`, `MReduction`, `ME2E`, `MIdeal`. **Everything is a default target**,
+`Ideal` and `MIdeal` included: `lake build` from scratch took 4 min 16 s (8205 jobs) on this
+machine, which did not seem too slow. `Link.lean`, `E2E.lean` were rewritten as import lists of
+the kept modules; `Ideal.lean` lost its 13 imports of `Ideal/Rust*` (the duplicate
+`import Ideal.RustFinalClosedTight6` mentioned in the brief was not present: every import
+appeared once). `security-hw/lakefile.toml`: the same libraries from `../security`, `Slhdsa` and
+`Arm` from `../lean-hw`. Package names: `security`, `security_hw`, `slhdsa`, `slhdsa_hw`. All
+`packagesDir`/`path` entries point at `../.tools/…` (manifests updated accordingly; the security
+manifest is identical to the single-set one).
 
-## Caveats the claims carry
+**Scripts and generators changed.**
+- `scripts/check.sh` is the one end-to-end check (the six-set one, with paths fixed; it now also
+  runs the crate's tests with `--features hw-sha512` alone). `scripts/extract.sh`,
+  `extract-hw.sh`: tool paths fixed (the first run of `check.sh` stopped here: `../.tools` where
+  `.tools` was meant); re-extraction reproduces both translations byte for byte.
+  `scripts/ct-gen.sh`: header now `GENERATED BY scripts/ct-gen.sh FROM lean/Slhdsa/Funs.lean`
+  (the single-set form). `scripts/gen/*.py`: repository-relative paths; `api.py`, `enc.py` read
+  their single-set templates with `git show 26aa3d8:…`; rerunning `thms.py`, `sets.py`, `api.py`,
+  `enc.py`, `compat.py`, `ct_thms.py` reproduces the checked-in files except for the header lines
+  that named the old paths (a fixed point).
+- `security/ME2E/gen/gen.py`, `security/scripts/gen_api_rom.py`, `security/scripts/check_ideal128s.py`
+  read the single-set statements with `git show 26aa3d8:…` (`SLHDSA_REPO` overrides the
+  repository); `security/MReduction/gen/*.py` have repository-relative paths and are now re-run by
+  `check.sh` step 0 too (`gen_sec.py` excepted: it was a scaffold for the hand-finished
+  `MLink/Security.lean`, noted in the file). Regenerated outputs differ from the old ones only in
+  "GENERATED by" headers and provenance comments.
+- `security/scripts/check.sh`: step 0c now checks that every root file imports its whole directory
+  and that `Link`, `Reduction`, `E2E`, `Ideal` import nothing of `Spec`, `Slhdsa`, `M*`, and that
+  `Link/` mentions no `Spec`/`sp`/`spA`; step 1 is `lake build`; the placeholder grep covers every
+  source of the eight libraries.
+- `security-hw/scripts/check.sh`: paths and the library comparison updated.
+- `quantum/scripts/check-integration.sh`: unchanged; it passes against the new `security/`
+  without any change to an Integration file.
+- `bench/`: repointed (below). `ct-evidence/`: repointed (below). `scripts/check-arm.sh`: still
+  meaningful and unchanged (the record test has the same name in the six-set crate).
 
-Ideal side:
-- **Context strings (added 2026-11-21, after the audit).** The audited theorems are for the
-  internal interface. `suf_ideal_pure_closed`, `euf_ideal_pure_closed` and their numeric points
-  (`security/Ideal/Realize/FinalPure.lean`), with `rust_ideal_security_closed_pure`
-  (`Ideal/RustFinalClosedPure.lean`), cover `slh_sign` / `slh_verify` with a context string on
-  the byte-level game `pureBytesAlg`: an external forger becomes an internal one that prepends
-  the two header bytes and the context (`ForgerP.toI`, freshness by `pureEncode_injective`), so
-  the bound is the internal one at message length `ℓ + 257`; `qf`, `qs` unchanged. Not reviewed.
-- **Random function, not SHA-256's compression.** No Davies–Meyer / ideal-cipher model.
-- **Message length.** `hout` excludes forgeries on messages longer than `ℓ`; the numeric points
-  take `ℓ ≤ 2^26` bytes.
-- **Weak at many signatures.** About 2^-31 at 2^64 signatures: each signature is charged 2^25
-  compression calls. Counts are deliberately coarse (every hash query charged 11 compressions).
-- **ITSR leg** vacuous once `qf + 2·qs` reaches about 2^70 (proof technique, not an attack). The
-  bound never drops below about 2^-80.
-- **The Rust link is narrow.** The security conjunct averages over random tables; the Rust
-  conjuncts are about the real compression function. They share the scheme, not a security claim.
+**Rust.** The dev-dependency on the single-set crate and the test
+`cross_128s_against_original_crate` (128s byte-identical to the single-set crate; it passed at
+`26aa3d8`) were removed. The record-writing mode `ARM_VECTORS_WRITE=1` of the wrapper test was
+ported from the single-set crate (only comment lines and test code changed; the translations are
+unchanged).
 
-Quantum side:
-- **Reduction's hashing charged as quantum queries.** About 2.0·10^6 per signature, quadratically.
-  Auditor's evaluation (Python, not machine-checked): 2^-22.9 at (2^40, 2^20); the bound exceeds 1
-  for `qs ≥ 2^28` at any `q`, and for `q ≥ 2^53` at `qs = 2^20`.
-- **Caps.** Outside the caps the hash functions are constants. That the experiment stays inside
-  the caps is the hypothesis `hcap`; equivalence with unbounded random oracles is informal. The
-  bound does not depend on `c.ml`, so any forger with bounded message length is covered.
-- **Additive oracle**, not XOR: an XOR-model forger with `q` queries needs `2q` port calls.
-- **`opt_rand`** may depend only on (PK.seed, PK.root); PK.seed distribution arbitrary.
-- **Independence of the four components** idealises SHA-2 domain separation.
-- **ITSR** keeps the reprogramming loss `2q'√(qs/2^128)`, which dominates the bound.
+**Lean source changes.** Comments only (paths and the words "main tree"; `[multi]` markers in
+`lean/Ct/{Check,Tactic}.lean` became `[six-set]`), plus the regenerated headers. No statement or
+proof changed in `lean/`, `lean-hw/`, `Reduction/`, `Ideal/`, `MLink`, `MReduction`, `ME2E`,
+`MIdeal`.
 
-Both: FIPS 205 conformance of the shared scheme code and the Aeneas extraction were not re-audited
-this round. The audits checked statements and definitions, not proofs (the kernel checks those),
-and spot-checked two of the twelve realisers.
+**New Lean file (a port).** `security/ME2E/Gen128s.lean`: the single-set
+`E2E.rust_securityG`, `rust_security_linearG`, `rust_pure_securityG`,
+`rust_pure_security_linearG`, `rust_security_resourcesG` and `E2E.api_pure_securityG` (forgers
+over a general sampling spec, `Reduction/Gen`), for the six-set tree's 128s functions
+(`ME2E.sha2_128s.*`). Statements are the single-set text under renamings of the Rust names and of
+part (a)'s spelling, checked textually by `security/scripts/check_ideal128s.py`; proofs are the
+same one-liners. That raises the headline count of the security checks from 257 to **263**.
 
-## Where the new work is
+**Bench.** `bench/` uses `slhdsa::sha2_128s` for the `verified` entries; `variants/` are frozen
+copies of single-set code, now checked against `git show 26aa3d8:…` by `run.sh`; new
+`benches/sets.rs` benchmarks the six sets against RustCrypto (checks byte-identical keys and
+signatures first). Old results (`RESULTS.md`, `results/run1`–`run6`) are marked as measured on
+the single-set crate. Smoke run: see "Checks".
 
-Ideal side (`security/`, all imported by `Ideal.lean`):
-- `Ideal/Transport/*` (ten files from the previous round, now in the default target) and
-  `Ideal/Transport/AdvTcr.lean` (whole-adversary invariance for class TCR).
-- `Ideal/Realize/{Chain,Walk,Port,Phase1}.lean`: generic layer (reference core, hash query →
-  compression chain, forger with a compression port, first-phase embedding).
-- Realisers: `Tcr.lean`, `TcrCount.lean` (class TCR ×4); `PrfTr/PrfPort/PrfCount/PrfReal.lean`;
-  `MsgHarness/MsgPort/MsgCount/MsgReal.lean`; `Itsr*.lean` (six files); `Fors*.lean` (seven);
-  `Wots*.lean` (seven, headline file `WotsRealizers.lean`).
-- `Ideal/Realize/FinalCore.lean`, `Final.lean` (assembly), `Ideal/RustFinalClosed.lean`.
-- Notes per piece: `security/status/R-{tcr,prfmsg,itsr,fors,wots,final}.md`.
+**Binary timing evidence (`ct-evidence/`).** The harness (emulator traces with Unicorn, dudect
+timing, disassembly checks; `run.sh`, `scripts/disasm_check.py`, `scripts/make_results.py`,
+`RESULTS.md`) was repointed at the six-set crate's 128s functions (`slhdsa::sha2_128s`, the
+generic internals at `N = 16` with `params::SHA2_128S`; same inputs, layout and experiments). It
+builds, and `cttrace hwcheck` passes on both builds (emulated output equal to native on every row;
+SHA-256 instructions only in the `hw-sha2` build). **The recorded results are still the single-set
+crate's** (2026-11-21): traces, disassembly and timing were not rerun, and the sets other than
+128s are not exercised. `RESULTS.md` carries that note (added through its template; regeneration
+otherwise reproduces it exactly).
 
-Quantum side (`quantum/`):
-- Generic (`PQ/`, all in `PQ.lean`): `Interactive/QromBridgeEvalProg.lean` (`PUE.exists_prog`,
-  `PUE.exists_model`, `PUE.compileQ`), `QromBridgeEvalQ.lean`, `QromBridgeEvalIAdv.lean`
-  (`PUE.exists_iadv`), `QromBridgeTcr.lean`, `QromBridgeFors.lean`, `QromBridgeWotsPre.lean`,
-  `QromBridgeWotsUd.lean`; `QROM/HybridRows.lean`, `ForsPullback.lean`, `ItsrPullback.lean`,
-  `WotsPullbackUdTight.lean`.
-- Per term (`Integration/`):
+## Checks
 
-| term | closed theorem | file |
-|---|---|---|
-| PRF | `prf_term_suf/euf` + `QInd.prfMachSuf_withPrf` | `SlhDsaBridgeInd.lean` |
-| PRF_msg | `QMsg.msg_term_suf/euf` | `SlhDsaBridgeMsg.lean` |
-| class TCR ×4 | `tcr_terms_closed_128s` | `SlhDsaBridgeTcrClosed.lean` |
-| FORS TCR | `tcrFv_term_closed_128s` | `SlhDsaBridgeForsClosed.lean` |
-| FORS DSPR | `dspr_term_closed_128s` | `SlhDsaBridgeForsClosed2.lean` |
-| WOTS TCR | `tcrT_term_closed_128s` | `SlhDsaBridgeTcrTClosed.lean` |
-| WOTS UD, PRE | `ud_closed`, `pre_closed` | `SlhDsaBridgeWotsClosed.lean` |
-| ITSR | `itsr_closed` | `SlhDsaBridgeMachItsr2.lean` |
+Run after the last edit, from the state described here (2026-11-22):
 
-- Machine models: `SlhDsaBridgeMach{,Fors,Fors2,Wots,Itsr,Itsr2}.lean`. Assembly:
-  `SlhDsaComposedClosed.lean`, `SlhDsaComposedClosedNum.lean`. Intermediate headlines
-  (`SlhDsaComposedEnc2.lean`, `SlhDsaComposedEnc2Msg.lean`) remain.
-- Notes per piece: `quantum/HANDOFF-{qprf,qmach,qtcr,qfors,qwots}.md`.
+- `scripts/check.sh`: the crate's tests in four builds (default 88, `hw-sha2` 90,
+  `hw-sha2,hw-sha512` 91, `hw-sha512` 89 tests), both re-extractions (identical output; 21
+  declarations left to the hardware model), `lean` and `lean-hw` with their headline axiom checks
+  (37 + 174 + 72 + 24 theorems each, plus 8 kernel and guard theorems), ArmTest, the spec on the
+  sigVer vectors of the six sets, constant time for both builds (15 + 6 × 26 theorems each), the
+  two security checks and the adapter's tests in two builds. Its last lines:
 
-Two technical points worth knowing before touching these proofs:
+  ```
+  security: 263 / 263 headline theorems reported CHECK PASSED
+  security-hw: 263 / 263 headline theorems reported CHECK PASSED
+  ...
+  All checks passed.
+  ```
+- `quantum/scripts/check-integration.sh` (no Integration file changed):
+
+  ```
+  checked 93 modules of ../security (93 with source hash)
+  all present and up to date
+  ...
+  348 theorems checked, 0 with non-standard axioms
+
+  PASS: default target built, security oleans up to date, all Integration files compiled, only standard axioms.
+  ```
+- Smoke runs: `bench`: `cargo run --release --bin interop` (every FIPS 205 implementation agrees
+  with the verified 128s functions on keys, signatures and verdicts; PQClean's round-3 SPHINCS+
+  differs, as before) and `cargo bench --bench sets` (all six sets; e.g. 128s portable keygen
+  40.5 ms, verify 324 µs; RustCrypto sign 62.6 ms), the `run.sh` copy check against `26aa3d8`;
+  `ct-evidence`: `cttrace hwcheck`, both builds, AS EXPECTED; `scripts/check-arm.sh`: the processor
+  agrees with all 1745 recorded calls; `ARM_VECTORS_WRITE=1` rewrote the record byte for byte.
+- Placeholders: no `sorry`, `axiom`, `native_decide`, `bv_decide` (grepped by the checks above);
+  every `#print axioms` of the headlines reports `[propext, Classical.choice, Quot.sound]`.
+
+## What the single-set tree had that this tree does not
+
+Nothing below is silently dropped; all of it is in git commit `26aa3d8`.
+
+- **Binary-level timing and trace evidence for the current crate.** Exists only for the
+  single-set crate (2026-11-21). The harness now targets this crate's 128s functions, but only
+  its emulator self-check was run; the other five sets have none.
+- **Rust-level secondary theorems** (single-set `security/E2E/*`):
+  - `E2E.api_pure_standard_model_security_split` and the `E2E/FinalSplit.lean` forms
+    `standard_model_security_split`, `pure_standard_model_security_split` (the loose-cap typed
+    headlines). The six-set tree has the Reduction-level split headlines at every set
+    (`MReduction.slhdsa_sha2_<set>_{,pure_}{suf,euf}_cma_final_split`) but not their Rust-level
+    restatement; superseded by `ME2E.sha2_<set>.{rust,api}_pure_security` (tight caps). Not ported:
+    it needs the typed (`EndToEnd`-style) Rust attachment of `E2E/Main.lean`.
+  - `E2E.api_pure_securityG` and `E2E/HeadlineGen.lean`: **ported** for 128s
+    (`ME2E.sha2_128s.*G`, above). Not for the other sets (`Reduction/Gen` is stated at `Link.vp`).
+  - `E2E/Main.lean`: the typed-value end-to-end forms `EndToEnd`, `end_to_end`,
+    `end_to_end_verify`, `rust_verify_internal'`, `rust_sign_internal'` and helpers (`nodeOfBytes`,
+    `nd_node`, …). The six-set counterparts are the byte-level and typed `PureEndToEnd`,
+    `pure_end_to_end`, `rust_keygen`, `rust_sign`, `rust_verify` of `ME2E.sha2_<set>`; the internal
+    typed `EndToEnd` with its ROM instantiation has no counterpart.
+  - `E2E/Bytes.lean`: `bytes_standard_model_security`, `pure_bytes_standard_model_security`,
+    `…_resources` (earlier-stage bounds; superseded by `rust_security`, `rust_pure_security`,
+    `…_resources`); `E2E/Final.lean` (`standard_model_security_final`, one cross-arity TCR term);
+    `E2E/Reduction.lean` (phase-1 `standard_model_security`, superseded and with a vacuous PRF
+    game); `E2E/Headline.lean`, `External.lean`, `Api.lean` (all other declarations),
+    `PureRom.lean`, `PureRomBytes.lean`: ported to all six sets (`ME2E`).
+- **The single-set link `Spec` = VCVio** (`security/Link/*`): replaced by `MLink`, generic in the
+  set (`MLink.keygen_eq`, `sign_eq`, `verify_eq`, `sha256_eq`, …). Not restated:
+  `Link.romScheme_verify_eq_spec` (`Link/Main.lean`; follows from `MLink.romScheme_verify_eq` and
+  `verify_eq_typed`), the 35 SHA-256 facts of the original `Link/Sha256.lean` at the single-set
+  `Spec` (their six-set counterparts are in `MLink/Sha256.lean`), `Reduction.prf_128s_spec`
+  (replaced by `MReduction.prf_spec S`), `stepPRFC_128s`, `skPrf_broken_128s_half`, per-set copies
+  of single-adversary numeral lemmas (their content is in `final_resources_final_<set>`).
+- **Single-set ideal-model Rust corollaries** (`security/Ideal/Rust*.lean`):
+  `Ideal.rust_ideal_security`, `rust_ideal_security_final`, `rust_ideal_security_closed`,
+  `rust_ideal_security_closed_pure`, `api_ideal_security_closed_pure`, `pureBytesAlg_realCF`, and
+  the `…_tight` … `…_tight7` forms. Only the `…_tight8` forms (the strongest) are attached to the
+  six-set functions (`MIdeal.sha2_128s.*_tight8`, with `pure_bytes_end_to_end` and
+  `pureBytesAlg_realCF`); the bounds of all the earlier stages are still proved in `Ideal`.
+- **The checked signer** (`sign_checked`, `slh_sign_internal_checked`, `ht_sign_checked`,
+  `fors_pk_gen`): **present**, per set, with its theorems (`ApiTheorems.lean`) and the security
+  statement that it equals the plain signer on honest keys (`api_keygen_checked_eq`).
+- **The cross-test against the single-set crate** (`cross_128s_against_original_crate`): removed
+  with that crate; it passed at `26aa3d8`. The equality of the 128s statements is kept in Lean
+  (`lean/Slhdsa/Compat128.lean`, `security/MReduction/Check128s.lean`, the generators' textual
+  checks).
+- **The single-set specification** `lean/Spec/SlhDsa.lean` (128s): kept verbatim as
+  `lean/Spec/Old128.lean` (namespace `Spec128`) and proved equal to the six-set spec at 128s.
+- **`opt/`** (the optimisation's working copy and `opt/original`, the pre-optimisation crate and
+  proofs) and **`opt/difftest`** (a differential test and timing harness, old against new crate):
+  deleted. The pre-optimisation crate survives as `bench/variants/base` (benchmarked as
+  `verified-before`).
+- **The single-set adapter** (`compat/`, 128s, 86-result drop-in comparison): replaced by the
+  six-set adapter (516 results; wipe and heap tests per set).
+- **Bench comparisons with OpenSSL, `fips205`, slhdsa-c, PQClean**: only for the single-set crate
+  (results kept, dated); `bench/run.sh` would redo them for this crate's 128s functions (not run:
+  about 40 minutes).
+- **A Rust-level statement for the quantum result:** none, in either tree. The quantum theorem is
+  about the scheme `Reduction.pureBytesAlg Link.vp (randPrims ω.toRand) (codecR …)` averaged over
+  uniformly random four-component hash tuples `ω` on length-capped domains (constant outside the
+  caps); SLH-DSA-SHA2-128s parameters, external pure byte interface. The Rust 128s functions
+  compute the cores of the same generic definition at the real SHA-2 primitives
+  (`MIdeal.sha2_128s.pure_bytes_end_to_end`), but the real functions are not of the form
+  `ω.toRand` (they are not constant outside the caps), and the single-set tree's informal
+  "equivalence with unbounded random oracles" is not formalised, so no analogue of the `MIdeal`
+  conjunct 2 (the game's scheme at the real primitive is the Rust scheme) can be stated. None was
+  added.
+
+## Caveats of the closed results
+
+Ideal compression function (`Ideal`, `MIdeal`, SLH-DSA-SHA2-128s):
+- **Random function, not SHA-256's compression.** No Davies–Meyer / ideal-cipher model; the
+  security conjunct averages over random tables, the Rust conjuncts are about the real
+  compression function: they share the scheme, not a security claim.
+- **Message length.** Forgeries on messages longer than `ℓ` are excluded; the numeric points take
+  `ℓ ≤ 2^26` bytes (`ℓ + 257` at the context-string interface).
+- **ITSR leg** vacuous once **`qf + 4·qs + 2`** reaches about 2^70 (the argument of `reuseSum` in
+  `epsItsrF qf (2·qs) …` is `qf + 2·qs + 2·(qs + 1)`; the handoff of 2026-11-21 said `qf + 2·qs`,
+  which was wrong). A proof-technique limit, not an attack.
+- **Weak at many signatures.** About 2^-39 at 2^64 signatures (tight8); reaching the
+  generic-attack level needs a different proof (`security/status/TIGHT.md`).
+
+Quantum random oracle (`quantum/`, SLH-DSA-SHA2-128s scheme only):
+- the reduction's own hashing is charged as quantum queries (the bound exceeds 1 for
+  `qs ≥ 2^28` at any `q`, and for `q ≥ 2^53` at `qs = 2^20`; evaluated outside Lean);
+- caps: outside them the hash functions are constants; that the experiment stays inside is the
+  hypothesis `hcap`;
+- additive oracle, not XOR; independence of the four components idealises SHA-2 domain separation;
+  ITSR keeps the reprogramming loss `2q'√(qs/2^128)`, which dominates.
+
+Both: FIPS 205 conformance of the shared scheme code and the Aeneas extraction were not
+re-audited; the audits (`quantum/AUDIT-closed.md`, `security/status/AUDIT-closed.md`, of the
+single-set statements) checked statements and definitions, not proofs.
+
+## Technical points worth knowing before touching the proofs
+
 - Equalities between programs over different worlds or bundles are closed by kernel-only `rfl`
-  tactics (`krfl`/`kexact`, `qm_kernel_rfl`, `qtcr_kernel_rfl`): they assign `Eq.refl` and let the
-  kernel check it. No axiom. The elaborator's own `rfl` times out or overflows on these; one
-  attempt at a direct kernel `rfl` without first stripping `Coded.View` arguments used over 60 GB.
+  tactics (`krfl`/`kexact`, `qm_kernel_rfl`, `qtcr_kernel_rfl`). The elaborator's own `rfl` times
+  out or overflows on these.
 - Statements whose type mentions an `IsQueryBoundP` of a closed key-structure program can make
-  `whnf` evaluate the structure walk. The fixes used are `irreducible` wrappers and stating lemmas
+  `whnf` evaluate the structure walk; the fixes used are `irreducible` wrappers and stating lemmas
   over a variable program with an equation hypothesis.
+- Changing a line count in `rust/src` before translated items changes the generated Lean (source
+  positions) and forces a rebuild of all of `lean/`; comment edits that keep line counts do not.
+- `lean-hw` and `security-hw` compile files of `lean/` and `security/` in place; editing a shared
+  file rebuilds three packages.
 
-## Rust optimisation and benchmark
+## Trusted pieces of the `hw-sha2` build
 
-- `rust/src` and `lean/Slhdsa` now hold an optimised, re-verified crate: the constant first
-  SHA-256 block (`PK.seed ‖ 0^48`) is compressed once per operation, and `F`/`PRF`/`H` build their
-  single block on the stack. Public API, `lean/Spec`, and `lean/Slhdsa/Theorems.lean` are
-  unchanged; re-extraction reproduces the generated Lean; `lean/` and `security/` rebuild green.
-- The previous crate and proofs are in `opt/original/`. `opt/` is the working copy the change was
-  developed in (`opt/README.md` has the per-file detail).
-- Benchmark: `bench/RESULTS.md` (`bench/run.sh` reproduces it, about 35 minutes; Apple Silicon,
-  default release build, median of 4 rounds). Run 2 is against the optimised crate; run 1, kept
-  below it in the file, is the original.
-
-  | | keygen | sign | verify | compressions per sign |
-  |---|---|---|---|---|
-  | before | 102.5 ms | 785 ms | 805 µs | 4,404,707 |
-  | after | 42.9 ms | 325 ms | 338 µs | 2,218,488 |
-
-  After the change the crate is 5.2× slower than RustCrypto `slh-dsa` (was 12.6×) and 5.8×
-  slower than OpenSSL 4.1 (was 14.1×); 1.45× faster than `fips205` as shipped; 1.5× behind
-  portable C (slhdsa-c). Of the remaining 5.2×, about 3.6× is hardware SHA-2 and about 1.4× is
-  the crate's portable compression function (about 1.6× slower per block than the `sha2`
-  crate's portable code); per-call overhead is now negligible (99% of signing is `compress`).
-- Interoperability is clean before and after: same keys from the same seeds, cross-verification
-  both ways and byte-identical deterministic signatures against RustCrypto, `fips205`, OpenSSL
-  and slhdsa-c. Not built: liboqs, BoringSSL (need CMake), AWS-LC (no SLH-DSA in the crate).
-
-## Opt-in hardware SHA-2 (`hw-sha2`) and the performance work of 2026-11-21
-
-The crate was restructured so that, with the opt-in `hw-sha2` feature, it is faster than
-RustCrypto and OpenSSL on this machine, and the proofs were redone for the new code. The six
-headline theorems and `lean/Spec` are unchanged.
-
-**Numbers** (`bench/results/run5`, criterion, 2 rounds, Apple M5 Ultra; keygen / sign 32 B /
-verify 32 B / verify 1 MiB):
-
-| | keygen | sign | verify | verify 1 MiB |
-|---|---|---|---|---|
-| this crate, default build | 39.9 ms | 304 ms | 316 µs | 2.67 ms |
-| this crate, `hw-sha2` | 3.91 ms | 30.2 ms | 35.4 µs | 352 µs |
-| RustCrypto `slh-dsa` | 8.28 ms | 62.5 ms | 63.8 µs | 364 µs |
-| OpenSSL 4.1 | 7.30 ms | 55.8 ms | 58.6 µs | 405 µs |
-
-Before this work `hw-sha2` was 11.5 ms / 83.7 ms / 85.3 µs (run 3).
-
-**Verified code (`rust/src`, all re-proved):**
-- `hash::chain_blocks(state, blocks, start, end)` is the one hot primitive: for each block `i`,
-  for `t` in `start[i]..end[i]`: write `t` into bytes 18..22, compress, put the first 16 bytes
-  of the digest into bytes 22..38. One step is `F`, `PRF` or `H`. The portable code is two
-  nested loops.
-- WOTS+ (`wots.rs`): the 35 `PRF` blocks are built once; one step `0..1` on all of them gives
-  the secret values in place; byte 9 (the address type) is switched, which turns each into its
-  chain block; the chains are `chain_blocks` with `(0, 15)`, `(0, digit)` or `(digit, 15)`.
-  `hash::thash_values` builds the ten blocks of `T_len` on the stack from the block values.
-- FORS (`fors.rs`): `fors_batch` computes a subtree of up to 128 leaves: leaves are two steps
-  (`PRF`, type switch, `F`) numbered by the tree index, and each level is one step on
-  `pair_block`s. `fors_node` uses it for heights up to 7 and the old recursion above.
-  `fors_pk_from_sig` climbs the 14 trees together, one `chain_blocks` call per level.
-- `sha256::sha256_from` compresses whole blocks straight from the message and copies only the
-  tail; `hash::h_msg_inner` assembles the first block `R ‖ PK.seed ‖ PK.root ‖ M[0..16]` and
-  hashes the rest of a long message where it lies.
-- `#[inline]` hints on `compress` and the small block-building helpers (no effect on the
-  translation beyond line numbers).
-
-**Proofs:** `lean/Slhdsa/Proofs/{Sha256,Hash,Wots,Fors}.lean`. The model of one step is
-`stepBlock` / `runBlock` in `Hash.lean`; `chain_blocks_spec` says each block ends as `runBlock`
-of its start. Layout lemmas (`stepBlock_thash`, `runBlock_chain`, `stepBlock_pair_value`,
-`block_set_typ`, `padFrom_values`) connect that to `Spec.thash` and `Spec.chain`.
-- One internal statement changed: `fors_node_spec` now requires `(i + 1)·2^z < 2^32` where it
-  had `≤`. The batch forms `idx + 1` for each leaf index, which overflows at `idx = 2^32 − 1`;
-  the old statement is false for the new code (the proof agent machine-checked a
-  counterexample, `fors_node 4294967295 0` panics). Every use in the scheme has indices below
-  14·2^12. `fors_sign_spec` and everything above it are unchanged.
-- `scripts/check.sh` runs the tests in both builds, both re-extractions, `lean/`, `spectest`,
-  `security/`, `lean-hw/`, the instruction-model test, and the placeholder search;
-  `quantum/scripts/check-integration.sh` is separate.
-
-**The `hw-sha2` build is proved too** (third round, 2026-11-21), relative to a model of the
-processor instructions. Module `hw` of `rust/src/sha256.rs` was rewritten in two layers:
-- `hw::arm`: eighteen wrappers, each one to three intrinsics; the only code Aeneas does not
-  translate. The three that touch a caller's memory (`load_words`, `load_be`, `store_be`) check
-  their bounds with an overflow-free `assert!`; `store_words` writes its own array and needs
-  none. The module's other two `unsafe` blocks are in translated code: the calls in
-  `hw::compress` and `hw::chain_blocks` that enter the kernel after `available()`.
-- Everything else in safe Rust in the Aeneas subset: `compress_block`, and the chain kernel
-  (`Slot`, `First`, `Lanes`, `chain_all`, `enter`, `leave`, `run`, `period`, `tick`, `lane_tick`,
-  `lane_step`). The staggered schedule that used to be macro-generated is now const-generic
-  functions (`lane_step::<L, J, LANE>`), so the translation has one definition of a lane step
-  and 60 calls per period. The functions are `inline(always)` where the target has the
-  instructions unconditionally and `target_feature` + `inline` elsewhere (macro `kernel!`);
-  both variants measure the same.
-- `sha256::compress` and `hash::chain_blocks` now call `compress_portable` /
-  `chain_blocks_portable` after the cfg'd hand-off, so the portable code is a named function in
-  both builds.
-
-`lean-hw/` is a second Lake package for the crate built with the feature:
-- `scripts/extract-hw.sh`: Charon with `--features hw-sha2` and `--opaque
-  'slhdsa::sha256::hw::arm'`, then Aeneas into `lean-hw/Slhdsa/{Types,Funs}.lean`. Aeneas lists
-  what it left out as axioms in two template files; the script fails unless each has a
-  definition in `TypesExternal.lean` / `FunsExternal.lean`, then deletes the templates.
-- `lean-hw/Arm.lean`: the instruction model (core Lean only), transcribed from the Arm ARM
-  pseudocode. `haveSha2` is an opaque Boolean; everything is proved for both values.
-- `lean-hw/Slhdsa/FunsExternal.lean`: the eighteen wrappers defined over `Arm.lean`. **These two
-  files are the trusted addition.**
-- `lean-hw/Slhdsa/Proofs/`: symbolic links to `lean/Slhdsa/Proofs/*.lean` for every file that
-  does not depend on the build (and `Theorems.lean` likewise), plus:
-  - `CompressTop.lean`, `ChainTop.lean`: `compress_spec`, `chain_blocks_spec` with the default
-    build's statements, by cases on the hand-off;
-  - `Hw/Model.lean` (`kstep`, `kcompress`), `Hw/Rounds.lean` (`sha256h_rounds`, `su_eq`,
-    `kcompress_eq`: sixteen kernel steps are `Spec.SHA256.compress`), `Hw/Compress.lean`
-    (`hw_compress_block_spec`);
-  - `Hw/ChainModel.lean` (the words a lane rebuilds are those of the block with the new counter
-    and value; one hash step is `stepBlock`), `ChainLane.lean`, `ChainRun.lean` (`run_spec`: the
-    staggered periods give each lane exactly `steps` hash steps), `ChainLoop.lean` (`enter`,
-    `leave`, the cache invariant `FirstOk`, the minimum and compaction loops), `ChainMain.lean`,
-    `ChainAll.lean` (the slot invariant `MInv`), `Chain.lean` (`hw_chain_all_spec`).
-  - `Hw/Wrappers.lean`: each wrapper's definition equals a bounds check around a plain
-    function; `lean-hw/ArmTest.lean` runs those plain functions (Aeneas's `Result` is
-    coinductive and cannot be executed).
-- To make the sharing possible `lean/Slhdsa/Proofs/Sha256.lean` was split: `Sha256Core.lean`
-  (through `compress_portable_spec`), `CompressTop.lean`, `Sha256.lean` (the rest); and
-  `chain_blocks_spec` moved to `ChainTop.lean`.
-- Result: `lake build` in `lean-hw` prints the same six theorems on the three standard axioms.
-
-`security-hw/` attaches the security theorems to the `hw-sha2` build. It is a Lake package with
-no source of its own: `Spec`, `Link`, `E2E`, `Reduction` and `Ideal` are compiled in place from
-`../lean` and `../security`, and `Slhdsa` and `Arm` from `../lean-hw`. Only `E2E/*` and
-`Ideal/Rust*.lean` depend on the translation, and they compile unchanged. Checked there, all on
-the three standard axioms: `E2E.end_to_end`, `E2E.standard_model_security_split`,
-`E2E.pure_standard_model_security_split`, `E2E.bytes_end_to_end`, `E2E.pure_bytes_end_to_end`,
-`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`, and
-`Ideal.rust_ideal_security_closed_pure` (built there; its axioms were printed in `security/`). It compiles
-its own copies of the security libraries; a build from a clean state takes about four minutes
-(checked in a scratch copy). The quantum theorems are about the scheme at the byte
-interface and do not mention the Rust code; `E2E.pure_bytes_end_to_end` is what connects
-either build to them.
-
-What the `hw-sha2` theorems rest on beyond the default build's:
-- The model against the processor: `vectors/arm-wrappers.txt` holds 1,745 cases recorded from
-  an Apple M5 by the unit test `sha256::hw::vectors` (`ARM_VECTORS_WRITE=1` rewrites it; without
-  it the test checks the processor against the file); `ArmTest.lean` checks the model against
-  the file: 0 mismatches, and a deliberately wrong model gives 320.
-- That each wrapper's intrinsics are the instructions named, with the operand order in its
-  definition; and rustc/LLVM.
-- Not covered: other AArch64 processors (the model is architectural, but only this CPU was
-  compared), and the behaviour when `std`'s feature detection is wrong.
-
-**Tried and rejected** (all measured in scratch copies, nothing kept):
-- A fifth chain on scalar integer SHA-256, woven between the lanes. Correct, but slower: one
-  scalar round per tick made the kernel 13.3 ns per hash against 12.97 without it.
-- Hashing the `T_len` of two adjacent leaves side by side: 0.3%.
-- Larger FORS batches than 128 leaves: under 0.1%.
-- Keeping long-message hashing state in registers across blocks would need a new verified
-  multi-block function; the gain is about 4% on the message part of a 1 MiB verification.
-
-**Not tested:** a CPU without the instructions with the feature on (the fall-through to the
-portable code; no such machine here), and any real non-Apple AArch64 machine. The staggering
-and lane count are tuned to this CPU.
-
-**History:** commit `2a4bea5` is an intermediate, fully verified design (lockstep chains with
-`compress_many`, 41 ms sign); `ad4e485` is the first `hw-sha2` (one block at a time, 84 ms).
-
-## Interface module, checked signer and wiping (2026-11-21, later the same day)
-
-Decisions by the owner, in order: make the RustCrypto-style crate the main interface and verify
-what can be verified of it; then, on learning that neither RustCrypto nor OpenSSL has the fault
-check, **make the check opt-in** so that default signing does the same work as RustCrypto's.
-
-- **`rust/src/api.rs`** (translated, proved): `keygen(seeds, &mut sk, &mut pk)`, `public_key`,
-  `sign`, `sign_deterministic`, `sign_checked`, `sign_deterministic_checked`, `verify`. Nothing
-  returns a secret by value.
-- **Checked signer** (`slh::slh_sign_internal_checked`, `slh_sign_checked`, `ht::ht_sign_checked`,
-  `fors::fors_pk_gen`): the FORS public key and every XMSS root are computed twice, as a verifier
-  would from the signature and as key generation would from the seed (the top one is `PK.root`);
-  each layer signs one copy and recomputes with the other. Measured 56.5 ms against 30.2 ms
-  (`hw-sha2`), 570 ms against 304 ms (portable): 1.87×. Reason it exists: a fault in one tree
-  yields a wrong root that the next layer signs correctly, so the faulty signature verifies and
-  a check of the finished signature (or of the top root alone) cannot see it. RustCrypto
-  0.2.0-rc.5 (source read) and OpenSSL (its reply to the SLasH-DSA authors, and a sign/keygen
-  time ratio of 7.6 like every unprotected signer) do not guard against this.
-- **`hash::prf_msg`** was rewritten so that HMAC's key blocks live on the stack; nothing derived
-  from the secret seed is written to the heap any more. `sha256::hmac_sha256` remains, unused by
-  the crate.
-- **Proofs** (`lean/Slhdsa/ApiTheorems.lean`, 29 statements, both packages, standard axioms):
-  the interface functions against FIPS 205; the checked signer returns the standard's signature
-  when it returns one, what it returns always verifies, and it always returns one for a
-  well-formed key (`Spec.KeyOk`); and completeness, which the repository lacked: for a key from
-  key generation, sign then verify gives `true` (`Spec/Correctness.lean`: `wots_correct`,
-  `xmss_correct`, `fors_correct`). `prf_msg_spec` was re-proved with its statement unchanged.
-  Nothing is proved about faults.
-- **`compat/`**: default signing is the plain signer (86 same-source results equal RustCrypto's);
-  `try_sign_checked` is the opt-in. The signing key's secret is in a `Box` (a moved key used to
-  leave a copy of itself on the stack; the leftover test found it). After each key generation
-  and signature the adapter overwrites 64 KiB of stack (`src/scrub.rs`); the verified functions
-  that handle the seed are `#[inline(never)]` so their frames lie below the adapter's.
-  `tests/wipe.rs` (signer run on a stack the test owns, then searched for 208 forms of the
-  secrets) and `tests/heap.rs` (allocator that searches every freed block) pass, and each fails
-  when the scrub or the key wipe is removed. Measured stack use of keygen plus checked signing:
-  about 15 KiB. Not covered: registers, unoptimised builds, compiler-made copies.
-- **Benchmark**: entry `verified-api` added (the adapter); `bench/variants/current` re-synced.
-  **Not rerun yet**: the numbers in `bench/RESULTS.md` predate this round.
-
-## `no_std`, and the adapter's logic moved into verified code (2026-11-21, evening)
-
-Owner's request: prove the adapter rather than leave it as trusted glue; `no_std`.
-- **`no_std`.** `rust/` is `#![no_std]` + `alloc`; translated definitions unchanged. With
-  `hw-sha2`, `std` is linked only where the feature test needs the operating system (not on
-  `target_os = "none"`, where `available()` is the build's `target_feature`, nor where the target
-  guarantees the instructions). `compat/` is `no_std` + `alloc`. Built for `aarch64-unknown-none`
-  (core: default, `hw-sha2`, `hw-sha2` with `+sha2`; adapter: `--no-default-features --features
-  alloc`; `getrandom` has no bare-metal backend). The rustup target was added on this machine.
-- **`rust/src/encoding.rs`** (translated, proved): `secret_key_from`, `public_key_from`,
-  `signature_len_ok`, `secret_keys_equal`, `pkcs8_encode`/`decode`, `spki_encode`/`decode`.
-  `lean/Slhdsa/EncodingTheorems.lean` (12 statements): values, exactness of the decoders,
-  round trips, injectivity, with the DER prefixes as literal lists. `lean/Ct/Encoding.lean`:
-  constant-time statements. Both packages. The adapter's encoders now emit the verified bytes
-  (identical to what the `pkcs8` crate produced; `tests/dropin.rs` compares with RustCrypto).
-- **Checker whitelist change:** `Decidable.decide` added to `nonLeaking` in `lean/Ct/Check.lean`
-  (a comparison returned as a `Bool` in `secret_keys_equal` and `signature_len_ok`); reason in
-  the file. Counts: 240/280 definitions, 208/244 erasure theorems.
-- **Residue in `compat/` that is not proved:** forwarding trait impls and array conversions; the
-  multi-part join loop (Aeneas: "unsupported nested borrows" for `&[&[u8]]`); random sources; the
-  `pkcs8` crate's decoding and its validation of our encoding; wiping.
-
-## Constant time proved for the default build (`lean/Ct`, 2026-11-21)
-
-`lean/CT_STATUS.md` is the reference. In short: `lean/Ct/` instruments the verified translation's
-own text (branch outcomes, access indices and lengths, ranges, copy lengths, comparison prefix
-lengths, division operands), proves that erasing the trace gives the verified functions (190
-theorems), and proves in `Ct/Theorems.lean` (16 statements, standard axioms): key generation's
-trace is the same for all seeds; every signer's trace on a run that returns a signature equals
-that of a simulator given only (public key, message, context, signature); verification has only
-public inputs. No functional hypothesis was assumed beyond the message-length bound. Checked by
-rebuilding (`lake build Ct`, 3,701 jobs; 221 definitions pass the checker).
-- A research report on the method and its limits is in `reports/Constant time proofs for SLH
-  DSA.md`; the simulator form of the signing theorem comes from it.
-- **The `hw-sha2` build is covered too** (`lean-hw/Ct`, same day): the same 16 statements over
-  that build's translation (261 definitions pass the checker, 226 erasure theorems). Shared by
-  link with `lean/Ct` except the instrumented copy, `CompressTop.lean`, `ChainTop.lean`,
-  `Hw/Lanes.lean`, `Hw/Chain.lean` and the trusted wrapper model `ModelBuild.lean` (memory
-  wrappers record their range; register-only instructions record nothing, an assumption about
-  the processor that needs Arm's data-independent-timing mode). To share the callers, the
-  `chain_blocks` lemma now requires the two runs' blocks to agree on their first 16 bytes
-  (`Ct/Heads.lean`), which is what the kernel's cache of the first rounds compares; every caller
-  proves it from public addresses. Changes to meaning-bearing shared files: `Do.lean` accepts one
-  form of `match` (on an `Option`, recorded as a branch on `isSome`), needed by the hardware
-  `compress`; `Check.lean` accepts the build's wrapper list. `Model.lean`, the simulators and
-  `Theorems.lean` did not change. `scripts/ct-gen.sh hw` generates the hardware copy.
-- **`rust/ct-evidence` was rebuilt for the current code and rerun on both builds** (results in
-  its `RESULTS.md`, raw outputs in `out/default`, `out/hw-sha2`). Traces: identical across
-  secrets everywhere. Timing: nothing above the hash level; short hash calls are distinguishable
-  with PSTATE.DIT = 0 (all-zero block about 0.5-1.1% faster in the default build) and not with
-  DIT = 1. The harness's standard fixed-vs-random design had an artefact for multi-block rows;
-  `--same-prep` is the corrected design. Caveat: some timing runs overlapped with Lean builds
-  and with each other; noise-floor runs before and after each series were clean.
-- Not done: anything below the source that a proof could reach (compiler, speculation, power).
-- Observation, not a defect: when a checked signer returns nothing after a failed recomputation,
-  its trace shows the common-prefix length of the two roots.
-
-## Security statements attached to the interface functions (2026-11-21)
-
-`security/E2E/Api.lean` and `security/Ideal/RustFinalClosedPureApi.lean` (new files, two import
-lines; both `security` and `security-hw` build, 35 new theorems on at most the standard axioms):
-`api::keygen`, `sign`, `sign_deterministic` and `verify` are the deterministic cores of the
-byte-level scheme with context strings (`api_pure_cores`, `ApiPureBytesEndToEnd`), and the
-headline theorems are restated with them (`api_pure_security`, `…_linear`, `…G`,
-`api_pure_standard_model_security_split`, `Ideal.api_ideal_security_closed_pure`) by reusing the
-existing bounds. On a well-formed key the checked signers equal the plain ones
-(`api_sign_checked_eq_sign`, `api_keygen_checked_eq`). Key generation is stated on the split of
-the 48 seed bytes into three blocks, deterministic signing on the split of the private key; both
-splits always exist and are unique.
-- **Random-oracle form** (added later the same day): `security/E2E/GuardedRom.lean`,
-  `CodedRom.lean`, `PureRom.lean`, `PureRomBytes.lean` lift the internal random-oracle theorem to
-  the context-string interface, typed and on bytes (`pure_rom_security`,
-  `rust_pure_rom_security_bytes`, `api_pure_rom_security`, `api_pure_rom_security_bytes`). The
-  bound is the internal `securityBound … qh qs` at the same `qh`, `qs`; the internal bound is
-  reused through a wrapper forger, not re-proved. Both security packages build.
-
-## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
-
-`compat/` (package `slhdsa-compat`, library name `slh_dsa`) gives the verified crate the
-public interface of RustCrypto `slh-dsa` 0.2.0-rc.5 for `Sha2_128s`: the three types, the
-`signature` 3.0 traits, byte conversions, PKCS#8 and SubjectPublicKeyInfo. It is glue and
-is not verified. It adds `SigningKey::generate` and `try_sign_hedged` (operating-system
-randomness through `getrandom`), wipes the signing key on drop, and keeps the secret out of
-`Debug`. `tests/dropin.rs` compiles one source text against both crates and compares 86
-results; `tests/extras.rs` covers the additions and random inputs. Each of four deliberate
-breakages (no wipe, secret in `Debug`, wrong default randomiser, comparison skipping a
-byte) made the matching test fail. Limits: one parameter set; needs `std`; the verified
-crate itself still wipes nothing. The interface and the encoding glue follow RustCrypto's
-crate (Apache-2.0 OR MIT), credited in `compat/README.md` with both licence texts.
-(Superseded in part by the section above: the adapter now calls `slhdsa::api`, keeps the secret
-in a `Box`, and scrubs the stack.)
-
-## A second processor (`scripts/check-arm.sh`, 2026-11-21)
-
-The instruction model has been compared with one processor (Apple M5). `scripts/check-arm.sh`
-replays `vectors/arm-wrappers.txt` on whatever AArch64 machine it runs on, prints the
-processor's identity, and runs the crate's and the adapter's tests on the hardware backend;
-it needs only Rust. It has been run on the M5 only. On Linux the crate takes the
-runtime-detection path (`target_feature = "sha2"` is not static there), which the Mac never
-compiles by default; that path was built and tested here with
-`RUSTFLAGS="-C target-feature=-sha2,-sha3"`: all tests pass at the same speed.
-
-## Independent review of the trusted statements (2026-11-21)
-
-`reports/Trusted statements review.md`: a fresh reviewer compared `lean-hw/Arm.lean` with Arm's
-pseudocode (from a mirror of Arm's export and the Sail translation; Arm's own site did not
-render), the eighteen wrapper definitions with the Rust, and read the context-string ideal-model
-statements. No definition or statement was found wrong. What it did find, and what was done:
-- The documentation called `hw::arm` the crate's only `unsafe`; there are two more blocks, at the
-  guarded entries to the kernel. Corrected in README, this file and the Rust comments.
-- The model did not make an instruction fail on a CPU without it, so the theorems were symmetric
-  in the feature test and would still have held with the test inverted. **Repaired the same
-  day:** the seventeen wrappers other than `available` are now `fail .undef` when
-  `Arm.haveSha2 = false`; `Proofs/Hw/*` carry the hypothesis `Arm.haveSha2 = true`, which the two
-  top proofs obtain from the code's own `available()` test; `Proofs/Hw/Guard.lean` proves that
-  both kernels fail without the feature (`compress_block_undef`, `chain_all_undef`). No headline
-  statement changed. `ArmTest.lean` now calls the very functions the `wr_*` lemmas are about
-  instead of re-typed copies.
-- The trusted definitions number twenty-one in three files, not eighteen in two (the vector type,
-  its `clone`, and an unused `panic_bounds_check`).
-- The record covers 17 of the 18 wrappers on in-bounds inputs only; the failure branches rest on
-  reading (the reviewer tested 11,412 out-of-bounds calls natively: all panic where the Lean
-  definitions fail). `ArmTest.lean` re-types the right-hand sides of the plain functions.
-- `scripts/check.sh` did not scan `security/Ideal` or `security/Reduction` for placeholders; it
-  does now, and `lean/Ct` too.
-- Not done by the reviewer: no Lean run, proofs not read.
-
-## Six parameter sets and tighter bounds (2026-11-22)
-
-- **`multi/`** is now the optimised implementation for the six SHA-2 parameter sets (hash length
-  a const generic, the rest a runtime `Params`), with `api`, checked signer, `encoding`, `no_std`
-  and the `hw-sha2` kernel generic in the hash length. Proved for both builds and every set:
-  functional correctness (`multi/lean`, `multi/lean-hw`; 307 headlines each), constant time
-  (`multi/lean/Ct`, `multi/lean-hw/Ct`), the security link (`multi/security`,
-  `multi/security-hw`; 252 headlines each). Adapter: `multi/compat` (516 results equal to
-  RustCrypto's; wipe and heap tests per set). One script: `multi/scripts/check.sh`. Details:
-  `multi/STATUS.md`, `multi/CT_STATUS.md`, `multi/security/STATUS.md`.
-- **Found while doing it:** in `rust/` (this single-set tree), `prf_msg` hands the HMAC inner
-  digest, which depends on SK.prf, to a function whose padding copies it to a heap `Vec`. So
-  "nothing derived from the secret seed is written to the heap" is not literally true here, and
-  `compat/tests/heap.rs` does not search for that value. Fixed in `multi/rust` (and tested in
-  `multi/compat/tests`); NOT fixed in `rust/`.
-- **Not done in `multi/`:** SHAKE sets; verified hardware SHA-512 (`hw-sha512` is unproved; with
-  `hw-sha2` alone 256s signing is about 12% slower than RustCrypto); quantum side; binary timing
-  evidence; `compat/` and `bench/` at the top level still use `rust/`.
-- **Tighter classical bound** (`security/Ideal`, 128s): `suf/euf_ideal_closed_tight8` and the
-  context-string, Rust and API forms, same forger hypotheses as `suf_ideal_closed`. Proved
-  points (qf, qs): (2^60, 2^20) 2^-77 + 2^-132 + 2^-63; (2^64, 2^40) 2^-63 + 2^-94 + 2^-59;
-  (2^64, 2^64) 2^-45 + 2^-46 + 2^-39 (was 2^-44 + 2^-43 + 2^-31). What remains, why, and plans
-  with estimates: `security/status/TIGHT.md`. Reaching the generic-attack level (about 2^-64) at
-  2^64 signatures needs a different proof, not more counting.
+`lean-hw/Arm.lean` and `lean-hw/Slhdsa/{Types,Funs}External.lean` (twenty-one definitions): a
+hand transcription of Arm's pseudocode, tested against one processor (Apple M5) through
+`vectors/arm-wrappers.txt` (1,745 cases; `rust` checks the processor against it, `ArmTest.lean`
+the model); reviewed in `reports/Trusted statements review.md` (single-set tree, same wrappers).
+Not covered: other AArch64 processors, a CPU without the instructions running the feature, and
+`std`'s feature detection being wrong. The constant-time proof of the build additionally assumes
+that the register-only vector and SHA-256 instructions take operand-independent time (Arm's
+`PSTATE.DIT`).
 
 ## Not done
 
+- **SHAKE parameter sets**, pre-hash variants.
+- **Verified hardware SHA-512.** `hw-sha512` is experimental and unproved; with `hw-sha2` alone,
+  256s signing is about 10% slower than RustCrypto's hardware build.
+- **Ideal-compression bound** for the sets other than 128s (needs the counting re-instantiated
+  and, at n = 24, 32, an ideal SHA-512 compression function).
+- **Binary-level evidence** for this crate (above).
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
-- **A machine-readable Arm specification.** `lean-hw/Arm.lean` is a hand transcription, tested
-  against one processor. Deriving it from Arm's published ASL was not attempted.
-- **`rust/ct-evidence`** was not re-run against the optimised crate, and its harness still calls
-  `wots::chain`, which no longer exists. The new code's data-dependent control flow is in
-  `chain_blocks` (step ranges, which are WOTS+ digits and tree indices) and, with `hw-sha2`, in
-  the slot scheduling and the cache of the first rounds (keyed on the first 16 block bytes, an
-  address prefix); none of it was traced. **`multi/`** (six parameter
-  sets) still has the old hashing code.
-- **Stale text.** These still describe the theorems as conditional: the headers of
-  `security/Ideal/ComposeFinal.lean`, `quantum/Integration/SlhDsaComposedFinal.lean` (lines 35–55),
-  `SlhDsaBridgePrf.lean` (30–37), `SlhDsaOpenCounts.lean` (15–17); the bodies of
-  `quantum/STATUS.md` and `security/IDEAL_STATUS.md` below their top notes; `quantum/HANDOFF.md`;
-  `security/Ideal/HANDOFF.md`. The Lean headers were left alone so as not to invalidate the
-  builds that were just checked. One line of `security/status/AUDIT-closed.md` is wrong: it says
-  `Ideal.lean` does not import the headline files; it does (lines 90 and 122).
-- **Proof audit.** Nobody has read the new proofs. The audits cover statements and definitions.
+- **A machine-readable Arm specification** for the instruction model.
+- **Proof audit.** Nobody has read the proofs; the audits cover statements and definitions.
+- **Stale text** in the kept single-set documents (`security/IDEAL_STATUS.md` below its notes,
+  `REDUCTION_STATUS.md`, `security/status/*`, `quantum/STATUS.md` body, `quantum/HANDOFF*.md`,
+  `security/Ideal/HANDOFF.md`): they describe their state at the time, with paths of the
+  single-set tree (`26aa3d8`).
 
 ## Commands
 
 ```
-cd quantum  && PATH=$HOME/.elan/bin:$PATH scripts/check-integration.sh
-cd security && PATH=$HOME/.elan/bin:$PATH lake build
-cd lean     && PATH=$HOME/.elan/bin:$PATH lake build
-cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build
-cd security-hw && PATH=$HOME/.elan/bin:$PATH lake build
-cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
-cd rust     && cargo test --release
-cd rust     && cargo test --release --features hw-sha2
-cd compat   && cargo test && cargo test --features hw-sha2
-./scripts/check.sh        # all of the above except quantum, with both re-extractions
-cd bench    && ./run.sh
+./scripts/check.sh                       # everything below except quantum, with both re-extractions
+./scripts/check.sh full                  # also the slow spec keygen/signing vectors
+cd quantum     && scripts/check-integration.sh
+cd security    && lake build && scripts/check.sh
+cd security-hw && lake build && scripts/check.sh
+cd lean        && lake build Slhdsa Spec Ct spectest
+cd lean-hw     && lake build && lake build Ct
+cd lean-hw     && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
+cd rust        && cargo test --release [--features hw-sha2[,hw-sha512]]
+cd compat      && cargo test --release [--features hw-sha2]
+cd bench       && ./run.sh               # about 40 minutes; cargo bench --bench sets for the six sets
+cd ct-evidence && ./run.sh setup         # see its README
+./scripts/check-arm.sh                   # on another AArch64 machine
 ```

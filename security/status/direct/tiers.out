@@ -1,0 +1,26 @@
+P20
+   A  direct II + full-log tape, n=qf+2qs+2, prod form        2^ -67.00
+   A' direct II + full-log tape, n=qf+qs+2, prod form         2^ -67.00
+   B  direct II + full-log tape, n=qf+2qs+2, Stirling form    2^ -67.00
+   B' direct II + full-log tape, n=qf+qs+2, Stirling form     2^ -67.00
+   C  direct II + two-colour tape (targets only)              2^ -67.00
+P40
+   A  direct II + full-log tape, n=qf+2qs+2, prod form        2^ -62.33
+   A' direct II + full-log tape, n=qf+qs+2, prod form         2^ -62.33
+   B  direct II + full-log tape, n=qf+2qs+2, Stirling form    2^ -62.99
+   B' direct II + full-log tape, n=qf+qs+2, Stirling form     2^ -62.99
+   C  direct II + two-colour tape (targets only)              2^ -63.00
+P64
+   A  direct II + full-log tape, n=qf+2qs+2, prod form        2^ -52.57
+   A' direct II + full-log tape, n=qf+qs+2, prod form         2^ -57.22
+   B  direct II + full-log tape, n=qf+2qs+2, Stirling form    2^ -55.04
+   B' direct II + full-log tape, n=qf+qs+2, Stirling form     2^ -60.54
+   C  direct II + two-colour tape (targets only)              2^ -62.99
+P64-type, qf=2^64, varying qs:  tier B'  /  tier C  / floor
+   qs=2^48: 2^ -62.99  2^ -63.00  2^ -64.00
+   qs=2^52: 2^ -62.99  2^ -63.00  2^ -64.00
+   qs=2^56: 2^ -62.99  2^ -63.00  2^ -64.00
+   qs=2^60: 2^ -62.98  2^ -63.00  2^ -64.00
+   qs=2^62: 2^ -62.91  2^ -63.00  2^ -64.00
+   qs=2^64: 2^ -60.54  2^ -62.99  2^ -63.97
+   qs=2^66: 2^ -47.13  2^ -52.67  2^ -52.71

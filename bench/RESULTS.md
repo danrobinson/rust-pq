@@ -1,6 +1,16 @@
 # SLH-DSA-SHA2-128s performance: the verified crate against other implementations
 
-This file reports five benchmark runs of the same suite:
+> **Dated (2026-11-22): every run in this file was measured on the single-set crate**
+> (SLH-DSA-SHA2-128s only), which was replaced by the six-set crate on 2026-11-22. The crate measured
+> as `verified` / `verified+hw-sha2` / `verified-api` here is `rust/` and `compat/` as of git commit
+> `26aa3d8` or earlier (runs 1–2: earlier commits, see each run); paths such as `../rust`, `../opt`,
+> `../opt/original/rust` below refer to that tree, not to the current `../rust`. Nothing here was
+> re-measured on the six-set crate. For it, `run.sh` now benchmarks its 128s functions under the same
+> names, and `benches/sets.rs` all six sets against RustCrypto; the six-set crate's own measurements
+> (128s within 2.5% of the single-set crate, all six sets against RustCrypto) are in `../STATUS.md`,
+> "Measurements".
+
+This file reports six benchmark runs of the same suite (run 6 is described in its own section below):
 
 - **Run 5 (current; `results/run5/`, 2026-11-21 13:31–13:52)** repeats run 4 after the `hw-sha2` backend
   was rewritten so that Aeneas translates it (see `../HANDOFF.md`). The numbers did not move.
@@ -647,7 +657,7 @@ in the same build configuration (>1 = faster than verified); ±x% = half the ran
 - **Randomised (hedged) signing** for the FIPS 205 libraries: it adds one 16-byte RNG call per signature, which
   is negligible against about 4.4 million (verified) or 2.2 million (others) compressions. PQClean is measured
   randomised because it has no deterministic API.
-- **Multi-threading, memory use, other parameter sets** (including the `multi/` copy) and other platforms (x86-64,
+- **Multi-threading, memory use, other parameter sets** (including the six-set copy, then in a subdirectory) and other platforms (x86-64,
   where sha2 and OpenSSL would use SHA-NI or AVX2).
 - Constant-time behaviour was not assessed here.
 

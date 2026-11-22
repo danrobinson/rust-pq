@@ -9,8 +9,10 @@ State: **done.** All twelve realisers are discharged. New files (only):
 Builds: `lake build Ideal.Realize.Final` → `Build completed successfully (7322 jobs).`;
 `lake build Ideal.RustFinalClosed` → `Build completed successfully (7973 jobs).` Every
 `#print axioms` line is `[propext, Classical.choice, Quot.sound]`. No `sorry`, `axiom`,
-`native_decide`, `bv_decide`, `maxHeartbeats` in these files. Not imported by `Ideal.lean`
-(add `Ideal.Realize.Final` and `Ideal.RustFinalClosed`).
+`native_decide`, `bv_decide`, `maxHeartbeats` in these files. (Corrected 2026-11-22: this said the
+files were not imported by `Ideal.lean`; they are: `Ideal.Realize.FinalCore`, `Ideal.Realize.Final`,
+and `Ideal.RustFinalClosed` until the single-set Rust corollaries `Ideal/Rust*.lean` were removed on
+2026-11-22, see `../STATUS.md`; the file is at git commit `26aa3d8`.)
 
 ## Parameters
 - `S : ForgerI`: ideal-model forger (one oracle program: uniform bits, SHA-256 compression

@@ -1,13 +1,15 @@
 import Ct.Slh
 import Ct.Sim
 import Slhdsa.Proofs.Api
+import Slhdsa.Proofs.Checked
 
 /-!
 # Functional facts used by the signing theorems
 
-Taken from the functional-correctness proofs of `Slhdsa/Proofs` through erasure: which
-calls return (so that the simulator, run on zero seeds, returns), and the values of a few
-primitives (blocks of a byte string, `extend_from_slice`, array comparison).
+(Adapted from the single-set tree's `lean/Ct/SignFacts.lean` to the hash length `N` and the
+parameter set `p`.) Taken from the functional-correctness proofs of `Slhdsa/Proofs` through
+erasure: which calls return (so that the simulator, run on zero seeds, returns), and the values
+of a few primitives (blocks of a byte string, `extend_from_slice`, array comparison).
 -/
 
 open Aeneas Aeneas.Std Ct
@@ -47,7 +49,7 @@ theorem extend_u8 {v : alloc.vec.Vec U8} {s : Slice U8} {w : alloc.vec.Vec U8}
     (h : alloc.vec.Vec.extend_from_slice core.clone.CloneU8 v s = .ok w) :
     w.val = v.val ++ s.val ∧ v.length + s.length ≤ Usize.max := by
   by_cases hl : v.length + s.length ≤ Usize.max
-  · obtain ⟨r, hr, hv⟩ := slhdsa.spec_imp_exists (slhdsa.chk_extend_from_slice_spec v s hl)
+  · obtain ⟨r, hr, hv, -⟩ := slhdsa.spec_imp_exists (slhdsa.util_extend_from_slice_u8_spec v s hl)
     rw [hr] at h
     simp only [Result.ok.injEq] at h
     subst h
@@ -64,7 +66,7 @@ theorem extend_run {v : alloc.vec.Vec U8} {s : Slice U8} {w : alloc.vec.Vec U8} 
 theorem extend_run_of {v : alloc.vec.Vec U8} {s : Slice U8} (hl : v.length + s.length ≤ Usize.max) :
     ∃ w, (slhdsa_leak.alloc.vec.Vec.extend_from_slice core.clone.CloneU8 v s).run =
       .ok (w, [.extend v.length s.length]) ∧ w.val = v.val ++ s.val := by
-  obtain ⟨r, hr, hv⟩ := slhdsa.spec_imp_exists (slhdsa.chk_extend_from_slice_spec v s hl)
+  obtain ⟨r, hr, hv, -⟩ := slhdsa.spec_imp_exists (slhdsa.util_extend_from_slice_u8_spec v s hl)
   exact ⟨r, Leak.prim_eq_ok.mpr ⟨hr, rfl⟩, hv⟩
 
 /-- The extension of vectors of the same lengths returns, with the same trace. -/
@@ -79,28 +81,28 @@ theorem extend_sim {v v' : alloc.vec.Vec U8} {s s' : Slice U8} {w : alloc.vec.Ve
 
 /-! ## Blocks, comparison -/
 
-theorem block_ok (s : Slice U8) (i : Usize) (h : (i.val + 1) * 16 ≤ s.length) :
-    ∃ r, slhdsa.util.block s i = .ok r ∧ r.val = (s.val.drop (i.val * 16)).take 16 := by
-  obtain ⟨r, hr, hv, -⟩ := slhdsa.spec_imp_exists (slhdsa.block_spec s i h)
+theorem block_ok (N : Usize) (s : Slice U8) (i : Usize) (h : (i.val + 1) * N.val ≤ s.length) :
+    ∃ r, slhdsa.util.block N s i = .ok r ∧ r.val = (s.val.drop (i.val * N.val)).take N.val := by
+  obtain ⟨r, hr, hv⟩ := slhdsa.spec_imp_exists (slhdsa.block_spec N s i h)
   exact ⟨r, hr, hv⟩
 
-theorem block_run_ok (s : Slice U8) (i : Usize) (h : (i.val + 1) * 16 ≤ s.length) :
-    ∃ r t, (slhdsa_leak.util.block s i).run = .ok (r, t) ∧
-      r.val = (s.val.drop (i.val * 16)).take 16 := by
-  obtain ⟨r, hr, hv⟩ := block_ok s i h
-  obtain ⟨t, ht⟩ := Leak.erase_eq_ok.mp ((slhdsa_leak.util.block.erase_eq s i).trans hr)
+theorem block_run_ok (N : Usize) (s : Slice U8) (i : Usize) (h : (i.val + 1) * N.val ≤ s.length) :
+    ∃ r t, (slhdsa_leak.util.block N s i).run = .ok (r, t) ∧
+      r.val = (s.val.drop (i.val * N.val)).take N.val := by
+  obtain ⟨r, hr, hv⟩ := block_ok N s i h
+  obtain ⟨t, ht⟩ := Leak.erase_eq_ok.mp ((slhdsa_leak.util.block.erase_eq N s i).trans hr)
   exact ⟨r, t, ht, hv⟩
 
-theorem block_run_val {s : Slice U8} {i : Usize} {r : Array U8 16#usize} {t : Trace}
-    (h : (slhdsa_leak.util.block s i).run = .ok (r, t)) (hl : (i.val + 1) * 16 ≤ s.length) :
-    r.val = (s.val.drop (i.val * 16)).take 16 := by
-  obtain ⟨r', t', h', hv⟩ := block_run_ok s i hl
+theorem block_run_val {N : Usize} {s : Slice U8} {i : Usize} {r : Array U8 N} {t : Trace}
+    (h : (slhdsa_leak.util.block N s i).run = .ok (r, t)) (hl : (i.val + 1) * N.val ≤ s.length) :
+    r.val = (s.val.drop (i.val * N.val)).take N.val := by
+  obtain ⟨r', t', h', hv⟩ := block_run_ok N s i hl
   obtain ⟨rfl, -⟩ := Leak.run_ok_det h h'
   exact hv
 
-theorem eq_run {a b : Array U8 16#usize} {c : Bool} {t : Trace}
+theorem eq_run {N : Usize} {a b : Array U8 N} {c : Bool} {t : Trace}
     (h : (slhdsa_leak.core.array.equality.PartialEqArray.eq core.cmp.PartialEqU8 a b).run =
-      .ok (c, t)) : c = decide (a.val = b.val) ∧ t = [.cmp (commonPrefix a.val b.val) 16] := by
+      .ok (c, t)) : c = decide (a.val = b.val) ∧ t = [.cmp (commonPrefix a.val b.val) N.val] := by
   obtain ⟨h1, rfl⟩ := Leak.prim_eq_ok.mp h
   obtain ⟨v, hv, hp⟩ := slhdsa.spec_imp_exists (slhdsa.ht_array_eq_spec a b)
   rw [hv] at h1
@@ -113,30 +115,55 @@ theorem commonPrefix_self (l : List U8) : commonPrefix l l = l.length := by
   | nil => rfl
   | cons x xs ih => simp [commonPrefix, ih]
 
-theorem eq_self_run (a : Array U8 16#usize) :
+theorem eq_self_run {N : Usize} (a : Array U8 N) :
     (slhdsa_leak.core.array.equality.PartialEqArray.eq core.cmp.PartialEqU8 a a).run =
-      .ok (true, [.cmp 16 16]) := by
+      .ok (true, [.cmp N.val N.val]) := by
   obtain ⟨v, hv, hp⟩ := slhdsa.spec_imp_exists (slhdsa.ht_array_eq_spec a a)
   refine Leak.prim_eq_ok.mpr ⟨?_, ?_⟩
   · rw [hv, hp]; simp
-  · rw [commonPrefix_self, a.property]; rfl
+  · rw [commonPrefix_self, a.property]
 
-/-- The leaf index of the next layer is below `2^9`. -/
-theorem leaf_bound (tree i i1 : U64) (hi : 1#u64 <<< slhdsa_leak.params.HP = Result.ok i)
-    (hi1 : i - 1#u64 = Result.ok i1) : (UScalar.cast .U32 (tree &&& i1)).val < 2 ^ 9 := by
-  obtain ⟨v, hv, hp⟩ := slhdsa.spec_imp_exists
-    (U64.ShiftLeft_spec (1#u64) slhdsa_leak.params.HP (by simp [slhdsa_leak.params.HP]))
+/-- The leaf index of the next layer is below `2^hp`. -/
+theorem leaf_bound (p : slhdsa.params.Params) (hhp : p.hp.val ≤ 9) (tree i i1 : U64)
+    (hi : 1#u64 <<< p.hp = Result.ok i)
+    (hi1 : i - 1#u64 = Result.ok i1) : (UScalar.cast .U32 (tree &&& i1)).val < 2 ^ p.hp.val := by
+  obtain ⟨v, hv, hp, -⟩ := slhdsa.spec_imp_exists
+    (U64.ShiftLeft_spec (1#u64) p.hp (by omega))
   rw [hv] at hi
   simp only [Result.ok.injEq] at hi
   subst hi
-  have h2 : v.val = 512 := by simp [hp, U64.size, U64.numBits, slhdsa_leak.params.HP]
+  have hpow : 2 ^ p.hp.val ≤ 2 ^ 9 := Nat.pow_le_pow_right (by omega) hhp
+  have h2 : v.val = 2 ^ p.hp.val := by
+    rw [hp]
+    have e : (1#u64 : U64).val <<< p.hp.val = 2 ^ p.hp.val := by simp [Nat.one_shiftLeft]
+    rw [e]
+    exact Nat.mod_eq_of_lt (by
+      calc 2 ^ p.hp.val ≤ 2 ^ 9 := hpow
+        _ < U64.size := by simp [U64.size, U64.numBits])
   have h3 := Ct.Arith.sub_ok hi1
-  have h3' : i1.val = 511 := by simp at h3; omega
-  have h4 : (tree &&& i1).val = tree.val % 2 ^ 9 := by
+  have hpos : 0 < 2 ^ p.hp.val := Nat.pos_of_ne_zero (by simp)
+  have h3' : i1.val = 2 ^ p.hp.val - 1 := by simp at h3; omega
+  have h4 : (tree &&& i1).val = tree.val % 2 ^ p.hp.val := by
     rw [UScalar.val_and, h3']
-    exact Nat.and_two_pow_sub_one_eq_mod _ 9
+    exact Nat.and_two_pow_sub_one_eq_mod _ _
   rw [UScalar.cast_val_eq, h4]
-  simp [UScalarTy.numBits]
-  omega
+  have : tree.val % 2 ^ p.hp.val < 2 ^ p.hp.val := Nat.mod_lt _ hpos
+  simp only [UScalarTy.numBits]
+  calc tree.val % 2 ^ p.hp.val % 2 ^ 32 ≤ tree.val % 2 ^ p.hp.val := Nat.mod_le _ _
+    _ < 2 ^ p.hp.val := this
+
+/-- A range of a vector has the length of the range. -/
+theorem vec_range_len {v : alloc.vec.Vec U8} {r : core.ops.range.Range Usize} {s : Slice U8}
+    (h : alloc.vec.Vec.index (core.slice.index.SliceIndexRangeUsizeSlice U8) v r = Result.ok s) :
+    s.length = r.end.val - r.start.val ∧ r.end.val ≤ v.length := by
+  simp only [alloc.vec.Vec.index, core.slice.index.SliceIndexRangeUsizeSlice,
+    core.slice.index.SliceIndexRangeUsizeSlice.index] at h
+  split at h
+  · simp only [Result.ok.injEq] at h; subst h
+    rename_i hc
+    simp only [UScalar.le_equiv] at hc
+    simp [Slice.length, List.slice_length, alloc.vec.Vec.length, alloc.vec.Vec.val] at hc ⊢
+    omega
+  · simp at h
 
 end Ct.SignFacts

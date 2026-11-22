@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 build = "build.rs"
-description = "Benchmarks of the verified SLH-DSA-SHA2-128s crate (../rust) against other implementations"
+description = "Benchmarks of the verified SLH-DSA-SHA2 crate (../rust) against other implementations"
 
 [features]
 # Force the portable SHA-256 in sha2 0.10 (used by fips205). sha2 0.11 (used by
@@ -24,10 +24,12 @@ slhdsa = { path = "../rust" }
 # The interface programs are meant to use: RustCrypto's types and traits around the verified
 # crate, signing with the fault check and wiping afterwards. Entry `verified-api`.
 slhdsa_api = { package = "slhdsa-compat", path = "../compat" }
-# `verified-before`: the pre-optimisation verified crate. Cargo cannot depend on two
-# path packages both named `slhdsa`, so this is variants/base, a copy of
-# ../opt/original/rust/src whose only difference is a compression counter compiled
-# in only with feature `count` (never enabled in the benchmarks); run.sh checks this.
+# `verified-before`: the pre-optimisation single-set verified crate. Cargo cannot depend on two
+# path packages both named `slhdsa`, so this is variants/base, a frozen copy of
+# opt/original/rust/src of git commit 26aa3d8 whose only difference is a compression counter
+# compiled in only with feature `count` (never enabled in the benchmarks); run.sh checks this.
+# variants/a..d (experiments) and variants/current (the single-set crate as of 26aa3d8, used
+# only by count/) are frozen copies of that tree as well.
 slhdsa_base = { path = "variants/base" }
 slhdsa_a = { path = "variants/a" }
 slhdsa_b = { path = "variants/b" }
@@ -55,6 +57,10 @@ harness = false
 
 [[bench]]
 name = "sha"
+harness = false
+
+[[bench]]
+name = "sets"
 harness = false
 
 [workspace]

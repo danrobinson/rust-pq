@@ -1,8 +1,10 @@
-//! The interface of RustCrypto's [`slh-dsa`] crate for SLH-DSA-SHA2-128s,
-//! backed by the formally verified `slhdsa` crate.
+//! The interface of RustCrypto's [`slh-dsa`] crate for the six SLH-DSA-SHA2
+//! parameter sets, backed by the formally verified `slhdsa` crate
+//! (`../rust`).
 //!
-//! Code written against `slh-dsa` 0.2 that only uses [`Sha2_128s`] can switch
-//! by changing the dependency:
+//! Code written against `slh-dsa` 0.2 that uses only the SHA-2 sets
+//! ([`Sha2_128s`], [`Sha2_128f`], [`Sha2_192s`], [`Sha2_192f`],
+//! [`Sha2_256s`], [`Sha2_256f`]) can switch by changing the dependency:
 //!
 //! ```toml
 //! slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
@@ -13,7 +15,7 @@
 //! use slh_dsa::signature::*;
 //!
 //! // Generate a signing key from the operating system's random source.
-//! let sk = SigningKey::<Sha2_128s>::generate().unwrap();
+//! let sk = SigningKey::<Sha2_128f>::generate().unwrap();
 //! let vk = sk.verifying_key();
 //!
 //! // Hedged signing, the default of FIPS 205.
@@ -24,15 +26,20 @@
 //! # What is verified and what is not
 //!
 //! Key generation, signing and verification are the verified crate's
-//! interface functions (`slhdsa::keygen`, `sign`, `sign_deterministic`,
-//! `verify`), called on byte arrays: which bytes of a private key are which,
-//! the context-string framing, and the choice of `PK.seed` as the randomness
-//! of a deterministic signature are all decided there. What this crate adds
-//! is **not** covered by the proofs: the key and signature types and their
-//! trait plumbing, drawing randomness from a random source, joining a
-//! multi-part message into one buffer, the PKCS#8 / SPKI encodings (done by
-//! the `pkcs8` crate), and the wiping described below. The tests compare
-//! every entry point with RustCrypto's crate on the same inputs.
+//! per-set interface functions (`slhdsa::sha2_128s::keygen`, `sign`,
+//! `sign_deterministic`, `sign_checked`, `verify`, …), called on byte
+//! arrays: which bytes of a private key are which, the context-string
+//! framing, and the choice of `PK.seed` as the randomness of a deterministic
+//! signature are all decided there, as are the acceptance of key and
+//! signature bytes, the comparison of private keys and the PKCS#8 / SPKI
+//! encodings (`slhdsa::sha2_128s::encoding`, …). The proofs cover the
+//! portable build of that crate. What this crate adds is **not** covered by
+//! the proofs: the key and signature types and their trait plumbing, drawing
+//! randomness from a random source, joining a multi-part message into one
+//! buffer, *decoding* PKCS#8 / SPKI (done by the `pkcs8` crate before the
+//! key bytes reach the verified parser), and the wiping described below.
+//! The tests compare every entry point with RustCrypto's crate on the same
+//! inputs, for all six sets.
 //!
 //! # Optional guard against faults
 //!
@@ -52,7 +59,8 @@
 //!   stack, and this crate overwrites that stack after each key generation
 //!   and signature.
 //! * `tests/wipe.rs` and `tests/heap.rs` search the stack and every freed
-//!   heap block for the seeds and values derived from them, and find none.
+//!   heap block for the seeds and values derived from them, for all six
+//!   sets, and find none.
 //!
 //! This is a best effort, as it is everywhere: registers are not cleared,
 //! the compiler may keep copies the source does not show, and what you copy
@@ -60,7 +68,9 @@
 //!
 //! # Differences from RustCrypto's crate
 //!
-//! * Only [`Sha2_128s`] exists. The other eleven parameter sets are missing.
+//! * Only the six SHA-2 sets exist. The six SHAKE sets (`Shake128s` …) are
+//!   missing, and so are upstream's generic types `Sha2L1` and `Sha2L35` of
+//!   which its SHA-2 names are aliases.
 //! * This crate is `no_std` like upstream, but always needs an allocator.
 //! * A [`SigningKey`] is always wiped when dropped (upstream does so only
 //!   with its `zeroize` feature), its `Debug` output does not print the
@@ -97,7 +107,7 @@ mod signature_encoding;
 mod signing_key;
 mod verifying_key;
 
-pub use params::{ParameterSet, Sha2_128s};
+pub use params::{ParameterSet, Sha2_128f, Sha2_128s, Sha2_192f, Sha2_192s, Sha2_256f, Sha2_256s};
 #[doc(hidden)]
 pub use scrub::SCRUB_BYTES;
 pub use signature_encoding::{Signature, SignatureLen};

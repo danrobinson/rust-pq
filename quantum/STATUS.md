@@ -1,5 +1,17 @@
 # Post-quantum security workstream — status (end of phase 4 consolidation)
 
+> **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
+> `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
+> same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
+> Spec-free stand-ins (the single-set `Spec` = VCVio proofs were removed with the single-set tree,
+> git commit `26aa3d8`; `../security/STATUS.md`, "The stand-ins"). No Integration file needed a
+> change: `scripts/check-integration.sh` passes against the new `../security` (93 `security`
+> modules checked, 46 Integration files, 348 theorems, standard axioms only; the last run is
+> recorded in `../HANDOFF.md`, "Checks"). The quantum theorems are about SLH-DSA-SHA2-128s at
+> VCVio's level (`Reduction.pureBytesAlg Link.vp (randPrims ω) …` averaged over capped random
+> functions `ω`); there is no statement about the Rust functions (`../README.md`, "Quantum
+> adversaries").
+
 > **Update (2026-11-21): the composed QROM theorem is finished. Read this first; everything
 > below it describes an earlier, conditional state.**
 > `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`

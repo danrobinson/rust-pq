@@ -1,13 +1,14 @@
 name = "security_hw"
-defaultTargets = ["E2E", "Ideal"]
-# The security theorems of ../security, attached to the crate built with `hw-sha2`.
+defaultTargets = ["Link", "Reduction", "E2E", "Ideal", "MLink", "MReduction", "ME2E", "MIdeal"]
+# The security theorems of ../security (six SHA-2 sets), attached to the crate built with
+# `hw-sha2`.
 #
-# Nothing here is new source: every library is compiled in place from ../security,
-# ../lean or ../lean-hw. The one difference from ../security is `Slhdsa`, which is the
-# translation and the proofs of the `hw-sha2` build (../lean-hw) instead of the default
-# build's (../lean). The end-to-end files (`E2E`, `Ideal/Rust*`) use the Rust functions only
-# through the theorems of `Slhdsa/Theorems.lean` and `Slhdsa/ApiTheorems.lean`, which are the
-# same statements in both.
+# Nothing here is new source: every library is compiled in place from ../security, ../lean or
+# ../lean-hw. The one difference from ../security/lakefile.toml is `Slhdsa`, which is the
+# translation and the proofs of the `hw-sha2` build (../lean-hw) instead of the default build's
+# (../lean), plus `Arm`, the instruction model that translation is written over. The headline
+# files of ../lean-hw (`Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean`) are links
+# to ../lean's, so `ME2E` sees the same statements about the Rust functions in both builds.
 
 # Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
 packagesDir = "../.tools/VCVio-upstream/.lake/packages"
@@ -20,25 +21,25 @@ path = "../.tools/VCVio-upstream"
 name = "aeneas"
 path = "../.tools/aeneas/backends/lean"
 
+# The parameterised FIPS 205 transcription (six SHA-2 sets), compiled in place from ../lean.
 [[lean_lib]]
 name = "Spec"
 srcDir = "../lean"
 
-[[lean_lib]]
-name = "Link"
-srcDir = "../security"
-
-# The instruction model and the translation of the `hw-sha2` build, with its proofs.
+# The instruction model of the hardware backend, compiled in place from ../lean-hw.
 [[lean_lib]]
 name = "Arm"
 srcDir = "../lean-hw"
 
+# The Aeneas translation of the crate built with `hw-sha2` and its refinement proofs,
+# compiled in place from ../lean-hw.
 [[lean_lib]]
 name = "Slhdsa"
 srcDir = "../lean-hw"
 
+# ../security's libraries, compiled in place.
 [[lean_lib]]
-name = "E2E"
+name = "Link"
 srcDir = "../security"
 
 [[lean_lib]]
@@ -46,5 +47,25 @@ name = "Reduction"
 srcDir = "../security"
 
 [[lean_lib]]
+name = "E2E"
+srcDir = "../security"
+
+[[lean_lib]]
 name = "Ideal"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "MLink"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "MReduction"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "ME2E"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "MIdeal"
 srcDir = "../security"

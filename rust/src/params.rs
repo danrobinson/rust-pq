@@ -1,45 +1,93 @@
-//! Parameter set SLH-DSA-SHA2-128s (FIPS 205, Table 2).
+//! Parameter sets (FIPS 205, Table 2).
+//!
+//! One `Params` value describes a parameter set. All six SHA-2 sets use
+//! `lg_w = 4`, so the Winternitz parameters are constants.
 
-/// Security parameter: hash output length in bytes.
-pub const N: usize = 16;
-/// Height of each XMSS tree (h').
-pub const HP: u32 = 9;
-/// Number of hypertree layers.
-pub const D: u32 = 7;
-/// FORS tree height.
-pub const A: u32 = 12;
-/// Number of FORS trees.
-pub const K: u32 = 14;
-/// Winternitz parameter, log2.
+/// Winternitz parameter, log2. The same for every parameter set of FIPS 205.
 pub const LG_W: u32 = 4;
 /// Winternitz parameter w = 2^LG_W.
 pub const W: u32 = 16;
-/// Message digest length in bytes.
-pub const M: usize = 30;
-/// WOTS+ message chains.
-pub const LEN1: usize = 32;
-/// WOTS+ checksum chains.
+/// WOTS+ checksum chains (FIPS 205 §5: `len_2 = 3` when `lg_w = 4`).
 pub const LEN2: usize = 3;
-/// WOTS+ chains in total.
-pub const LEN: usize = 35;
+/// The largest `len` of the six sets (n = 32): the size of the WOTS+ block
+/// arrays, of which the first `len = 2n + 3` are used.
+pub const LEN_MAX: usize = 67;
+/// The largest `k` of the six sets (SHA2-256f): the size of the arrays that
+/// hold one value per FORS tree.
+pub const K_MAX: usize = 35;
 
-/// Bytes of the digest used for FORS: ceil(K*A/8).
-pub const MD_BYTES: usize = 21;
-/// Bytes of the digest used for the tree index: ceil((H - H/D)/8).
-pub const TREE_BYTES: usize = 7;
-/// Bytes of the digest used for the leaf index: ceil(H/(8D)).
-pub const LEAF_BYTES: usize = 2;
+/// A row of FIPS 205 Table 2.
+///
+/// The functions of the scheme take the hash length `n` twice: as this
+/// field, and as the const generic `N` that sizes their arrays. Callers pass
+/// the same value (the modules `sha2_128s` … `sha2_256f` do).
+pub struct Params {
+    /// Security parameter: hash output length in bytes.
+    pub n: usize,
+    /// Total hypertree height.
+    pub h: u32,
+    /// Number of hypertree layers.
+    pub d: u32,
+    /// Height of each XMSS tree (h' = h / d).
+    pub hp: u32,
+    /// FORS tree height.
+    pub a: u32,
+    /// Number of FORS trees.
+    pub k: u32,
+    /// Message digest length in bytes.
+    pub m: usize,
+}
 
-pub const WOTS_SIG_BYTES: usize = 560; // LEN * N
-pub const XMSS_SIG_BYTES: usize = 704; // (LEN + HP) * N
-pub const FORS_SIG_BYTES: usize = 2912; // K * (1 + A) * N
-pub const HT_SIG_BYTES: usize = 4928; // D * XMSS_SIG_BYTES
-pub const SIG_BYTES: usize = 7856; // N + FORS_SIG_BYTES + HT_SIG_BYTES
-pub const PK_BYTES: usize = 32;
-pub const SK_BYTES: usize = 64;
-/// The random bytes key generation consumes: `SK.seed ‖ SK.prf ‖ PK.seed`.
-pub const SEED_BYTES: usize = 48; // 3 * N
-/// Length of the PKCS#8 encoding of a private key, and of the
-/// SubjectPublicKeyInfo encoding of a public key.
-pub const PKCS8_BYTES: usize = 84; // 20 + SK_BYTES
-pub const SPKI_BYTES: usize = 50; // 18 + PK_BYTES
+pub const SHA2_128S: Params = Params { n: 16, h: 63, d: 7, hp: 9, a: 12, k: 14, m: 30 };
+pub const SHA2_128F: Params = Params { n: 16, h: 66, d: 22, hp: 3, a: 6, k: 33, m: 34 };
+pub const SHA2_192S: Params = Params { n: 24, h: 63, d: 7, hp: 9, a: 14, k: 17, m: 39 };
+pub const SHA2_192F: Params = Params { n: 24, h: 66, d: 22, hp: 3, a: 8, k: 33, m: 42 };
+pub const SHA2_256S: Params = Params { n: 32, h: 64, d: 8, hp: 8, a: 14, k: 22, m: 47 };
+pub const SHA2_256F: Params = Params { n: 32, h: 68, d: 17, hp: 4, a: 9, k: 35, m: 49 };
+
+impl Params {
+    /// WOTS+ message chains: `len_1 = 2n` when `lg_w = 4`.
+    pub fn len1(&self) -> usize {
+        2 * self.n
+    }
+
+    /// WOTS+ chains in total: `len = len_1 + len_2`.
+    pub fn len(&self) -> usize {
+        2 * self.n + LEN2
+    }
+
+    /// Bytes of the digest used for FORS: ceil(k*a/8).
+    pub fn md_bytes(&self) -> usize {
+        ((self.k * self.a + 7) / 8) as usize
+    }
+
+    /// Bits of the tree index: h - h/d.
+    pub fn tree_bits(&self) -> u32 {
+        self.h - self.hp
+    }
+
+    /// Bytes of the digest used for the tree index: ceil((h - h/d)/8).
+    pub fn tree_bytes(&self) -> usize {
+        ((self.h - self.hp + 7) / 8) as usize
+    }
+
+    /// Bytes of the digest used for the leaf index: ceil(h/(8d)).
+    pub fn leaf_bytes(&self) -> usize {
+        ((self.hp + 7) / 8) as usize
+    }
+
+    /// Bytes of one XMSS signature: (len + h') * n.
+    pub fn xmss_sig_bytes(&self) -> usize {
+        (self.len() + self.hp as usize) * self.n
+    }
+
+    /// Bytes of a FORS signature: k * (1 + a) * n.
+    pub fn fors_sig_bytes(&self) -> usize {
+        (self.k * (1 + self.a)) as usize * self.n
+    }
+
+    /// Bytes of a signature: n + FORS + d XMSS signatures.
+    pub fn sig_bytes(&self) -> usize {
+        self.n + self.fors_sig_bytes() + self.d as usize * self.xmss_sig_bytes()
+    }
+}

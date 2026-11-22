@@ -168,12 +168,6 @@ theorem sha2PRFChecked_ok_128s (pk k : Link.Node) (a : SkAdrs Link.vp) :
   rw [e]
   exact ⟨hc, hv⟩
 
-/-- On the new domain, `Link.prims.PRF` is the FIPS 205 transcription `Spec.PRF`
-(`Trunc_16(SHA-256(PK.seed ‖ 0^48 ‖ ADRSc ‖ SK.seed))`). -/
-theorem prf_128s_spec (pk k : Link.Node) (a : SkAdrs Link.vp) :
-    Link.nd (Link.prims.PRF pk k a.val) = Spec.PRF (Link.nd pk) (Link.nd k) (Link.adr a.val) :=
-  Link.PRF_eq pk k a.val (skAdrs_dom_128s a)
-
 /-- On the new domain, `Link.prims.PRF` is the bundle's tweakable hash at the (non-fallback)
 compressed address key applied to `[SK.seed]`. -/
 theorem prf_128s_thash (pk k : Link.Node) (a : SkAdrs Link.vp) :
@@ -246,7 +240,6 @@ theorem stepPRFC_128s
 #print axioms Reduction.not_skDom_badAdrs
 #print axioms Reduction.canonical_256
 #print axioms Reduction.sha2PRFChecked_ok_128s
-#print axioms Reduction.prf_128s_spec
 #print axioms Reduction.prf_128s_thash
 #print axioms Reduction.prf_256_eq_zero
 #print axioms Reduction.skPrf_broken_128s

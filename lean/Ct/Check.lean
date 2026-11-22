@@ -22,6 +22,14 @@ In particular `ite`, `dite`, `cond`, recursors and `casesOn`, `Decidable.rec`, A
 are rejected, because they are not on the whitelist.
 
 The whitelist is part of the trusted leakage model.
+
+This file is a copy of the single-set tree's `lean/Ct/Check.lean` (the checker itself is unchanged).
+The whitelist differs from the single-set tree's by five entries, marked `[six-set]` below: the 64-bit
+counterparts of the 32-bit wrapping addition and rotation that the single-set tree already lists
+(SHA-512 works on 64-bit words exactly as SHA-256 does on 32-bit words), the constant
+`u64::MAX`, and the 128-bit literal and cast target that SHA-512's padding needs for its 128-bit
+length field. None of them branches, indexes or divides; each is a total pure function of its
+operands, like the 32-bit operations already accepted.
 -/
 
 open Lean Meta Elab Command
@@ -75,6 +83,11 @@ def nonLeaking : List Name := [
   ``Aeneas.Std.instComplementUScalar,
   ``Aeneas.Std.core.num.U32.wrapping_add, ``Aeneas.Std.U32.wrapping_sub,
   ``Aeneas.Std.core.num.U32.rotate_right, ``Aeneas.Std.UScalar.cast,
+  -- [six-set] The same two operations on 64-bit words (SHA-512's message schedule and rounds):
+  -- `wrapping_add` is addition modulo 2^64 and `rotate_right` a rotation by a constant amount,
+  -- total and pure, the 64-bit counterparts of the 32-bit entries above. As for those, the
+  -- operand values are not recorded (the model has no operand events for `+` or rotations).
+  ``Aeneas.Std.core.num.U64.wrapping_add, ``Aeneas.Std.core.num.U64.rotate_right,
   -- Comparisons producing a `Prop`/`Bool` (the branch on them is instrumented by `Leak.cond`).
   ``Aeneas.Std.instLTUScalar, ``Aeneas.Std.UScalar.decLt, ``Aeneas.Std.instLEUScalar,
   ``Aeneas.Std.UScalarDecidableLE, ``Aeneas.Std.instDecidableEqUScalar_1, ``bne,
@@ -88,6 +101,11 @@ def nonLeaking : List Name := [
   ``Aeneas.Std.U64.ofNat, ``Aeneas.Std.Usize.ofNat, ``Aeneas.Std.I32.ofInt,
   ``Aeneas.Std.UScalarTy.U8, ``Aeneas.Std.UScalarTy.U32, ``Aeneas.Std.UScalarTy.U64,
   ``Aeneas.Std.UScalarTy.Usize, ``Aeneas.Std.IScalarTy.I32,
+  -- [six-set] Literals and type tags of this translation: `u64::MAX` (a constant, shifted by the
+  -- public tree height in `digest_tree`), the `u128` literal `8#u128` and the `u128` type tag
+  -- of `UScalar.cast .U128` (SHA-512's padding computes the 128-bit bit length of the message,
+  -- a public length, as `(len as u128) * 8`). Constants and type tags compute nothing.
+  ``Aeneas.Std.core.num.U64.MAX, ``Aeneas.Std.U128.ofNat, ``Aeneas.Std.UScalarTy.U128,
   -- Data constructors (tuples, loop results, options, booleans, lists, ranges).
   ``Prod.mk, ``Aeneas.Std.ControlFlow.cont, ``Aeneas.Std.ControlFlow.done, ``Option.some,
   ``Option.none, ``Bool.true, ``Bool.false, ``List.cons, ``List.nil,

@@ -1,1 +1,0 @@
-../../../lean/Ct/Sha256Core.lean

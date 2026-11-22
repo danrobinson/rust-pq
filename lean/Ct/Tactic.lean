@@ -1,10 +1,13 @@
 import Ct.Rel
 import Mathlib.Tactic.CasesM
-import Ct.Facts
+import Ct.FactsMulti
 import Ct.Arith
 
 /-!
 # Lockstep tactic for `Rel`
+
+(A copy of the single-set tree's `lean/Ct/Tactic.lean` with one more alternative in `ct_side`, marked
+`[six-set]`: the tactics are not part of the trusted base.)
 
 `ct_step` performs one step of the relational proof of `Rel X X' R` where `X` and `X'` are the
 same instrumented program text applied to (possibly) different arguments:
@@ -47,7 +50,10 @@ result length (or arithmetic result), add the fact. -/
 elab "ct_facts" : tactic => withMainContext do
   let facts := [``Ct.Facts.push_ok, ``Ct.Facts.extend_ok, ``Ct.Facts.copy_ok,
     ``Ct.Facts.range_ok, ``Ct.Facts.slice_index_mut_ok, ``Ct.Facts.array_range_index_mut_ok,
-    ``Ct.Facts.array_range_index_ok, ``Ct.Arith.add_ok, ``Ct.Arith.sub_ok, ``Ct.Arith.mul_ok]
+    ``Ct.Facts.array_range_index_ok,
+    -- [six-set] mutable sub-slices of slices
+    ``Ct.Facts.slice_range_index_mut_len, ``Ct.Facts.slice_range_index_mut_back,
+    ``Ct.Arith.add_ok, ``Ct.Arith.sub_ok, ``Ct.Arith.mul_ok]
   let mut g ← getMainGoal
   for ld in ← getLCtx do
     if ld.isImplementationDetail then continue
@@ -69,6 +75,20 @@ macro "ct_side" : tactic => `(tactic| first
   | (simp only [List.cons.injEq, Event.index.injEq, Event.range.injEq, Event.copy.injEq,
       Event.extend.injEq, Event.div.injEq, Event.rem.injEq, Event.cmp.injEq, and_true,
       true_and, decide_eq_decide] at *; done)
+  -- [six-set] lengths of sub-slices whose bounds depend on `N` (before `simp_all`, which can
+  -- loop on the hypotheses about them)
+  | (ct_facts
+     try simp only [List.cons.injEq, Event.index.injEq, Event.range.injEq, Event.copy.injEq,
+      Event.extend.injEq, Event.div.injEq, Event.rem.injEq, Event.cmp.injEq, and_true,
+      true_and, decide_eq_decide, Aeneas.Std.Array.length_to_slice, Ct.Facts.deref_length]
+     omega)
+  -- [six-set] the same, rewriting with the hypotheses (lengths of the back functions of mutable
+  -- sub-slices of slices, which are universally quantified)
+  | (ct_facts
+     try simp only [List.cons.injEq, Event.index.injEq, Event.range.injEq, Event.copy.injEq,
+      Event.extend.injEq, Event.div.injEq, Event.rem.injEq, Event.cmp.injEq, and_true,
+      true_and, decide_eq_decide, Aeneas.Std.Array.length_to_slice, Ct.Facts.deref_length, *]
+     first | done | omega)
   | (simp_all; done)
   | omega
   | (ct_facts; simp_all; done)

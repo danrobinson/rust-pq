@@ -1,5 +1,6 @@
 name = "security"
-defaultTargets = ["Link", "E2E", "Reduction", "Ideal"]
+# Everything is a default target: `lake build` builds all of it (about 4 minutes from scratch).
+defaultTargets = ["Link", "Reduction", "E2E", "Ideal", "MLink", "MReduction", "ME2E", "MIdeal"]
 # Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
 packagesDir = "../.tools/VCVio-upstream/.lake/packages"
 
@@ -11,29 +12,49 @@ path = "../.tools/VCVio-upstream"
 name = "aeneas"
 path = "../.tools/aeneas/backends/lean"
 
-# Our FIPS 205 transcription, compiled in place from ../lean (not copied).
+# The parameterised FIPS 205 transcription (six SHA-2 sets), compiled in place from ../lean.
 [[lean_lib]]
 name = "Spec"
 srcDir = "../lean"
 
-[[lean_lib]]
-name = "Link"
-
-# The Aeneas extraction of the Rust implementation and its refinement proofs,
-# compiled in place from ../lean (not copied).
+# The Aeneas translation of the Rust crate (default build) and its refinement proofs,
+# compiled in place from ../lean.
 [[lean_lib]]
 name = "Slhdsa"
 srcDir = "../lean"
 
-# End-to-end statements: Rust code -> Spec -> VCVio.
+# `Link.lean`: the Spec-free vocabulary the generic reduction is stated in (`Link.Basic`,
+# `Link.Hash`, `Link.Verify`, `Link.Sha256`; SHA2-128s parameters `Link.vp`, `Link.prims`, word
+# packing) and VCVio's random-oracle bound at SHA2-128s (`Link.Security`).
 [[lean_lib]]
-name = "E2E"
+name = "Link"
 
-# Standard-model security reduction (no random oracle).
+# `Reduction.lean`: the generic standard-model reduction (with `Reduction/Open`, `Reduction/Gen`).
 [[lean_lib]]
 name = "Reduction"
 
-# Ideal-compression-function model: bounds on the hash assumptions of the reduction when the
-# SHA-256 compression function is a random function (see IDEAL_STATUS.md).
+# `E2E.lean`: `E2E.GuardedRom`, `E2E.CodedRom` (a scheme behind a partial message encoding / seen
+# through key and signature encodings, over any oracle interface; used by ME2E/PureRom.lean).
+[[lean_lib]]
+name = "E2E"
+
+# `Ideal.lean`: the ideal-compression-function analysis of SLH-DSA-SHA2-128s (IDEAL_STATUS.md).
 [[lean_lib]]
 name = "Ideal"
+
+# Spec (six sets) = VCVio's scheme at approvedPrimitives.
+[[lean_lib]]
+name = "MLink"
+
+# Reduction instances at the six sets.
+[[lean_lib]]
+name = "MReduction"
+
+# Rust = scheme cores, security statements about the Rust functions, six sets.
+[[lean_lib]]
+name = "ME2E"
+
+# The closed ideal-compression bound attached to the SLH-DSA-SHA2-128s Rust functions
+# (slhdsa.sets.sha2_128s.*).
+[[lean_lib]]
+name = "MIdeal"

@@ -33,20 +33,23 @@ structure address.Adrs where
   word3 : Std.U32
 
 /-- [slhdsa::hash::Seed]
-    Source: 'src/hash.rs', lines 12:0-15:1
+    Source: 'src/hash.rs', lines 21:0-25:1
     Visibility: public -/
-structure hash.Seed where
-  pk_seed : Array Std.U8 16#usize
+structure hash.Seed (N : Std.Usize) where
+  pk_seed : Array Std.U8 N
   state : Array Std.U32 8#usize
+  state512 : Array Std.U64 8#usize
 
 /-- [slhdsa::sha256::hw::Slot]
-    Source: 'src/sha256.rs', lines 428:4-447:5 -/
+    Source: 'src/sha256.rs', lines 441:4-467:5 -/
 structure sha256.hw.Slot where
   m0 : core.core_arch.arm_shared.neon.uint32x4_t
   c1 : core.core_arch.arm_shared.neon.uint32x4_t
   c2 : core.core_arch.arm_shared.neon.uint32x4_t
-  m3 : core.core_arch.arm_shared.neon.uint32x4_t
+  c3 : core.core_arch.arm_shared.neon.uint32x4_t
   x : core.core_arch.arm_shared.neon.uint32x4_t
+  xb : core.core_arch.arm_shared.neon.uint32x4_t
+  tail : core.core_arch.arm_shared.neon.uint32x4_t
   a1 : core.core_arch.arm_shared.neon.uint32x4_t
   e1 : core.core_arch.arm_shared.neon.uint32x4_t
   t : Std.U32
@@ -54,19 +57,32 @@ structure sha256.hw.Slot where
   lane : Std.Usize
 
 /-- [slhdsa::sha256::hw::Lanes]
-    Source: 'src/sha256.rs', lines 459:4-466:5 -/
+    Source: 'src/sha256.rs', lines 479:4-488:5 -/
 structure sha256.hw.Lanes where
   x : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
+  xb : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
   abcd : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
   efgh : Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize
   m : Array (Array core.core_arch.arm_shared.neon.uint32x4_t 4#usize) 4#usize
 
 /-- [slhdsa::sha256::hw::First]
-    Source: 'src/sha256.rs', lines 451:4-456:5 -/
+    Source: 'src/sha256.rs', lines 471:4-476:5 -/
 structure sha256.hw.First where
   known : Bool
   head : Array Std.U8 16#usize
   a1 : core.core_arch.arm_shared.neon.uint32x4_t
   e1 : core.core_arch.arm_shared.neon.uint32x4_t
+
+/-- [slhdsa::params::Params]
+    Source: 'src/params.rs', lines 24:0-39:1
+    Visibility: public -/
+structure params.Params where
+  n : Std.Usize
+  h : Std.U32
+  d : Std.U32
+  hp : Std.U32
+  a : Std.U32
+  k : Std.U32
+  m : Std.Usize
 
 end slhdsa

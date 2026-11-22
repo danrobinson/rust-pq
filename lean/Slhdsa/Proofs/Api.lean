@@ -1,83 +1,93 @@
 import Slhdsa.Proofs.Checked
 open Aeneas Aeneas.Std Result
 
-/-! The crate's interface, module `api`. -/
+/-! The crate's interface, module `api`, for any valid parameter set. -/
 
 namespace slhdsa
 
-theorem api_copy_val {n : Usize} (a : Array U8 n) (s : Slice U8) (h : s.length = n.val) :
-    (Array.from_slice a s).val = s.val := Array.from_slice_val _ _ (by simpa using h)
-
 @[step]
-theorem api_keygen_spec (seeds : Array U8 48#usize) (sk : Array U8 64#usize) (pk : Array U8 32#usize) :
-    api.keygen seeds sk pk ⦃ r =>
+theorem api_keygen_spec {N : Usize} (p : params.Params) (hp : PN p N) (seeds sk pk : Slice U8)
+    (hseeds : seeds.length = 3 * N.val) (hsk : sk.length = 4 * N.val) (hpk : pk.length = 2 * N.val) :
+    api.keygen N p seeds sk pk ⦃ r =>
       (bytes r.1.val, bytes r.2.val) =
-        Spec.slhKeygenInternal (Spec.block (bytes seeds.val) 0) (Spec.block (bytes seeds.val) 1)
-          (Spec.block (bytes seeds.val) 2) ⦄ := by
+        Spec.slhKeygenInternal (paramsS p) (Spec.block (paramsS p) (bytes seeds.val) 0)
+          (Spec.block (paramsS p) (bytes seeds.val) 1) (Spec.block (paramsS p) (bytes seeds.val) 2) ∧
+      r.1.length = 4 * N.val ∧ r.2.length = 2 * N.val ⦄ := by
   unfold api.keygen
-  step*
-  rw [to_slice_mut_back_post, to_slice_mut_back1_post, api_copy_val _ _ (by simp [s6_post, s5_post]),
-    api_copy_val _ _ (by simp [s9_post, s8_post]), s6_post, s5_post, s9_post, s8_post]
-  simp only [Array.val_to_slice]
-  rw [s3_post, sk_seed_post1, sk_prf_post1, pk_seed_post1, s_post, s1_post, s2_post]
-  simp
+  let* ⟨ sk_seed, sk_seed_post ⟩ ← block_spec
+  let* ⟨ sk_prf, sk_prf_post ⟩ ← block_spec
+  let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
+  apply WP.spec_mono (slh_keygen_internal_spec p hp sk_seed sk_prf pk_seed sk pk hsk hpk)
+  rintro r ⟨h1, h2, h3⟩
+  refine ⟨?_, h2, h3⟩
+  rw [h1, bytes_block_N p hp seeds sk_seed 0 sk_seed_post, bytes_block_N p hp seeds sk_prf 1 sk_prf_post,
+    bytes_block_N p hp seeds pk_seed 2 pk_seed_post]
 
 @[step]
-theorem api_public_key_spec (sk : Array U8 64#usize) :
-    api.public_key sk ⦃ r => bytes r.val = Spec.skPk (bytes sk.val) ⦄ := by
+theorem api_public_key_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk pk : Slice U8)
+    (hsk : sk.length = 4 * N.val) (hpk : pk.length = 2 * N.val) :
+    api.public_key N sk pk ⦃ r => bytes r.val = Spec.skPk (paramsS p) (bytes sk.val) ∧
+      r.length = 2 * N.val ⦄ := by
+  have hN := hp.le32
   unfold api.public_key
-  simp only [global_simps]
   step*
-  rw [to_slice_mut_back_post, api_copy_val _ _ (by simp [s2_post, s1_post]; scalar_tac), s2_post, s1_post]
-  simp [List.slice, Spec.skPk, Spec.n, i_post, i1_post, List.take_of_length_le]
+  all_goals try (rw [s_post1, i1_post, i_post]; scalar_tac)
+  refine ⟨?_, by rw [r_post, s_post1, i1_post, i_post]; omega⟩
+  rw [r_post, s_post]
+  simp only [List.slice, Spec.skPk, hp.n, bytes_take, bytes_drop, i_post, i1_post]
+  rw [List.take_of_length_le (by simp only [List.length_drop, bytes_length]; simp only [Slice.length] at hsk; omega)]
 
 /-- `api.sign` is the plain signer `slh_sign`. -/
 @[step]
-theorem api_sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
-    api.sign m ctx sk addrnd ⦃ r =>
+theorem api_sign_spec {N : Usize} (p : params.Params) (hp : PN p N) (m ctx sk : Slice U8)
+    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    api.sign p m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
-        Spec.slhSign (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
+        Spec.slhSign (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold api.sign
-  exact slh_sign_spec m ctx sk addrnd hm
+  exact slh_sign_spec p hp m ctx sk addrnd hsk hm
 
 @[step]
-theorem api_sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (hm : Room m.length 409) :
-    api.sign_deterministic m ctx sk ⦃ r =>
+theorem api_sign_deterministic_spec {N : Usize} (p : params.Params) (hp : PN p N) (m ctx sk : Slice U8)
+    (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    api.sign_deterministic N p m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
-        Spec.slhSign (bytes m.val) (bytes ctx.val) (bytes sk.val) (Spec.block (bytes sk.val) 2) ⦄ := by
+        Spec.slhSign (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val)
+          (Spec.block (paramsS p) (bytes sk.val) 2) ⦄ := by
   unfold api.sign_deterministic
-  step*
-  apply WP.spec_mono (slh_sign_spec m ctx sk pk_seed hm)
+  let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
+  apply WP.spec_mono (slh_sign_spec p hp m ctx sk pk_seed hsk hm)
   intro r hr
-  rw [hr, pk_seed_post1, s_post, Array.val_to_slice]
+  rw [hr, bytes_block_N p hp sk pk_seed 2 pk_seed_post]
 
 @[step]
-theorem api_sign_checked_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
-    api.sign_checked m ctx sk addrnd ⦃ r =>
+theorem api_sign_checked_spec {N : Usize} (p : params.Params) (hp : PN p N) (m ctx sk : Slice U8)
+    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    api.sign_checked p m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
+        Spec.slhSignChecked (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold api.sign_checked
-  exact slh_sign_checked_spec m ctx sk addrnd hm
+  exact slh_sign_checked_spec p hp m ctx sk addrnd hsk hm
 
 @[step]
-theorem api_sign_deterministic_checked_spec (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (hm : Room m.length 409) :
-    api.sign_deterministic_checked m ctx sk ⦃ r =>
+theorem api_sign_deterministic_checked_spec {N : Usize} (p : params.Params) (hp : PN p N)
+    (m ctx sk : Slice U8) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    api.sign_deterministic_checked N p m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked (bytes m.val) (bytes ctx.val) (bytes sk.val)
-          (Spec.block (bytes sk.val) 2) ⦄ := by
+        Spec.slhSignChecked (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val)
+          (Spec.block (paramsS p) (bytes sk.val) 2) ⦄ := by
   unfold api.sign_deterministic_checked
-  step*
+  let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
+  apply WP.spec_mono (slh_sign_checked_spec p hp m ctx sk pk_seed hsk hm)
+  intro r hr
+  rw [hr, bytes_block_N p hp sk pk_seed 2 pk_seed_post]
 
 @[step]
-theorem api_verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 409) :
-    api.verify m sig ctx pk ⦃ b =>
-      b = Spec.slhVerify (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
+theorem api_verify_spec {N : Usize} (p : params.Params) (hp : PN p N) (m sig ctx pk : Slice U8)
+    (hpk : pk.length = 2 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    api.verify N p m sig ctx pk ⦃ b =>
+      b = Spec.slhVerify (paramsS p) (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold api.verify
-  exact slh_verify_spec m sig ctx pk hm
+  exact slh_verify_spec p hp m sig ctx pk hpk hm
 
 end slhdsa

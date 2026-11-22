@@ -1,12 +1,14 @@
 import Ct.Check
 
 /-!
-# Tests of the leakage-model checks for the `hw-sha2` build
+# Tests of the leakage-model checks for this tree's `hw-sha2` build
 
-The names of the intrinsic wrappers in the generated text resolve to their instrumented
-versions of `Ct/ModelBuild.lean` (inside `def sha256.hw.f` the current namespace is
-`slhdsa_leak.sha256.hw`), and the checker rejects the un-instrumented wrappers of
-`Slhdsa/FunsExternal.lean`.
+The union of the single-set tree's `lean-hw/Ct/CheckTestBuild.lean` (git `26aa3d8`) (the intrinsic wrappers) and
+this tree's portable `../lean/Ct/CheckTestBuild.lean` (`Slice.index_mut`, 64/128-bit division),
+both copied unchanged: the names of the intrinsic wrappers in the generated text resolve to
+their instrumented versions of `Ct/ModelBuild.lean` (inside `def sha256.hw.f` the current
+namespace is `slhdsa_leak.sha256.hw`), as does `core.slice.index.Slice.index_mut`, and the
+checker rejects the un-instrumented ones.
 -/
 
 open Aeneas Aeneas.Std Result ControlFlow Error
@@ -43,6 +45,28 @@ namespace sha256
 #ct_resolves sha256.hw.arm.available
 end sha256
 
+-- this tree's portable build
+
+#ct_resolves core.slice.index.Slice.index_mut
+
+namespace hash
+-- inside `def hash.f` the current namespace is `slhdsa_leak.hash`
+#ct_resolves core.slice.index.Slice.index_mut
+end hash
+
+/-- A mutable sub-slice of a slice emits its range and the slice's length. -/
+example (s : Aeneas.Std.Slice Std.U8) (a b : Std.Usize) :
+    core.slice.index.Slice.index_mut (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) s
+      { start := a, «end» := b } =
+    Ct.Leak.prim [.range a.val b.val s.length]
+      (Aeneas.Std.core.slice.index.Slice.index_mut
+        (Aeneas.Std.core.slice.index.SliceIndexRangeUsizeSlice Std.U8) s
+        { start := a, «end» := b }) := rfl
+
+/-- `/` on 64-bit and 128-bit integers is the leaking division. -/
+example (x y : Std.U64) : (x / y) = Ct.Leak.prim [.div x.val y.val] (UScalar.div x y) := rfl
+example (x y : Std.U128) : (x / y) = Ct.Leak.prim [.div x.val y.val] (UScalar.div x y) := rfl
+
 end slhdsa_leak
 
 namespace Ct.CheckTestBuild
@@ -68,5 +92,20 @@ def badAvailable : Ct.Leak Bool := do
 def badAssert (b : Bool) : Ct.Leak Unit := do
   Aeneas.Std.massert (b = true)
 #ct_expect_reject badAssert Aeneas.Std.massert
+
+-- this tree's portable build
+
+def badSliceIndexMut (s : Aeneas.Std.Slice Std.U8) :
+    Ct.Leak (Aeneas.Std.Slice Std.U8 × (Aeneas.Std.Slice Std.U8 → Aeneas.Std.Slice Std.U8)) := do
+  let r ← Aeneas.Std.core.slice.index.Slice.index_mut
+    (Aeneas.Std.core.slice.index.SliceIndexRangeUsizeSlice Std.U8) s
+    { start := 0#usize, «end» := 1#usize }
+  Ct.Leak.pure r
+#ct_expect_reject badSliceIndexMut Aeneas.Std.core.slice.index.Slice.index_mut
+
+def badDiv128 (x y : Std.U128) : Ct.Leak Std.U128 := do
+  let z ← Aeneas.Std.UScalar.div x y
+  Ct.Leak.pure z
+#ct_expect_reject badDiv128 Aeneas.Std.UScalar.div
 
 end Ct.CheckTestBuild

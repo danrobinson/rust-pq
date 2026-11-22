@@ -2,7 +2,7 @@
 name = "slhdsa_base"
 version = "0.1.0"
 edition = "2021"
-description = "Unmodified copy of ../../../rust/src, with an optional SHA-256 compression counter (feature `count`)."
+description = "Frozen copy of rust/src of the pre-optimisation single-set crate (opt/original/rust/src at git commit 26aa3d8), with an optional SHA-256 compression counter (feature `count`)."
 publish = false
 
 [features]

@@ -1,19 +1,22 @@
 #!/bin/sh
-# Generate the leakage-instrumented program from the verified translation:
+# Generate the leakage-instrumented program from the verified translation of the six-set crate
+# (portable build):
 #
-#   scripts/ct-gen.sh       lean/Slhdsa/Funs.lean    -> lean/Ct/Funs.lean     (default build)
-#   scripts/ct-gen.sh hw    lean-hw/Slhdsa/Funs.lean -> lean-hw/Ct/Funs.lean  (`hw-sha2` build)
+#   scripts/ct-gen.sh       lean/Slhdsa/Funs.lean    -> lean/Ct/Funs.lean
+#   scripts/ct-gen.sh hw    lean-hw/Slhdsa/Funs.lean -> lean-hw/Ct/Funs.lean
 #
-# Only the header and the closing `end` change: imports, the namespace (`slhdsa` becomes
-# `slhdsa_leak`) and what is opened. Every other line is copied verbatim; inside
-# `namespace slhdsa_leak` the names used by the text resolve to the instrumented primitives
-# of `Ct/Model.lean` and of the build's `Ct/ModelBuild.lean`. The script fails if the source
-# header is not exactly the expected one, and checks afterwards that the body is byte-for-byte
-# identical.
+# Adapted from the single-set tree's `scripts/ct-gen.sh` (git 26aa3d8). Only the header and the
+# closing `end` change: imports, the namespace (`slhdsa` becomes `slhdsa_leak`) and what is
+# opened. Every other line is copied verbatim; inside `namespace slhdsa_leak` the names used by
+# the text resolve to the instrumented primitives of `Ct/Model.lean` and of this tree's
+# `Ct/ModelBuild.lean`. The script fails if the source header is not exactly the expected one,
+# and checks afterwards that the body is byte-for-byte identical.
 #
-# The two builds' headers differ in one import: the `hw-sha2` translation imports
-# `Slhdsa.FunsExternal` (the trusted model of the intrinsic wrappers). The generated file does
-# not import it: the wrappers' instrumented versions are in `lean-hw/Ct/ModelBuild.lean`.
+# As in the single-set tree's script, the two builds' headers differ in one import: the `hw-sha2`
+# translation imports `Slhdsa.FunsExternal` (the trusted model of the intrinsic wrappers), and
+# has a `noncomputable section` line before the namespace. The generated file does not import
+# `FunsExternal` directly: the wrappers' instrumented versions are in
+# `lean-hw/Ct/ModelBuild.lean`, which does. The portable invocation is unchanged.
 set -e
 cd "$(dirname "$0")/.."
 case "${1:-default}" in
@@ -42,10 +45,10 @@ for i, line in enumerate(expected_header):
         sys.exit(f"ct-gen: unexpected header line {i+1}: {src[i]!r} (expected {line!r})")
 ns = src.index("namespace slhdsa")
 # Lines between the `open` and the namespace are `set_option`s, comments, blanks and (in the
-# `hw-sha2` build) `noncomputable section`, which has no effect on the logical definitions.
+# `hw-sha2` build only) `noncomputable section`, which has no effect on the logical definitions.
 for line in src[len(expected_header):ns]:
     if line and not (line.startswith("set_option ") or line.startswith("/-")
-                     or line == "noncomputable section"):
+                     or (ext and line == "noncomputable section")):
         sys.exit(f"ct-gen: unexpected line in header: {line!r}")
 # The file ends with `end slhdsa` (and a trailing newline).
 last = max(i for i, l in enumerate(src) if l.strip())

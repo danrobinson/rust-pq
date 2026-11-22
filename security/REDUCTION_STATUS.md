@@ -1,3 +1,10 @@
+> **Note, 2026-11-22 (layout).** This document describes the single-set development as it stood in
+> git commit `26aa3d8`. Since then the single-set `Link` files other than the Spec-free stand-ins of
+> `Link/{Basic,Hash,Verify,Sha256}.lean` and `Link/Security.lean`, the `E2E` files other than
+> `GuardedRom`/`CodedRom`, and `Ideal/Rust*.lean` are deleted; the six-set libraries `MLink`, `MReduction`,
+> `ME2E`, `MIdeal` attach these results to the six-set Rust crate. `STATUS.md` is the current status;
+> build commands below that name the deleted libraries are those of that commit (now: `lake build`).
+
 # Standard-model reduction for SLH-DSA — final state (phase 3)
 
 State: **complete; nothing pending.** `lake build Link E2E Reduction` (the default targets;

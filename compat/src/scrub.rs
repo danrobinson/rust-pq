@@ -13,11 +13,15 @@
 
 use zeroize::Zeroize;
 
-/// Bytes overwritten. Key generation followed by signing with the
-/// recomputation was measured at about 14 KiB of stack in an optimised
-/// AArch64 build; `tests/wipe.rs` prints the figure for the build it runs in
-/// and fails if this is no longer enough. An unoptimised build uses more
-/// stack and may not be covered.
+/// Bytes overwritten: one size for all six sets.
+///
+/// Measured with `tests/wipe.rs` (AArch64, Apple M5 Ultra, optimised builds): the
+/// deepest secret-handling call is the checked signer of SLH-DSA-SHA2-256s,
+/// at 17,536 bytes of stack with `hw-sha2` (16,896 portable); key generation
+/// followed by both signers came to at most 17,632 bytes. The test prints the
+/// figures for the build it runs in and fails unless this leaves at least
+/// 8 KiB to spare for every set. An unoptimised build uses more stack and may
+/// not be covered.
 pub const SCRUB_BYTES: usize = 64 * 1024;
 
 /// Overwrite `SCRUB_BYTES` of stack below the caller's frame with zeros.

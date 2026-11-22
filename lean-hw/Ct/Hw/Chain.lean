@@ -1,7 +1,11 @@
 import Ct.Hw.Lanes
 
 /-!
-# Constant time: `sha256::hw::chain_all` and `sha256::hw::chain_blocks`
+# Constant time: `sha256::hw::chain_all` and `sha256::hw::chain_blocks` (generic in `N`)
+
+Adapted from the single-set tree's `lean-hw/Ct/Hw/Chain.lean` (git `26aa3d8`) (copied and edited, not linked:
+every function of this tree's kernel takes the hash length `N`; `enter` also loads bytes 38..54
+for `N > 16` and `leave` writes them back).
 
 The kernel keeps up to four blocks in flight in `slots`. Which block enters which slot when,
 and how many steps each `run` takes, is decided by the step ranges `start`/`end` (public) and
@@ -13,6 +17,13 @@ of the block it starts (its *head*) with those of the block it last computed the
 for, `first.head`, and recomputes the first round if they differ; the trace has the length of
 their common prefix and the outcome. So the two runs' blocks must have the same heads
 (`HeadsEq`), and then the cache (`first.known`, `first.head`) is the same in both runs too.
+
+For every `N` the head is the same bytes `block[0..16]` (the Rust code copies `&block[0..16]`
+whatever `N` is): the first 16 of the 22 bytes of the compressed address, which precede the
+step counter (bytes 18..22) and the value (bytes 22..22 + N). The value's position and length
+change with `N`; the head does not. `leave` writes bytes 18..22, 22..38 and, for `N > 16`,
+38..54, all at or after byte 16, so the heads are again equal afterwards (`HeadsEq` is the
+loop invariant, for every `N`). The other branches added for `N > 16` are on `N` itself.
 -/
 
 open Aeneas Aeneas.Std Ct
@@ -40,21 +51,40 @@ theorem take_ite_setSlice (c : Prop) [Decidable c] (l s : List U8) (i : Nat) (hi
   · exact Heads.head_setSlice s hi
   · rfl
 
-/-- `leave`: writes the step counter (bytes 18..22) and the value (bytes 22..38) at fixed
-positions; the head is unchanged. -/
-@[ct_rel] theorem leave (slot slot' : Slot) (block block' : Array U8 64#usize)
-    (h : HeadEq block block') :
-    Rel (sha256.hw.leave slot block) (sha256.hw.leave slot' block') (fun r r' => HeadEq r r') := by
-  unfold sha256.hw.leave
-  ct_steps
-  rename_i h1 h2
+/-- Storing a vector at a position `≥ 16` of two blocks with the same head, through
+`to_slice_mut` and its back function: the heads stay equal. -/
+theorem headEq_of_store_be {a a' : Block} {r r' : Slice U8} {at' : Usize} {v v' : Vec}
+    (h1 : slhdsa.sha256.hw.arm.store_be a.to_slice at' v = .ok r)
+    (h2 : slhdsa.sha256.hw.arm.store_be a'.to_slice at' v' = .ok r')
+    (hat : 16 ≤ at'.val) (h : HeadEq a a') :
+    HeadEq (Aeneas.Std.Array.from_slice a r) (Aeneas.Std.Array.from_slice a' r') := by
   have e1 := store_be_ok h1
   have e2 := store_be_ok h2
-  simp only [HeadEq, head]
+  simp only [HeadEq, head] at h ⊢
   rw [Heads.from_slice_val, Heads.from_slice_val, e1, e2]
   simp only [Aeneas.Std.Array.val_to_slice, List.length_setSlice!]
-  rw [take_ite_setSlice _ _ _ _ (by simp), take_ite_setSlice _ _ _ _ (by simp)]
-  heads_core
+  rw [take_ite_setSlice _ _ _ _ hat, take_ite_setSlice _ _ _ _ hat]
+  exact h
+
+/-- `ct_step`, but the conditional of `leave` (on `N > 16`, public) is stepped keeping the
+heads of its result, a block. -/
+macro "ct_step_l" : tactic => `(tactic| first
+  | (with_reducible refine Rel.bind_refl (fun _ _ => ?_))
+  | (with_reducible refine Rel.bind (m := Ct.Leak.cond _ _ _) (R := fun (x y : Aeneas.Std.Array Aeneas.Std.U8 64#usize) => Ct.HeadEq x y) ?_ (fun _ _ _ => ?_))
+  | ct_step)
+
+/-- `leave`: writes the step counter (bytes 18..22), the value (bytes 22..38) and, for
+`N > 16`, bytes 38..54 at fixed positions; the head is unchanged. -/
+@[ct_rel] theorem leave (N : Usize) (slot slot' : Slot) (block block' : Array U8 64#usize)
+    (h : HeadEq block block') :
+    Rel (sha256.hw.leave N slot block) (sha256.hw.leave N slot' block')
+      (fun r r' => HeadEq r r') := by
+  unfold sha256.hw.leave
+  repeat' ct_step_l
+  all_goals first
+    | (apply headEq_of_store_be (by assumption) (by assumption) (by simp)
+       first | assumption | (heads_core; done))
+    | (heads_core; done)
 
 theorem array_range_index_val {N : Usize} {a : Array U8 N} {r : core.ops.range.Range Usize}
     {s : Slice U8}
@@ -100,10 +130,12 @@ attribute [local ct_rel] head_range
 
 /-- `enter`: the trace depends on the block only through its head, and on the cache only
 through its public part. -/
-@[ct_rel] theorem enter (state state' : Array U32 8#usize) (block block' : Array U8 64#usize)
+@[ct_rel] theorem enter (N : Usize) (state state' : Array U32 8#usize)
+    (block block' : Array U8 64#usize)
     (t e : U32) (lane : Usize) (first first' : slhdsa.sha256.hw.First) (hb : HeadEq block block')
     (hf : FirstRel first first') :
-    Rel (sha256.hw.enter state block t e lane first) (sha256.hw.enter state' block' t e lane first')
+    Rel (sha256.hw.enter N state block t e lane first)
+      (sha256.hw.enter N state' block' t e lane first')
       (fun r r' => pub r.1 = pub r'.1 ∧ FirstRel r.2 r'.2) := by
   obtain ⟨hk, hh⟩ := hf
   unfold sha256.hw.enter
@@ -223,11 +255,11 @@ def RetireRel (p q : Slice Block × Array Slot 4#usize × Usize × Usize) : Prop
 def RetireOut (p q : Slice Block × Array Slot 4#usize × Usize) : Prop :=
   HeadsEq p.1.val q.1.val ∧ SlotsRel p.2.1 q.2.1 ∧ p.2.2 = q.2.2
 
-theorem chain_all_loop0_loop1_body (n : Usize) (blocks blocks' : Slice Block)
+theorem chain_all_loop0_loop1_body (N n : Usize) (blocks blocks' : Slice Block)
     (slots slots' : Array Slot 4#usize) (k j : Usize) (hb : HeadsEq blocks.val blocks'.val)
     (h : SlotsRel slots slots') :
-    Rel (sha256.hw.chain_all_loop0_loop1.body n blocks slots k j)
-      (sha256.hw.chain_all_loop0_loop1.body n blocks' slots' k j)
+    Rel (sha256.hw.chain_all_loop0_loop1.body N n blocks slots k j)
+      (sha256.hw.chain_all_loop0_loop1.body N n blocks' slots' k j)
       (CFRel RetireRel RetireOut) := by
   have hl := Heads.slice_length_eq hb
   unfold sha256.hw.chain_all_loop0_loop1.body
@@ -240,23 +272,23 @@ theorem chain_all_loop0_loop1_body (n : Usize) (blocks blocks' : Slice Block)
     | (apply_assumption <;> assumption)
     | slots_tac
 
-@[ct_rel] theorem chain_all_loop0_loop1 (blocks blocks' : Slice Block)
+@[ct_rel] theorem chain_all_loop0_loop1 (N : Usize) (blocks blocks' : Slice Block)
     (slots slots' : Array Slot 4#usize) (n k j : Usize) (hb : HeadsEq blocks.val blocks'.val)
     (h : SlotsRel slots slots') :
-    Rel (sha256.hw.chain_all_loop0_loop1 blocks slots n k j)
-      (sha256.hw.chain_all_loop0_loop1 blocks' slots' n k j)
+    Rel (sha256.hw.chain_all_loop0_loop1 N blocks slots n k j)
+      (sha256.hw.chain_all_loop0_loop1 N blocks' slots' n k j)
       (fun p q => HeadsEq p.1.val q.1.val ∧ SlotsRel p.2.1 q.2.1 ∧ p.2.2 = q.2.2) := by
   unfold sha256.hw.chain_all_loop0_loop1
   refine Rel.loop RetireRel ?_ ⟨hb, h, rfl⟩
   rintro ⟨b, sl, k1, j1⟩ ⟨b', sl', k1', j1'⟩ ⟨hb1, hs1, he⟩
   obtain ⟨rfl, rfl⟩ : k1 = k1' ∧ j1 = j1' := by simpa using he
-  exact chain_all_loop0_loop1_body n b b' sl sl' k1 j1 hb1 hs1
+  exact chain_all_loop0_loop1_body N n b b' sl sl' k1 j1 hb1 hs1
 
-theorem chain_all_loop0_loop3_body (n : Usize) (blocks blocks' : Slice Block)
+theorem chain_all_loop0_loop3_body (N n : Usize) (blocks blocks' : Slice Block)
     (slots slots' : Array Slot 4#usize) (k j : Usize) (hb : HeadsEq blocks.val blocks'.val)
     (h : SlotsRel slots slots') :
-    Rel (sha256.hw.chain_all_loop0_loop3.body n blocks slots k j)
-      (sha256.hw.chain_all_loop0_loop3.body n blocks' slots' k j)
+    Rel (sha256.hw.chain_all_loop0_loop3.body N n blocks slots k j)
+      (sha256.hw.chain_all_loop0_loop3.body N n blocks' slots' k j)
       (CFRel RetireRel RetireOut) := by
   have hl := Heads.slice_length_eq hb
   unfold sha256.hw.chain_all_loop0_loop3.body
@@ -269,17 +301,17 @@ theorem chain_all_loop0_loop3_body (n : Usize) (blocks blocks' : Slice Block)
     | (apply_assumption <;> assumption)
     | slots_tac
 
-@[ct_rel] theorem chain_all_loop0_loop3 (blocks blocks' : Slice Block)
+@[ct_rel] theorem chain_all_loop0_loop3 (N : Usize) (blocks blocks' : Slice Block)
     (slots slots' : Array Slot 4#usize) (n k j : Usize) (hb : HeadsEq blocks.val blocks'.val)
     (h : SlotsRel slots slots') :
-    Rel (sha256.hw.chain_all_loop0_loop3 blocks slots n k j)
-      (sha256.hw.chain_all_loop0_loop3 blocks' slots' n k j)
+    Rel (sha256.hw.chain_all_loop0_loop3 N blocks slots n k j)
+      (sha256.hw.chain_all_loop0_loop3 N blocks' slots' n k j)
       (fun p q => HeadsEq p.1.val q.1.val ∧ SlotsRel p.2.1 q.2.1 ∧ p.2.2 = q.2.2) := by
   unfold sha256.hw.chain_all_loop0_loop3
   refine Rel.loop RetireRel ?_ ⟨hb, h, rfl⟩
   rintro ⟨b, sl, k1, j1⟩ ⟨b', sl', k1', j1'⟩ ⟨hb1, hs1, he⟩
   obtain ⟨rfl, rfl⟩ : k1 = k1' ∧ j1 = j1' := by simpa using he
-  exact chain_all_loop0_loop3_body n b b' sl sl' k1 j1 hb1 hs1
+  exact chain_all_loop0_loop3_body N n b b' sl sl' k1 j1 hb1 hs1
 
 /-- `ct_step` for `chain_all`'s main loop: the nested conditionals that pick a slot array, or
 a new (slots, cache, count), are stepped with the public parts kept. -/
@@ -294,12 +326,12 @@ def MainRel (p q : Slice Block × Array Slot 4#usize × slhdsa.sha256.hw.First �
     Prop :=
   HeadsEq p.1.val q.1.val ∧ SlotsRel p.2.1 q.2.1 ∧ FirstRel p.2.2.1 q.2.2.1 ∧ p.2.2.2 = q.2.2.2
 
-theorem chain_all_loop0_body (state state' : Array U32 8#usize) (start e : Slice U32)
+theorem chain_all_loop0_body (N : Usize) (state state' : Array U32 8#usize) (start e : Slice U32)
     (blocks blocks' : Slice Block) (slots slots' : Array Slot 4#usize)
     (first first' : slhdsa.sha256.hw.First) (n next : Usize)
     (hb : HeadsEq blocks.val blocks'.val) (h : SlotsRel slots slots') (hf : FirstRel first first') :
-    Rel (sha256.hw.chain_all_loop0.body state start e blocks slots first n next)
-      (sha256.hw.chain_all_loop0.body state' start e blocks' slots' first' n next)
+    Rel (sha256.hw.chain_all_loop0.body N state start e blocks slots first n next)
+      (sha256.hw.chain_all_loop0.body N state' start e blocks' slots' first' n next)
       (CFRel MainRel (fun p q => HeadsEq p.val q.val)) := by
   have hl := Heads.slice_length_eq hb
   unfold sha256.hw.chain_all_loop0.body
@@ -313,34 +345,40 @@ theorem chain_all_loop0_body (state state' : Array U32 8#usize) (start e : Slice
     | slots_tac
     | (simp_all [FirstRel]; done)
 
-@[ct_rel] theorem chain_all_loop0 (state state' : Array U32 8#usize) (blocks blocks' : Slice Block)
+@[ct_rel] theorem chain_all_loop0 (N : Usize) (state state' : Array U32 8#usize)
+    (blocks blocks' : Slice Block)
     (start e : Slice U32) (slots slots' : Array Slot 4#usize)
     (first first' : slhdsa.sha256.hw.First) (n next : Usize)
     (hb : HeadsEq blocks.val blocks'.val) (h : SlotsRel slots slots') (hf : FirstRel first first') :
-    Rel (sha256.hw.chain_all_loop0 state blocks start e slots first n next)
-      (sha256.hw.chain_all_loop0 state' blocks' start e slots' first' n next)
+    Rel (sha256.hw.chain_all_loop0 N state blocks start e slots first n next)
+      (sha256.hw.chain_all_loop0 N state' blocks' start e slots' first' n next)
       (fun p q => HeadsEq p.val q.val) := by
   unfold sha256.hw.chain_all_loop0
   refine Rel.loop MainRel ?_ ⟨hb, h, hf, rfl⟩
   rintro ⟨b, sl, f, k, j⟩ ⟨b', sl', f', k', j'⟩ ⟨hb1, hs1, hf1, he⟩
   obtain ⟨rfl, rfl⟩ : k = k' ∧ j = j' := by simpa using he
-  exact chain_all_loop0_body state state' start e b b' sl sl' f f' k j hb1 hs1 hf1
+  exact chain_all_loop0_body N state state' start e b b' sl sl' f f' k j hb1 hs1 hf1
 
-/-- `chain_all`: the trace depends on the step ranges, the number of blocks and the blocks'
-heads only. -/
-@[ct_rel] theorem chain_all (state state' : Array U32 8#usize) (blocks blocks' : Slice Block)
+/-- `chain_all`: the trace depends on `N`, the step ranges, the number of blocks and the
+blocks' heads only. -/
+@[ct_rel] theorem chain_all (N : Usize) (state state' : Array U32 8#usize)
+    (blocks blocks' : Slice Block)
     (start e : Slice U32) (hb : HeadsEq blocks.val blocks'.val) :
-    Rel (sha256.hw.chain_all state blocks start e) (sha256.hw.chain_all state' blocks' start e)
+    Rel (sha256.hw.chain_all N state blocks start e)
+      (sha256.hw.chain_all N state' blocks' start e)
       (fun p q => HeadsEq p.val q.val) := by
   unfold sha256.hw.chain_all
   ct_steps
   all_goals first | rfl | exact ⟨rfl, rfl⟩ | assumption
 
-/-- `sha256::hw::chain_blocks`: the feature test and the length checks are on public data. -/
-@[ct_rel] theorem hw_chain_blocks (state state' : Array U32 8#usize) (blocks blocks' : Slice Block)
+/-- `sha256::hw::chain_blocks::<N>`: the test of `N`, the feature test and the length checks
+are on public data; for every `N` (in particular 16, 24 and 32, the values for which the kernel
+runs) the only precondition on the blocks is that their heads agree. -/
+@[ct_rel] theorem hw_chain_blocks (N : Usize) (state state' : Array U32 8#usize)
+    (blocks blocks' : Slice Block)
     (start e : Slice U32) (hb : HeadsEq blocks.val blocks'.val) :
-    Rel (sha256.hw.chain_blocks state blocks start e)
-      (sha256.hw.chain_blocks state' blocks' start e)
+    Rel (sha256.hw.chain_blocks N state blocks start e)
+      (sha256.hw.chain_blocks N state' blocks' start e)
       (fun p q => p.1 = q.1 ∧ HeadsEq p.2.val q.2.val) := by
   have hl := Heads.slice_length_eq hb
   unfold sha256.hw.chain_blocks
