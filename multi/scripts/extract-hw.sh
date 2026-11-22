@@ -1,0 +1,29 @@
+#!/bin/sh
+# Regenerate the Lean translation of the crate as built with the `hw-sha2`
+# feature (multi/lean-hw/Slhdsa/{Types,Funs}.lean), as ../scripts/extract-hw.sh
+# does for ../rust.
+#
+# Everything is translated except `sha256::hw::arm`, the module of one-line
+# wrappers around the NEON and SHA-256 intrinsics (the same eighteen as in
+# ../rust). Aeneas lists what it left out in two template files; their
+# hand-written counterparts are TypesExternal.lean and FunsExternal.lean,
+# symbolic links to ../../lean-hw/Slhdsa. This script fails if a wrapper has
+# no definition there, and prints how many declarations were left out.
+set -e
+cd "$(dirname "$0")/.."
+export PATH="$HOME/.cargo/bin:$PATH"
+(cd rust && ../../.tools/aeneas/charon/bin/charon cargo --preset=aeneas \
+   --opaque 'slhdsa::sha256::hw::arm' --dest hw-sha2 -- --features hw-sha2)
+../.tools/aeneas/bin/aeneas -backend lean -dest lean-hw/Slhdsa -split-files rust/hw-sha2/slhdsa.llbc
+cd lean-hw/Slhdsa
+missing=0
+count=0
+for name in $(grep -h '^axiom ' TypesExternal_Template.lean FunsExternal_Template.lean | awk '{print $2}'); do
+  count=$((count + 1))
+  if ! grep -q "^def $name\b" TypesExternal.lean FunsExternal.lean; then
+    echo "no definition for $name in lean-hw/Slhdsa/{Types,Funs}External.lean"; missing=1
+  fi
+done
+echo "declarations left to the hand-written model: $count"
+rm -f TypesExternal_Template.lean FunsExternal_Template.lean
+[ "$missing" = 0 ]

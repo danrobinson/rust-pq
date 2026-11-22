@@ -1,0 +1,20 @@
+name = "slhdsa_multi_hw"
+defaultTargets = ["Slhdsa"]
+# Reuse the dependency checkouts of ../lean (itself a clone of ../../lean's).
+packagesDir = "../lean/.lake/packages"
+
+[[require]]
+name = "aeneas"
+path = "../../.tools/aeneas/backends/lean"
+
+# The instruction model of the hardware backend, compiled in place from
+# ../../lean-hw (not copied): the wrappers are the same eighteen functions.
+[[lean_lib]]
+name = "Arm"
+srcDir = "../../lean-hw"
+
+# The Aeneas translation of multi/rust built with `hw-sha2`
+# (scripts/extract-hw.sh). Proofs for it are not written yet.
+[[lean_lib]]
+name = "Slhdsa"
+roots = ["Slhdsa.Types", "Slhdsa.TypesExternal", "Slhdsa.FunsExternal", "Slhdsa.Funs"]

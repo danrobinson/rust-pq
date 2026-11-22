@@ -31,8 +31,16 @@ structure address.Adrs where
   word2 : Std.U32
   word3 : Std.U32
 
+/-- [slhdsa::hash::Seed]
+    Source: 'src/hash.rs', lines 21:0-25:1
+    Visibility: public -/
+structure hash.Seed (N : Std.Usize) where
+  pk_seed : Array Std.U8 N
+  state : Array Std.U32 8#usize
+  state512 : Array Std.U64 8#usize
+
 /-- [slhdsa::params::Params]
-    Source: 'src/params.rs', lines 14:0-29:1
+    Source: 'src/params.rs', lines 24:0-39:1
     Visibility: public -/
 structure params.Params where
   n : Std.Usize

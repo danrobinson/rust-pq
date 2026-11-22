@@ -9,8 +9,18 @@ pub const LG_W: u32 = 4;
 pub const W: u32 = 16;
 /// WOTS+ checksum chains (FIPS 205 §5: `len_2 = 3` when `lg_w = 4`).
 pub const LEN2: usize = 3;
+/// The largest `len` of the six sets (n = 32): the size of the WOTS+ block
+/// arrays, of which the first `len = 2n + 3` are used.
+pub const LEN_MAX: usize = 67;
+/// The largest `k` of the six sets (SHA2-256f): the size of the arrays that
+/// hold one value per FORS tree.
+pub const K_MAX: usize = 35;
 
 /// A row of FIPS 205 Table 2.
+///
+/// The functions of the scheme take the hash length `n` twice: as this
+/// field, and as the const generic `N` that sizes their arrays. Callers pass
+/// the same value (the modules `sha2_128s` … `sha2_256f` do).
 pub struct Params {
     /// Security parameter: hash output length in bytes.
     pub n: usize,

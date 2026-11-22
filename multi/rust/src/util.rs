@@ -1,9 +1,11 @@
 //! Small byte-manipulation helpers.
 
-/// The `i`-th `n`-byte block of `s`.
-pub fn block(s: &[u8], n: usize, i: usize) -> Vec<u8> {
-    let mut out: Vec<u8> = Vec::new();
-    out.extend_from_slice(&s[i * n..i * n + n]);
+use alloc::vec::Vec;
+
+/// The `i`-th `N`-byte block of `s`.
+pub fn block<const N: usize>(s: &[u8], i: usize) -> [u8; N] {
+    let mut out = [0u8; N];
+    out.copy_from_slice(&s[i * N..i * N + N]);
     out
 }
 
@@ -41,7 +43,8 @@ pub fn base_2b(x: &[u8], b: u32, out_len: usize) -> Vec<u32> {
     out
 }
 
-/// Whether two byte strings are equal.
+/// Whether two byte strings are equal. Looks at every byte, wherever they
+/// differ.
 pub fn bytes_eq(x: &[u8], y: &[u8]) -> bool {
     if x.len() != y.len() {
         return false;

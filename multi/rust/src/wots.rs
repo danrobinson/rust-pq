@@ -1,27 +1,19 @@
 //! WOTS+ one-time signatures (FIPS 205 §5).
+//!
+//! The chains of a key are `len = 2n + 3` blocks of [`chain_blocks`]; the
+//! block arrays have room for the largest `len` (67, for n = 32) and the
+//! first `len` are used.
 
+use alloc::vec::Vec;
 use crate::address::{Adrs, WOTS_PK, WOTS_PRF};
-use crate::hash::{thash_f, thash_h};
-use crate::params::{Params, LEN2, LG_W, W};
+use crate::hash::{chain_blocks, short_block, thash_values, Seed};
+use crate::params::{LEN2, LEN_MAX, LG_W, W};
 use crate::util::{base_2b, block};
-
-/// Algorithm 5, `chain`: apply `F` `s` times starting at step `i`.
-pub fn chain(p: &Params, x: &[u8], i: u32, s: u32, pk_seed: &[u8], adrs: Adrs) -> Vec<u8> {
-    let mut tmp: Vec<u8> = Vec::new();
-    tmp.extend_from_slice(x);
-    let mut j = i;
-    let end = i + s;
-    while j < end {
-        tmp = thash_f(p, pk_seed, &adrs.with_word3(j), &tmp);
-        j += 1;
-    }
-    tmp
-}
 
 /// The `len` base-w digits signed by WOTS+: the message digits followed by
 /// the checksum digits (Algorithm 7, lines 1–7).
-pub fn wots_digits(p: &Params, m: &[u8]) -> Vec<u32> {
-    let len1 = p.len1();
+pub fn wots_digits<const N: usize>(m: &[u8; N]) -> Vec<u32> {
+    let len1 = 2 * N;
     let mut msg = base_2b(m, LG_W, len1);
     let mut csum: u32 = 0;
     let mut i = 0;
@@ -36,51 +28,64 @@ pub fn wots_digits(p: &Params, m: &[u8]) -> Vec<u32> {
     msg
 }
 
-/// Algorithm 6, `wots_pkGen`.
-pub fn wots_pk_gen(p: &Params, sk_seed: &[u8], pk_seed: &[u8], adrs: Adrs) -> Vec<u8> {
+/// The blocks of the `len` chains of a WOTS+ key, each holding its secret
+/// value: `PRF` at every chain address, computed in place as one step of
+/// [`chain_blocks`] on the `PRF` blocks. A `PRF` block and the chain block
+/// for the same chain differ only in the address type (byte 9), which is
+/// then switched.
+fn sk_blocks<const N: usize>(sk_seed: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> [[u8; 64]; LEN_MAX] {
+    let len = 2 * N + LEN2;
     let sk_adrs = adrs.with_type(WOTS_PRF).with_keypair(adrs.keypair);
-    let len = p.len() as u32;
-    let mut tmp: Vec<u8> = Vec::new();
-    let mut i: u32 = 0;
+    let mut blocks = [[0u8; 64]; LEN_MAX];
+    let mut i = 0;
     while i < len {
-        let sk = thash_f(p, pk_seed, &sk_adrs.with_word2(i), sk_seed);
-        let t = chain(p, &sk, 0, W - 1, pk_seed, adrs.with_word2(i));
-        tmp.extend_from_slice(&t);
+        blocks[i] = short_block(&sk_adrs.with_word2(i as u32), sk_seed);
         i += 1;
     }
+    chain_blocks::<N>(&seed.state, &mut blocks[0..len], &[0u32; LEN_MAX], &[1u32; LEN_MAX]);
+    let mut i = 0;
+    while i < len {
+        blocks[i][9] = adrs.typ as u8;
+        i += 1;
+    }
+    blocks
+}
+
+/// Algorithm 6, `wots_pkGen`.
+pub fn wots_pk_gen<const N: usize>(sk_seed: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    let len = 2 * N + LEN2;
+    let mut blocks = sk_blocks::<N>(sk_seed, seed, adrs);
+    chain_blocks::<N>(&seed.state, &mut blocks[0..len], &[0u32; LEN_MAX], &[W - 1; LEN_MAX]);
     let pk_adrs = adrs.with_type(WOTS_PK).with_keypair(adrs.keypair);
-    thash_h(p, pk_seed, &pk_adrs, &tmp)
+    thash_values::<N>(seed, &pk_adrs, &blocks[0..len])
 }
 
 /// Algorithm 7, `wots_sign`.
-pub fn wots_sign(p: &Params, m: &[u8], sk_seed: &[u8], pk_seed: &[u8], adrs: Adrs) -> Vec<u8> {
-    let msg = wots_digits(p, m);
-    let sk_adrs = adrs.with_type(WOTS_PRF).with_keypair(adrs.keypair);
-    let len = p.len() as u32;
+pub fn wots_sign<const N: usize>(m: &[u8; N], sk_seed: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> Vec<u8> {
+    let len = 2 * N + LEN2;
+    let msg = wots_digits::<N>(m);
+    let mut blocks = sk_blocks::<N>(sk_seed, seed, adrs);
+    chain_blocks::<N>(&seed.state, &mut blocks[0..len], &[0u32; LEN_MAX], &msg);
     let mut sig: Vec<u8> = Vec::new();
-    let mut i: u32 = 0;
+    let mut i = 0;
     while i < len {
-        let sk = thash_f(p, pk_seed, &sk_adrs.with_word2(i), sk_seed);
-        let t = chain(p, &sk, 0, msg[i as usize], pk_seed, adrs.with_word2(i));
-        sig.extend_from_slice(&t);
+        sig.extend_from_slice(&blocks[i][22..22 + N]);
         i += 1;
     }
     sig
 }
 
 /// Algorithm 8, `wots_pkFromSig`. `sig` holds `len` blocks of `n` bytes.
-pub fn wots_pk_from_sig(p: &Params, sig: &[u8], m: &[u8], pk_seed: &[u8], adrs: Adrs) -> Vec<u8> {
-    let msg = wots_digits(p, m);
-    let len = p.len() as u32;
-    let mut tmp: Vec<u8> = Vec::new();
-    let mut i: u32 = 0;
+pub fn wots_pk_from_sig<const N: usize>(sig: &[u8], m: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    let len = 2 * N + LEN2;
+    let msg = wots_digits::<N>(m);
+    let mut blocks = [[0u8; 64]; LEN_MAX];
+    let mut i = 0;
     while i < len {
-        let d = msg[i as usize];
-        let x = block(sig, p.n, i as usize);
-        let t = chain(p, &x, d, W - 1 - d, pk_seed, adrs.with_word2(i));
-        tmp.extend_from_slice(&t);
+        blocks[i] = short_block(&adrs.with_word2(i as u32), &block::<N>(sig, i));
         i += 1;
     }
+    chain_blocks::<N>(&seed.state, &mut blocks[0..len], &msg, &[W - 1; LEN_MAX]);
     let pk_adrs = adrs.with_type(WOTS_PK).with_keypair(adrs.keypair);
-    thash_h(p, pk_seed, &pk_adrs, &tmp)
+    thash_values::<N>(seed, &pk_adrs, &blocks[0..len])
 }
