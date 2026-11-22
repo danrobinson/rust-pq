@@ -1,18 +1,17 @@
 #!/bin/sh
-# Re-run the checks that hold for the six-parameter-set tree at this stage:
-# the Rust tests in every build (NIST ACVP vectors for all six sets, the
-# cross-test against ../rust, interoperability with RustCrypto, the interface
-# and checked-signer tests, the hash kernels against the `sha2` crate), both
-# re-extractions with Charon + Aeneas and their opaque/axiom checks, that both
-# translations typecheck, and the Lean specification against the NIST
-# verification vectors.
+# Re-run every check of the six-parameter-set tree: the Rust tests in every
+# build (NIST ACVP vectors for all six sets, the cross-test against ../rust,
+# interoperability with RustCrypto, the interface and checked-signer tests, the
+# hash kernels against the `sha2` crate), both re-extractions with Charon +
+# Aeneas and their opaque/axiom checks, the refinement proofs of the default
+# build (lean/Slhdsa/Proofs, the headline files Theorems, ApiTheorems,
+# EncodingTheorems and Compat128) with a check that every headline theorem
+# depends only on propext, Classical.choice and Quot.sound, that the hw-sha2
+# translation typechecks (it has no proofs yet, see STATUS.md), and the Lean
+# specification against the NIST verification vectors.
 #
-# The refinement proofs under lean/Slhdsa/Proofs describe the previous Rust
-# code and are stale (see STATUS.md); they are not built unless asked:
-#
-#   scripts/check.sh          everything except the stale proofs and the slow spec runs
+#   scripts/check.sh          everything except the slow spec runs
 #   scripts/check.sh full     also runs the spec on keygen and signing vectors
-#   scripts/check.sh proofs   also tries the stale proofs (expected to FAIL)
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
@@ -30,7 +29,25 @@ fi
 if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean/Slhdsa/Funs.lean lean/Slhdsa/Types.lean; then
   echo "FOUND an axiom or opaque declaration in the extraction"; exit 1
 fi
-(cd lean && lake build Slhdsa.Funs Spec spectest)
+(cd lean && lake build Slhdsa Spec spectest)
+
+# No sorry, axiom, native_decide or bv_decide anywhere in the Lean sources.
+if grep -rnwE "sorry|admit|native_decide|bv_decide" lean/Slhdsa lean/Spec lean/Spec.lean lean/Slhdsa.lean \
+   || grep -rnE "^[[:space:]]*(axiom|opaque) " lean/Slhdsa lean/Spec; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the proofs"; exit 1
+fi
+
+# Every `#print axioms` of the headline files reports the three standard axioms.
+for f in Theorems ApiTheorems EncodingTheorems Compat128; do
+  n=$(grep -c "^#print axioms" "lean/Slhdsa/$f.lean")
+  out=$(cd lean && lake env lean "Slhdsa/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "axiom check FAILED for $f.lean ($good of $n)"; exit 1
+  fi
+  echo "$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
 
 # The hw-sha2 build: everything but the intrinsic wrappers of sha256::hw::arm,
 # which are defined by ../lean-hw's model (linked from lean-hw/Slhdsa).
@@ -41,10 +58,6 @@ if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean-hw/Slhdsa/Funs.lea
 fi
 (cd lean-hw && lake build)
 
-if [ "$1" = "proofs" ]; then
-  (cd lean && lake build) || { echo "the stale proofs do not build (expected at this stage)"; exit 1; }
-fi
-
 mode=ver
 [ "$1" = "full" ] && mode=all
 for s in 128s 128f 192s 192f 256s 256f; do
@@ -53,4 +66,4 @@ done
 fail=0
 for job in $(jobs -p); do wait "$job" || fail=1; done
 [ "$fail" -eq 0 ] || { echo "spec test FAILED"; exit 1; }
-echo "All checks passed (the refinement proofs are stale and were not built)."
+echo "All checks passed."

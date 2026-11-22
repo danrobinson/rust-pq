@@ -4,24 +4,25 @@ open Aeneas Aeneas.Std Result
 /-!
 # Main results
 
-The Rust functions of the `slhdsa` crate, as translated to Lean by Aeneas,
-never panic and compute exactly the functions of the FIPS 205 transcription
-in `Spec/SlhDsa.lean`, for each of SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}.
+The Rust functions of the `slhdsa` crate (the optimised implementation in
+`multi/rust`), as translated to Lean by Aeneas, never panic and compute
+exactly the functions of the FIPS 205 transcription in `Spec/SlhDsa.lean`,
+for each of SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}.
 
 `bytes` maps machine bytes to the specification's bytes. `Room len slack`
 says a message of `len` bytes plus `slack` more fits in memory and its bit
-length fits in SHA-256's 64-bit length field, i.e. the message is under
-2^61 bytes, the limit of SHA-256 itself.
+length fits in SHA-256's 64-bit length field. The slack is 152 bytes for the
+internal functions and 409 for the pure ones when `n = 16` (SHA-256
+throughout; the same numbers as the single-set tree), and 304 / 561 when
+`n = 24, 32` (SHA-512 for `H_msg` and `PRF_msg`).
 
-There are two groups of statements.
-
-* `slhdsa.sha2_128s.keygen_correct` … `slhdsa.sha2_256f.verify_correct`: one
-  set of five theorems per parameter set, about the functions with fixed-size
-  key types in `sets.rs`. Their only hypothesis is `Room`.
+* `slhdsa.sha2_128s.keygen_correct` … `slhdsa.sha2_256f.verify_correct`: five
+  theorems per parameter set, about the functions with fixed-size key types
+  in `sets.rs`. Their only hypothesis is `Room`.
 * `slhdsa.generic.*`: the same five theorems about the generic functions of
   `slh.rs`, for any `params.Params` value `p` whose specification-level view
-  `paramsS p` satisfies `Spec.Params.Valid`. Those functions take slices, so
-  the key and seed lengths appear as hypotheses there.
+  satisfies `Spec.Params.Valid`, with `N = p.n` (`PN p N`). Those functions
+  take slices, so the key lengths appear as hypotheses there.
 -/
 
 namespace slhdsa
@@ -41,49 +42,45 @@ theorem sha512_correct (msg : Slice U8) (h : msg.length + 144 ≤ Usize.max) :
 
 namespace generic
 
-theorem keygen_correct (p : params.Params) (hv : (paramsS p).Valid)
-    (sk_seed sk_prf pk_seed : Slice U8) (h1 : sk_seed.length = p.n.val)
-    (h2 : sk_prf.length = p.n.val) (h3 : pk_seed.length = p.n.val) :
-    ∃ sk pk, slh.slh_keygen_internal p sk_seed sk_prf pk_seed = ok (sk, pk) ∧
-      (bytes sk.val, bytes pk.val) =
-        Spec.slhKeygenInternal (paramsS p) (bytes sk_seed.val) (bytes sk_prf.val)
-          (bytes pk_seed.val) := by
-  obtain ⟨⟨sk, pk⟩, h, hp, -⟩ :=
-    spec_imp_exists (slh_keygen_internal_spec p sk_seed sk_prf pk_seed hv h1 h2 h3)
-  exact ⟨sk, pk, h, hp⟩
+theorem keygen_correct {N : Usize} (p : params.Params) (hp : PN p N)
+    (sk_seed sk_prf pk_seed : Array U8 N) (sk pk : Slice U8)
+    (hsk : sk.length = 4 * N.val) (hpk : pk.length = 2 * N.val) :
+    ∃ sk' pk', slh.slh_keygen_internal p sk_seed sk_prf pk_seed sk pk = ok (sk', pk') ∧
+      (bytes sk'.val, bytes pk'.val) =
+        Spec.slhKeygenInternal (paramsS p) (bytes sk_seed.val) (bytes sk_prf.val) (bytes pk_seed.val) := by
+  obtain ⟨⟨sk', pk'⟩, h, hp, -⟩ :=
+    spec_imp_exists (slh_keygen_internal_spec p hp sk_seed sk_prf pk_seed sk pk hsk hpk)
+  exact ⟨sk', pk', h, hp⟩
 
-theorem sign_internal_correct (p : params.Params) (hv : (paramsS p).Valid)
-    (m sk addrnd : Slice U8) (hsk : sk.length = 4 * p.n.val) (hr : addrnd.length = p.n.val)
-    (hm : Room m.length 304) :
+theorem sign_internal_correct {N : Usize} (p : params.Params) (hp : PN p N)
+    (m sk : Slice U8) (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val)
+    (hm : Room m.length (msgSlack N.val)) :
     ∃ sig, slh.slh_sign_internal p m sk addrnd = ok sig ∧
-      bytes sig.val =
-        Spec.slhSignInternal (paramsS p) (bytes m.val) (bytes sk.val) (bytes addrnd.val) := by
-  obtain ⟨sig, h, hp, -⟩ := spec_imp_exists (slh_sign_internal_spec p m sk addrnd hv hsk hr hm)
+      bytes sig.val = Spec.slhSignInternal (paramsS p) (bytes m.val) (bytes sk.val) (bytes addrnd.val) := by
+  obtain ⟨sig, h, hp, -⟩ := spec_imp_exists (slh_sign_internal_spec p hp m sk addrnd hsk hm)
   exact ⟨sig, h, hp⟩
 
 /-- For every byte string `sig` offered as a signature. -/
-theorem verify_internal_correct (p : params.Params) (hv : (paramsS p).Valid)
-    (m sig pk : Slice U8) (hpk : pk.length = 2 * p.n.val) (hm : Room m.length 304) :
-    slh.slh_verify_internal p m sig pk =
+theorem verify_internal_correct {N : Usize} (p : params.Params) (hp : PN p N)
+    (m sig pk : Slice U8) (hpk : pk.length = 2 * N.val) (hm : Room m.length (msgSlack N.val)) :
+    slh.slh_verify_internal N p m sig pk =
       ok (Spec.slhVerifyInternal (paramsS p) (bytes m.val) (bytes sig.val) (bytes pk.val)) := by
-  obtain ⟨b, h, hp⟩ := spec_imp_exists (slh_verify_internal_spec p m sig pk hv hpk hm)
+  obtain ⟨b, h, hp⟩ := spec_imp_exists (slh_verify_internal_spec p hp m sig pk hpk hm)
   rw [h, hp]
 
-theorem sign_correct (p : params.Params) (hv : (paramsS p).Valid)
-    (m ctx sk addrnd : Slice U8) (hsk : sk.length = 4 * p.n.val) (hr : addrnd.length = p.n.val)
-    (hm : Room m.length 561) :
+theorem sign_correct {N : Usize} (p : params.Params) (hp : PN p N)
+    (m ctx sk : Slice U8) (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val)
+    (hm : Room m.length (msgSlack N.val + 257)) :
     ∃ r, slh.slh_sign p m ctx sk addrnd = ok r ∧
       r.map (fun v => bytes v.val) =
-        Spec.slhSign (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val)
-          (bytes addrnd.val) :=
-  spec_imp_exists (slh_sign_spec p m ctx sk addrnd hv hsk hr hm)
+        Spec.slhSign (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) :=
+  spec_imp_exists (slh_sign_spec p hp m ctx sk addrnd hsk hm)
 
-theorem verify_correct (p : params.Params) (hv : (paramsS p).Valid)
-    (m sig ctx pk : Slice U8) (hpk : pk.length = 2 * p.n.val) (hm : Room m.length 561) :
-    slh.slh_verify p m sig ctx pk =
-      ok (Spec.slhVerify (paramsS p) (bytes m.val) (bytes sig.val) (bytes ctx.val)
-        (bytes pk.val)) := by
-  obtain ⟨b, h, hp⟩ := spec_imp_exists (slh_verify_spec p m sig ctx pk hv hpk hm)
+theorem verify_correct {N : Usize} (p : params.Params) (hp : PN p N)
+    (m sig ctx pk : Slice U8) (hpk : pk.length = 2 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
+    slh.slh_verify N p m sig ctx pk =
+      ok (Spec.slhVerify (paramsS p) (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val)) := by
+  obtain ⟨b, h, hp⟩ := spec_imp_exists (slh_verify_spec p hp m sig ctx pk hpk hm)
   rw [h, hp]
 
 end generic
@@ -106,7 +103,7 @@ theorem keygen_correct (sk_seed sk_prf pk_seed : Array U8 16#usize) :
 /-- Signing: the Rust `sha2_128s::slh_sign_internal` returns the signature of
 FIPS 205 Algorithm 19. -/
 theorem sign_internal_correct (m : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 152) :
     ∃ sig, sets.sha2_128s.slh_sign_internal m sk addrnd = ok sig ∧
       bytes sig.val =
         Spec.slhSignInternal Spec.sha2_128s (bytes m.val) (bytes sk.val) (bytes addrnd.val) :=
@@ -115,7 +112,7 @@ theorem sign_internal_correct (m : Slice U8) (sk : Array U8 64#usize)
 /-- Verification: the Rust `sha2_128s::slh_verify_internal` returns the verdict
 of FIPS 205 Algorithm 20, for every byte string offered as a signature. -/
 theorem verify_internal_correct (m sig : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 304) :
+    (hm : Room m.length 152) :
     sets.sha2_128s.slh_verify_internal m sig pk =
       ok (Spec.slhVerifyInternal Spec.sha2_128s (bytes m.val) (bytes sig.val) (bytes pk.val)) := by
   obtain ⟨b, h, hp⟩ := spec_imp_exists (sha2_128s.slh_verify_internal_spec m sig pk hm)
@@ -123,7 +120,7 @@ theorem verify_internal_correct (m sig : Slice U8) (pk : Array U8 32#usize)
 
 /-- Pure signing with a context string (FIPS 205 Algorithm 22). -/
 theorem sign_correct (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 561) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 409) :
     ∃ r, sets.sha2_128s.slh_sign m ctx sk addrnd = ok r ∧
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.sha2_128s (bytes m.val) (bytes ctx.val) (bytes sk.val)
@@ -132,7 +129,7 @@ theorem sign_correct (m ctx : Slice U8) (sk : Array U8 64#usize)
 
 /-- Pure verification with a context string (FIPS 205 Algorithm 24). -/
 theorem verify_correct (m sig ctx : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 561) :
+    (hm : Room m.length 409) :
     sets.sha2_128s.slh_verify m sig ctx pk =
       ok (Spec.slhVerify Spec.sha2_128s (bytes m.val) (bytes sig.val) (bytes ctx.val)
         (bytes pk.val)) := by
@@ -159,7 +156,7 @@ theorem keygen_correct (sk_seed sk_prf pk_seed : Array U8 16#usize) :
 /-- Signing: the Rust `sha2_128f::slh_sign_internal` returns the signature of
 FIPS 205 Algorithm 19. -/
 theorem sign_internal_correct (m : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 304) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 152) :
     ∃ sig, sets.sha2_128f.slh_sign_internal m sk addrnd = ok sig ∧
       bytes sig.val =
         Spec.slhSignInternal Spec.sha2_128f (bytes m.val) (bytes sk.val) (bytes addrnd.val) :=
@@ -168,7 +165,7 @@ theorem sign_internal_correct (m : Slice U8) (sk : Array U8 64#usize)
 /-- Verification: the Rust `sha2_128f::slh_verify_internal` returns the verdict
 of FIPS 205 Algorithm 20, for every byte string offered as a signature. -/
 theorem verify_internal_correct (m sig : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 304) :
+    (hm : Room m.length 152) :
     sets.sha2_128f.slh_verify_internal m sig pk =
       ok (Spec.slhVerifyInternal Spec.sha2_128f (bytes m.val) (bytes sig.val) (bytes pk.val)) := by
   obtain ⟨b, h, hp⟩ := spec_imp_exists (sha2_128f.slh_verify_internal_spec m sig pk hm)
@@ -176,7 +173,7 @@ theorem verify_internal_correct (m sig : Slice U8) (pk : Array U8 32#usize)
 
 /-- Pure signing with a context string (FIPS 205 Algorithm 22). -/
 theorem sign_correct (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (addrnd : Array U8 16#usize) (hm : Room m.length 561) :
+    (addrnd : Array U8 16#usize) (hm : Room m.length 409) :
     ∃ r, sets.sha2_128f.slh_sign m ctx sk addrnd = ok r ∧
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.sha2_128f (bytes m.val) (bytes ctx.val) (bytes sk.val)
@@ -185,7 +182,7 @@ theorem sign_correct (m ctx : Slice U8) (sk : Array U8 64#usize)
 
 /-- Pure verification with a context string (FIPS 205 Algorithm 24). -/
 theorem verify_correct (m sig ctx : Slice U8) (pk : Array U8 32#usize)
-    (hm : Room m.length 561) :
+    (hm : Room m.length 409) :
     sets.sha2_128f.slh_verify m sig ctx pk =
       ok (Spec.slhVerify Spec.sha2_128f (bytes m.val) (bytes sig.val) (bytes ctx.val)
         (bytes pk.val)) := by

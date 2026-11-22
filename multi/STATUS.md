@@ -2,31 +2,30 @@
 
 Copy of `rust/` and `lean/` extended from SLH-DSA-SHA2-128s to
 SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}. Nothing outside `multi/` was
-modified. `multi/scripts/check.sh` re-runs every check that holds at this
-stage (below).
+modified. `multi/scripts/check.sh` re-runs every check (below).
 
-## State (2026-11-22): optimised Rust for six sets; the proofs are stale
+## State (2026-11-22): optimised Rust for six sets, proved correct (default build)
 
-This stage made `multi/rust` the optimised implementation of `../rust` for all
-six SHA-2 parameter sets. It is Rust only.
+`multi/rust` is the optimised implementation of `../rust` for all six SHA-2
+parameter sets, and the Aeneas translation of its default build is proved to
+compute FIPS 205 (`lean/Spec`) for every function the crate exports, in every
+set.
 
 | Item | State |
 |---|---|
 | Same modules and public functions as `../rust/src` (`api`, `encoding`, checked signer, `no_std` + alloc, `hw-sha2` with the same runtime detection), six sets | done (generic functions, plus per-set typed wrappers with `../rust`'s signatures) |
 | `chain_blocks`, seed-state precomputation, `sha256_from`, in-place `H_msg`, stack HMAC key blocks, FORS batches and joint climbing, on the SHA-256 paths of every set | done |
-| SHA-512 for `H`, `T_l`, `H_msg`, `PRF_msg` (n = 24, 32): seed state after `PK.seed ‖ 0^(128−n)`, one-block `H`, `T_len` on the stack, `sha512_from` | done, portable |
+| SHA-512 for `H`, `T_l`, `H_msg`, `PRF_msg` (n = 24, 32) | done, portable |
+| `PRF_msg`'s inner HMAC digest | kept on the stack (this stage; see "Secrets and constant time") |
 | `hw-sha2` chain kernel for n = 24 and 32 | done (one kernel, generic in `N`; the wrappers are unchanged) |
-| Hardware SHA-512 (FEAT_SHA512) | done as a separate, experimental, **unverified** feature `hw-sha512` (last section) |
-| Tests, both builds | all pass (counts below) |
-| Charon/Aeneas, default build | no opaque function, no axiom, no `External` file; the translation typechecks |
-| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` left out (21 declarations, all defined by `../lean-hw`'s model, linked); the translation typechecks |
-| 128s speed against `../rust` | within 2.5% everywhere (table below) |
-| Refinement proofs (`lean/Slhdsa/Proofs`, `Theorems.lean`) | **stale**: they are about the previous Rust code. Against the new translation `Basic.lean` and `Params.lean` still build; `Sha256.lean` (12 errors) and `Util.lean` (1 error) fail, so nothing above them is reached. Per-file assessment below. |
-| Constant-time proofs, hardware proofs, security link | not started for this tree |
-
-The previous stage (generic but unoptimised Rust, with complete refinement
-proofs: 37 headline theorems on the three standard axioms) is in git history
-before this change.
+| Hardware SHA-512 (FEAT_SHA512) | separate, experimental, **unverified** feature `hw-sha512` |
+| Tests, three builds | all pass: 89 default, 91 `hw-sha2`, 92 `hw-sha2,hw-sha512` |
+| Charon/Aeneas, default build | no opaque function, no axiom, no `External` file |
+| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` left out (21 declarations, defined by `../lean-hw`'s model, linked); the translation typechecks |
+| **Refinement proofs, default build** | **done**: `lean/Slhdsa/Proofs` (19 files, about 9,100 lines); headline files `Theorems.lean` (37 theorems), `ApiTheorems.lean` (174), `EncodingTheorems.lean` (72), `Compat128.lean` (24); every one depends only on `propext`, `Classical.choice`, `Quot.sound` (checked by `scripts/check.sh`); no `sorry`, `axiom`, `native_decide`, `bv_decide` |
+| Correctness of the specification (`lean/Spec/Checked.lean`, `Correctness.lean`) | done, generically for every `p` with `p.Valid` |
+| 128s against the single-set specification | done: `lean/Spec/Compat128.lean` proves `Spec.f Spec.sha2_128s = Spec128.f` for every function, where `Spec128` (`lean/Spec/Old128.lean`) is a verbatim copy of `../lean/Spec/{SlhDsa,Checked}.lean`; `Slhdsa/Compat128.lean` restates the 128s headlines against it |
+| Hardware proofs (`lean-hw`), constant-time proofs, security link | **not done** for this tree (`lean-hw` builds the translation only) |
 
 ## Design, and why
 
@@ -128,6 +127,16 @@ Other decisions:
 `../../lean-hw/Slhdsa/{Types,Funs}External.lean`). `scripts/check.sh`
 rewritten, new `scripts/extract-hw.sh`.
 
+This stage (proofs): `rust/src/hash.rs` (`prf_msg`: stack outer block),
+`rust/src/sha256.rs` (hardware test no longer writes the record);
+`lean/Slhdsa/{Types,Funs}.lean` and `lean-hw/Slhdsa/{Types,Funs}.lean`
+regenerated; `lean/Slhdsa/Proofs/*` rewritten for the new code (new
+`Sha256Core`, `CompressTop`, `ChainTop`, `HashMsg`, `Checked`, `Api`,
+`Encoding`); `lean/Slhdsa/Theorems.lean` regenerated, new
+`ApiTheorems.lean`, `EncodingTheorems.lean`, `Compat128.lean`;
+`lean/Slhdsa.lean`; new `lean/Spec/{Checked,Correctness,Old128,Compat128}.lean`,
+`lean/Spec.lean` imports `Checked`; `scripts/check.sh`; this file.
+
 ## Tests
 
 All pass, run on this machine (Apple M5 Ultra) in four builds: default,
@@ -155,8 +164,8 @@ And `cargo build --target aarch64-unknown-none` for the library: default,
 ## Translation (Charon + Aeneas)
 
 - `scripts/extract.sh` (default build) → `lean/Slhdsa/{Types,Funs}.lean`
-  (54 + 6,831 lines): 0 `axiom`, 0 `opaque`, no `External` template, no
-  `sorry`. `lake build Slhdsa.Funs` succeeds (3,614 jobs).
+  (54 + 6,862 lines): 0 `axiom`, 0 `opaque`, no `External` template, no
+  `sorry`.
 - `scripts/extract-hw.sh` (`--features hw-sha2`, `--opaque
   'slhdsa::sha256::hw::arm'`) → `lean-hw/Slhdsa/{Types,Funs}.lean`: 0 `axiom`
   or `opaque` in the generated files; Aeneas left out 21 declarations (the
@@ -298,78 +307,161 @@ stack too. Nothing of this has been checked by the constant-time machinery of
 `../lean/Ct` (it has not been run on this tree); the compat stack and heap
 searches above were run for 128s only.
 
-Observation about `../rust` (unchanged here, and carried into the SHA-512
-path): `sha256_from` / `sha512_from` copy the tail of their message into a
-heap `Vec` for padding, so the HMAC inner digest `H((K ⊕ ipad) ‖ opt_rand ‖ M)`,
-which depends on `SK.prf`, reaches the heap in `PRF_msg`. It is not among the
-forms `../compat/tests/heap.rs` searches for. Whether it matters is a
-judgement call (it is a PRF output, not the key), but the documentation's
-"nothing derived from the secret seed is written to the heap" is not
-literally true of it.
+`PRF_msg` (this stage): the HMAC inner digest `H((K ⊕ ipad) ‖ opt_rand ‖ M)`,
+which depends on `SK.prf`, no longer reaches the heap. `sha256_from` /
+`sha512_from` copy the tail of their message into a heap `Vec` for padding,
+and the outer hash used to go through them; now `prf_msg` writes the final
+outer block on the stack (digest ‖ `0x80` ‖ zeros ‖ the bit length of key
+block + digest: `0x0300` for SHA-256, `0x0600` for SHA-512) and calls
+`compress` on it directly. `../rust` still has the old form (it is outside
+`multi/`), so its documentation's "nothing derived from the secret seed is
+written to the heap" is still not literally true of it.
 
-## The proofs: what carries over
+## The proofs (default build)
 
-The translation changed shape, so every proof that unfolds a Rust function
-needs at least re-checking. Expected per file (sources: `../lean/Slhdsa/Proofs`
-= optimised 128s proofs, `lean/Slhdsa/Proofs` here = generic old-code proofs):
+`cd multi/lean && lake build` builds everything below (the default target is
+`Slhdsa`, which imports all of it). The statements are about the Aeneas
+translation of `multi/rust` without features (`lean/Slhdsa/Funs.lean`,
+regenerated at this stage) and the generic FIPS 205 transcription `lean/Spec`.
 
-| file (this tree) | expectation |
-|---|---|
-| `Basic.lean` | carries over (`bytes`, `Room`, `paramsS`; `Params` is unchanged) |
-| `Params.lean` | carries over; add `len ≤ LEN_MAX`, `k ≤ K_MAX` and `N = p.n` facts |
-| `Sha256.lean` | replace by `../lean`'s `Sha256Core.lean`, `CompressTop.lean`, `Sha256.lean`: the portable Rust is a copy of `../rust/src/sha256.rs`, so these should carry over with little more than name changes |
-| `Sha512.lean` | needs adapting: `compress` is now public and dispatches to `compress_portable` (body unchanged), `pad` takes `pre`, new `digest`, `sha512_from`; follow `../lean`'s `sha256_from` proofs |
-| `Util.lean` | `to_int`, `base_2b`, `bytes_eq` carry over; `block` is now `[u8; N]` (as `../lean`'s `block_spec` with 16 → N) |
-| `Hash.lean` | needs writing new: `../lean`'s `Hash.lean` (1,009 lines, 16-specific: `seed_ctx`, `short_block`, `trunc`, `stepBlock`/`runBlock`, `chain_blocks_spec`, `pair_block`, `thash_values`, `thash_short`, `prf_msg`, `h_msg_inner`, `h_msg`) generalised to N, plus the SHA-512 halves (`state512`, `thash_pair`, `thash` and `thash_values` for N > 16, HMAC-SHA-512 `prf_msg`, `h_msg_inner512`, MGF1-SHA-512 from this tree's old `Hash.lean`) |
-| `Wots.lean` | needs adapting: `../lean`'s `Wots.lean` with N and with the `LEN_MAX` arrays used through `blocks[0..len]` |
-| `Xmss.lean` | needs adapting, mostly mechanical: `../lean`'s with `p.hp` and N |
-| `Fors.lean` | needs adapting: `../lean`'s `fors_batch`/`fors_pk_from_sig` proofs for the `N == 16` branches (now inside `if`s, arrays `K_MAX`), plus new, simpler proofs of the `N > 16` level loops (node-by-node `thash_pair`) |
-| `Ht.lean` | needs adapting: this tree's generic `ht_sign`/`ht_verify` structure, with `../lean`'s array-typed statements |
-| `Slh.lean` | needs adapting: keys are slices, key generation writes into `&mut` slices |
-| `Sets.lean` | needs adapting and extending: the per-set wrappers now include the interface functions and encodings (22 functions × 6 sets) |
-| `Theorems.lean` | the 5 × 6 statements keep their shape; add the interface, checked-signer and encoding statements |
-| (missing) `Checked.lean`, `Api.lean`, `Encoding.lean`, `ApiTheorems.lean`, `EncodingTheorems.lean` | port from `../lean`, generically: `fors_pk_gen`, `ht_sign_checked` and the `api` wrappers follow the same pattern; `secret_keys_equal` and `der_decode` loops become generic over the length |
-| `../lean-hw/Slhdsa/Proofs/Hw/*` for this tree | `Model`, `Rounds`, `Compress`, `Wrappers`, `Guard` should carry over (`compress_block` and the wrappers are unchanged); `ChainModel`, `ChainLane`, `ChainRun`, `ChainLoop`, `ChainMain`, `ChainAll`, `Chain` need adapting to the generic kernel (second value vector, masks per N, the last `SHA256H2` for N > 16, the saved `tail` for N = 24) |
-| `../lean/Ct` for this tree | the instrumented copy must be regenerated from the new translation; the new branches are on the const generic `N` and parameters, which the checker should treat as public |
-| `lean/Spec` | unaffected (it does not depend on the Rust); `spectest` still passes |
+### Headline statements, SLH-DSA-SHA2-128s (verbatim)
+
+`lean/Slhdsa/Theorems.lean`, lines 94–137 (the other five sets follow at
+lines 143–404 with their key sizes, and with `Room m.length 304` / `561` for
+the n = 24, 32 sets):
+
+```lean
+theorem keygen_correct (sk_seed sk_prf pk_seed : Array U8 16#usize) :
+    ∃ sk pk, sets.sha2_128s.slh_keygen_internal sk_seed sk_prf pk_seed = ok (sk, pk) ∧
+      (bytes sk.val, bytes pk.val) =
+        Spec.slhKeygenInternal Spec.sha2_128s (bytes sk_seed.val) (bytes sk_prf.val)
+          (bytes pk_seed.val)
+
+theorem sign_internal_correct (m : Slice U8) (sk : Array U8 64#usize)
+    (addrnd : Array U8 16#usize) (hm : Room m.length 152) :
+    ∃ sig, sets.sha2_128s.slh_sign_internal m sk addrnd = ok sig ∧
+      bytes sig.val =
+        Spec.slhSignInternal Spec.sha2_128s (bytes m.val) (bytes sk.val) (bytes addrnd.val)
+
+theorem verify_internal_correct (m sig : Slice U8) (pk : Array U8 32#usize)
+    (hm : Room m.length 152) :
+    sets.sha2_128s.slh_verify_internal m sig pk =
+      ok (Spec.slhVerifyInternal Spec.sha2_128s (bytes m.val) (bytes sig.val) (bytes pk.val))
+
+theorem sign_correct (m ctx : Slice U8) (sk : Array U8 64#usize)
+    (addrnd : Array U8 16#usize) (hm : Room m.length 409) :
+    ∃ r, sets.sha2_128s.slh_sign m ctx sk addrnd = ok r ∧
+      r.map (fun v => bytes v.val) =
+        Spec.slhSign Spec.sha2_128s (bytes m.val) (bytes ctx.val) (bytes sk.val)
+          (bytes addrnd.val)
+
+theorem verify_correct (m sig ctx : Slice U8) (pk : Array U8 32#usize)
+    (hm : Room m.length 409) :
+    sets.sha2_128s.slh_verify m sig ctx pk =
+      ok (Spec.slhVerify Spec.sha2_128s (bytes m.val) (bytes sig.val) (bytes ctx.val)
+        (bytes pk.val))
+```
+
+`bytes` maps machine bytes to the specification's; `Room len slack` is
+`len + slack ≤ Usize.max ∧ len + slack < 2 ^ 61` (`Proofs/Basic.lean`), the
+only hypothesis. Also in `Theorems.lean`: `sha256_correct`, `sha512_correct`
+(hypothesis `msg.length + 144 ≤ Usize.max`), and `generic.*`, the five
+statements for the generic functions at any `p : params.Params` with
+`PN p N` (`(paramsS p).Valid ∧ p.n = N`), key slices of length `4N` / `2N`,
+and `Room m.length (msgSlack N)` (`msgSlack n = if n = 16 then 152 else 304`;
+`+ 257` for the pure functions). The per-set theorems discharge `PN` from
+`Spec.sha2_*_valid` and the set's `PARAMS`.
+
+`lean/Slhdsa/ApiTheorems.lean`: for each set the 29 statements of
+`../lean/Slhdsa/ApiTheorems.lean` (checked signer: never fails, releases only
+FIPS 205 signatures, every released signature verifies under the key's public
+part, always signs with a well-formed key; completeness of plain and checked
+signing with generated keys; `keygen`, `public_key`, `sign`,
+`sign_deterministic`, `sign_checked`, `sign_deterministic_checked`,
+`verify`), on top of the generic `Spec.slhSignChecked_sound` /
+`_complete`, `Spec.slh_complete`, `Spec.keygen_keyOk` of
+`lean/Spec/Correctness.lean` (all for any `p` with `p.Valid`).
+`lean/Slhdsa/EncodingTheorems.lean`: for each set the 12 statements of
+`../lean/Slhdsa/EncodingTheorems.lean`, with that set's DER prefixes written
+out as literal byte lists (OIDs 2.16.840.1.101.3.4.3.20–25; 20-byte prefixes
+for n = 16, 24, 22-byte for n = 32).
+
+### Against the 128s tree
+
+The per-set statements have the shape and the hypotheses of `../lean`'s (for
+128s the same `Room` constants 152 / 409; no new hypothesis). Two
+differences are forced: the Rust function is this crate's
+(`sets.sha2_128s.slh_sign` rather than `slh.slh_sign`), and the
+specification is the generic one at a parameter set. For the latter,
+`lean/Spec/Old128.lean` is a verbatim copy of `../lean/Spec/SlhDsa.lean` and
+`Checked.lean` in namespace `Spec128` (only the definitions that do not
+depend on the parameter set, which are character-for-character the same, are
+shared with `Spec`), `lean/Spec/Compat128.lean` proves
+`Spec.f Spec.sha2_128s = Spec128.f` for every function (`slhSignInternal_eq`,
+`slhSign_eq`, `slhSignChecked_eq`, `KeyOk_eq`, …), and
+`lean/Slhdsa/Compat128.lean` restates all 24 128s theorems of `Theorems.lean`
+and `ApiTheorems.lean` that mention the specification against `Spec128`, i.e.
+literally `../lean`'s statements up to the name of the Rust function. The
+remaining 16 `ApiTheorems` and all `EncodingTheorems` mention no
+specification function and have `../lean`'s statements as they are.
+
+### Files
+
+`lean/Slhdsa/Proofs`: `Basic`, `Params`, `Sha256Core` / `CompressTop` /
+`Sha256` (copied from `../lean`: the portable SHA-256 is the same code),
+`Sha512` (`compress`, `pad` with a prefix, `sha512_from`, `digest`, HMAC),
+`Util`, `Hash` (addresses, the SHA-256 and SHA-512 seed states, `thash` /
+`thash_pair` / `thash_short` / `thash_values` for n = 16 and n > 16, the
+`chain_blocks` model generic in `N`), `ChainTop`, `HashMsg` (`PRF_msg`
+with the stack outer block, `H_msg`, MGF1 for both hashes), `Wots`, `Xmss`,
+`Fors` (both the `N == 16` batch paths and the `N > 16` node-by-node paths),
+`Ht`, `Slh`, `Checked`, `Api`, `Encoding`, `Sets` (the 22 per-set wrappers × 6).
+The per-set files (`Sets`, `Theorems`, `ApiTheorems`, `EncodingTheorems`,
+`Compat128`) are generated by scripts kept outside the repository; they are
+plain Lean and are checked like the rest.
 
 ## Not done / caveats
 
-- **No proofs for the new code.** The refinement proofs here are stale; the
-  constant-time proofs, the hardware kernel proofs and the security link have
-  not been started for this tree.
+- **No proofs for the `hw-sha2` build.** `multi/lean-hw` holds the
+  translation (it typechecks against `../lean-hw`'s instruction model), but
+  none of the hardware proofs: no shared proof files, no `Proofs/Hw/*` for
+  the generic kernel (second value vector, masks per `N`, the last
+  `SHA256H2` for N > 16, the saved `tail` for N = 24), no `Arm.haveSha2 =
+  false` guard theorems, no headline theorems. The headline theorems above
+  are about the default (portable) build only.
+- **Constant-time proofs and the security link** have not been started for
+  this tree (`../lean/Ct` was not run on it).
 - **`hw-sha512` is experimental and unverified**: no translation, no model of
-  the SHA-512 instructions, no proof; it is a separate feature so that the
-  `hw-sha2` build and its translation are unaffected.
-- **Two sources of `n`**: functions take `N` and `p.n` and require them to be
-  equal. The per-set modules pass them consistently (checked by a test); a
-  caller of the generic functions with a mismatched pair gets wrong results
-  or a panic. A proof will carry `p.n = N` as a hypothesis.
+  the SHA-512 instructions, no proof.
+- **Hypotheses of the generic statements** (not of the per-set ones, which
+  discharge them): `PN p N`, i.e. `(paramsS p).Valid` and `p.n = N` — the two
+  sources of `n` must agree; key slices of length `4N` / `2N`; the generic
+  `der_encode` needs an output of the prefix's plus the key's length,
+  `der_decode` that prefix and key lengths together fit in a `usize`, and
+  `secret_keys_equal` equal lengths. A caller of the generic Rust functions
+  with a mismatched `N` and `p.n` is not covered.
 - **`LEN_MAX` arrays**: the WOTS+ block arrays are sized for n = 32 (67 × 64
   bytes) in every set, i.e. 128s zeroes about 2 KB more stack per WOTS+ key
   than `../rust`. It is part of the 128s overhead measured above.
 - **Stack and heap searches** (`../compat/tests/{wipe,heap}.rs`) were run for
-  128s only, through a scratch shim; there is no RustCrypto-style adapter for
-  the other five sets, so they were not searched. Stack use grows with `n`
-  (the SHA-512 `T_len` buffer is 2,304 bytes) and was not measured for them.
+  128s only, before this stage's `PRF_msg` change, through a scratch shim;
+  there is no RustCrypto-style adapter for the other five sets.
 - **Not tested**: a CPU without the SHA-2 instructions running the `hw-sha2`
   build (as for `../rust`), a CPU without FEAT_SHA512 running `hw-sha512`,
-  any non-Apple AArch64 machine. The lane count and staggering of the
-  kernel were not re-tuned for n = 24, 32.
+  any non-Apple AArch64 machine.
 - **The public root of `slhdsa`** no longer has `keygen`, `sign`, … for
   128s: they are `slhdsa::sha2_128s::…`. `../compat` and `../bench` would
-  need their paths changed (or a shim like the one used above) to use this
-  crate.
-- `multi/rust/src/sha256.rs`'s hardware test reads `../../vectors/arm-wrappers.txt`
-  (the main tree's record); with `ARM_VECTORS_WRITE=1` it would rewrite that
-  file.
+  need their paths changed (or a shim) to use this crate.
+- `multi/rust/src/sha256.rs`'s hardware test only reads the main tree's
+  record `../../vectors/arm-wrappers.txt`; it never writes it (the write path
+  is `../rust`'s test with `ARM_VECTORS_WRITE=1`).
 
 ## Build
 
 ```
-multi/scripts/check.sh          # Rust tests (3 builds), both extractions + checks, translations typecheck, spec sigVer ×6
+multi/scripts/check.sh          # Rust tests (3 builds), both extractions + checks, all proofs + axiom check, lean-hw typechecks, spec sigVer ×6
 multi/scripts/check.sh full     # also the slow spec keygen/signing vectors
-multi/scripts/check.sh proofs   # also tries the stale proofs (expected to fail)
+cd multi/lean && lake build     # the proofs alone
 cd multi/rust && cargo test --release [--features hw-sha2[,hw-sha512]]
 ```
 
@@ -377,7 +469,7 @@ cd multi/rust && cargo test --release [--features hw-sha2[,hw-sha512]]
 `multi/lean-hw` uses those packages (`packagesDir`) and compiles `Arm.lean`
 in place from `../../lean-hw`.
 
-## Swapping multi/ in for rust/ (when the proofs exist)
+## Swapping multi/ in for rust/
 
 1. Copy `multi/rust` → `rust`; drop the dev-dependency `slhdsa_ref` and the
    test `cross_128s_against_original_crate`.
@@ -388,6 +480,8 @@ in place from `../../lean-hw`.
    (`hash`, `wots`, `fors`, …) take `::<N>` and, where they need more than
    `n`, `&Params`. `../compat`, `../bench` and `../rust/ct-evidence` need
    those path changes.
-3. The Lean side as in the previous version of this file (spec names take
-   the parameter set; `Room` slack constants 304 / 561), once the proofs are
-   redone.
+3. Lean: spec names take the parameter set (`Spec.slhSign Spec.sha2_128s`,
+   equal to the old `Spec.slhSign` by `Spec/Compat128.lean`); the Rust names
+   are `sets.sha2_128s.…`; `Room` slack constants are 152 / 409 for the n = 16
+   sets and 304 / 561 for the others. The hardware proofs of `../lean-hw` and
+   the constant-time proofs of `../lean/Ct` have no counterpart here yet.

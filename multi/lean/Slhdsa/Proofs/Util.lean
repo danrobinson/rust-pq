@@ -18,25 +18,23 @@ theorem util_extend_from_slice_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
   simp [hl]
 
 @[step]
-theorem block_spec (s : Slice U8) (n i : Usize) (h : (i.val + 1) * n.val ≤ s.length) :
-    util.block s n i ⦃ r => r.val = (s.val.drop (i.val * n.val)).take n.val ∧
-      r.length = n.val ⦄ := by
+theorem block_spec (N : Usize) (s : Slice U8) (i : Usize) (h : (i.val + 1) * N.val ≤ s.length) :
+    util.block N s i ⦃ r => r.val = (s.val.drop (i.val * N.val)).take N.val ⦄ := by
   unfold util.block
-  have hmul : (i.val + 1) * n.val = i.val * n.val + n.val := by
+  have hmul : (i.val + 1) * N.val = i.val * N.val + N.val := by
     rw [Nat.add_mul, Nat.one_mul]
   have hs : s.length ≤ Usize.max := by scalar_tac
-  let* ⟨ i1, i1_post ⟩ ← Usize.mul_spec
-  let* ⟨ i2, i2_post ⟩ ← Usize.add_spec
-  let* ⟨ s1, s1_post, s1_post' ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
-  have hlen : s1.length = n.val := by scalar_tac
-  let* ⟨ r, r_post, r_post' ⟩ ← util_extend_from_slice_u8_spec
-  refine ⟨?_, by rw [r_post', hlen]; simp⟩
-  simp [r_post, s1_post, i2_post, i1_post, List.slice]
+  step*
+  · simp only [Slice.length, s1_post, Array.repeat_val, List.length_replicate]; scalar_tac
+  · have hv : (Array.from_slice (Array.repeat N 0#u8) s2).val = s2.val :=
+      Array.from_slice_val _ _ (by scalar_tac)
+    simp only [to_slice_mut_back_post, s3_post, hv, s2_post, i2_post, i1_post]
+    simp [List.slice]
 
 /-- `block_spec` in the specification's terms. -/
-theorem bytes_block (p : params.Params) (s r : List U8) (i : Nat)
-    (h : r = (s.drop (i * p.n.val)).take p.n.val) :
-    bytes r = Spec.block (paramsS p) (bytes s) i := by
+theorem bytes_block (p : Spec.Params) (s r : List U8) (i : Nat)
+    (h : r = (s.drop (i * p.n)).take p.n) :
+    bytes r = Spec.block p (bytes s) i := by
   subst h
   simp [Spec.block]
 

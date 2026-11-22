@@ -819,7 +819,8 @@ pub(crate) mod hw {
     /// record in `vectors/arm-wrappers.txt`. The Lean model of the wrappers
     /// (`lean-hw/Slhdsa/FunsExternal.lean`) is run on the same file
     /// (`lean-hw/ArmTest.lean`), so the two agree on every case recorded.
-    /// `ARM_VECTORS_WRITE=1` rewrites the file from this processor.
+    /// This copy of the test only reads the main tree's record: it never
+    /// writes it (`../../rust`'s test, with `ARM_VECTORS_WRITE=1`, does).
     #[cfg(test)]
     mod vectors {
         use super::arm::{self, V};
@@ -930,9 +931,6 @@ pub(crate) mod hw {
             assert!(arm::available(), "this test needs a CPU with the SHA-256 instructions");
             let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vectors/arm-wrappers.txt");
             let now = cases();
-            if std::env::var_os("ARM_VECTORS_WRITE").is_some() {
-                std::fs::write(path, &now).unwrap();
-            }
             let recorded = std::fs::read_to_string(path).unwrap();
             assert_eq!(recorded.lines().count(), now.lines().count());
             for (i, (r, n)) in recorded.lines().zip(now.lines()).enumerate() {

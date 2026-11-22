@@ -169,9 +169,9 @@ def st8 (p : U64 × U64 × U64 × U64 × U64 × U64 × U64 × U64) : State :=
 theorem compress_loop_spec (W : List Word) (init : State) (w : Array U64 80#usize)
     (a b c d e f g h : U64) (i : Usize) (hW : wv w.val = W) (hi : i.val ≤ 80)
     (hinv : st8 (a, b, c, d, e, f, g, h) = (List.range i.val).foldl (round W) init) :
-    sha512.compress_loop w a b c d e f g h i ⦃ r =>
+    sha512.compress_portable_loop w a b c d e f g h i ⦃ r =>
       st8 r = (List.range 80).foldl (round W) init ⦄ := by
-  unfold sha512.compress_loop
+  unfold sha512.compress_portable_loop
   apply loop.spec_decr_nat
     (measure := fun (p : U64 × U64 × U64 × U64 × U64 × U64 × U64 × U64 × Usize) =>
       80 - p.2.2.2.2.2.2.2.2.val)
@@ -179,7 +179,7 @@ theorem compress_loop_spec (W : List Word) (init : State) (w : Array U64 80#usiz
       st8 (p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
         p.2.2.2.2.2.2.2.1) = (List.range p.2.2.2.2.2.2.2.2.val).foldl (round W) init)
   · rintro ⟨a, b, c, d, e, f, g, h, i⟩ ⟨hi, hinv⟩
-    simp only [sha512.compress_loop.body]
+    simp only [sha512.compress_portable_loop.body]
     simp only at hi hinv
     step*
     · refine ⟨by scalar_tac, ?_, by scalar_tac⟩
@@ -192,11 +192,11 @@ theorem compress_loop_spec (W : List Word) (init : State) (w : Array U64 80#usiz
   · exact ⟨hi, hinv⟩
 
 @[step]
-theorem compress_spec (state : Array U64 8#usize) (data : Slice U8) (off : Usize)
+theorem compress_portable_spec (state : Array U64 8#usize) (data : Slice U8) (off : Usize)
     (hoff : off.val + 128 ≤ data.length) :
-    sha512.compress state data off ⦃ r =>
+    sha512.compress_portable state data off ⦃ r =>
       wv r.val = compress (wv state.val) (((bytes data.val).drop off.val).take 128) ⦄ := by
-  unfold sha512.compress
+  unfold sha512.compress_portable
   step as ⟨w, hw⟩
   step*
   step with compress_loop_spec (wv w.val) (st8 (a, b, c, d, e, f, g, h))
@@ -268,16 +268,38 @@ theorem pad_loop1_spec (p0 p : alloc.vec.Vec U8) (bitlen : U128) (i : U32)
       exact hinv
   · exact ⟨hi, hinv⟩
 
+
+@[step]
+theorem compress_spec (state : Array U64 8#usize) (data : Slice U8) (off : Usize)
+    (hoff : off.val + 128 ≤ data.length) :
+    sha512.compress state data off ⦃ r =>
+      wv r.val = compress (wv state.val) (((bytes data.val).drop off.val).take 128) ⦄ := by
+  unfold sha512.compress
+  exact compress_portable_spec state data off hoff
+
 theorem usize_max_le : Usize.max ≤ 18446744073709551615 := by
   rcases Usize.bounds_eq with h | h <;> rw [h] <;> scalar_tac
 
-theorem pad_length (m : Spec.Bytes) : (pad m).length % 128 = 0 := by
-  simp [pad, Spec.toByte]
+/-- Padding of the tail `m` of a message whose first `pre` bytes (a multiple
+of 128) have already been compressed. -/
+def padFrom (pre : Nat) (m : Spec.Bytes) : Spec.Bytes :=
+  m ++ [0x80#8] ++ List.replicate ((239 - m.length % 128) % 128) 0#8 ++
+    Spec.toByte (8 * (pre + m.length)) 16
+
+theorem padFrom_zero (m : Spec.Bytes) : padFrom 0 m = pad m := by
+  simp [padFrom, pad]
+
+theorem padFrom_length (pre : Nat) (m : Spec.Bytes) : (padFrom pre m).length % 128 = 0 := by
+  simp [padFrom, Spec.toByte]
   omega
 
+/-- The hash state after compressing the blocks of `p`, starting from `st`. -/
+def hashFrom (st : List Word) (p : Spec.Bytes) : List Word :=
+  (List.range (p.length / 128)).foldl (fun st k => compress st (blockAt p k)) st
+
 @[step]
-theorem pad_spec (msg : Slice U8) (h : msg.length + 144 ≤ Usize.max) :
-    sha512.pad msg ⦃ r => bytes r.val = pad (bytes msg.val) ⦄ := by
+theorem pad_spec (msg : Slice U8) (pre : Usize) (h : pre.val + msg.length + 144 ≤ Usize.max) :
+    sha512.pad msg pre ⦃ r => bytes r.val = padFrom pre.val (bytes msg.val) ⦄ := by
   unfold sha512.pad
   step as ⟨p, hp⟩
   step as ⟨p1, hp1⟩
@@ -296,35 +318,87 @@ theorem pad_spec (msg : Slice U8) (h : msg.length + 144 ≤ Usize.max) :
   clear hp2 hp1 hp hp1l hp2l hz
   have hmax : Usize.max ≤ 18446744073709551615 := usize_max_le
   step as ⟨i1, hi1⟩
-  have hi1v : i1.val = msg.length := by simp [hi1]; scalar_tac
+  step as ⟨i2, hi2⟩
+  have hi2v : i2.val = pre.val + msg.length := by simp [hi2, hi1]; scalar_tac
   step as ⟨bitlen, hb⟩
-  have hbv : bitlen.val = 8 * msg.length := by scalar_tac
+  have hbv : bitlen.val = 8 * (pre.val + msg.length) := by scalar_tac
   have hfin := pad_loop1_spec p2 p2 bitlen 0#u32 (by scalar_tac) (by simp) (by simp)
   step with hfin as ⟨r, hr⟩
-  simp only [pad, bytes_length, hr, hval, hbv]
+  simp only [padFrom, bytes_length, hr, hval, hbv]
 
-theorem sha512_loop0_spec (p : alloc.vec.Vec U8) (state : Array U64 8#usize) (off : Usize)
+theorem hashFrom_append128 (st : List Word) (B P : Spec.Bytes) (hB : B.length = 128) :
+    hashFrom st (B ++ P) = hashFrom (compress st B) P := by
+  have hl : (B ++ P).length / 128 = P.length / 128 + 1 := by simp [hB]
+  simp only [hashFrom, hl, List.range_succ_eq_map, List.foldl_cons, List.foldl_map]
+  have h0 : blockAt (B ++ P) 0 = B := by
+    simp [blockAt, hB]
+  have hk : ∀ k, blockAt (B ++ P) (k + 1) = blockAt P k := by
+    intro k
+    simp only [blockAt]
+    have : 128 * (k + 1) = B.length + 128 * k := by rw [hB]; ring
+    rw [this, List.drop_append, List.drop_eq_nil_of_le (by omega)]
+    simp
+  simp only [h0, hk]
+
+/-- Padding commutes with splitting off a whole first block. -/
+theorem padFrom_append128 (pre : Nat) (B m : Spec.Bytes) (hB : B.length = 128) :
+    padFrom pre (B ++ m) = B ++ padFrom (pre + 128) m := by
+  have e1 : (239 - (128 + m.length) % 128) % 128 = (239 - m.length % 128) % 128 := by omega
+  have e2 : 8 * (pre + (128 + m.length)) = 8 * (pre + 128 + m.length) := by ring
+  simp [padFrom, hB, e2]
+
+theorem sha512_from_loop0_spec (msg : Slice U8) (pre : Nat) (S0 : List Word)
+    (st : Array U64 8#usize) (off : Usize)
+    (hmax : msg.length + 128 ≤ Usize.max) (hmod : off.val % 128 = 0) (hle : off.val ≤ msg.length)
+    (hinv : hashFrom S0 (padFrom pre (bytes msg.val)) =
+      hashFrom (wv st.val) (padFrom (pre + off.val) ((bytes msg.val).drop off.val))) :
+    sha512.sha512_from_loop0 msg st off ⦃ r =>
+      r.2.val % 128 = 0 ∧ r.2.val ≤ msg.length ∧
+      hashFrom S0 (padFrom pre (bytes msg.val)) =
+        hashFrom (wv r.1.val) (padFrom (pre + r.2.val) ((bytes msg.val).drop r.2.val)) ⦄ := by
+  unfold sha512.sha512_from_loop0
+  apply loop.spec_decr_nat
+    (measure := fun (q : Array U64 8#usize × Usize) => msg.length - q.2.val)
+    (inv := fun q => q.2.val % 128 = 0 ∧ q.2.val ≤ msg.length ∧
+      hashFrom S0 (padFrom pre (bytes msg.val)) =
+        hashFrom (wv q.1.val) (padFrom (pre + q.2.val) ((bytes msg.val).drop q.2.val)))
+  · rintro ⟨st, off⟩ ⟨hmod, hle, hinv⟩
+    simp only [sha512.sha512_from_loop0.body]
+    simp only at hmod hle hinv
+    step*
+    · refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
+      have hB : (((bytes msg.val).drop off.val).take 128).length = 128 := by
+        simp; scalar_tac
+      have hsplit : (bytes msg.val).drop off.val =
+          ((bytes msg.val).drop off.val).take 128 ++ (bytes msg.val).drop (off.val + 128) := by
+        rw [← List.drop_drop, List.take_append_drop]
+      rw [hinv, hsplit, padFrom_append128 _ _ _ hB, hashFrom_append128 _ _ _ hB]
+      rw [st1_post, i_post, ← Nat.add_assoc]
+  · exact ⟨hmod, hle, hinv⟩
+
+theorem sha512_from_loop1_spec (p : alloc.vec.Vec U8) (S0 : List Word) (state : Array U64 8#usize)
+    (off : Usize)
     (hp : p.length % 128 = 0) (hoff : off.val % 128 = 0) (hle : off.val ≤ p.length)
     (hinv : wv state.val = (List.range (off.val / 128)).foldl
-      (fun st k => compress st (blockAt (bytes p.val) k)) H0) :
-    sha512.sha512_loop0 p state off ⦃ r =>
+      (fun st k => compress st (blockAt (bytes p.val) k)) S0) :
+    sha512.sha512_from_loop1 state p off ⦃ r =>
       wv r.val = (List.range (p.length / 128)).foldl
-        (fun st k => compress st (blockAt (bytes p.val) k)) H0 ⦄ := by
-  unfold sha512.sha512_loop0
+        (fun st k => compress st (blockAt (bytes p.val) k)) S0 ⦄ := by
+  unfold sha512.sha512_from_loop1
   apply loop.spec_decr_nat
     (measure := fun (q : Array U64 8#usize × Usize) => p.length - q.2.val)
     (inv := fun q => q.2.val % 128 = 0 ∧ q.2.val ≤ p.length ∧
       wv q.1.val = (List.range (q.2.val / 128)).foldl
-        (fun st k => compress st (blockAt (bytes p.val) k)) H0)
+        (fun st k => compress st (blockAt (bytes p.val) k)) S0)
   · rintro ⟨state, off⟩ ⟨hoff, hle, hinv⟩
-    simp only [sha512.sha512_loop0.body]
+    simp only [sha512.sha512_from_loop1.body]
     simp only at hoff hle hinv
     have h128 : off.val = p.length ∨ off.val + 128 ≤ p.length := by omega
     have hpm : p.length ≤ Usize.max := by scalar_tac
     step*
     · simp [alloc.vec.Vec.deref]; scalar_tac
     · refine ⟨by scalar_tac, by scalar_tac, ?_, by scalar_tac⟩
-      have e : off1.val / 128 = off.val / 128 + 1 := by scalar_tac
+      have e : o1.val / 128 = off.val / 128 + 1 := by scalar_tac
       rw [e, List.range_succ, List.foldl_append, ← hinv]
       have e2 : 128 * (off.val / 128) = off.val := by omega
       simp [blockAt, alloc.vec.Vec.deref, *]
@@ -347,17 +421,17 @@ theorem take_set8 {α} (l : List α) (i : Nat) (a b c d e f g h : α) (hl : i + 
 /-- Big-endian serialisation of the hash state. -/
 def ser (l : List Word) : Spec.Bytes := l.flatMap fun w => Spec.toByte w.toNat 8
 
-theorem sha512_loop1_spec (state : Array U64 8#usize) (out : Array U8 64#usize) (i : Usize)
+theorem digest_loop_spec (state : Array U64 8#usize) (out : Array U8 64#usize) (i : Usize)
     (hi : i.val ≤ 8)
     (hinv : bytes (out.val.take (8 * i.val)) = ser (wv (state.val.take i.val))) :
-    sha512.sha512_loop1 state out i ⦃ r => bytes r.val = ser (wv state.val) ⦄ := by
-  unfold sha512.sha512_loop1
+    sha512.digest_loop state out i ⦃ r => bytes r.val = ser (wv state.val) ⦄ := by
+  unfold sha512.digest_loop
   apply loop.spec_decr_nat
     (measure := fun (q : Array U8 64#usize × Usize) => 8 - q.2.val)
     (inv := fun q => q.2.val ≤ 8 ∧
       bytes (q.1.val.take (8 * q.2.val)) = ser (wv (state.val.take q.2.val)))
   · rintro ⟨out, i⟩ ⟨hi, hinv⟩
-    simp only [sha512.sha512_loop1.body]
+    simp only [sha512.digest_loop.body]
     simp only at hi hinv
     step*
     · refine ⟨by scalar_tac, ?_, by scalar_tac⟩
@@ -381,19 +455,45 @@ theorem sha512_loop1_spec (state : Array U64 8#usize) (out : Array U8 64#usize) 
       exact hinv
   · exact ⟨hi, hinv⟩
 
+@[step]
+theorem digest_spec (state : Array U64 8#usize) :
+    sha512.digest state ⦃ r => bytes r.val = ser (wv state.val) ⦄ := by
+  unfold sha512.digest
+  apply digest_loop_spec
+  · simp
+  · simp [ser, wv]
+
+@[step]
+theorem sha512_from_spec (state : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
+    (h : pre.val + msg.length + 144 ≤ Usize.max) :
+    sha512.sha512_from state pre msg ⦃ r =>
+      bytes r.val = ser (hashFrom (wv state.val) (padFrom pre.val (bytes msg.val))) ⦄ := by
+  unfold sha512.sha512_from
+  step with sha512_from_loop0_spec msg pre.val (wv state.val) state 0#usize
+    (by scalar_tac) (by simp) (by simp) (by simp) as ⟨st, off, hmod, hle, hinv⟩
+  step as ⟨s, hs⟩
+  step as ⟨i1, hi1⟩
+  have hsv : bytes s.val = (bytes msg.val).drop off.val := by
+    simp [hs, List.slice]
+  have hsl : s.length = msg.length - off.val := by
+    simp [Slice.length, hs, List.slice]
+  step as ⟨p, hp⟩
+  have hpl : p.length % 128 = 0 := by
+    have := padFrom_length i1.val (bytes s.val)
+    rw [← hp] at this
+    simpa [alloc.vec.Vec.length] using this
+  step with sha512_from_loop1_spec p (wv st.val) as ⟨st1, hst⟩
+  · simp
+  step as ⟨r, hr⟩
+  rw [hr, hst, hinv, hashFrom, ← hsv, ← hi1, ← hp]
+  simp [alloc.vec.Vec.length]
+
 theorem sha512_spec (msg : Slice U8) (h : msg.length + 144 ≤ Usize.max) :
     sha512.sha512 msg ⦃ r => bytes r.val = Spec.sha512 (bytes msg.val) ⦄ := by
   unfold sha512.sha512
-  step as ⟨p, hp⟩
-  have hpl : p.length % 128 = 0 := by
-    have := pad_length (bytes msg.val)
-    rw [← hp] at this
-    simpa [alloc.vec.Vec.length] using this
-  step with sha512_loop0_spec as ⟨state, hstate⟩
-  · simp [H0_eq]
-  step with sha512_loop1_spec as ⟨r, hr⟩
-  · simp [ser, wv]
-  simp only [hr, ser, hstate, Spec.SHA512.sha512, hp, alloc.vec.Vec.length, ← bytes_length p.val]
+  step with sha512_from_spec as ⟨r, hr⟩
+  rw [hr, H0_eq, padFrom_zero]
+  simp only [ser, hashFrom, Spec.SHA512.sha512]
 
 theorem hmac_sha512_loop_spec (key : Slice U8) (inner outer : alloc.vec.Vec U8) (i : Usize)
     (K0 : List U8) (hK0 : K0 = key.val ++ List.replicate (128 - key.length) 0#u8)
@@ -439,6 +539,17 @@ theorem hmac_sha512_loop_spec (key : Slice U8) (inner outer : alloc.vec.Vec U8) 
       rw [h128, List.take_of_length_le (by omega)] at hin hout
       exact ⟨hin, hout⟩
   · exact ⟨hi, hin, hout⟩
+
+theorem pad_append128 (B m : Spec.Bytes) (hB : B.length = 128) :
+    pad (B ++ m) = B ++ padFrom 128 m := by
+  simp [pad, padFrom, hB]
+
+/-- SHA-512 of `B ‖ m`, for a 128-byte first block `B`, continues from the
+compression of `B`. -/
+theorem sha512_prefix128 (B m : Spec.Bytes) (hB : B.length = 128) :
+    Spec.sha512 (B ++ m) = ser (hashFrom (compress H0 B) (padFrom 128 m)) := by
+  show ser (hashFrom H0 (pad (B ++ m))) = _
+  rw [pad_append128 _ _ hB, hashFrom_append128 _ _ _ hB]
 
 end S512
 

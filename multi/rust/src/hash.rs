@@ -248,7 +248,9 @@ pub fn thash<const N: usize>(seed: &Seed<N>, adrs: &Adrs, m: &[u8]) -> [u8; N] {
 ///
 /// HMAC hashes `(K ⊕ ipad) ‖ text` and then `(K ⊕ opad) ‖ that digest`. The
 /// two key blocks are built here on the stack and compressed first, so
-/// `SK.prf` itself is never written to the heap.
+/// `SK.prf` itself is never written to the heap; nor is the inner digest
+/// (which depends on `SK.prf`): the outer hash's final block is built on the
+/// stack and compressed directly.
 pub fn prf_msg<const N: usize>(sk_prf: &[u8; N], opt_rand: &[u8; N], m: &[u8]) -> [u8; N] {
     let mut buf: Vec<u8> = Vec::new();
     buf.extend_from_slice(opt_rand);
@@ -266,7 +268,13 @@ pub fn prf_msg<const N: usize>(sk_prf: &[u8; N], opt_rand: &[u8; N], m: &[u8]) -
         let inner_state = compress(&H0, &ipad, 0);
         let inner = sha256_from(&inner_state, 64, &buf);
         let outer_state = compress(&H0, &opad, 0);
-        let d = sha256_from(&outer_state, 64, &inner);
+        // The outer hash's only block after the key block, on the stack:
+        // `inner ‖ 0x80 ‖ 0… ‖ bit length (64 + 32)·8 = 0x0300`.
+        let mut fin = [0u8; 64];
+        fin[0..32].copy_from_slice(&inner);
+        fin[32] = 0x80;
+        fin[62] = 0x03;
+        let d = digest(&compress(&outer_state, &fin, 0));
         out.copy_from_slice(&d[0..N]);
     } else {
         let mut ipad = [0x36u8; 128];
@@ -280,7 +288,13 @@ pub fn prf_msg<const N: usize>(sk_prf: &[u8; N], opt_rand: &[u8; N], m: &[u8]) -
         let inner_state = sha512::compress(&sha512::H0, &ipad, 0);
         let inner = sha512::sha512_from(&inner_state, 128, &buf);
         let outer_state = sha512::compress(&sha512::H0, &opad, 0);
-        let d = sha512::sha512_from(&outer_state, 128, &inner);
+        // Likewise: `inner ‖ 0x80 ‖ 0… ‖ bit length (128 + 64)·8 = 0x0600`
+        // as a 128-bit integer.
+        let mut fin = [0u8; 128];
+        fin[0..64].copy_from_slice(&inner);
+        fin[64] = 0x80;
+        fin[126] = 0x06;
+        let d = sha512::digest(&sha512::compress(&outer_state, &fin, 0));
         out.copy_from_slice(&d[0..N]);
     }
     out

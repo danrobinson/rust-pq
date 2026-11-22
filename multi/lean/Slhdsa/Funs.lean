@@ -2365,7 +2365,7 @@ def sha512.sha512 (msg : Slice Std.U8) : Result (Array Std.U8 64#usize) := do
   sha512.sha512_from sha512.H0 0#usize msg
 
 /-- [slhdsa::hash::mgf1_sha512]: loop body 0:
-    Source: 'src/hash.rs', lines 361:4-368:5
+    Source: 'src/hash.rs', lines 375:4-382:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.mgf1_sha512_loop.body
@@ -2398,7 +2398,7 @@ def hash.mgf1_sha512_loop.body
   else ok (done t)
 
 /-- [slhdsa::hash::mgf1_sha512]: loop 0:
-    Source: 'src/hash.rs', lines 361:4-368:5
+    Source: 'src/hash.rs', lines 375:4-382:5
     Visibility: public -/
 @[rust_loop]
 def hash.mgf1_sha512_loop
@@ -2411,7 +2411,7 @@ def hash.mgf1_sha512_loop
     (t, c)
 
 /-- [slhdsa::hash::mgf1_sha512]:
-    Source: 'src/hash.rs', lines 358:0-372:1
+    Source: 'src/hash.rs', lines 372:0-386:1
     Visibility: public -/
 def hash.mgf1_sha512
   (seed : Slice Std.U8) (len : Std.Usize) : Result (alloc.vec.Vec Std.U8) := do
@@ -2564,7 +2564,7 @@ def sha256.sha256 (msg : Slice Std.U8) : Result (Array Std.U8 32#usize) := do
   sha256.sha256_from sha256.H0 0#usize msg
 
 /-- [slhdsa::hash::mgf1_sha256]: loop body 0:
-    Source: 'src/hash.rs', lines 344:4-351:5
+    Source: 'src/hash.rs', lines 358:4-365:5
     Visibility: public -/
 @[rust_loop_body]
 def hash.mgf1_sha256_loop.body
@@ -2597,7 +2597,7 @@ def hash.mgf1_sha256_loop.body
   else ok (done t)
 
 /-- [slhdsa::hash::mgf1_sha256]: loop 0:
-    Source: 'src/hash.rs', lines 344:4-351:5
+    Source: 'src/hash.rs', lines 358:4-365:5
     Visibility: public -/
 @[rust_loop]
 def hash.mgf1_sha256_loop
@@ -2610,7 +2610,7 @@ def hash.mgf1_sha256_loop
     (t, c)
 
 /-- [slhdsa::hash::mgf1_sha256]:
-    Source: 'src/hash.rs', lines 341:0-355:1
+    Source: 'src/hash.rs', lines 355:0-369:1
     Visibility: public -/
 def hash.mgf1_sha256
   (seed : Slice Std.U8) (len : Std.Usize) : Result (alloc.vec.Vec Std.U8) := do
@@ -2622,7 +2622,7 @@ def hash.mgf1_sha256
     s
 
 /-- [slhdsa::hash::h_msg_inner512]:
-    Source: 'src/hash.rs', lines 319:0-337:1 -/
+    Source: 'src/hash.rs', lines 333:0-351:1 -/
 def hash.h_msg_inner512
   {N : Std.Usize} (r : Array Std.U8 N) (pk_seed : Array Std.U8 N)
   (pk_root : Array Std.U8 N) (m : Slice Std.U8) :
@@ -2686,7 +2686,7 @@ def hash.h_msg_inner512
     sha512.sha512 s3
 
 /-- [slhdsa::hash::h_msg_inner256]:
-    Source: 'src/hash.rs', lines 295:0-313:1 -/
+    Source: 'src/hash.rs', lines 309:0-327:1 -/
 def hash.h_msg_inner256
   {N : Std.Usize} (r : Array Std.U8 N) (pk_seed : Array Std.U8 N)
   (pk_root : Array Std.U8 N) (m : Slice Std.U8) :
@@ -2750,7 +2750,7 @@ def hash.h_msg_inner256
     sha256.sha256 s3
 
 /-- [slhdsa::hash::h_msg]:
-    Source: 'src/hash.rs', lines 377:0-390:1
+    Source: 'src/hash.rs', lines 391:0-404:1
     Visibility: public -/
 def hash.h_msg
   {N : Std.Usize} (p : params.Params) (r : Array Std.U8 N)
@@ -2778,7 +2778,7 @@ def hash.h_msg
     hash.mgf1_sha512 s3 p.m
 
 /-- [slhdsa::hash::prf_msg]: loop body 0:
-    Source: 'src/hash.rs', lines 261:8-265:9
+    Source: 'src/hash.rs', lines 263:8-267:9
     Visibility: public -/
 @[rust_loop_body]
 def hash.prf_msg_loop0.body
@@ -2799,7 +2799,7 @@ def hash.prf_msg_loop0.body
   else ok (done (ipad, opad))
 
 /-- [slhdsa::hash::prf_msg]: loop 0:
-    Source: 'src/hash.rs', lines 261:8-265:9
+    Source: 'src/hash.rs', lines 263:8-267:9
     Visibility: public -/
 @[rust_loop]
 def hash.prf_msg_loop0
@@ -2812,7 +2812,7 @@ def hash.prf_msg_loop0
     (ipad, opad, i)
 
 /-- [slhdsa::hash::prf_msg]: loop body 1:
-    Source: 'src/hash.rs', lines 275:8-279:9
+    Source: 'src/hash.rs', lines 283:8-287:9
     Visibility: public -/
 @[rust_loop_body]
 def hash.prf_msg_loop1.body
@@ -2833,7 +2833,7 @@ def hash.prf_msg_loop1.body
   else ok (done (ipad, opad))
 
 /-- [slhdsa::hash::prf_msg]: loop 1:
-    Source: 'src/hash.rs', lines 275:8-279:9
+    Source: 'src/hash.rs', lines 283:8-287:9
     Visibility: public -/
 @[rust_loop]
 def hash.prf_msg_loop1
@@ -2846,7 +2846,7 @@ def hash.prf_msg_loop1
     (ipad, opad, i)
 
 /-- [slhdsa::hash::prf_msg]:
-    Source: 'src/hash.rs', lines 252:0-287:1
+    Source: 'src/hash.rs', lines 254:0-301:1
     Visibility: public -/
 def hash.prf_msg
   {N : Std.Usize} (sk_prf : Array Std.U8 N) (opt_rand : Array Std.U8 N)
@@ -2870,15 +2870,26 @@ def hash.prf_msg
     let inner ← sha256.sha256_from inner_state 64#usize s2
     let s3 ← lift (Array.to_slice opad1)
     let outer_state ← sha256.compress sha256.H0 s3 0#usize
-    let s4 ← lift (Array.to_slice inner)
-    let d ← sha256.sha256_from outer_state 64#usize s4
-    let (s5, to_slice_mut_back) ← lift (Array.to_slice_mut out)
-    let s6 ←
+    let fin := Array.repeat 64#usize 0#u8
+    let (s4, index_mut_back) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) fin
+        { start := 0#usize, «end» := 32#usize }
+    let s5 ← lift (Array.to_slice inner)
+    let s6 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s4 s5
+    let fin1 := index_mut_back s6
+    let fin2 ← Array.update fin1 32#usize 128#u8
+    let fin3 ← Array.update fin2 62#usize 3#u8
+    let s7 ← lift (Array.to_slice fin3)
+    let a ← sha256.compress outer_state s7 0#usize
+    let d ← sha256.digest a
+    let (s8, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+    let s9 ←
       core.array.Array.index (core.ops.index.IndexSlice
         (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) d
         { start := 0#usize, «end» := N }
-    let s7 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s5 s6
-    ok (to_slice_mut_back s7)
+    let s10 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s8 s9
+    ok (to_slice_mut_back s10)
   else
     let ipad := Array.repeat 128#usize 54#u8
     let opad := Array.repeat 128#usize 92#u8
@@ -2889,15 +2900,26 @@ def hash.prf_msg
     let inner ← sha512.sha512_from inner_state 128#usize s2
     let s3 ← lift (Array.to_slice opad1)
     let outer_state ← sha512.compress sha512.H0 s3 0#usize
-    let s4 ← lift (Array.to_slice inner)
-    let d ← sha512.sha512_from outer_state 128#usize s4
-    let (s5, to_slice_mut_back) ← lift (Array.to_slice_mut out)
-    let s6 ←
+    let fin := Array.repeat 128#usize 0#u8
+    let (s4, index_mut_back) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) fin
+        { start := 0#usize, «end» := 64#usize }
+    let s5 ← lift (Array.to_slice inner)
+    let s6 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s4 s5
+    let fin1 := index_mut_back s6
+    let fin2 ← Array.update fin1 64#usize 128#u8
+    let fin3 ← Array.update fin2 126#usize 6#u8
+    let s7 ← lift (Array.to_slice fin3)
+    let a ← sha512.compress outer_state s7 0#usize
+    let d ← sha512.digest a
+    let (s8, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+    let s9 ←
       core.array.Array.index (core.ops.index.IndexSlice
         (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) d
         { start := 0#usize, «end» := N }
-    let s7 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s5 s6
-    ok (to_slice_mut_back s7)
+    let s10 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s8 s9
+    ok (to_slice_mut_back s10)
 
 /-- [slhdsa::hash::thash]:
     Source: 'src/hash.rs', lines 231:0-244:1
