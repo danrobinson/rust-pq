@@ -88,11 +88,12 @@ portable code runs.
 
 - `hw::arm`: eighteen functions, each one to three intrinsics (loads and
   stores, add, or, and, two shifts, two `EXT`s, the four SHA-256 instructions,
-  and the test for the CPU feature). This is the crate's only `unsafe` code,
-  and the only code Aeneas does not translate.
+  and the test for the CPU feature). This is the only code Aeneas does not
+  translate.
 - Everything else: the single-block kernel, and the kernel that works on four
-  hash chains at once. This is safe Rust, and Aeneas translates it like the
-  rest of the crate.
+  hash chains at once. Aeneas translates it like the rest of the crate. Apart
+  from the wrappers, the only `unsafe` is at the two calls that enter the
+  kernel once the CPU feature has been tested.
 
 [lean-hw](lean-hw) holds Aeneas's translation of the crate built with the
 feature. [lean-hw/Arm.lean](lean-hw/Arm.lean) gives the instructions their
@@ -121,6 +122,20 @@ would.
 - *Each wrapper does what its definition says*: that the intrinsic it calls is
   the instruction named, and that its bounds check covers the memory it
   touches. The wrappers are short enough to read against their definitions.
+  With the vector type and its `clone` that is twenty-one trusted definitions
+  in three files (`Arm.lean`, `Slhdsa/TypesExternal.lean`,
+  `Slhdsa/FunsExternal.lean`).
+- *The instructions run only after the feature test.* The two functions that
+  enter the kernel test for the instructions first, and that is where the
+  module's other two `unsafe` blocks are. The model does not make an
+  instruction fail on a processor that lacks it, so the theorems hold in the
+  model whichever answer the test gives, and they would not notice the test
+  being wrong. This is read, not proved.
+
+An independent review of these trusted pieces and of the context-string
+security statements is in
+[reports/Trusted statements review.md](<reports/Trusted statements review.md>):
+it found no definition wrong.
 
 The backend is also tested as a whole: `compress` against the `sha2` crate on
 200,000 random and 5,140 edge-case inputs, `chain_blocks` against a reference

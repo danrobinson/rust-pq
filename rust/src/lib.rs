@@ -9,10 +9,10 @@
 //! Off by default. With it on, SHA-256 runs on the ARMv8 SHA-256 instructions
 //! where the CPU has them (AArch64 only so far; elsewhere the feature changes
 //! nothing), and the hash chains that make up nearly all of SLH-DSA are
-//! computed four at a time. That is one module of `unsafe` intrinsics,
-//! [`sha256`]'s `hw`, which the proofs do not cover: they are about the
-//! default build. See that module for the exact statement a build with the
-//! feature relies on.
+//! computed four at a time. That is one module, [`sha256`]'s `hw`. It is
+//! translated and proved like the rest, except for eighteen small functions
+//! that wrap the intrinsics: those are trusted, and the proofs take their
+//! meaning from a model of the instructions. See that module.
 #![cfg_attr(not(feature = "hw-sha2"), forbid(unsafe_code))]
 #![cfg_attr(feature = "hw-sha2", deny(unsafe_code))]
 

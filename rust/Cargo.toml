@@ -10,8 +10,9 @@ name = "slhdsa"
 [features]
 # Opt-in, off by default: compute the SHA-256 compression function with the
 # ARMv8 SHA-256 instructions when the CPU has them (AArch64; a no-op on other
-# architectures). This adds the crate's only `unsafe` code, which the Lean
-# proofs do not cover; see `src/sha256.rs`, module `hw`.
+# architectures). This adds the crate's only `unsafe` code. The build with the
+# feature has its own proofs (`lean-hw/`), which trust the eighteen intrinsic
+# wrappers; see `src/sha256.rs`, module `hw`.
 hw-sha2 = []
 
 [dev-dependencies]

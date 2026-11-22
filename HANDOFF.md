@@ -211,9 +211,11 @@ of its start. Layout lemmas (`stepBlock_thash`, `runBlock_chain`, `stepBlock_pai
 
 **The `hw-sha2` build is proved too** (third round, 2026-11-21), relative to a model of the
 processor instructions. Module `hw` of `rust/src/sha256.rs` was rewritten in two layers:
-- `hw::arm`: eighteen wrappers, each one to three intrinsics, the crate's only `unsafe`. The four
-  that touch memory (`load_words`, `load_be`, `store_be`, and `store_words` on its own array)
-  check their bounds with an overflow-free `assert!`.
+- `hw::arm`: eighteen wrappers, each one to three intrinsics; the only code Aeneas does not
+  translate. The three that touch a caller's memory (`load_words`, `load_be`, `store_be`) check
+  their bounds with an overflow-free `assert!`; `store_words` writes its own array and needs
+  none. The module's other two `unsafe` blocks are in translated code: the calls in
+  `hw::compress` and `hw::chain_blocks` that enter the kernel after `available()`.
 - Everything else in safe Rust in the Aeneas subset: `compress_block`, and the chain kernel
   (`Slot`, `First`, `Lanes`, `chain_all`, `enter`, `leave`, `run`, `period`, `tick`, `lane_tick`,
   `lane_step`). The staggered schedule that used to be macro-generated is now const-generic
@@ -260,7 +262,8 @@ no source of its own: `Spec`, `Link`, `E2E`, `Reduction` and `Ideal` are compile
 `Ideal/Rust*.lean` depend on the translation, and they compile unchanged. Checked there, all on
 the three standard axioms: `E2E.end_to_end`, `E2E.standard_model_security_split`,
 `E2E.pure_standard_model_security_split`, `E2E.bytes_end_to_end`, `E2E.pure_bytes_end_to_end`,
-`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`. It compiles
+`E2E.rust_security`, `E2E.rust_pure_security`, `Ideal.rust_ideal_security_closed`, and
+`Ideal.rust_ideal_security_closed_pure` (built there; its axioms were printed in `security/`). It compiles
 its own copies of the security libraries; a build from a clean state takes about four minutes
 (checked in a scratch copy). The quantum theorems are about the scheme at the byte
 interface and do not mention the Rust code; `E2E.pure_bytes_end_to_end` is what connects
@@ -314,6 +317,26 @@ it needs only Rust. It has been run on the M5 only. On Linux the crate takes the
 runtime-detection path (`target_feature = "sha2"` is not static there), which the Mac never
 compiles by default; that path was built and tested here with
 `RUSTFLAGS="-C target-feature=-sha2,-sha3"`: all tests pass at the same speed.
+
+## Independent review of the trusted statements (2026-11-21)
+
+`reports/Trusted statements review.md`: a fresh reviewer compared `lean-hw/Arm.lean` with Arm's
+pseudocode (from a mirror of Arm's export and the Sail translation; Arm's own site did not
+render), the eighteen wrapper definitions with the Rust, and read the context-string ideal-model
+statements. No definition or statement was found wrong. What it did find, and what was done:
+- The documentation called `hw::arm` the crate's only `unsafe`; there are two more blocks, at the
+  guarded entries to the kernel. Corrected in README, this file and the Rust comments.
+- **Open:** the model does not make an instruction fail on a CPU without it, so the theorems are
+  symmetric in the feature test and would still hold with the test inverted. Repair: make each
+  wrapper's Lean definition fail when `Arm.haveSha2 = false` and re-prove `Proofs/Hw`.
+- The trusted definitions number twenty-one in three files, not eighteen in two (the vector type,
+  its `clone`, and an unused `panic_bounds_check`).
+- The record covers 17 of the 18 wrappers on in-bounds inputs only; the failure branches rest on
+  reading (the reviewer tested 11,412 out-of-bounds calls natively: all panic where the Lean
+  definitions fail). `ArmTest.lean` re-types the right-hand sides of the plain functions.
+- `scripts/check.sh` did not scan `security/Ideal` or `security/Reduction` for placeholders; it
+  does now, and `lean/Ct` too.
+- Not done by the reviewer: no Lean run, proofs not read.
 
 ## Not done
 
