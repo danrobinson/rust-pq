@@ -1,4 +1,5 @@
 import Slhdsa.Proofs.Sha256Core
+import Slhdsa.Proofs.Hw.Wrappers
 open Aeneas Aeneas.Std Result
 
 /-! A pure description of what the hardware kernel computes on one block, in

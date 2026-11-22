@@ -154,8 +154,18 @@ def beWord (b0 b1 b2 b3 : BitVec 8) : BitVec 32 := b0 ++ b1 ++ b2 ++ b3
 def beBytes (w : BitVec 32) : List (BitVec 8) :=
   [w.extractLsb' 24 8, w.extractLsb' 16 8, w.extractLsb' 8 8, w.extractLsb' 0 8]
 
-/-- Whether the processor has the `neon` and `sha2` features. Nothing is
-assumed about it: every statement is proved for both answers. -/
+/-- Whether the processor running the program has the `neon` and `sha2`
+features: what `is_aarch64_feature_detected!` answers for both. It is opaque,
+and nothing is assumed about its value: every statement about the crate is
+proved for both answers.
+
+It is not only an input to the feature test. The wrappers of the instructions
+(`Slhdsa/FunsExternal.lean`) fail when it is `false`, because executing one of
+them on a processor without the features is undefined behaviour in Rust. So
+the proofs about the crate hold only if the code runs an instruction just when
+the test has said yes: a program that skipped the test, or got it the wrong
+way round, would fail for one of the two values, and its theorems could not be
+proved without knowing which value this is. -/
 opaque haveSha2 : Bool
 
 end Arm

@@ -6,8 +6,12 @@ from a processor in `vectors/arm-wrappers.txt`, which
 
 The wrappers are defined in `Slhdsa/FunsExternal.lean` over the instruction
 model `Arm.lean`, as functions into Aeneas's `Result`, which cannot be run.
-`Slhdsa/Proofs/Hw/Wrappers.lean` proves each of them equal to a bounds check
-around a plain function, and those plain functions are what runs here.
+`Slhdsa/Proofs/Hw/Wrappers.lean` proves each of them, on a processor with the
+instructions (`Arm.haveSha2 = true`), equal to a plain function (an
+instruction of `Arm.lean` or one of the `w…` functions there), behind a bounds
+check (`wWordsIn`, `wBytesIn`) for the four that touch memory. Each case below
+calls those same functions and bounds checks, by name; only the parsing of the
+record is written here.
 
     lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
 -/
@@ -36,21 +40,22 @@ def vec (s : String) : Arm.V :=
 
 /-- One line of the record, `name args = result`, against the plain function
 that `Slhdsa/Proofs/Hw/Wrappers.lean` proves the wrapper's definition to be.
-The recorded cases are all within the bounds the wrappers check. -/
+The recorded cases are all within the bounds the wrappers check, and the check
+is part of the comparison. -/
 def check (line : String) : Bool :=
   match line.splitOn " " with
-  | ["zero", "=", r] => (⟨0, 0, 0, 0⟩ : Arm.V) == vec r
-  | ["pair", a, b, "=", r] => (⟨BitVec.ofNat 32 (hexNat a), BitVec.ofNat 32 (hexNat b), 0, 0⟩ : Arm.V) == vec r
+  | ["zero", "=", r] => wZero == vec r
+  | ["pair", a, b, "=", r] => wPair (BitVec.ofNat 32 (hexNat a)) (BitVec.ofNat 32 (hexNat b)) == vec r
   | ["load_words", ws, i, "=", r] =>
     let w := words ws
-    4 ≤ w.length && i.toNat! ≤ w.length - 4 && wLoadWords w i.toNat! == vec r
+    wWordsIn w.length i.toNat! && wLoadWords w i.toNat! == vec r
   | ["store_words", a, e, "=", r] => wStoreWords (vec a) (vec e) == words r
   | ["load_be", bs, i, "=", r] =>
     let b := bytesOf bs
-    16 ≤ b.length && i.toNat! ≤ b.length - 16 && wLoadBe b i.toNat! == vec r
+    wBytesIn b.length i.toNat! && wLoadBe b i.toNat! == vec r
   | ["store_be", bs, i, v, "=", r] =>
     let b := bytesOf bs
-    16 ≤ b.length && i.toNat! ≤ b.length - 16 && wStoreBe b i.toNat! (vec v) == bytesOf r
+    wBytesIn b.length i.toNat! && wStoreBe b i.toNat! (vec v) == bytesOf r
   | ["shr16", a, "=", r] => Arm.USHR (vec a) 16 == vec r
   | ["shl16", a, "=", r] => Arm.SHL (vec a) 16 == vec r
   | ["add", a, b, "=", r] => Arm.ADD (vec a) (vec b) == vec r

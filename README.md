@@ -152,17 +152,20 @@ would.
   With the vector type and its `clone` that is twenty-one trusted definitions
   in three files (`Arm.lean`, `Slhdsa/TypesExternal.lean`,
   `Slhdsa/FunsExternal.lean`).
-- *The instructions run only after the feature test.* The two functions that
-  enter the kernel test for the instructions first, and that is where the
-  module's other two `unsafe` blocks are. The model does not make an
-  instruction fail on a processor that lacks it, so the theorems hold in the
-  model whichever answer the test gives, and they would not notice the test
-  being wrong. This is read, not proved.
+- *What the feature test means.* The model has one unknown, whether the
+  processor has the instructions, and every wrapper except the test itself
+  fails when it does not, as the Rust is undefined there. The two functions
+  that enter the kernel test first (that is where the module's other two
+  `unsafe` blocks are), and the proofs get the fact they need from that test:
+  with it missing or inverted the theorems could not be proved
+  ([lean-hw/Slhdsa/Proofs/Hw/Guard.lean](lean-hw/Slhdsa/Proofs/Hw/Guard.lean)).
+  What stays trusted is that `std`'s feature detection answers truthfully.
 
 An independent review of these trusted pieces and of the context-string
 security statements is in
 [reports/Trusted statements review.md](<reports/Trusted statements review.md>):
-it found no definition wrong.
+it found no definition wrong. Its one substantive finding, that the proofs did
+not depend on the feature test, is what the previous point repaired.
 
 The backend is also tested as a whole: `compress` against the `sha2` crate on
 200,000 random and 5,140 edge-case inputs, `chain_blocks` against a reference

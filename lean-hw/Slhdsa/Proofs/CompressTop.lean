@@ -1,10 +1,16 @@
 import Slhdsa.Proofs.Sha256Core
 import Slhdsa.Proofs.Hw.Compress
+import Slhdsa.Proofs.Hw.Guard
 open Aeneas Aeneas.Std Result
 
 /-! `sha256::compress`, as built with `hw-sha2`: the hardware backend if the
 processor has the instructions, the portable code otherwise. The statement is
-the one of the default build (`lean/Slhdsa/Proofs/CompressTop.lean`). -/
+the one of the default build (`lean/Slhdsa/Proofs/CompressTop.lean`).
+
+The kernel's wrappers fail without the instructions (`Slhdsa/FunsExternal.lean`),
+so the proof of the first branch needs `Arm.haveSha2 = true`; it takes it from
+the test `available()` that guards the branch. Without the instructions the
+kernel fails (`compress_block_undef` in `Hw/Guard.lean`). -/
 
 namespace slhdsa
 open Spec.SHA256
@@ -16,7 +22,10 @@ theorem hw_compress_spec (state : Array U32 8#usize) (data : Slice U8) (off : Us
   unfold sha256.hw.compress sha256.hw.arm.available
   simp only [bind_ok]
   split
-  · step*
+  · -- The processor has the instructions: the answer of `available`, which the
+    -- wrappers in the kernel need.
+    rename_i hw
+    step*
     let* ⟨ a, a_post ⟩ ← hw_compress_block_spec
     intro out hout
     simp only [Option.some.injEq] at hout

@@ -25,37 +25,50 @@ def toU (v : Arm.V) : U4 := v
 
 @[simp] theorem toU_eq (v : Arm.V) : (toU v : Arm.V) = v := rfl
 
-@[step] theorem hw_zero_spec : sha256.hw.arm.zero ⦃ r => r = toU zV ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_pair_spec (a b : U32) :
-    sha256.hw.arm.pair a b ⦃ r => r = toU ⟨a.bv, b.bv, 0#32, 0#32⟩ ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_add_spec (a b : U4) :
-    sha256.hw.arm.add a b ⦃ r => r = toU (Arm.ADD a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_or_spec (a b : U4) :
-    sha256.hw.arm.or a b ⦃ r => r = toU (Arm.ORR a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_and_spec (a b : U4) :
-    sha256.hw.arm.and a b ⦃ r => r = toU (Arm.AND a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_shr16_spec (a : U4) :
-    sha256.hw.arm.shr16 a ⦃ r => r = toU (Arm.USHR a 16) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_shl16_spec (a : U4) :
-    sha256.hw.arm.shl16 a ⦃ r => r = toU (Arm.SHL a 16) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_ext2_spec (a b : U4) :
-    sha256.hw.arm.ext2 a b ⦃ r => r = toU (Arm.EXT2 a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_ext3_spec (a b : U4) :
-    sha256.hw.arm.ext3 a b ⦃ r => r = toU (Arm.EXT3 a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_sha256h_spec (a b w : U4) :
-    sha256.hw.arm.sha256h a b w ⦃ r => r = toU (Arm.SHA256H a b w) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_sha256h2_spec (a b w : U4) :
-    sha256.hw.arm.sha256h2 a b w ⦃ r => r = toU (Arm.SHA256H2 a b w) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_sha256su0_spec (a b : U4) :
-    sha256.hw.arm.sha256su0 a b ⦃ r => r = toU (Arm.SHA256SU0 a b) ⦄ := (WP.spec_ok _).mpr rfl
-@[step] theorem hw_sha256su1_spec (a b c : U4) :
-    sha256.hw.arm.sha256su1 a b c ⦃ r => r = toU (Arm.SHA256SU1 a b c) ⦄ := (WP.spec_ok _).mpr rfl
+@[step] theorem hw_zero_spec (hw : Arm.haveSha2 = true) : sha256.hw.arm.zero ⦃ r => r = toU zV ⦄ :=
+  (wr_zero hw) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_pair_spec (hw : Arm.haveSha2 = true) (a b : U32) :
+    sha256.hw.arm.pair a b ⦃ r => r = toU ⟨a.bv, b.bv, 0#32, 0#32⟩ ⦄ :=
+  (wr_pair hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_add_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.add a b ⦃ r => r = toU (Arm.ADD a b) ⦄ :=
+  (wr_add hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_or_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.or a b ⦃ r => r = toU (Arm.ORR a b) ⦄ :=
+  (wr_or hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_and_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.and a b ⦃ r => r = toU (Arm.AND a b) ⦄ :=
+  (wr_and hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_shr16_spec (hw : Arm.haveSha2 = true) (a : U4) :
+    sha256.hw.arm.shr16 a ⦃ r => r = toU (Arm.USHR a 16) ⦄ :=
+  (wr_shr16 hw a) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_shl16_spec (hw : Arm.haveSha2 = true) (a : U4) :
+    sha256.hw.arm.shl16 a ⦃ r => r = toU (Arm.SHL a 16) ⦄ :=
+  (wr_shl16 hw a) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_ext2_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.ext2 a b ⦃ r => r = toU (Arm.EXT2 a b) ⦄ :=
+  (wr_ext2 hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_ext3_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.ext3 a b ⦃ r => r = toU (Arm.EXT3 a b) ⦄ :=
+  (wr_ext3 hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_sha256h_spec (hw : Arm.haveSha2 = true) (a b w : U4) :
+    sha256.hw.arm.sha256h a b w ⦃ r => r = toU (Arm.SHA256H a b w) ⦄ :=
+  (wr_sha256h hw a b w) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_sha256h2_spec (hw : Arm.haveSha2 = true) (a b w : U4) :
+    sha256.hw.arm.sha256h2 a b w ⦃ r => r = toU (Arm.SHA256H2 a b w) ⦄ :=
+  (wr_sha256h2 hw a b w) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_sha256su0_spec (hw : Arm.haveSha2 = true) (a b : U4) :
+    sha256.hw.arm.sha256su0 a b ⦃ r => r = toU (Arm.SHA256SU0 a b) ⦄ :=
+  (wr_sha256su0 hw a b) ▸ (WP.spec_ok _).mpr rfl
+@[step] theorem hw_sha256su1_spec (hw : Arm.haveSha2 = true) (a b c : U4) :
+    sha256.hw.arm.sha256su1 a b c ⦃ r => r = toU (Arm.SHA256SU1 a b c) ⦄ :=
+  (wr_sha256su1 hw a b c) ▸ (WP.spec_ok _).mpr rfl
 
 @[step]
-theorem hw_load_words_spec (w : Slice U32) (at' : Usize) (h : at'.val + 4 ≤ w.length) :
+theorem hw_load_words_spec (hw : Arm.haveSha2 = true) (w : Slice U32) (at' : Usize) (h : at'.val + 4 ≤ w.length) :
     sha256.hw.arm.load_words w at' ⦃ r => r = toU (vOf (wv w.val) at'.val) ⦄ := by
   unfold sha256.hw.arm.load_words
-  rw [if_pos (by scalar_tac)]
+  rw [if_pos hw, if_pos (by scalar_tac)]
   simp only [vOf, toU]
   rw [wv_getElem! _ _ (by scalar_tac), wv_getElem! _ _ (by scalar_tac),
     wv_getElem! _ _ (by scalar_tac), wv_getElem! _ _ (by scalar_tac),
@@ -64,10 +77,10 @@ theorem hw_load_words_spec (w : Slice U32) (at' : Usize) (h : at'.val + 4 ≤ w.
   exact (WP.spec_ok _).mpr rfl
 
 @[step]
-theorem hw_load_be_spec (b : Slice U8) (at' : Usize) (h : at'.val + 16 ≤ b.length) :
+theorem hw_load_be_spec (hw : Arm.haveSha2 = true) (b : Slice U8) (at' : Usize) (h : at'.val + 16 ≤ b.length) :
     sha256.hw.arm.load_be b at' ⦃ r => r = toU (beV (bytes b.val) at'.val) ⦄ := by
   unfold sha256.hw.arm.load_be
-  rw [if_pos (by scalar_tac)]
+  rw [if_pos hw, if_pos (by scalar_tac)]
   simp only [beV, word, Arm.beWord, Nat.add_assoc, Nat.reduceAdd, toU]
   have e : ∀ i, i < 16 → (b.val[at'.val + i]!).bv = (bytes b.val)[at'.val + i]! := by
     intro i hi
@@ -131,7 +144,7 @@ theorem lpure_15 (abcd0 : U4) (sl : sha256.hw.Slot) (T : Word) (v : LV) :
   simp [lpure, kstep]
 
 set_option maxHeartbeats 2000000 in
-theorem lane_step_spec (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
+theorem lane_step_spec (hw : Arm.haveSha2 = true) (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
     (p : U32) (s : sha256.hw.Lanes)
     (hL : L.val ≤ 4) (hLANE : LANE.val < L.val) (hJ : J.val < 15)
     (hp : laneI L.val J.val LANE.val = 1 → (slots.val[LANE.val]!).t.val + p.val ≤ U32.max) :
@@ -252,7 +265,7 @@ theorem lpure_T (abcd0 : U4) (sl : sha256.hw.Slot) (T T' : Word) (i : Nat) (v : 
     lpure abcd0 sl T i v = lpure abcd0 sl T' i v := by
   simp [lpure, h]
 
-theorem lane_tick_active (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
+theorem lane_tick_active (hw : Arm.haveSha2 = true) (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
     (p : U32) (s : sha256.hw.Lanes) (steps : Nat)
     (hL : L.val ≤ 4) (hlv : LANE.val < L.val) (hJ : J.val < 15)
     (hov : LANE.val < L.val → (slots.val[LANE.val]!).t.val + steps ≤ U32.max)
@@ -274,7 +287,7 @@ theorem lane_tick_active (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.h
   obtain ⟨e1, e2, e3, e4⟩ := ha
   have hp : laneI L.val J.val LANE.val = 1 → (slots.val[LANE.val]!).t.val + p.val ≤ U32.max := by
     intro h; have := e4 h; have := hov hlv; omega
-  apply WP.spec_mono (lane_step_spec L J LANE abcd0 slots p s hL hlv hJ hp)
+  apply WP.spec_mono (lane_step_spec hw L J LANE abcd0 slots p s hL hlv hJ hp)
   rintro r ⟨h1, h2⟩
   refine ⟨h1, fun _ hg => ?_, fun h => absurd hlv h⟩
   rw [e2, h2]
@@ -289,7 +302,7 @@ theorem lane_tick_active (L J LANE : Usize) (abcd0 : U4) (slots : Array sha256.h
   · rw [lpure_T _ _ _ _ _ _ hi1]
     exact hg'
 
-theorem lane_tick_spec (L PHASE J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
+theorem lane_tick_spec (hw : Arm.haveSha2 = true) (L PHASE J LANE : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
     (p : U32) (s : sha256.hw.Lanes) (steps : Nat)
     (hL : L.val ≤ 4) (hJ : J.val < 15) (hs : 1 ≤ steps) (hph : PhaseOk PHASE.val p.val steps)
     (hov : LANE.val < L.val → (slots.val[LANE.val]!).t.val + steps ≤ U32.max) :
@@ -313,16 +326,16 @@ theorem lane_tick_spec (L PHASE J LANE : Usize) (abcd0 : U4) (slots : Array sha2
     · -- active
       have ha := active_arith (15 * LANE.val / L.val) steps p.val J.val PHASE.val hoff hJ hs hph
         (fun _ => by scalar_tac) (fun _ => by scalar_tac)
-      exact lane_tick_active L J LANE abcd0 slots p s steps hL hlv hJ hov ha
+      exact lane_tick_active hw L J LANE abcd0 slots p s steps hL hlv hJ hov ha
     · have e := inactive_arith (15 * LANE.val / L.val) steps p.val J.val PHASE.val hoff hJ hph
         (by scalar_tac)
       exact ⟨fun _ _ => trivial, fun _ hg => e ▸ hg, fun _ => trivial⟩
     · have ha := active_arith (15 * LANE.val / L.val) steps p.val J.val PHASE.val hoff hJ hs hph
         (fun _ => by scalar_tac) (fun _ => by scalar_tac)
-      exact lane_tick_active L J LANE abcd0 slots p s steps hL hlv hJ hov ha
+      exact lane_tick_active hw L J LANE abcd0 slots p s steps hL hlv hJ hov ha
     · have ha := active_arith (15 * LANE.val / L.val) steps p.val J.val PHASE.val hoff hJ hs hph
         (fun _ => by scalar_tac) (fun _ => by scalar_tac)
-      exact lane_tick_active L J LANE abcd0 slots p s steps hL hlv hJ hov ha
+      exact lane_tick_active hw L J LANE abcd0 slots p s steps hL hlv hJ hov ha
     · have e := inactive_arith (15 * LANE.val / L.val) steps p.val J.val PHASE.val hoff hJ hph
         (by scalar_tac)
       exact ⟨fun _ _ => trivial, fun _ hg => e ▸ hg, fun _ => trivial⟩
@@ -332,7 +345,7 @@ theorem lane_tick_spec (L PHASE J LANE : Usize) (abcd0 : U4) (slots : Array sha2
 
 /-! ## `tick` and `period` -/
 
-theorem tick_spec (L PHASE J : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
+theorem tick_spec (hw : Arm.haveSha2 = true) (L PHASE J : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot 4#usize)
     (p : U32) (s : sha256.hw.Lanes) (steps : Nat)
     (hL : L.val ≤ 4) (hJ : J.val < 15) (hs : 1 ≤ steps) (hph : PhaseOk PHASE.val p.val steps)
     (hov : ∀ l < L.val, (slots.val[l]!).t.val + steps ≤ U32.max)
@@ -342,13 +355,13 @@ theorem tick_spec (L PHASE J : Usize) (abcd0 : U4) (slots : Array sha256.hw.Slot
       ∀ l < L.val, Good abcd0 (slots.val[l]!) (gidx (15 * l / L.val) steps (15 * p.val + J.val + 1))
         (lane r l) ⦄ := by
   unfold sha256.hw.tick
-  step with lane_tick_spec L PHASE J 0#usize abcd0 slots p s steps hL hJ hs hph
+  step with lane_tick_spec hw L PHASE J 0#usize abcd0 slots p s steps hL hJ hs hph
     (fun h => hov _ h) as ⟨s1, a1, b1, c1⟩
-  step with lane_tick_spec L PHASE J 1#usize abcd0 slots p s1 steps hL hJ hs hph
+  step with lane_tick_spec hw L PHASE J 1#usize abcd0 slots p s1 steps hL hJ hs hph
     (fun h => hov _ h) as ⟨s2, a2, b2, c2⟩
-  step with lane_tick_spec L PHASE J 2#usize abcd0 slots p s2 steps hL hJ hs hph
+  step with lane_tick_spec hw L PHASE J 2#usize abcd0 slots p s2 steps hL hJ hs hph
     (fun h => hov _ h) as ⟨s3, a3, b3, c3⟩
-  apply WP.spec_mono (lane_tick_spec L PHASE J 3#usize abcd0 slots p s3 steps hL hJ hs hph
+  apply WP.spec_mono (lane_tick_spec hw L PHASE J 3#usize abcd0 slots p s3 steps hL hJ hs hph
     (fun h => hov _ h))
   rintro s4 ⟨a4, b4, c4⟩
   simp only [show (3#usize : Usize).val = 3 from rfl] at a4 b4

@@ -8,7 +8,7 @@ open Spec.SHA256
 
 set_option linter.unusedSimpArgs false
 
-theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
+theorem main_loop_spec (hw : Arm.haveSha2 = true) (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64#usize))
     (start «end» : Slice U32)
     (hs : blocks0.length ≤ start.length) (he : blocks0.length ≤ «end».length)
     (blocks : Slice (Array U8 64#usize)) (slots : Array sha256.hw.Slot 4#usize)
@@ -39,7 +39,7 @@ theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64
         · step as ⟨a, ha⟩
           have hab : a = blocks0.val[next.val]! := by
             rw [ha, ← getElem!_eq _ _ (by scalar_tac)]; exact hmem _ hnx (Or.inl (le_refl _))
-          step with enter_spec state a i1 i2 next first hf as ⟨res, hr1, hr2, hr3, hr4, hr5, hr6⟩
+          step with enter_spec hw state a i1 i2 next first hf as ⟨res, hr1, hr2, hr3, hr4, hr5, hr6⟩
           obtain ⟨sl, f'⟩ := res
           simp only at hr1 hr2 hr3 hr4 hr5 hr6 ⊢
           step*
@@ -76,7 +76,7 @@ theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64
           have hov : ∀ l < n.val, (slots.val[l]!).t.val + r1.val ≤ U32.max := by
             intro l hl; have := hr1b l hl; have := hpos l hl; have := u32_lt (slots.val[l]!).end
             scalar_tac
-          step with run_spec n state slots r1 hn1 hn4 hr1a hov as ⟨slots1, hrun⟩
+          step with run_spec hw n state slots r1 hn1 hn4 hr1a hov as ⟨slots1, hrun⟩
           have hS := run_take n.val hn4 (vOf (wv state.val) 0) r1.val slots slots1
             (fun l hl => by have := hov l hl; scalar_tac) (fun l hl hln => (hrun l hl).1 hln)
           have hpwS : (slots1.val.take n.val).Pairwise (fun a b => a.lane.val < b.lane.val) := by
@@ -94,7 +94,7 @@ theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64
             · rw [advF_t _ _ _ (by scalar_tac)]; omega
             · show (slots.val[i]!).lane.val < blocks.length
               rw [hlen]; exact (hA _ (hmemA i hi')).1.1
-          step with compact_loop1_spec n blocks slots1 blocks slots1 0#usize 0#usize hn4 hpwS hfinS
+          step with compact_loop1_spec hw n blocks slots1 blocks slots1 0#usize 0#usize hn4 hpwS hfinS
             (by refine ⟨le_refl _, Nat.zero_le _, rfl, by simp, fun _ _ => rfl, by simp, fun _ _ => rfl⟩)
             as ⟨blocks1, slots2, k, hres⟩
           have hrr : ∀ sl ∈ slots.val.take n.val, r1.val ≤ sl.end.val - sl.t.val := by
@@ -124,7 +124,7 @@ theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64
         have hov : ∀ l < n.val, (slots.val[l]!).t.val + r1.val ≤ U32.max := by
           intro l hl; have := hr1b l hl; have := hpos l hl; have := u32_lt (slots.val[l]!).end
           scalar_tac
-        step with run_spec n state slots r1 hn1 hn4 hr1a hov as ⟨slots1, hrun⟩
+        step with run_spec hw n state slots r1 hn1 hn4 hr1a hov as ⟨slots1, hrun⟩
         have hS := run_take n.val hn4 (vOf (wv state.val) 0) r1.val slots slots1
           (fun l hl => by have := hov l hl; scalar_tac) (fun l hl hln => (hrun l hl).1 hln)
         have hpwS : (slots1.val.take n.val).Pairwise (fun a b => a.lane.val < b.lane.val) := by
@@ -142,7 +142,7 @@ theorem main_loop_spec (state : Array U32 8#usize) (blocks0 : Slice (Array U8 64
           · rw [advF_t _ _ _ (by scalar_tac)]; omega
           · show (slots.val[i]!).lane.val < blocks.length
             rw [hlen]; exact (hA _ (hmemA i hi')).1.1
-        step with compact_loop3_spec n blocks slots1 blocks slots1 0#usize 0#usize hn4 hpwS hfinS
+        step with compact_loop3_spec hw n blocks slots1 blocks slots1 0#usize 0#usize hn4 hpwS hfinS
           (by refine ⟨le_refl _, Nat.zero_le _, rfl, by simp, fun _ _ => rfl, by simp, fun _ _ => rfl⟩)
           as ⟨blocks1, slots2, k, hres⟩
         have hrr : ∀ sl ∈ slots.val.take n.val, r1.val ≤ sl.end.val - sl.t.val := by

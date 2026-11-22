@@ -385,9 +385,14 @@ render), the eighteen wrapper definitions with the Rust, and read the context-st
 statements. No definition or statement was found wrong. What it did find, and what was done:
 - The documentation called `hw::arm` the crate's only `unsafe`; there are two more blocks, at the
   guarded entries to the kernel. Corrected in README, this file and the Rust comments.
-- **Open:** the model does not make an instruction fail on a CPU without it, so the theorems are
-  symmetric in the feature test and would still hold with the test inverted. Repair: make each
-  wrapper's Lean definition fail when `Arm.haveSha2 = false` and re-prove `Proofs/Hw`.
+- The model did not make an instruction fail on a CPU without it, so the theorems were symmetric
+  in the feature test and would still have held with the test inverted. **Repaired the same
+  day:** the seventeen wrappers other than `available` are now `fail .undef` when
+  `Arm.haveSha2 = false`; `Proofs/Hw/*` carry the hypothesis `Arm.haveSha2 = true`, which the two
+  top proofs obtain from the code's own `available()` test; `Proofs/Hw/Guard.lean` proves that
+  both kernels fail without the feature (`compress_block_undef`, `chain_all_undef`). No headline
+  statement changed. `ArmTest.lean` now calls the very functions the `wr_*` lemmas are about
+  instead of re-typed copies.
 - The trusted definitions number twenty-one in three files, not eighteen in two (the vector type,
   its `clone`, and an unused `panic_bounds_check`).
 - The record covers 17 of the 18 wrappers on in-bounds inputs only; the failure branches rest on

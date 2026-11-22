@@ -11,10 +11,10 @@ set_option linter.unusedSimpArgs false
 /-! ## `leave` -/
 
 @[step]
-theorem hw_store_be_spec (b : Slice U8) (at' : Usize) (v : U4) (h : at'.val + 16 ≤ b.length) :
+theorem hw_store_be_spec (hw : Arm.haveSha2 = true) (b : Slice U8) (at' : Usize) (v : U4) (h : at'.val + 16 ≤ b.length) :
     sha256.hw.arm.store_be b at' v ⦃ r => r = b.setSlice! at'.val (sha256.hw.arm.be_bytes v) ⦄ := by
   unfold sha256.hw.arm.store_be
-  rw [if_pos (by scalar_tac)]
+  rw [if_pos hw, if_pos (by scalar_tac)]
   exact (WP.spec_ok _).mpr rfl
 
 theorem bytes_be_bytes (v : U4) : bytes (sha256.hw.arm.be_bytes v) = vbytes v := by
@@ -23,7 +23,7 @@ theorem bytes_be_bytes (v : U4) : bytes (sha256.hw.arm.be_bytes v) = vbytes v :=
 theorem be_bytes_length (v : U4) : (sha256.hw.arm.be_bytes v).length = 16 := by
   simp [sha256.hw.arm.be_bytes, Arm.beBytes]
 
-theorem leave_spec (slot : sha256.hw.Slot) (block : Array U8 64#usize) (h : 1 ≤ slot.t.val) :
+theorem leave_spec (hw : Arm.haveSha2 = true) (slot : sha256.hw.Slot) (block : Array U8 64#usize) (h : 1 ≤ slot.t.val) :
     sha256.hw.leave slot block ⦃ b =>
       bytes b.val = setBlk (bytes block.val) (slot.t.val - 1) slot.x ⦄ := by
   unfold sha256.hw.leave
@@ -103,7 +103,7 @@ theorem mask1_eq : vOf (wv sha256.hw.MASK1.val) 0 = mask1V := by
 theorem mask2_eq : vOf (wv sha256.hw.MASK2.val) 0 = mask2V := by
   simp only [sha256.hw.MASK2]; rfl
 
-theorem enter_spec (state : Array U32 8#usize) (block : Array U8 64#usize) (t e : U32) (lane : Usize)
+theorem enter_spec (hw : Arm.haveSha2 = true) (state : Array U32 8#usize) (block : Array U8 64#usize) (t e : U32) (lane : Usize)
     (first : sha256.hw.First) (hf : FirstOk (wv state.val) first) :
     sha256.hw.enter state block t e lane first ⦃ r =>
       FirstOk (wv state.val) r.2 ∧ SlotOk (wv state.val) (bytes block.val) r.1 ∧
@@ -264,7 +264,7 @@ theorem mem_take_n (S : List sha256.hw.Slot) (n j : Nat) (hj : j < n) (hjS : j <
   rw [getElem!_eq _ _ hjS]
   exact List.mem_iff_getElem.mpr ⟨j, by simp; omega, by simp⟩
 
-theorem compact_loop1_spec (n : Usize) (blocks0 : Slice (Array U8 64#usize))
+theorem compact_loop1_spec (hw : Arm.haveSha2 = true) (n : Usize) (blocks0 : Slice (Array U8 64#usize))
     (S : Array sha256.hw.Slot 4#usize) (blocks : Slice (Array U8 64#usize))
     (slots : Array sha256.hw.Slot 4#usize) (k j : Usize) (hn : n.val ≤ 4)
     (hpw : (S.val.take n.val).Pairwise (fun a b => a.lane.val < b.lane.val))
@@ -304,7 +304,7 @@ theorem compact_loop1_spec (n : Usize) (blocks0 : Slice (Array U8 64#usize))
       · have hkf : keepB (S.val[j.val]!) = false := by
           simp only [keepB, decide_eq_false_iff_not]; scalar_tac
         have hf := hfin _ hmem hkf
-        step with leave_spec _ _ hf.1 as ⟨a1, ha1⟩
+        step with leave_spec hw _ _ hf.1 as ⟨a1, ha1⟩
         step*
         refine ⟨?_, by scalar_tac⟩
         rw [j1_post, index_mut_back_post]
@@ -347,7 +347,7 @@ theorem min_loop2_spec (slots : Array sha256.hw.Slot 4#usize) (n : Usize) (r : U
     all_goals try exact ⟨hr1, fun i hi => hr i (by scalar_tac)⟩
   · exact ⟨hj, hr1, hr⟩
 
-theorem compact_loop3_spec (n : Usize) (blocks0 : Slice (Array U8 64#usize))
+theorem compact_loop3_spec (hw : Arm.haveSha2 = true) (n : Usize) (blocks0 : Slice (Array U8 64#usize))
     (S : Array sha256.hw.Slot 4#usize) (blocks : Slice (Array U8 64#usize))
     (slots : Array sha256.hw.Slot 4#usize) (k j : Usize) (hn : n.val ≤ 4)
     (hpw : (S.val.take n.val).Pairwise (fun a b => a.lane.val < b.lane.val))
@@ -387,7 +387,7 @@ theorem compact_loop3_spec (n : Usize) (blocks0 : Slice (Array U8 64#usize))
       · have hkf : keepB (S.val[j.val]!) = false := by
           simp only [keepB, decide_eq_false_iff_not]; scalar_tac
         have hf := hfin _ hmem hkf
-        step with leave_spec _ _ hf.1 as ⟨a1, ha1⟩
+        step with leave_spec hw _ _ hf.1 as ⟨a1, ha1⟩
         step*
         refine ⟨?_, by scalar_tac⟩
         rw [j1_post, index_mut_back_post]
