@@ -130,6 +130,19 @@ copies the program text unchanged (it checks this itself).
 
 ## Binary-level evidence
 
-`rust/ct-evidence` compares execution traces of the compiled crate under an
-emulator and runs timing tests. Its recorded results are for the crate as it
-was on 2026-11-20, before the hashing was restructured.
+`rust/ct-evidence` checks the two compiled builds on one machine (Apple M5,
+results of 2026-11-21 in `rust/ct-evidence/RESULTS.md`):
+
+- **Traces, under an emulator:** control flow, memory addresses, allocation
+  sizes and copy lengths were identical across secrets in every comparison,
+  in both builds: 3,433 secret pairs over 61 component experiments each, and
+  the whole signers with the published values pinned (136 pairs default, 264
+  `hw-sha2`). Controls that must differ did.
+- **Timing:** whole signing, key generation and everything above the hash
+  level showed no difference between secrets. Short hash calls did, with the
+  processor's data-independent-timing mode off: for example an all-zero input
+  block compresses about 0.5 to 1.1 percent faster. With that mode on, nothing
+  was distinguishable in either build. Since the instruction and address
+  traces for those inputs are identical, the difference arises in the
+  processor; the crate does not switch the mode on, and an application that
+  needs data-independent timing must.

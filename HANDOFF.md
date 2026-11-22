@@ -358,8 +358,14 @@ rebuilding (`lake build Ct`, 3,701 jobs; 221 definitions pass the checker).
   form of `match` (on an `Option`, recorded as a branch on `isSome`), needed by the hardware
   `compress`; `Check.lean` accepts the build's wrapper list. `Model.lean`, the simulators and
   `Theorems.lean` did not change. `scripts/ct-gen.sh hw` generates the hardware copy.
-- Not done: anything below the source (compiler, processor timing mode, speculation, power).
-  `rust/ct-evidence` results are still those of 2026-11-20.
+- **`rust/ct-evidence` was rebuilt for the current code and rerun on both builds** (results in
+  its `RESULTS.md`, raw outputs in `out/default`, `out/hw-sha2`). Traces: identical across
+  secrets everywhere. Timing: nothing above the hash level; short hash calls are distinguishable
+  with PSTATE.DIT = 0 (all-zero block about 0.5-1.1% faster in the default build) and not with
+  DIT = 1. The harness's standard fixed-vs-random design had an artefact for multi-block rows;
+  `--same-prep` is the corrected design. Caveat: some timing runs overlapped with Lean builds
+  and with each other; noise-floor runs before and after each series were clean.
+- Not done: anything below the source that a proof could reach (compiler, speculation, power).
 - Observation, not a defect: when a checked signer returns nothing after a failed recomputation,
   its trace shows the common-prefix length of the two roots.
 

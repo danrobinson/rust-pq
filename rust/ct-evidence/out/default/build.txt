@@ -1,0 +1,23 @@
+date: 2026-11-22T04:36:47Z
+variant: default
+machine: Apple M5 Ultra, 12+24 cores; macOS 27.2 (26B118); Darwin 27.2.0 arm64
+rustc: rustc 1.100.0 (0ef1bc386 2026-11-09);binary: rustc;commit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a;commit-date: 2026-11-09;host: aarch64-apple-darwin;release: 1.100.0;LLVM version: 23.1.5;
+cargo: cargo 1.100.0 (3acc79c0c 2026-11-05)
+unicorn: 2.1.4
+sha256 of the crate under test (..):
+0c31f095d4151b64a657b1f5560879a69c640bef6d0aeac4a1a214101ab94ab4  Cargo.toml
+5f1d3647f1d1cb006aa7b471b4ce48f1454b4ece027096e59c0225efe749c5c6  src/address.rs
+07e9c51610329f577065e768d2f87666c13dad81c169b0f408beec4d4759e49b  src/api.rs
+3f2109af90dda63ae3887988ef929c3156cad8aed31fa242d6823980bf413581  src/fors.rs
+afdcb8d1aba78e4da41a545f9c45ba26593e14d0ee0d64fbd0c924457390e1cd  src/hash.rs
+0b5721edc661ee55e8bf72ee80e8b62980d6500bd01a6394774a4fb163292fe8  src/ht.rs
+7cd4344ee5801f9184dd7870651ce46082d17ac37c7db40c535eb0069558f31a  src/lib.rs
+e87ef58e0dc4e1c5978e6f2d8ed809bf0c0caf094e0e8416f76ba0bee54675e5  src/params.rs
+5cb1b2ebfe0a589f5c3da8816935f45e82ba8cb12503f3c9eb55856c8198f358  src/sha256.rs
+af6cbc2880ef8a26adbd067013c21df3460734b7d6ffe755b08b65f209d1e7d3  src/slh.rs
+458d560db3d47deae7280ae1a8fa6bb9bc9b8d16641ccdf0f41b18d850413891  src/util.rs
+2dd8185a2fdc561f785138a45f398fe6bdc8f97c8233c26a3337b4b9d85292d8  src/wots.rs
+d5548f0857e9666006d885dfd75a983dabc170a2e361c89721ae67108fc01d4e  src/xmss.rs
+sha256 of the harness binaries:
+80da4a54c166d286291c61ff8cb19a573f72a22a5f6c5583f7291bd4cbc67edf  target/release/cttrace
+7f5bdc6b8fef5e2ec3772d9107f4010c031b911fd1847a4c081022cad0daf98d  target/release/dudect

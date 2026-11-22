@@ -517,6 +517,20 @@ mode, which the application must switch on), speculative execution, power or
 faults. For the `hw-sha2` build ([lean-hw/Ct](lean-hw/Ct)) the intrinsic
 wrappers get a leakage model of their own, in which the vector and SHA-256
 instructions are assumed to reveal nothing about their operands.
-[rust/ct-evidence](rust/ct-evidence) holds binary-level evidence (emulated
-execution traces and timing tests) recorded on 2026-11-20 for the crate as it
-then was.
+
+**Binary-level evidence.** [rust/ct-evidence](rust/ct-evidence) checks the two compiled builds on one machine (Apple M5,
+results of 2026-11-21 in [RESULTS.md](rust/ct-evidence/RESULTS.md)):
+
+- **Traces, under an emulator:** control flow, memory addresses, allocation
+  sizes and copy lengths were identical across secrets in every comparison,
+  in both builds: 3,433 secret pairs over 61 component experiments each, and
+  the whole signers with the published values pinned (136 pairs default, 264
+  `hw-sha2`). Controls that must differ did.
+- **Timing:** whole signing, key generation and everything above the hash
+  level showed no difference between secrets. Short hash calls did, with the
+  processor's data-independent-timing mode off: for example an all-zero input
+  block compresses about 0.5 to 1.1 percent faster. With that mode on, nothing
+  was distinguishable in either build. Since the instruction and address
+  traces for those inputs are identical, the difference arises in the
+  processor; the crate does not switch the mode on, and an application that
+  needs data-independent timing must.

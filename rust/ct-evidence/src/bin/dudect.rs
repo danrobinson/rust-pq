@@ -184,6 +184,7 @@ fn measure(
     n_total: usize,
     ns_per_tick: f64,
     seed: u64,
+    reps_mul: usize,
     prep: &mut dyn FnMut(u8, &mut Rng, &mut [u8]),
 ) -> Report {
     let started = Instant::now();
@@ -206,6 +207,9 @@ fn measure(
         }
         reps *= 2;
     }
+    // diagnostic: more calls per measurement than the calibration asks for
+    let per_meas_ns = per_meas_ns * reps_mul as f64;
+    let reps = reps * reps_mul;
     // warm-up: ~50 ms worth of measurements (at least 4), measured and discarded
     let warm = ((50e6 / per_meas_ns) as usize).clamp(4, 512);
     const BATCH: usize = 512;
@@ -284,6 +288,13 @@ fn main() {
     let mut classes = "fixed-random".to_string();
     // set PSTATE.DIT (Arm data-independent-timing mode) for the measuring thread
     let mut dit = false;
+    // which signer `sign-key` / `sign-addrnd` time: internal | internal-checked
+    let mut entry = "internal".to_string();
+    // diagnostics: prepare both classes by the same code path (the fixed
+    // class is drawn like the random one and then overwritten with its fixed
+    // secret); and multiply the calibrated number of calls per measurement
+    let mut same_prep = false;
+    let mut reps_mul = 1usize;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -305,6 +316,15 @@ fn main() {
             }
             "--fixed-zero" => fixed_zero = true,
             "--dit" => dit = true,
+            "--same-prep" => same_prep = true,
+            "--reps-mul" => {
+                i += 1;
+                reps_mul = args[i].parse().unwrap()
+            }
+            "--entry" => {
+                i += 1;
+                entry = args[i].clone()
+            }
             "--classes" => {
                 i += 1;
                 classes = args[i].clone()
@@ -339,24 +359,38 @@ fn main() {
         }
         gran = gran.min((b - a) as f64 * ns_per_tick);
     }
-    println!("clock: mach_absolute_time, {:.3} ns/tick, observed granularity {:.1} ns; PSTATE.DIT = {}; classes = {}; fixed class = {}; seed {}\n", ns_per_tick, gran, dit_state, classes, if fixed_zero { "all-zero secret" } else { "one fixed pseudo-random secret" }, seed);
+    println!(
+        "slhdsa build: {}; clock: mach_absolute_time, {:.3} ns/tick, observed granularity {:.1} ns; PSTATE.DIT = {}; classes = {}; fixed class = {}; seed {}{}{}\n",
+        variant(),
+        ns_per_tick,
+        gran,
+        dit_state,
+        classes,
+        if fixed_zero { "all-zero secret" } else { "one fixed pseudo-random secret" },
+        seed,
+        if same_prep { "; both classes prepared by the same code path" } else { "" },
+        if reps_mul != 1 { format!("; calls per measurement = {reps_mul} x calibrated") } else { String::new() }
+    );
 
     match mode.as_str() {
         "components" => {
             print_header();
             for (ti, t) in targets().iter().enumerate() {
-                if t.dudect_n == 0 || !t.name.contains(&filter) {
+                // --filter takes alternatives separated by '|'
+                if t.dudect_n == 0 || !filter.split('|').any(|f| t.name.contains(f)) {
                     continue;
                 }
-                let n_total = ((2 * t.dudect_n) as f64 * scale).ceil() as usize;
+                let mut n_total = ((2 * t.dudect_n) as f64 * scale).ceil() as usize;
+                if t.expect == Expect::Differ {
+                    // The leaky controls are detected with far fewer samples, and
+                    // one measurement of `leaky_cmp` is long (it is calibrated on a
+                    // secret that exits at once): cap them.
+                    n_total = n_total.min(20_000);
+                }
                 let base = public_input(t, seed ^ (ti as u64) << 20);
                 let mut fixed = base.clone();
                 if fixed_zero {
-                    for &(o, l) in &t.vary {
-                        for x in &mut fixed[o..o + l] {
-                            *x = 0;
-                        }
-                    }
+                    zero_input(t, &mut fixed);
                 } else {
                     vary_input(t, &mut fixed, &mut Rng::new(seed ^ 0xF1ED ^ (ti as u64) << 20));
                 }
@@ -371,7 +405,17 @@ fn main() {
                 };
                 let mut prep = |c: u8, rng: &mut Rng, buf: &mut [u8]| {
                     let is_fixed = if c == 0 { c0_fixed } else { c1_fixed };
-                    if is_fixed {
+                    if same_prep {
+                        buf.copy_from_slice(&base);
+                        vary_input(t, buf, rng);
+                        if is_fixed {
+                            let src = if c == 0 { &fixed } else { &fixed_b };
+                            for &(o, l) in &t.vary {
+                                buf[o..o + l].copy_from_slice(&src[o..o + l]);
+                            }
+                            buf[OFF_STATE..OFF_STATE + 32].copy_from_slice(&src[OFF_STATE..OFF_STATE + 32]);
+                        }
+                    } else if is_fixed {
                         buf.copy_from_slice(if c == 0 { &fixed } else { &fixed_b });
                         // consume the same amount of PRNG output in both classes
                         let mut scratch = base.clone();
@@ -381,17 +425,26 @@ fn main() {
                         vary_input(t, buf, rng);
                     }
                 };
-                let r = measure(&t.name, t.what, t.f, n_total, ns_per_tick, seed ^ (ti as u64 + 1) << 8, &mut prep);
-                print_row(&r, !t.expect_equal);
+                let r = measure(&t.name, t.what, t.f, n_total, ns_per_tick, seed ^ (ti as u64 + 1) << 8, reps_mul, &mut prep);
+                // with both classes random the leaky controls have nothing to show
+                print_row(&r, t.expect == Expect::Differ && classes != "random-random");
             }
         }
         // Whole signature. Public inputs shared by both classes: m, PK.seed.
         "sign-key" | "sign-addrnd" => {
             let vary_key = mode == "sign-key";
+            let entries = sign_entries();
+            let e = entries.iter().find(|e| e.key == entry && !e.ctx).unwrap_or_else(|| {
+                eprintln!("--entry must be internal or internal-checked");
+                std::process::exit(2)
+            });
             let mut rng = Rng::new(seed ^ 0x5167);
             let mut base = vec![0u8; IN_MAX];
             rng.fill(&mut base);
             base[OFF_A..OFF_A + 4].copy_from_slice(&32u32.to_le_bytes());
+            // no context string (the wrappers decode its length even where the
+            // function under test takes none)
+            base[OFF_B..OFF_B + 2].copy_from_slice(&0u16.to_le_bytes());
             set_honest_root(&mut base);
             let fixed = base.clone();
             let mut prep = |c: u8, rng: &mut Rng, buf: &mut [u8]| {
@@ -406,11 +459,11 @@ fn main() {
             };
             print_header();
             let (name, what) = if vary_key {
-                ("slh_sign_internal (m, PK.seed fixed; honest keys)", "SK.seed, SK.prf, addrnd (PK.root changes with SK.seed)")
+                (format!("{} (m, PK.seed fixed; honest keys)", e.name), "SK.seed, SK.prf, addrnd (PK.root changes with SK.seed)")
             } else {
-                ("slh_sign_internal (m, whole key fixed)", "addrnd only")
+                (format!("{} (m, whole key fixed)", e.name), "addrnd only")
             };
-            let r = measure(name, what, w_sign_internal, 2 * n_sign, ns_per_tick, seed ^ 0xABCD, &mut prep);
+            let r = measure(&name, what, e.f, 2 * n_sign, ns_per_tick, seed ^ 0xABCD, 1, &mut prep);
             print_row(&r, false);
         }
         m => {

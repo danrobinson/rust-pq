@@ -138,21 +138,29 @@ struct Ev {
     pc: u64,
 }
 
-/// Declassification patch: when the block at `at` (a return site) is reached
-/// for the n-th time, overwrite guest memory / registers with recorded values.
+/// The declassification points of signing: each is the 16-byte result of one
+/// call of a function of the crate.
+const PT_R: u8 = 0;
+const PT_PK_FORS_SIG: u8 = 1;
+const PT_PK_FORS_SEED: u8 = 2;
+const PT_ROOT_SIG: u8 = 3;
+const PT_ROOT_SEED: u8 = 4;
+const PT_NAMES: [&str; 5] = ["R = prf_msg(..)", "PK_FORS = fors_pk_from_sig(..)", "PK_FORS = fors_pk_gen(..)", "root = xmss_pk_from_sig(..)", "root = xmss_node(.., i = 0, z = 9, ..)"];
+
+/// Declassification: the results of the hooked calls are recorded (run A) or
+/// overwritten with recorded values (run B) when the call returns.
 #[derive(Clone, Default)]
 struct Declass {
-    /// entry address of `thash`
-    thash: u64,
-    /// entry address of `prf_msg`
-    prf_msg: u64,
+    /// (entry address of the function, point, value the third integer
+    /// argument must have for the call to count)
+    hooks: Vec<(u64, u8, Option<u32>)>,
     /// record (true) or replay (false)
     record: bool,
-    /// recorded / to-be-replayed 16-byte values, in order of occurrence
-    values: Vec<[u8; 16]>,
+    /// recorded / to-be-replayed values, in order of occurrence
+    values: Vec<(u8, [u8; 16])>,
     next: usize,
-    /// pending returns: (return address, sp at entry, result pointer x8)
-    pending: Vec<(u64, u64, u64)>,
+    /// pending returns: (return address, sp at entry, result pointer x8, point)
+    pending: Vec<(u64, u64, u64, u8)>,
     applied: usize,
     enabled: bool,
 }
@@ -181,8 +189,8 @@ struct State {
     heap_peak: u64,
     err: Option<String>,
     dc: Declass,
-    /// per-function entry counters (only when profiling)
-    profile: Option<HashMap<u64, u64>>,
+    /// per-block execution counters and block sizes (only when profiling)
+    profile: Option<HashMap<u64, (u64, u32)>>,
 }
 
 impl State {
@@ -356,80 +364,56 @@ extern "C" fn hook_block(_uc: *mut uc_engine, addr: u64, size: u32, user: *mut c
     st.n_insn += (size / 4) as u64;
     st.event(1, addr, size as u64);
     if let Some(p) = st.profile.as_mut() {
-        *p.entry(addr).or_insert(0) += 1;
+        p.entry(addr).or_insert((0, size)).0 += 1;
     }
     if st.dc.enabled {
         declass_hook(st, addr);
     }
 }
 
-/// Declassification hook, see `sign_declass`.
+/// Declassification hook, see `run_sign`.
 ///
-/// On entry to `thash`/`prf_msg` we remember the return address (x30) and the
+/// On entry to a hooked function we remember the return address (x30), the
 /// stack pointer and the indirect-result pointer x8 (in this build rustc
 /// returns `[u8; 16]` through an sret pointer; this assumption is checked in
-/// every experiment: the first recorded value must equal the signature's R,
-/// exactly nine values must be recorded, and replaying a run's own values
-/// must leave its trace and output unchanged). When execution reaches the
-/// return address with the same stack pointer, the function has returned and
-/// its 16-byte result is at that pointer; it is recorded or overwritten there
-/// through the emulator API (no guest-visible memory event).
+/// every experiment: the values recorded this way must be exactly the values a
+/// verifier computes from the finished signature, and replaying a run's own
+/// values must leave its trace and output unchanged). When execution reaches
+/// the return address with the same stack pointer, the function has returned
+/// and its 16-byte result is at that pointer; it is recorded or overwritten
+/// there through the emulator API (no guest-visible memory event).
 fn declass_hook(st: &mut State, addr: u64) {
-    if let Some(&(ret, sp, outptr)) = st.dc.pending.last() {
+    if let Some(&(ret, sp, outptr, pt)) = st.dc.pending.last() {
         if addr == ret && st.reg(REG_SP) == sp {
             st.dc.pending.pop();
             if st.dc.record {
                 let v: [u8; 16] = st.rd(outptr, 16).try_into().unwrap();
-                st.dc.values.push(v);
+                st.dc.values.push((pt, v));
             } else {
                 match st.dc.values.get(st.dc.next).cloned() {
-                    Some(r) => {
+                    Some((p, r)) if p == pt => {
                         st.wr(outptr, &r);
                         st.dc.applied += 1;
                     }
+                    Some((p, _)) => st.fail(format!("declass replay: point #{} is `{}` but `{}` was recorded there", st.dc.next, PT_NAMES[pt as usize], PT_NAMES[p as usize])),
                     None => st.fail("declass replay: more declassification points than recorded".into()),
                 }
                 st.dc.next += 1;
             }
         }
     }
-    let interesting = if addr == st.dc.prf_msg {
-        true
-    } else if addr == st.dc.thash {
-        // thash(pk_seed: x0, adrs: x1, m: x2, len: x3). Adrs is a repr(Rust)
-        // struct; we locate `typ` and `word2` by reading all six fields and
-        // matching on the field layout discovered at start-up.
-        let a = st.reg(REG_X0 + 1);
-        let raw = st.rd(a, 32);
-        let (typ, word2) = adrs_typ_word2(&raw);
-        // FORS_ROOTS (4): the FORS public key. TREE (2) at height 9: an XMSS
-        // root recomputed from the signature (xmss_node inside xmss_sign only
-        // goes up to height 8, so height 9 identifies xmss_pk_from_sig).
-        typ == 4 || (typ == 2 && word2 == 9)
-    } else {
-        false
-    };
-    if interesting {
-        st.dc.pending.push((st.reg(REG_X30), st.reg(REG_SP), st.reg(REG_X0 + 8)));
+    let mut hit = None;
+    for &(a, pt, arg2) in &st.dc.hooks {
+        if a == addr {
+            hit = Some((pt, arg2));
+            break;
+        }
     }
-}
-
-/// Offsets of `typ` and `word2` inside the in-memory `Adrs`, discovered by
-/// probing a value with distinct field contents (repr(Rust) layout is not
-/// guaranteed, so we do not hard-code it).
-static ADRS_LAYOUT: std::sync::OnceLock<(usize, usize)> = std::sync::OnceLock::new();
-fn adrs_layout() -> (usize, usize) {
-    *ADRS_LAYOUT.get_or_init(|| {
-        let a = slhdsa::address::Adrs { layer: 0x11111111, tree: 0x2222222222222222, typ: 0x33333333, keypair: 0x44444444, word2: 0x55555555, word3: 0x66666666 };
-        assert_eq!(std::mem::size_of_val(&a), 32);
-        let raw: [u8; 32] = unsafe { std::mem::transmute(a) };
-        let find = |b: u8| (0..32).step_by(4).find(|&o| raw[o..o + 4] == [b; 4]).unwrap();
-        (find(0x33), find(0x55))
-    })
-}
-fn adrs_typ_word2(raw: &[u8]) -> (u32, u32) {
-    let (t, w) = adrs_layout();
-    (u32::from_le_bytes(raw[t..t + 4].try_into().unwrap()), u32::from_le_bytes(raw[w..w + 4].try_into().unwrap()))
+    if let Some((pt, arg2)) = hit {
+        if arg2.map_or(true, |z| st.reg(REG_X0 + 2) as u32 == z) {
+            st.dc.pending.push((st.reg(REG_X30), st.reg(REG_SP), st.reg(REG_X0 + 8), pt));
+        }
+    }
 }
 
 extern "C" fn hook_mem(_uc: *mut uc_engine, typ: c_int, addr: u64, size: c_int, _value: i64, user: *mut c_void) {
@@ -664,11 +648,92 @@ fn native(f: Entry, input: &[u8]) -> Vec<u8> {
     out
 }
 
+fn build_line() -> String {
+    let feat = if HW_SHA2 { format!("`--features hw-sha2` (`sha256::hw_active()` = {})", hw_active()) } else { "default features".to_string() };
+    format!("crate under test: `slhdsa` built with {feat}, cargo release profile; emulator: Unicorn, CPU model `max`")
+}
+
+/// Entry address of every symbol of this image's `__TEXT` segment, by
+/// demangled name. Found by scanning the segment through `dladdr`, which
+/// works for local symbols as long as the binary is not stripped.
+fn image_symbols() -> &'static HashMap<String, Vec<u64>> {
+    static SYMS: std::sync::OnceLock<HashMap<String, Vec<u64>>> = std::sync::OnceLock::new();
+    SYMS.get_or_init(|| {
+        let mut map: HashMap<String, Vec<u64>> = HashMap::new();
+        unsafe {
+            let hdr = _dyld_get_image_header(0);
+            let slide = _dyld_get_image_vmaddr_slide(0) as u64;
+            let ncmds = *(hdr.add(16) as *const u32);
+            let mut p = hdr.add(32);
+            for _ in 0..ncmds {
+                let cmd = *(p as *const u32);
+                let cmdsize = *(p.add(4) as *const u32);
+                if cmd == 0x19 && CStr::from_ptr(p.add(8) as *const c_char).to_string_lossy() == "__TEXT" {
+                    let lo = (*(p.add(24) as *const u64)).wrapping_add(slide);
+                    let hi = lo + *(p.add(32) as *const u64);
+                    let mut a = lo;
+                    let mut seen = 0u64;
+                    while a < hi {
+                        if let Some((name, start)) = symbol_start(a) {
+                            if start != seen {
+                                seen = start;
+                                map.entry(name).or_default().push(start);
+                            }
+                        }
+                        a += 4;
+                    }
+                }
+                p = p.add(cmdsize as usize);
+            }
+        }
+        map
+    })
+}
+/// The entry address of a function of the crate under test, if it exists as
+/// exactly one out-of-line symbol in this build.
+fn find_fn(name: &str) -> Option<u64> {
+    match image_symbols().get(name) {
+        Some(v) if v.len() == 1 => Some(v[0]),
+        _ => None,
+    }
+}
+
+/// The SHA-256 instructions among the `size / 4` instructions at `addr`
+/// (which lies in this image, mapped at the same address in the host):
+/// counts of SHA256H, SHA256H2, SHA256SU0, SHA256SU1.
+fn sha_insns(addr: u64, size: u32) -> [u64; 4] {
+    let mut c = [0u64; 4];
+    for k in 0..(size / 4) as u64 {
+        let w = unsafe { std::ptr::read_unaligned((addr + 4 * k) as *const u32) };
+        if w & 0xFFE0_FC00 == 0x5E00_4000 {
+            c[0] += 1
+        } else if w & 0xFFE0_FC00 == 0x5E00_5000 {
+            c[1] += 1
+        } else if w & 0xFFFF_FC00 == 0x5E28_2800 {
+            c[2] += 1
+        } else if w & 0xFFE0_FC00 == 0x5E00_6000 {
+            c[3] += 1
+        }
+    }
+    c
+}
+/// SHA-256 instructions executed in a profiled run.
+fn sha_executed(prof: &HashMap<u64, (u64, u32)>) -> [u64; 4] {
+    let mut c = [0u64; 4];
+    for (&addr, &(n, size)) in prof {
+        let s = sha_insns(addr, size);
+        for k in 0..4 {
+            c[k] += n * s[k];
+        }
+    }
+    c
+}
+
 struct Row {
     order: usize,
     name: String,
     what: &'static str,
-    expect_equal: bool,
+    expect: Expect,
     pairs: usize,
     equal: usize,
     differ: usize,
@@ -707,7 +772,7 @@ fn run_components(filter: &str, scale: f64, threads: usize, seed: u64) -> bool {
                 let t = &ts[ti];
                 let t0 = std::time::Instant::now();
                 let nsec = ((t.trials.1 as f64 * scale).ceil() as usize).max(2);
-                let mut row = Row { order: ti, name: t.name.clone(), what: t.what, expect_equal: t.expect_equal, pairs: 0, equal: 0, differ: 0, errors: vec![], insn: 0, blocks: 0, mem: 0, stubs: 0, first_div: None, native_ok: true, secs: 0.0 };
+                let mut row = Row { order: ti, name: t.name.clone(), what: t.what, expect: t.expect, pairs: 0, equal: 0, differ: 0, errors: vec![], insn: 0, blocks: 0, mem: 0, stubs: 0, first_div: None, native_ok: true, secs: 0.0 };
                 let mut rng = Rng::new(seed ^ ((ti as u64) << 32) ^ (p as u64 + 1).wrapping_mul(0xD1B54A32D192ED03));
                 let mut base = public_input(t, rng.next());
                 vary_input(t, &mut base, &mut rng);
@@ -724,11 +789,7 @@ fn run_components(filter: &str, scale: f64, threads: usize, seed: u64) -> bool {
                         for k in 0..nsec + 1 {
                             let mut other = base.clone();
                             if k == 0 {
-                                for &(o, l) in &t.vary {
-                                    for x in &mut other[o..o + l] {
-                                        *x = 0;
-                                    }
-                                }
+                                zero_input(t, &mut other);
                             } else {
                                 vary_input(t, &mut other, &mut rng);
                             }
@@ -791,18 +852,30 @@ fn run_components(filter: &str, scale: f64, threads: usize, seed: u64) -> bool {
             }
         }
     }
+    println!("{}; seed {seed}\n", build_line());
     println!("| function (public params) | varied input | public configs | pairs | identical traces | differing | insns/run | blocks/run | mem accesses/run | call-outs/run | emu==native output | verdict |");
     println!("|---|---|---|---|---|---|---|---|---|---|---|---|");
     let mut all_ok = true;
     let mut notes = Vec::new();
     for (m, c) in merged.iter().zip(cfgs.iter()) {
-        let ok = m.errors.is_empty() && m.native_ok && m.pairs > 0 && if m.expect_equal { m.differ == 0 } else { m.differ > 0 };
+        let sound = m.errors.is_empty() && m.native_ok && m.pairs > 0;
+        let ok = sound
+            && match m.expect {
+                Expect::Equal => m.differ == 0,
+                Expect::Differ => m.differ > 0,
+                Expect::Info => true,
+            };
         all_ok &= ok;
-        let verdict = match (m.expect_equal, ok) {
-            (true, true) => "PASS (all identical)",
-            (true, false) => "**FAIL: DIVERGENCE**",
-            (false, true) => "PASS (control: difference detected)",
-            (false, false) => "**FAIL: control not detected**",
+        let verdict = if !sound {
+            "**ERROR**".to_string()
+        } else {
+            match (m.expect, ok) {
+                (Expect::Equal, true) => "PASS (all identical)".to_string(),
+                (Expect::Equal, false) => "**FAIL: DIVERGENCE**".to_string(),
+                (Expect::Differ, true) => "PASS (control: difference detected)".to_string(),
+                (Expect::Differ, false) => "**FAIL: control not detected**".to_string(),
+                (Expect::Info, _) => format!("info: {}", if m.differ == 0 { "identical" } else if m.equal == 0 { "differs" } else { "some pairs differ" }),
+            }
         };
         println!("| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |", m.name, m.what, c, m.pairs, m.equal, m.differ, m.insn, m.blocks, m.mem, m.stubs, if m.native_ok { "yes" } else { "NO" }, verdict);
         if let Some(d) = &m.first_div {
@@ -822,13 +895,95 @@ fn run_components(filter: &str, scale: f64, threads: usize, seed: u64) -> bool {
     all_ok
 }
 
+// --- emulation of the SHA-256 instructions ---------------------------------
+
+/// Runs a selection of entry points once under the emulator with block
+/// profiling, counts the SHA-256 instructions executed, and compares the
+/// emulated output with the native one. With the `hw-sha2` build every row
+/// must execute SHA-256 instructions; with the default build none may.
+fn run_hwcheck(seed: u64) -> bool {
+    println!("### SHA-256 instructions executed under the emulator\n");
+    println!("{}; seed {seed}\n", build_line());
+    println!("| entry point | insns executed | SHA256H | SHA256H2 | SHA256SU0 | SHA256SU1 | emu==native output | verdict |");
+    println!("|---|---|---|---|---|---|---|---|");
+    let mut emu = Emu::new(false);
+    emu.st.profile = Some(HashMap::new());
+    let ts = targets();
+    let wanted = ["sha256/len=64", "compress (copy inlined into the wrapper)", "thash_short/len=16", "thash/len=224", "thash_values", "prf_msg/mlen=32", "chain_blocks/n=1,steps=0..15", "chain_blocks/n=35,steps=0..d_i (wots_sign)", "chain_blocks_portable/n=4,steps=0..15", "wots_pk_gen", "fors_node/z=7", "slh_keygen_internal"];
+    let mut cases: Vec<(String, Entry, Vec<u8>)> = Vec::new();
+    for w in wanted {
+        let t = ts.iter().find(|t| t.name == w).unwrap_or_else(|| panic!("no target {w}"));
+        let mut rng = Rng::new(seed ^ 0x4857);
+        let mut b = public_input(t, rng.next());
+        vary_input(t, &mut b, &mut rng);
+        cases.push((t.name.clone(), t.f, b));
+    }
+    for e in sign_entries() {
+        if e.key == "internal" || e.key == "internal-checked" {
+            let mut a = sign_input(&mut Rng::new(seed ^ 0x4858), 32, 0);
+            set_honest_root(&mut a);
+            cases.push((e.name.to_string(), e.f, a));
+        }
+    }
+    let mut all = true;
+    for (name, f, input) in cases {
+        emu.st.profile.as_mut().unwrap().clear();
+        match emu.run(f, &input, None) {
+            Ok((s, out)) => {
+                let c = sha_executed(emu.st.profile.as_ref().unwrap());
+                let same = out == native(f, &input);
+                let any = c.iter().any(|&x| x > 0);
+                let ok = same && any == HW_SHA2;
+                all &= ok;
+                println!("| {name} | {} | {} | {} | {} | {} | {} | {} |", s.n_insn, c[0], c[1], c[2], c[3], if same { "yes" } else { "NO" }, if ok { "as expected" } else { "**UNEXPECTED**" });
+            }
+            Err(e) => {
+                all = false;
+                println!("| {name} | - | - | - | - | - | - | **ERROR: {e}** |");
+            }
+        }
+    }
+    // static count over the whole image, for comparison with the disassembly
+    let mut tot = [0u64; 4];
+    unsafe {
+        let hdr = _dyld_get_image_header(0);
+        let slide = _dyld_get_image_vmaddr_slide(0) as u64;
+        let ncmds = *(hdr.add(16) as *const u32);
+        let mut p = hdr.add(32);
+        for _ in 0..ncmds {
+            let cmd = *(p as *const u32);
+            let cmdsize = *(p.add(4) as *const u32);
+            if cmd == 0x19 && CStr::from_ptr(p.add(8) as *const c_char).to_string_lossy() == "__TEXT" {
+                // section_64 records follow the 72-byte segment_command_64
+                let nsects = *(p.add(64) as *const u32);
+                for k in 0..nsects as usize {
+                    let sp = p.add(72 + 80 * k);
+                    let sect = CStr::from_ptr(sp as *const c_char).to_string_lossy().into_owned();
+                    if sect == "__text" {
+                        let addr = (*(sp.add(32) as *const u64)).wrapping_add(slide);
+                        let size = *(sp.add(40) as *const u64);
+                        let c = sha_insns(addr, size as u32);
+                        for k in 0..4 {
+                            tot[k] += c[k];
+                        }
+                    }
+                }
+            }
+            p = p.add(cmdsize as usize);
+        }
+    }
+    println!("\nSHA-256 instructions present in this binary's `__text` section (static count): SHA256H {}, SHA256H2 {}, SHA256SU0 {}, SHA256SU1 {}.", tot[0], tot[1], tot[2], tot[3]);
+    println!("\noverall: {}", if all { "AS EXPECTED" } else { "UNEXPECTED RESULT" });
+    all
+}
+
 // --- whole-signature experiments ------------------------------------------
 
-fn sign_input(rng: &mut Rng, mlen: usize) -> Vec<u8> {
+fn sign_input(rng: &mut Rng, mlen: usize, ctxlen: u16) -> Vec<u8> {
     let mut b = vec![0u8; IN_MAX];
     rng.fill(&mut b);
     b[OFF_A..OFF_A + 4].copy_from_slice(&(mlen as u32).to_le_bytes());
-    b[OFF_B..OFF_B + 2].copy_from_slice(&0u16.to_le_bytes());
+    b[OFF_B..OFF_B + 2].copy_from_slice(&ctxlen.to_le_bytes());
     b
 }
 /// Replace (SK.seed, SK.prf, addrnd) by fresh values. If `honest`, also
@@ -847,171 +1002,265 @@ fn set_honest_root(b: &mut [u8]) {
     b[OFF_SK..OFF_SK + 64].copy_from_slice(&sk);
 }
 
-fn find_fn(entry_hint: &str) -> Option<u64> {
-    // Resolve a function of the slhdsa crate inside this image by scanning the
-    // image's symbols through dladdr (works for local symbols as long as the
-    // binary is not stripped).
-    unsafe {
-        let hdr = _dyld_get_image_header(0);
-        let slide = _dyld_get_image_vmaddr_slide(0) as u64;
-        let ncmds = *(hdr.add(16) as *const u32);
-        let mut p = hdr.add(32);
-        for _ in 0..ncmds {
-            let cmd = *(p as *const u32);
-            let cmdsize = *(p.add(4) as *const u32);
-            if cmd == 0x19 && CStr::from_ptr(p.add(8) as *const c_char).to_string_lossy() == "__TEXT" {
-                let lo = (*(p.add(24) as *const u64)).wrapping_add(slide);
-                let hi = lo + *(p.add(32) as *const u64);
-                let mut a = lo;
-                let mut seen = 0u64;
-                while a < hi {
-                    if let Some((name, start)) = symbol_start(a) {
-                        if start != seen {
-                            seen = start;
-                            if name == entry_hint {
-                                return Some(start);
-                            }
-                        }
-                    }
-                    a += 4;
-                }
-            }
-            p = p.add(cmdsize as usize);
-        }
+/// The message the internal signer sees: M, or 0 ‖ |ctx| ‖ ctx ‖ M.
+fn message_prime(e: &SignEntry, input: &[u8]) -> Vec<u8> {
+    let mlen = u32at(input, OFF_A) as usize;
+    let clen = u16::from_le_bytes([input[OFF_B], input[OFF_B + 1]]) as usize;
+    let mut mp = Vec::new();
+    if e.ctx {
+        mp.push(0);
+        mp.push(clen as u8);
+        mp.extend_from_slice(&input[OFF_CTX..OFF_CTX + clen]);
     }
-    None
+    mp.extend_from_slice(&input[OFF_MSG..OFF_MSG + mlen]);
+    mp
 }
 
-/// Experiment S1/S2: full signing with declassified values pinned.
+/// What a verifier computes from (M', PK, signature), natively and with the
+/// crate's own verification-side functions: R (read off the signature),
+/// PK_FORS and the seven XMSS roots. The boolean says whether the last root
+/// is PK.root.
+fn verifier_values(mp: &[u8], pk_seed: &[u8; 16], pk_root: &[u8; 16], sig: &[u8]) -> (Vec<[u8; 16]>, bool) {
+    use slhdsa::address::{Adrs, FORS_TREE};
+    let r: [u8; 16] = sig[0..16].try_into().unwrap();
+    let digest = slhdsa::hash::h_msg(&r, pk_seed, pk_root, mp);
+    let idx_tree = slhdsa::util::to_int(&digest[21..28]) & ((1u64 << 54) - 1);
+    let idx_leaf = (slhdsa::util::to_int(&digest[28..30]) & 511) as u32;
+    let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
+    let seed = slhdsa::hash::seed_ctx(pk_seed);
+    let pk_fors = slhdsa::fors::fors_pk_from_sig(&sig[16..16 + 2912], &digest[0..21], &seed, adrs);
+    let mut out = vec![r, pk_fors];
+    let mut node = pk_fors;
+    let mut tree = idx_tree;
+    let mut leaf = idx_leaf;
+    for j in 0..7usize {
+        let a = Adrs::new().with_layer(j as u32).with_tree(tree);
+        let off = 16 + 2912 + 704 * j;
+        node = slhdsa::xmss::xmss_pk_from_sig(leaf, &sig[off..off + 704], &node, &seed, a);
+        out.push(node);
+        leaf = (tree & 511) as u32;
+        tree >>= 9;
+    }
+    (out, node == *pk_root)
+}
+
+/// The declassification points an honest run of `e` must produce, in order,
+/// with the values a verifier computes from its output.
+fn expected_points(e: &SignEntry, input: &[u8], out: &[u8]) -> Result<Vec<(u8, [u8; 16])>, String> {
+    if out[OFF_OUT_FLAG] != 1 {
+        return Err("the signer returned no signature".into());
+    }
+    let sig = &out[..7856];
+    let mp = message_prime(e, input);
+    let pk: [u8; 32] = input[OFF_SK + 32..OFF_SK + 64].try_into().unwrap();
+    if !slhdsa::slh_verify_internal(&mp, sig, &pk) {
+        return Err("the signature does not verify natively".into());
+    }
+    let (v, top) = verifier_values(&mp, pk[0..16].try_into().unwrap(), pk[16..32].try_into().unwrap(), sig);
+    if !top {
+        return Err("the verifier's top root is not PK.root".into());
+    }
+    let mut pts = vec![(PT_R, v[0]), (PT_PK_FORS_SIG, v[1])];
+    if e.checked {
+        pts.push((PT_PK_FORS_SEED, v[1]));
+    }
+    for j in 0..7 {
+        pts.push((PT_ROOT_SIG, v[2 + j]));
+        if e.checked && j < 6 {
+            pts.push((PT_ROOT_SEED, v[2 + j]));
+        }
+    }
+    Ok(pts)
+}
+
+struct SignRes {
+    p: usize,
+    ok: bool,
+    log: Vec<String>,
+    mlen: usize,
+    pinned: usize,
+    eq: usize,
+    ne: usize,
+    ctl_ne: usize,
+    ctl: usize,
+    insn: u64,
+    ev: u64,
+}
+
+/// Full signing with the declassified values pinned.
 ///
 /// Run A: honest signing with secret set A, *recording* the declassified
-/// 16-byte values at the points where they are produced:
-///   R            = return value of prf_msg,
-///   PK_FORS      = return value of thash(.., ADRS{type=FORS_ROOTS}, ..),
-///   root_j (x7)  = return value of thash(.., ADRS{type=TREE, height=9}, ..)
-///                  (the XMSS root recomputed from the layer-j signature).
-/// Run B: same public inputs (m, PK.seed, PK.root), *different* SK.seed,
-/// SK.prf and addrnd, with those nine return values overwritten by the
-/// recorded ones. Everything else the code computes in run B (every FORS
-/// secret, every WOTS secret and chain value, every tree node) is different.
-/// The audit's claim "the trace depends on the secrets only through R,
-/// PK_FORS and the XMSS roots (which are public, since the verifier
-/// recomputes them)" predicts identical traces. Without pinning the traces
-/// must differ (control).
-fn run_sign(entry: Entry, name: &str, ctxlen: u16, pubs: usize, secrets: usize, mem_hooks: bool, threads: usize, seed: u64) -> bool {
-    let thash = find_fn("slhdsa::hash::thash");
-    let prf = find_fn("slhdsa::hash::prf_msg");
-    println!("### {name}: declassification-pinned trace comparison ({})\n", if mem_hooks { "control flow + memory addresses" } else { "control flow only" });
-    let (Some(thash), Some(prf)) = (thash, prf) else {
-        println!("INCONCLUSIVE: could not locate out-of-line `thash` ({thash:?}) / `prf_msg` ({prf:?}) symbols in this build (inlined or stripped); experiment not run.");
+/// 16-byte values at the points where they are produced, each the result of
+/// one call of a function of the crate:
+///   R        = prf_msg(SK.prf, addrnd, M),
+///   PK_FORS  = fors_pk_from_sig(SIG_FORS, md, ..),
+///   root_j   = xmss_pk_from_sig(leaf_j, SIG_XMSS_j, ..), j = 0..6,
+/// and, in the checked signer, the same values reached from the secret seed:
+///   PK_FORS  = fors_pk_gen(SK.seed, ..),
+///   root_j   = xmss_node(SK.seed, 0, 9, ..), j = 0..5.
+/// The harness checks natively that these are exactly the values a verifier
+/// computes from (M, PK, signature of run A).
+/// Run B: same public inputs (M, ctx, PK.seed, PK.root), *different* SK.seed,
+/// SK.prf and addrnd, with those results overwritten by the recorded ones.
+/// Everything else the code computes in run B (every FORS secret, every WOTS
+/// secret and chain value, every tree node) is different. The claim "the
+/// trace depends on the secrets only through R, PK_FORS and the XMSS roots
+/// (which are public, since the verifier recomputes them)" predicts identical
+/// traces. Without pinning the traces must differ (control).
+fn run_sign(e: &'static SignEntry, pubs: usize, secrets: usize, mem_hooks: bool, threads: usize, seed: u64) -> bool {
+    println!("### `{}`: declassification-pinned trace comparison ({})\n", e.name, if mem_hooks { "control flow + memory addresses" } else { "control flow only" });
+    println!("{}; seed {seed}\n", build_line());
+    let want: [(&str, u8, Option<u32>); 5] = [
+        ("slhdsa::hash::prf_msg", PT_R, None),
+        ("slhdsa::fors::fors_pk_from_sig", PT_PK_FORS_SIG, None),
+        ("slhdsa::fors::fors_pk_gen", PT_PK_FORS_SEED, None),
+        ("slhdsa::xmss::xmss_pk_from_sig", PT_ROOT_SIG, None),
+        ("slhdsa::xmss::xmss_node", PT_ROOT_SEED, Some(9)),
+    ];
+    let mut hooks = Vec::new();
+    let mut missing = Vec::new();
+    for (name, pt, arg) in want {
+        match find_fn(name) {
+            Some(a) => hooks.push((a, pt, arg)),
+            None => missing.push(name),
+        }
+    }
+    if !missing.is_empty() {
+        println!("INCONCLUSIVE: no out-of-line symbol for {missing:?} in this build (inlined or stripped); experiment not run.");
         return false;
-    };
+    }
+    println!("hook points (results of calls of these out-of-line functions of the crate): {}\n", want.iter().map(|w| format!("`{}`{}", w.0, if w.2.is_some() { " (calls with z = 9)" } else { "" })).collect::<Vec<_>>().join(", "));
     let results = Arc::new(Mutex::new(Vec::new()));
     let jobs = Arc::new(Mutex::new((0..pubs).rev().collect::<Vec<_>>()));
     let mut hs = Vec::new();
     for _ in 0..threads.min(pubs) {
-        let (results, jobs) = (results.clone(), jobs.clone());
+        let (results, jobs, hooks) = (results.clone(), jobs.clone(), hooks.clone());
         hs.push(std::thread::spawn(move || {
             let mut emu = Emu::new(mem_hooks);
-            emu.st.dc.thash = thash;
-            emu.st.dc.prf_msg = prf;
+            emu.st.dc.hooks = hooks;
             loop {
                 let Some(p) = jobs.lock().unwrap().pop() else { break };
-                let mut log = Vec::new();
-                let mut ok = true;
                 let mut rng = Rng::new(seed ^ (p as u64 + 1).wrapping_mul(0x9E6C63D0876A9A47));
                 let mlen = [32usize, 0, 100, 1][p % 4];
-                let mut a = sign_input(&mut rng, mlen);
-                a[OFF_B..OFF_B + 2].copy_from_slice(&ctxlen.to_le_bytes());
+                let mut res = SignRes { p, ok: true, log: Vec::new(), mlen, pinned: 0, eq: 0, ne: 0, ctl_ne: 0, ctl: 0, insn: 0, ev: 0 };
+                let mut a = sign_input(&mut rng, mlen, if e.ctx { 17 } else { 0 });
                 set_honest_root(&mut a);
                 // run A: record
                 emu.st.dc.enabled = true;
                 emu.st.dc.record = true;
                 emu.st.dc.values.clear();
-                let (sa, outa) = match emu.run(entry, &a, None) {
+                let (sa, outa) = match emu.run(e.f, &a, None) {
                     Ok(x) => x,
-                    Err(e) => {
-                        results.lock().unwrap().push((p, false, vec![format!("run A failed: {e}")], 0, 0, 0, 0u64, 0u64));
+                    Err(err) => {
+                        res.ok = false;
+                        res.log.push(format!("run A failed: {err}"));
+                        results.lock().unwrap().push(res);
                         continue;
                     }
                 };
-                let nrec = emu.st.dc.values.len();
-                let native_ok = outa == native(entry, &a);
+                res.insn = sa.n_insn;
+                res.ev = sa.n_ev;
                 let recorded = emu.st.dc.values.clone();
-                // sanity: the recorded values are exactly R (sig[0..16]) and nothing unexpected
-                let r_ok = nrec == 9 && recorded[0][..] == outa[0..16];
-                if !native_ok || !r_ok {
-                    ok = false;
-                    log.push(format!("sanity failure: emu==native {native_ok}, recorded {nrec} declassified values (expected 9), R matches signature prefix: {}", nrec > 0 && recorded[0][..] == outa[0..16]));
+                res.pinned = recorded.len();
+                if outa != native(e.f, &a) {
+                    res.ok = false;
+                    res.log.push("sanity failure: emulated output of run A differs from the native output".into());
+                }
+                // sanity: the recorded values are exactly what a verifier recomputes
+                match expected_points(e, &a, &outa) {
+                    Err(err) => {
+                        res.ok = false;
+                        res.log.push(format!("sanity failure: {err}"));
+                    }
+                    Ok(exp) => {
+                        if exp != recorded {
+                            res.ok = false;
+                            let k = exp.iter().zip(recorded.iter()).position(|(x, y)| x != y).unwrap_or(exp.len().min(recorded.len()));
+                            let d = |v: Option<&(u8, [u8; 16])>| v.map_or("<none>".to_string(), |v| format!("`{}`", PT_NAMES[v.0 as usize]));
+                            res.log.push(format!(
+                                "sanity failure: {} values recorded, {} expected; first mismatch at #{k}: recorded {}, expected {}{}",
+                                recorded.len(),
+                                exp.len(),
+                                d(recorded.get(k)),
+                                d(exp.get(k)),
+                                if recorded.get(k).map(|v| v.0) == exp.get(k).map(|v| v.0) { " (same point, different VALUE: wrong return convention?)" } else { "" }
+                            ));
+                        }
+                    }
                 }
                 // sanity: replaying A's values into A is a no-op
                 emu.st.dc.record = false;
-                match emu.run(entry, &a, None) {
+                match emu.run(e.f, &a, None) {
                     Ok((s, o)) => {
-                        if s != sa || o != outa {
-                            ok = false;
-                            log.push("sanity failure: replaying A into A changed the trace/output".into());
+                        if s != sa || o != outa || emu.st.dc.applied != recorded.len() {
+                            res.ok = false;
+                            res.log.push("sanity failure: replaying A into A changed the trace/output".into());
                         }
                     }
-                    Err(e) => {
-                        ok = false;
-                        log.push(format!("replay A failed: {e}"))
+                    Err(err) => {
+                        res.ok = false;
+                        res.log.push(format!("replay A failed: {err}"))
                     }
                 }
-                let (mut eq, mut ne, mut ctl_ne, mut ctl_eq) = (0, 0, 0, 0);
                 for k in 0..secrets {
                     let mut b = a.clone();
                     new_secret(&mut b, &mut rng, false);
-                    // (PK.seed, PK.root, m unchanged; SK.seed, SK.prf, addrnd fresh)
+                    // (M, ctx, PK.seed, PK.root unchanged; SK.seed, SK.prf, addrnd fresh)
                     emu.st.dc.enabled = true;
                     emu.st.dc.record = false;
                     emu.st.dc.values = recorded.clone();
-                    match emu.run(entry, &b, None) {
+                    match emu.run(e.f, &b, None) {
                         Ok((sb, outb)) => {
                             let applied = emu.st.dc.applied;
-                            if applied != 9 {
-                                ok = false;
-                                log.push(format!("secret {k}: {applied} values pinned (expected 9)"));
+                            if applied != recorded.len() {
+                                res.ok = false;
+                                res.log.push(format!("secret {k}: {applied} values pinned (expected {})", recorded.len()));
                             }
                             if sb == sa {
-                                eq += 1;
+                                res.eq += 1;
                             } else {
-                                ne += 1;
-                                ok = false;
-                                let d = emu.first_divergence(entry, &a, &sa, &b, &sb);
-                                log.push(format!("secret {k}: PINNED TRACES DIFFER: {d}"));
+                                res.ne += 1;
+                                res.ok = false;
+                                let d = emu.first_divergence(e.f, &a, &sa, &b, &sb);
+                                res.log.push(format!("secret {k}: PINNED TRACES DIFFER: {d}"));
                             }
-                            // the secret-derived signature bytes must really differ
+                            // the signer must have returned a signature, with A's R and a different body
+                            if outb[OFF_OUT_FLAG] != 1 || outb[0..16] != outa[0..16] {
+                                res.ok = false;
+                                res.log.push(format!("secret {k}: run B returned no signature or a different R"));
+                            }
                             if outb[16..7856] == outa[16..7856] {
-                                ok = false;
-                                log.push(format!("secret {k}: signature bodies identical?!"));
+                                res.ok = false;
+                                res.log.push(format!("secret {k}: signature bodies identical?!"));
                             }
                         }
-                        Err(e) => {
-                            ok = false;
-                            log.push(format!("secret {k}: run failed: {e}"))
+                        Err(err) => {
+                            res.ok = false;
+                            res.log.push(format!("secret {k}: run failed: {err}"))
                         }
                     }
                     // control: same B without pinning -> trace must differ
                     if k < 2 {
+                        res.ctl += 1;
                         emu.st.dc.enabled = false;
-                        match emu.run(entry, &b, None) {
+                        match emu.run(e.f, &b, None) {
                             Ok((sb, _)) => {
                                 if sb == sa {
-                                    ctl_eq += 1;
-                                    ok = false;
-                                    log.push(format!("secret {k}: unpinned control did NOT differ"));
+                                    res.ok = false;
+                                    res.log.push(format!("secret {k}: unpinned control did NOT differ"));
                                 } else {
-                                    ctl_ne += 1;
+                                    res.ctl_ne += 1;
                                 }
                             }
-                            Err(e) => log.push(format!("control run failed: {e}")),
+                            Err(err) => {
+                                res.ok = false;
+                                res.log.push(format!("control run failed: {err}"))
+                            }
                         }
                     }
                 }
-                let _ = ctl_eq;
-                eprintln!("  {} public config {p}: pinned equal {eq}, differ {ne}; unpinned controls differing {ctl_ne}", "sign");
-                results.lock().unwrap().push((p, ok, log, eq, ne, ctl_ne, sa.n_insn, sa.n_ev));
+                eprintln!("  {} public config {p}: {} values pinned; pinned equal {}, differ {}; unpinned controls differing {}/{}", e.name, res.pinned, res.eq, res.ne, res.ctl_ne, res.ctl);
+                results.lock().unwrap().push(res);
             }
         }));
     }
@@ -1019,38 +1268,42 @@ fn run_sign(entry: Entry, name: &str, ctxlen: u16, pubs: usize, secrets: usize, 
         h.join().unwrap();
     }
     let mut res = Arc::try_unwrap(results).ok().unwrap().into_inner().unwrap();
-    res.sort_by_key(|r| r.0);
-    println!("| public config (m, PK.seed, key A) | secret sets B | pinned: identical | pinned: differing | unpinned control differing | insns/run | events/run | verdict |");
-    println!("|---|---|---|---|---|---|---|---|");
-    let mut all = true;
-    for (p, ok, _log, eq, ne, ctl, insn, ev) in &res {
-        all &= *ok;
-        println!("| {p} | {} | {eq} | {ne} | {ctl}/{} | {insn} | {ev} | {} |", eq + ne, (eq + ne).min(2), if *ok { "PASS" } else { "**FAIL**" });
+    res.sort_by_key(|r| r.p);
+    println!("| public config (M, PK.seed, key A) | message bytes | values recorded and pinned | secret sets B | pinned: identical | pinned: differing | unpinned control differing | insns/run | events/run | verdict |");
+    println!("|---|---|---|---|---|---|---|---|---|---|");
+    let mut all = !res.is_empty();
+    for r in &res {
+        all &= r.ok;
+        println!("| {} | {} | {} | {} | {} | {} | {}/{} | {} | {} | {} |", r.p, r.mlen, r.pinned, r.eq + r.ne, r.eq, r.ne, r.ctl_ne, r.ctl, r.insn, r.ev, if r.ok { "PASS" } else { "**FAIL**" });
     }
-    for (p, _, log, ..) in &res {
-        for l in log {
-            println!("- config {p}: {l}");
+    for r in &res {
+        for l in &r.log {
+            println!("- config {}: {l}", r.p);
         }
     }
-    println!();
+    println!("\noverall: {}\n", if all { "ALL CONFIGURATIONS PASS" } else { "UNEXPECTED RESULT IN AT LEAST ONE CONFIGURATION" });
     all
 }
 
-/// Experiment S3: unconditioned whole-signature profile. Fixed public
-/// (m, PK.seed), random honest keys and addrnd. The traces differ (public
-/// transcript differs); we report what is nevertheless invariant.
-fn run_sign_profile(n: usize, threads: usize, seed: u64) {
-    println!("### slh_sign_internal: unconditioned profile over random honest keys (m and PK.seed fixed)\n");
+/// Unconditioned whole-signature profile. Fixed public (M, PK.seed), random
+/// honest keys and addrnd. The traces differ (the public transcript differs);
+/// we report what is nevertheless invariant.
+fn run_sign_profile(e: &'static SignEntry, n: usize, threads: usize, seed: u64) -> bool {
+    println!("### `{}`: unconditioned profile over random honest keys (M and PK.seed fixed)\n", e.name);
+    println!("{}; seed {seed}\n", build_line());
+    // every function of the crate under test that exists as a symbol
+    let mut fns: Vec<(String, u64)> = image_symbols().iter().filter(|(k, v)| k.starts_with("slhdsa::") && v.len() == 1).map(|(k, v)| (k.clone(), v[0])).collect();
+    fns.sort();
+    let fns = Arc::new(fns);
     let rows = Arc::new(Mutex::new(Vec::new()));
     let jobs = Arc::new(Mutex::new((0..n).rev().collect::<Vec<_>>()));
-    let thash = find_fn("slhdsa::hash::thash");
-    let sha = find_fn("slhdsa::sha256::sha256");
-    let mut base = sign_input(&mut Rng::new(seed), 32);
+    let mut base = sign_input(&mut Rng::new(seed), 32, if e.ctx { 17 } else { 0 });
     set_honest_root(&mut base);
     let base = Arc::new(base);
+    let failed = Arc::new(Mutex::new(0usize));
     let mut hs = Vec::new();
     for _ in 0..threads.min(n) {
-        let (rows, jobs, base) = (rows.clone(), jobs.clone(), base.clone());
+        let (rows, jobs, base, fns, failed) = (rows.clone(), jobs.clone(), base.clone(), fns.clone(), failed.clone());
         hs.push(std::thread::spawn(move || {
             let mut emu = Emu::new(false);
             emu.st.profile = Some(HashMap::new());
@@ -1062,20 +1315,24 @@ fn run_sign_profile(n: usize, threads: usize, seed: u64) {
                     new_secret(&mut b, &mut rng, true);
                 }
                 emu.st.profile.as_mut().unwrap().clear();
-                match emu.run(w_sign_internal, &b, None) {
-                    Ok((s, _)) => {
+                match emu.run(e.f, &b, None) {
+                    Ok((s, out)) => {
                         let prof = emu.st.profile.as_ref().unwrap();
-                        let c = |a: Option<u64>| a.and_then(|a| prof.get(&a).cloned()).unwrap_or(0);
+                        let calls: Vec<u64> = fns.iter().map(|(_, a)| prof.get(a).map_or(0, |x| x.0)).collect();
                         // multiset of executed blocks, order-insensitive
-                        let mut v: Vec<(u64, u64)> = prof.iter().map(|(a, n)| (*a, *n)).collect();
+                        let mut v: Vec<(u64, u64)> = prof.iter().map(|(a, n)| (*a, n.0)).collect();
                         v.sort();
                         let mut h = 0u64;
                         for (a, n) in v {
                             h = (h.rotate_left(7) ^ a ^ n.wrapping_mul(0x9E3779B97F4A7C15)).wrapping_mul(0xC2B2AE3D27D4EB4F);
                         }
-                        rows.lock().unwrap().push((k, s.n_insn, s.n_blocks, s.n_stub, c(thash), c(sha), h, s.h.0));
+                        let good = out[OFF_OUT_FLAG] == 1 && out == native(e.f, &b);
+                        rows.lock().unwrap().push((k, s.n_insn, s.n_blocks, s.n_stub, sha_executed(prof), h, s.h.0, calls, good));
                     }
-                    Err(e) => eprintln!("profile run {k} failed: {e}"),
+                    Err(err) => {
+                        eprintln!("profile run {k} failed: {err}");
+                        *failed.lock().unwrap() += 1;
+                    }
                 }
             }
         }));
@@ -1085,22 +1342,42 @@ fn run_sign_profile(n: usize, threads: usize, seed: u64) {
     }
     let mut rows = Arc::try_unwrap(rows).ok().unwrap().into_inner().unwrap();
     rows.sort();
-    let distinct = |f: &dyn Fn(&(usize, u64, u64, u64, u64, u64, u64, u64)) -> u64| {
+    let failed = *failed.lock().unwrap();
+    if rows.is_empty() {
+        println!("no run completed");
+        return false;
+    }
+    let distinct = |f: &dyn Fn(&(usize, u64, u64, u64, [u64; 4], u64, u64, Vec<u64>, bool)) -> u64| {
         let mut v: Vec<u64> = rows.iter().map(|r| f(r)).collect();
         v.sort();
         v.dedup();
         v
     };
     let insn = distinct(&|r| r.1);
-    println!("- runs: {} (run 0 = base key, others = fresh honest (SK.seed, SK.prf, addrnd), PK.seed and m fixed)", rows.len());
-    println!("- distinct full control-flow traces: {} (expected: all distinct, the public transcript differs)", distinct(&|r| r.7).len());
+    let good = rows.iter().all(|r| r.8);
+    println!("- runs: {} (run 0 = base key, others = fresh honest (SK.seed, SK.prf, addrnd), PK.seed and M fixed); failed runs: {failed}; every run returned a signature equal to the native one: {}", rows.len(), if good { "yes" } else { "NO" });
+    println!("- distinct full control-flow traces: {} (expected: all distinct, the public transcript differs)", distinct(&|r| r.6).len());
     println!("- distinct executed-instruction counts: {} (min {}, max {}, spread {})", insn.len(), insn.first().unwrap(), insn.last().unwrap(), insn.last().unwrap() - insn.first().unwrap());
     println!("- distinct basic-block counts: {}", distinct(&|r| r.2).len());
-    println!("- distinct call-out (malloc/realloc/free/memcpy) counts: {:?}", distinct(&|r| r.3));
-    println!("- distinct `thash` call counts: {:?}", distinct(&|r| r.4));
-    println!("- distinct `sha256` call counts: {:?}", distinct(&|r| r.5));
-    println!("- distinct block-execution histograms (multiset of executed blocks, order ignored): {}", distinct(&|r| r.6).len());
+    println!("- distinct call-out (malloc/realloc/free/memcpy/memset) counts: {:?}", distinct(&|r| r.3));
+    println!("- executed SHA-256 instructions, distinct values: SHA256H {:?}, SHA256H2 {:?}, SHA256SU0 {:?}, SHA256SU1 {:?}", distinct(&|r| r.4[0]), distinct(&|r| r.4[1]), distinct(&|r| r.4[2]), distinct(&|r| r.4[3]));
+    let (mut cst, mut var) = (Vec::new(), Vec::new());
+    for (i, (name, _)) in fns.iter().enumerate() {
+        let d = distinct(&|r| r.7[i]);
+        let name = name.trim_start_matches("slhdsa::");
+        if d.len() == 1 {
+            if d[0] > 0 {
+                cst.push(format!("`{name}` {}", d[0]));
+            }
+        } else {
+            var.push(format!("`{name}` {}..{}", d[0], d[d.len() - 1]));
+        }
+    }
+    println!("- calls of the crate's out-of-line functions, same number in every run: {}", if cst.is_empty() { "none".to_string() } else { cst.join(", ") });
+    println!("- calls of the crate's out-of-line functions, number varies between runs: {}", if var.is_empty() { "none".to_string() } else { var.join(", ") });
+    println!("- distinct block-execution histograms (multiset of executed blocks, order ignored): {}", distinct(&|r| r.5).len());
     println!();
+    good && failed == 0
 }
 
 fn main() {
@@ -1108,11 +1385,12 @@ fn main() {
     let mut mode = "components".to_string();
     let mut filter = String::new();
     let mut scale = 1.0f64;
-    let mut threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(12);
+    let mut threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4).min(8);
     let mut seed = 0x51_4844_5341u64;
     let mut pubs = 3usize;
     let mut secrets = 3usize;
     let mut nomem = false;
+    let mut entry = "internal".to_string();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -1140,6 +1418,10 @@ fn main() {
                 i += 1;
                 secrets = args[i].parse().unwrap()
             }
+            "--entry" => {
+                i += 1;
+                entry = args[i].clone()
+            }
             "--no-mem" => nomem = true,
             m => mode = m.to_string(),
         }
@@ -1147,21 +1429,28 @@ fn main() {
     }
     let (mut maj, mut min) = (0u32, 0u32);
     let v = unsafe { uc_version(&mut maj, &mut min) };
-    eprintln!("unicorn {}.{} (0x{:x}), {} threads, seed {}", maj, min, v, threads, seed);
+    eprintln!("unicorn {}.{} (0x{:x}), {} threads, seed {}, slhdsa build: {}", maj, min, v, threads, seed, variant());
+    let entries: &'static Vec<SignEntry> = Box::leak(Box::new(sign_entries()));
+    let pick = || -> &'static SignEntry {
+        entries.iter().find(|e| e.key == entry).unwrap_or_else(|| {
+            eprintln!("unknown --entry {entry}; one of: {}", entries.iter().map(|e| e.key).collect::<Vec<_>>().join(", "));
+            std::process::exit(2)
+        })
+    };
     let ok = match mode.as_str() {
         "list" => {
             for t in targets() {
                 println!("{}", t.name);
             }
+            for e in entries.iter() {
+                println!("sign --entry {}  ({})", e.key, e.name);
+            }
             true
         }
         "components" => run_components(&filter, scale, threads, seed),
-        "sign" => run_sign(w_sign_internal, "slh_sign_internal", 0, pubs, secrets, !nomem, threads, seed),
-        "sign-ctx" => run_sign(w_sign, "slh_sign (ctx of 17 bytes)", 17, pubs, secrets, !nomem, threads, seed),
-        "sign-profile" => {
-            run_sign_profile(pubs, threads, seed);
-            true
-        }
+        "hwcheck" => run_hwcheck(seed),
+        "sign" => run_sign(pick(), pubs, secrets, !nomem, threads, seed),
+        "sign-profile" => run_sign_profile(pick(), pubs, threads, seed),
         m => {
             eprintln!("unknown mode {m}");
             false
