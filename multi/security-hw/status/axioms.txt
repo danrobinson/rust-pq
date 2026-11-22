@@ -1,3 +1,8 @@
+'MIdeal.sha2_128s.rust_ideal_security_closed_tight8' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.sha2_128s.rust_ideal_security_closed_pure_tight8' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.sha2_128s.api_ideal_security_closed_pure_tight8' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.sha2_128s.pure_bytes_end_to_end' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.sha2_128s.pureBytesAlg_realCF' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MLink.sha512_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MLink.hmacSha512_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MLink.mgf1Sha512_eq' depends on axioms: [propext, Classical.choice, Quot.sound]

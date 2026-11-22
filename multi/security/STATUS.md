@@ -6,6 +6,12 @@ Everything below is proved for all six sets; no `sorry`, `axiom`, `native_decide
 was modified (no file added to `security/`). No defect found in `multi/lean` or `multi/rust`. Re-run: `scripts/check.sh` (`scripts/check.sh clean` for
 a from-scratch build).
 
+**2026-11-22, later: the closed ideal-compression bound for SLH-DSA-SHA2-128s (§5, `MIdeal`).** `security/Ideal` (all of it except the
+single-set Rust/API corollaries `Ideal/Rust*.lean`) and `security/Reduction/Open` are now compiled here in place, unmodified, with one more
+stand-in (`shim/Link/Sha256.lean`); `MIdeal.sha2_128s.{rust_ideal_security_closed_tight8, rust_ideal_security_closed_pure_tight8,
+api_ideal_security_closed_pure_tight8}` are the three `security/Ideal/RustFinalClosedTight8.lean` corollaries with their Rust-level conjuncts
+about `slhdsa.sets.sha2_128s.*` of `multi/lean`. **128s only.** `MIdeal` is not a default target (`lake build MIdeal`; `check.sh` builds it).
+
 **2026-11-22 update (after the rewrite of `multi/rust` / re-proof of `multi/lean`).** Before: `MLink`, `MReduction` and `ME2E.Basic` still built
 against the new `multi/lean`; `ME2E.Sha2_128s` and `ME2E.Sha2_128f` did not (6 errors each): they called `slhdsa.sha2_128{s,f}.*_correct` with
 `Room m.length 304 / 561`, whereas `multi/lean` now states the n = 16 sets with `Room m.length 152 / 409` (the single-set tree's constants). The
@@ -27,6 +33,9 @@ random-oracle theorem for the context-string interface, typed and byte level, Ru
 | `MReduction` (8) | `MReduction/` | Reduction headlines, linear forms, corollaries, resources, audit at the six sets |
 | `E2ERom` | `security/E2E/{GuardedRom,CodedRom}.lean`, in place, unmodified | scheme behind a partial message encoding / seen through encodings, over any oracle interface (no parameter set in them) |
 | `ME2E` (21) | `ME2E/` | Rust `sets.sha2_<set>.slh_*` = scheme cores; ten headline theorems per set (`Sha2_<set>`); `api` + checked signers + typed forms (`Api`, `Api/Sha2_<set>`); pure-interface ROM theorem (`PureRom`, `Rom/Sha2_<set>`) |
+| `ReductionOpen` (19) | `security/Reduction/Open/*.lean`, in place, unmodified (every file of the directory) | open-program forms of the reduction's adversaries, which `Ideal` realises |
+| `Ideal` (154) | `security/Ideal/**/*.lean` except `Ideal/Rust*.lean` (13 files), in place, unmodified | the ideal-compression analysis of SHA2-128s (games, realisers, `suf/euf_ideal_closed_tight8`, `…_pure_…`) |
+| `MIdeal` (1 + root) | `MIdeal/Sha2_128s.lean` | the closed ideal-model bound attached to `sets.sha2_128s.*` (§5); **not a default target** |
 
 **How security's Reduction is imported.** A path dependency or a wholesale import is impossible: `security/Link` is built on the single-set `Spec` of
 `/lean`, whose declaration names (`Spec.PRF`, …) clash with the parameterised `Spec` of `multi/lean`, and 24 `Reduction` modules mention `Link.vp`,
@@ -36,7 +45,23 @@ the Spec-free declarations (`Link.S128`, `vp`, `prims`, `Node`, `Dom`, `BaseDom`
 one `Reduction` module that mentions the old `Spec`, `PrfDomainNonVacuity`, is replaced by a copy with exactly one theorem (`prf_128s_spec`, 7 lines)
 removed — `check.sh` diffs it against the original; its generic replacement is `MReduction.prf_spec S`. So every generic theorem and every `*_128s`
 theorem of `security/Reduction` is the same source here, and `MReduction/Check128s.lean` shows ten of our `.s128s` statements are `rfl`-equal to them.
-`security`'s own `Link` (rest), `E2E`, `Ideal`, `Reduction/Gen` are not built here.
+`security`'s own `Link` (rest), `E2E`, `Reduction/Gen`, `Ideal/Rust*` are not built here.
+
+**How security's Ideal is imported** (same technique). The import closure of `security/Ideal` minus `Ideal/Rust*.lean` (154 modules) is:
+those modules, 82 `Reduction` modules (63 already in the `Reduction` library, plus the 19 of `Reduction/Open`, new library `ReductionOpen`),
+`Link.Basic`, `Link.Hash`, `Link.Verify` (through `Reduction`; the existing stand-ins), `Link.Security` (the original), and **`Link.Sha256`**,
+imported by `Ideal/Sha/Instantiate.lean`, which uses two of its lemmas, `Link.be32` and `Link.app4` (word packing). No `Ideal` module outside
+`Ideal/Rust*` imports `E2E`, `Spec` or `Slhdsa`, and none mentions `Spec.`; of `Link` they use only `Link.vp`, `Link.prims`, `Link.S128` (in the
+`Link.Basic` stand-in), `be32`, `app4`. The original `Link.Sha256` proves SHA-256/HMAC/MGF1 `Spec` = VCVio against the single-set `Spec` and
+uses `Link.sp`/`spA` (`Spec.Bytes`-valued), so it cannot be compiled here; the new stand-in `shim/Link/Sha256.lean` is the original with a new
+module docstring and the 35 declarations deleted that mention `Spec` or `sp`/`spA` (`spA_get`, `spA_length`, `spA_push`, `ssig0_eq`, …,
+`sha256_eq`, `hmacSha256_eq`, `mgf1_eq`) plus its three `#print axioms` lines; it keeps the twelve Spec-free declarations verbatim (`W`, `W_get`,
+`W_get'`, `W_length`, `W_set`, `app4`, `be32`, `take_set_succ`, `take_get`, `foldl_rel`, `load_take`, `compress_size`) and adds nothing.
+`check.sh` step 3 diffs it against the original (module docstring aside: 0 lines added, 251 removed, list of removed declarations printed) and
+checks it mentions no `Spec`/`sp`/`spA`; step 0c checks that the `Ideal` / `ReductionOpen` root lists are exactly the directory contents (minus
+`Ideal/Rust*.lean`) and that their imports reach only the stand-ins and `Link.Security` (no `E2E`/`Spec`/`Slhdsa`). The six-set counterparts of
+the deleted SHA-256 facts are `MLink.sha256_eq` etc. Nothing in `security/` was modified, and no `security/Ideal` declaration is restated: the
+bound in §5 is proved by `security/Ideal`'s own theorems.
 
 Vocabulary (`MLink/Basic.lean`): `inductive Sha2Set | s128s | s128f | s192s | s192f | s256s | s256f`; `S.fips : FipsParameterSet`, `S.spec :
 Spec.Params` (`Spec.sha2_128s` …), `S.vp := S.fips.validatedParams`, `S.prims := sha2Primitives S.vp.params` (`= approvedPrimitives S.fips`,
@@ -299,6 +324,115 @@ theorem rust_pure_rom_security_bytes (optRand : PublicKeyCore Sha2Set.s128s.prim
 sets: `256 ^ 24`, `256 ^ 32` at n = 24, 32, `Room m.length 561`. Same caveat as the single-set tree: nothing transfers the random-oracle bound to
 the SHA-2 instantiation (that is the random-oracle methodology); the instantiation conjunct is an identity of programs.
 
+## 5. The closed ideal-compression bound, SLH-DSA-SHA2-128s only (`MIdeal/Sha2_128s.lean`, namespace `MIdeal.sha2_128s`)
+
+Counterparts of `Ideal.rust_ideal_security_closed_tight8`, `Ideal.rust_ideal_security_closed_pure_tight8`,
+`Ideal.api_ideal_security_closed_pure_tight8` (`security/Ideal/RustFinalClosedTight8.lean`; `security/status/TIGHT.md`, fourth session) for
+the six-set tree's Rust functions: `rust_ideal_security_closed_tight8` (line 158; internal interface `slh_keygen_internal`,
+`slh_sign_internal`, `slh_verify_internal`), `rust_ideal_security_closed_pure_tight8` (line 222; `slh_keygen_internal`, `slh_sign`,
+`slh_verify`), `api_ideal_security_closed_pure_tight8` (line 274; `keygen`, `sign`, `sign_deterministic`, `verify`). Also `PureBytesEndToEnd`
+(line 81, the six-set `E2E.PureBytesEndToEnd`: `pureBytesAlg` at `Sha2Set.s128s` is "sample, then apply the cores", complete, and
+`slh_keygen_internal` / `slh_sign` / `slh_verify` are the cores) with `pure_bytes_end_to_end` (line 121), `pureBytesAlg_realCF` (line 138), and
+the `rfl` bridges `vp_eq`, `prims_eq`, `codec_eq`, `bytesAlg_eq`, `pureBytesAlg_eq` (lines 59–68: `Sha2Set.s128s.vp = Link.vp`, `Sha2Set.s128s.prims =
+Link.prims`, `codec Sha2Set.s128s = Reduction.codec128s`, and so `bytesAlg`/`pureBytesAlg` at the six-set names = at the single-set names).
+
+**Textual identity.** `scripts/check_ideal128s.py` (check.sh step 0b) checks that each of the five statements (`PureBytesEndToEnd`,
+`pureBytesAlg_realCF`, the three headlines) is the single-set statement of `security/` under these renamings only, whitespace aside:
+`slhdsa.slh.slh_f` → `slhdsa.sets.sha2_128s.slh_f`, `slhdsa.api.f` → `slhdsa.sets.sha2_128s.f`; on the real-scheme side `vp prims codec128s`
+and `Link.vp Link.prims Reduction.codec128s` → `Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s)`, `prims.Y` etc. →
+`Sha2Set.s128s.prims.Y`; `node x` → `node Sha2Set.s128s x`; `Link.decodePk pk` → `MLink.decodePk Sha2Set.s128s pk`;
+`E2E.(Api)PureBytesEndToEnd` → `PureBytesEndToEnd` / `ME2E.sha2_128s.ApiPureBytesEndToEnd`. The ideal-model game and the bound (conjunct 3)
+are not touched by any renaming: they are the single-set text verbatim.
+
+**How the scheme in the bound is the one the six-set Rust functions compute.** Conjunct 1 (from `ME2E.sha2_128s.rust_*_bytes` /
+`api_pure_bytes_end_to_end`, i.e. `multi/lean`'s refinement theorems for `sets.sha2_128s.*` composed with `MLink`'s `Spec` = VCVio at
+`Sha2Set.s128s`): the Rust functions never panic and are pointwise `byteKeygen` / `byteSign` / `byteVerify` (`byteSignPure` /
+`byteVerifyPure`) at `Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s)`, the cores of `Reduction.bytesAlg` / `pureBytesAlg` at
+those arguments. Conjunct 2: that very scheme (spelled at `Sha2Set.s128s`) is the scheme of the ideal-model game, `Reduction.bytesAlg Link.vp
+(primsG (liftC g)) (codecG g) (optRandU oR g) ($ᵗ (Bytes 16))`, at the table `g = realCF` of the real SHA-256 compression function
+(`Ideal.bytesAlg_realCF` / `pureBytesAlg_realCF`, via `Ideal.liftC_realCF : liftC realCF = VCVio.Algorithms.Sha2.compress`; the step from
+`Link.vp Link.prims Reduction.codec128s` to the six-set spelling is definitional, the bridges above, as in `MReduction/Check128s.lean`).
+Conjunct 3: `sufI`/`eufI` (`sufP`/`eufP`) are the SUF/EUF-CMA experiments of that game's scheme averaged over a uniformly random table `g`,
+the forger's compression queries answered by `g`; bounded by `Ideal.suf_ideal_closed_tight8`, …, `Ideal.euf_ideal_pure_closed_tight8_2_64`
+themselves.
+
+Verbatim (line 158):
+
+```lean
+theorem rust_ideal_security_closed_tight8 (oR : Bytes 16 → Bytes 16 → ProbComp (Bytes 16)) :
+    ((∀ sk_seed sk_prf pk_seed : Array U8 16#usize,
+        ∃ sk pk, slhdsa.sets.sha2_128s.slh_keygen_internal sk_seed sk_prf pk_seed = ok (sk, pk) ∧
+          (wire pk.val, wire sk.val) =
+            byteKeygen Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s) (node Sha2Set.s128s sk_seed) (node Sha2Set.s128s sk_prf) (node Sha2Set.s128s pk_seed)) ∧
+      (∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize),
+        Room m.length 152 →
+        ∃ sig, slhdsa.sets.sha2_128s.slh_sign_internal m sk addrnd = ok sig ∧
+          wire sig.val = byteSign Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s) (wire m.val) (wire sk.val) (node Sha2Set.s128s addrnd)) ∧
+      (∀ (m sig : Slice U8) (pk : Array U8 32#usize), Room m.length 152 →
+        slhdsa.sets.sha2_128s.slh_verify_internal m sig pk =
+          ok (byteVerify Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s) (wire m.val) (wire sig.val) (wire pk.val)))) ∧
+    (Reduction.bytesAlg Link.vp (primsG (liftC realCF)) (codecG realCF) (optRandU oR realCF)
+        ($ᵗ (Bytes 16)) =
+      Reduction.bytesAlg Sha2Set.s128s.vp Sha2Set.s128s.prims (codec Sha2Set.s128s)
+        (fun pk => oR pk.pkSeed pk.pkRoot) ($ᵗ (Bytes 16))) ∧
+    (∀ (S : ForgerI) (qf qs ℓ : ℕ),
+      (∀ pk, IsQueryBoundP (S.main pk) (fun i => isPortQ (S := List SLHDSA.Byte) i = true) qf) →
+      (∀ pk, IsQueryBoundP (S.main pk) (fun i => isSignQ (S := List SLHDSA.Byte) i = true) qs) →
+      (∀ pk, IsQueryBoundP (S.main pk) (fun i => isLongQ (S := List SLHDSA.Byte) ℓ i = true) 0) →
+      (∀ pk, ∀ z ∈ support (S.main pk), z.1.length ≤ ℓ) →
+      (QcAll qf qs ℓ ≤ 2 ^ 126 →
+        sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+          epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+            ((QlinT8 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+            (polyP8 (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256 ∧
+        eufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+          epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+            ((QlinT8 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+            (polyP8 (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256) ∧
+      (qf ≤ 2 ^ 60 → qs ≤ 2 ^ 20 → ℓ ≤ 2 ^ 26 →
+        sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 77)⁻¹ + ((2 : ℝ≥0∞) ^ 132)⁻¹ + ((2 : ℝ≥0∞) ^ 63)⁻¹ ∧
+          eufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 77)⁻¹ + ((2 : ℝ≥0∞) ^ 132)⁻¹ + ((2 : ℝ≥0∞) ^ 63)⁻¹) ∧
+      (qf ≤ 2 ^ 64 → qs ≤ 2 ^ 40 → ℓ ≤ 2 ^ 26 →
+        sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 63)⁻¹ + ((2 : ℝ≥0∞) ^ 94)⁻¹ + ((2 : ℝ≥0∞) ^ 59)⁻¹ ∧
+          eufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 63)⁻¹ + ((2 : ℝ≥0∞) ^ 94)⁻¹ + ((2 : ℝ≥0∞) ^ 59)⁻¹) ∧
+      (qf ≤ 2 ^ 64 → qs ≤ 2 ^ 64 → ℓ ≤ 2 ^ 26 →
+        sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 45)⁻¹ + ((2 : ℝ≥0∞) ^ 46)⁻¹ + ((2 : ℝ≥0∞) ^ 39)⁻¹ ∧
+          eufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+            ((2 : ℝ≥0∞) ^ 45)⁻¹ + ((2 : ℝ≥0∞) ^ 46)⁻¹ + ((2 : ℝ≥0∞) ^ 39)⁻¹))
+```
+
+`rust_ideal_security_closed_pure_tight8` (line 222) has conjunct 1 `PureBytesEndToEnd (fun pk => oR pk.pkSeed pk.pkRoot) ($ᵗ (Bytes 16))`
+(about `slhdsa.sets.sha2_128s.{slh_keygen_internal, slh_sign, slh_verify}`, `Room m.length 409`), conjunct 2 `Reduction.pureBytesAlg Link.vp
+(primsG (liftC realCF)) (codecG realCF) (optRandU oR realCF) ($ᵗ (Bytes 16)) = Reduction.pureBytesAlg Sha2Set.s128s.vp Sha2Set.s128s.prims
+(codec Sha2Set.s128s) (fun pk => oR pk.pkSeed pk.pkRoot) ($ᵗ (Bytes 16))`, and conjunct 3 the single-set one verbatim: `∀ (S : ForgerP) (qf qs
+ℓ : ℕ)`, query bounds `isPortQP`, `isSignQP`, `isLongQP ℓ`, `z.1.1.length ≤ ℓ`, `sufP`/`eufP`, and `ℓ + 257` in place of `ℓ` in the bound
+and in the side conditions (`ℓ + 257 ≤ 2 ^ 26`); the same three points. `api_ideal_security_closed_pure_tight8` (line 274) has conjunct 1
+`ME2E.sha2_128s.ApiPureBytesEndToEnd (fun pk => oR pk.pkSeed pk.pkRoot) ($ᵗ (Bytes 16))` (`keygen` on the three blocks of its seed string,
+`sign`, `sign_deterministic`, `verify`) and conjuncts 2 and 3 of the pure statement (proof: `(rust_ideal_security_closed_pure_tight8 oR).2`).
+
+**What it does not cover.** Everything `security/status/TIGHT.md` and `security/Ideal`'s own statements leave open carries over: conjunct 3 is
+about the IDEAL-MODEL scheme (uniformly random 32-byte-state × 64-byte-block compression table) and says nothing about the real SHA-256
+compression function; `opt_rand` is drawn by a table-independent `oR` from `(PK.seed, PK.root)`; `PK.seed` uniform; no running time, only query
+counts; single key; pure mode only; messages ≤ `2^26` bytes. Conjunct 1 has the gaps (i)–(vi) of §3 (sampling not covered, `Room` bounds,
+array sizes, `wire`/`node`, Rust compiler, Aeneas, side channels). **SLH-DSA-SHA2-128s only**: the ideal-model analysis is of SHA-256 with
+16-byte outputs. It is written over `Link.vp` (n = 16, h = 63, d = 7, a = 12, k = 14) and over `primsG c`, which abstracts only the SHA-256
+compression function, with every hash an `n = 16`-byte truncation of SHA-256 (MGF1-/HMAC-SHA-256 for `H_msg`/`PRF_msg`), and its
+numerals (`QlinT8`, `QcAll` with the per-signature hash counts of 128s, `NAll`, the `2^128`/`2^256` denominators, the ITSR term with `k = 14`,
+`a = 12`, the three points) are 128s numerals. Generalising to the other five sets would need: for 128f, re-instantiating the counting and
+ITSR lemmas at its parameters (h = 66, d = 22, a = 6, k = 33: new per-signature counts, new `reuseSum` parameters, new numerals) — the
+generic games and the SHA-256 model are reusable, but `Ideal/Inst/*128`, `Realize/*Count`, `ComposeFinal`/`FinalTight*` are stated at
+`Link.vp`; for 192s/192f/256s/256f in addition a model with an ideal SHA-512 compression function (`H`, `T_l`, `H_msg`, `PRF_msg` use
+SHA-512 there, `MReduction/Audit.lean`) next to the ideal SHA-256 one (F and PRF), `n = 24 / 32`-byte truncations (denominators `2^192`,
+`2^256`), and the collection-oracle mixing caveat of §2 handled in the realisers.
+
+Axioms (`check.sh` step 4): each of `MIdeal.sha2_128s.{rust_ideal_security_closed_tight8, rust_ideal_security_closed_pure_tight8,
+api_ideal_security_closed_pure_tight8, pure_bytes_end_to_end, pureBytesAlg_realCF}` depends on `[propext, Classical.choice, Quot.sound]`.
+
 ## Per-set status
 
 | | 128s | 128f | 192s | 192f | 256s | 256f |
@@ -309,12 +443,15 @@ the SHA-2 instantiation (that is the random-oracle methodology); the instantiati
 | internal ROM bound + conformance (`MLink.security_sha2`) | done | done | done | done | done | done |
 | `api` functions = cores; `api_pure_security(_linear)`; checked = plain on `KeyOk` keys; typed `PureEndToEnd` | done | done | done | done | done | done |
 | pure-interface ROM theorem: typed, bytes, Rust and `api` forms | done | done | done | done | done | done |
+| closed ideal-compression bound (`MIdeal`, §5): Rust internal, Rust pure, `api` | done | — | — | — | — | — |
 
 ## Not done / limitations
 
 - Everything listed in `security/status/FINAL3.md` §7 carries over (advantages not bounded, no running time, single key, argued-only resource rows, …).
-- Not ported: `security/Reduction/Gen/*` and `E2E/HeadlineGen`; `security/Ideal`; the old typed-value and ROM forms of `E2E/Main.lean` (`end_to_end`, `EndToEnd`) and superseded intermediate E2E forms; `stepPRFC_128s`, `skPrf_broken_128s_half`; per-set copies of single-adversary numeral lemmas (their content is in the fields of `final_resources_final_<set>`); a `romScheme_verify_eq_spec` wrapper (follows from `romScheme_verify_eq` + `verify_eq_typed`, not stated).
-- Not ported from `security/E2E/Api.lean`: `api_pure_standard_model_security_split` (needs `E2E/FinalSplit`'s loose-cap typed headline, not ported) and `api_pure_securityG` (needs `Reduction/Gen`, not ported); `Ideal.api_ideal_security_closed_pure` (out of scope). Not ported from `PureRom.lean`/`PureRomBytes.lean`: nothing (all ten / ten declarations have counterparts; names `pure_security_128s(_euf)`, `pure_bytes_security_128s(_euf)` become the generic `pure_security_sha2 S`, `pure_bytes_security_sha2 S`).
+- Not ported: `security/Reduction/Gen/*` and `E2E/HeadlineGen`; the single-set ideal-model Rust/API corollaries other than the three
+  `…_tight8` ones (`Ideal/RustFinal*.lean`, earlier tightening stages; their bounds are all compiled here, in `Ideal`); the ideal-model bound at
+  any set other than 128s (§5); the old typed-value and ROM forms of `E2E/Main.lean` (`end_to_end`, `EndToEnd`) and superseded intermediate E2E forms; `stepPRFC_128s`, `skPrf_broken_128s_half`; per-set copies of single-adversary numeral lemmas (their content is in the fields of `final_resources_final_<set>`); a `romScheme_verify_eq_spec` wrapper (follows from `romScheme_verify_eq` + `verify_eq_typed`, not stated).
+- Not ported from `security/E2E/Api.lean`: `api_pure_standard_model_security_split` (needs `E2E/FinalSplit`'s loose-cap typed headline, not ported) and `api_pure_securityG` (needs `Reduction/Gen`, not ported); `Ideal.api_ideal_security_closed_pure` (superseded by its `_tight8` form, §5). Not ported from `PureRom.lean`/`PureRomBytes.lean`: nothing (all ten / ten declarations have counterparts; names `pure_security_128s(_euf)`, `pure_bytes_security_128s(_euf)` become the generic `pure_security_sha2 S`, `pure_bytes_security_sha2 S`).
 - Differences from the single-set statements, all forced: Rust names (`sets.sha2_<set>.keygen` etc. instead of `api.keygen`, `slh.slh_*`); `Spec.KeyOk Spec.sha2_<set>` (the spec takes the parameter set); `secretKey Sha2Set.s128s sk`, `MLink.decodePk Sha2Set.s128s`, `MLink.skBytes Sha2Set.s128s` etc. for the single-set `secretKey sk`, `Link.decodePk`, `skBytes`; the forger variable is `F` (`S` is the set). `api_sign_eq`, `api_verify_eq` are proved by unfolding rather than `rfl`, same statements.
 - The `api`/checked/ROM statements are about the default (portable) translation `multi/lean/Slhdsa/Funs.lean`; the `hw-sha2` build (`multi/lean-hw`) has no refinement proofs and is not covered (out of scope here).
 - Per-set files of `MReduction` and `ME2E` are script-generated (`MReduction/gen`, `ME2E/gen`, `scripts/gen_api_rom.py`, outside the build): statements are explicit per set, proofs are one-line instances of the generic theorems.
@@ -322,16 +459,21 @@ the SHA-2 instantiation (that is the random-oracle methodology); the instantiati
 
 ## Build and checks
 
-`cd multi/security && export PATH=$HOME/.elan/bin:$PATH && lake build MLink MReduction ME2E` (dependencies VCVio/Mathlib/Aeneas prebuilt in `.tools`).
-From scratch (`check.sh clean`, shared machine, 2026-11-22): "Build completed successfully (7792 jobs)", build step 106 s wall, whole script
-1:50 wall, 495 s user CPU (includes `Reduction`, `Spec`, `Slhdsa`, `E2ERom`). `scripts/check.sh` = (0) both generators re-run on a copy of the
-tree, output diffed against the checked-in files (this also runs their 128s textual checks) + (1) build + (2) grep for
-`sorry`/`axiom`/`native_decide`/`bv_decide` outside comments (also in the two in-place `E2E/*Rom.lean`) + (3) shim diff + (4) `#print axioms` of
-252 headline theorems (output kept in `status/axioms.txt`) + (5) per-set list; exits non-zero on failure. Last run ends:
+`cd multi/security && export PATH=$HOME/.elan/bin:$PATH && lake build MLink MReduction ME2E` (dependencies VCVio/Mathlib/Aeneas prebuilt in `.tools`;
+these are the default targets, `lake build` alone: "Build completed successfully (7792 jobs)", unchanged). The ideal-model bound: `lake build MIdeal`
+(not a default target, because it adds the 173 in-place `Ideal`/`ReductionOpen` modules, about 3 minutes wall on this machine).
+From scratch (`check.sh clean`, shared machine, 2026-11-22, now building `MLink MReduction ME2E MIdeal`): "Build completed successfully (8131 jobs)",
+build step 251 s wall, whole script 4:15 wall, 1114 s user CPU. `scripts/check.sh` = (0) both generators re-run on a copy of the tree, output
+diffed against the checked-in files (this also runs their 128s textual checks) + (0b) `scripts/check_ideal128s.py`, the MIdeal textual check
+(§5) + (0c) the `Ideal`/`ReductionOpen` root lists = the directory contents (minus `Ideal/Rust*.lean`), their imports reach only the stand-ins
+and `Link.Security` + (1) build + (2) grep for `sorry`/`axiom`/`native_decide`/`bv_decide` outside comments (also in the two in-place
+`E2E/*Rom.lean` and the 173 in-place `Ideal`/`Reduction/Open` sources) + (3) shim diffs (`PrfDomainNonVacuity`; `Link/Sha256`: 0 added, 251
+removed, no `Spec`/`sp`/`spA`) + (4) `#print axioms` of 257 headline theorems (252 + the five of §5; output kept in `status/axioms.txt`) +
+(5) per-set list; exits non-zero on failure. Last run ends:
 
 ```
 == 4. #print axioms (our modules) ==
-252 / 252 headline theorems reported
+257 / 257 headline theorems reported
 all within [propext, Classical.choice, Quot.sound]
 ...
 CHECK PASSED
@@ -344,4 +486,4 @@ Sample:
 'ME2E.sha2_192f.rust_security' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.sha2_256f.rust_security_resources' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
-(all 252 lines are this triple).
+(all 257 lines are this triple).

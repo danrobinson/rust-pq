@@ -1,5 +1,7 @@
 #!/bin/bash
 # multi/security check: build, forbidden-token grep, shim fidelity, axioms, headline list.
+# Builds the default targets MLink MReduction ME2E and, explicitly, the non-default MIdeal
+# (with the in-place libraries Ideal and ReductionOpen it imports).
 # Usage: scripts/check.sh [clean]   ("clean" removes this project's own .lake/build first)
 set -u
 cd "$(dirname "$0")/.."
@@ -20,10 +22,51 @@ gd=$(diff -rq --exclude=.lake . "$gen/multi/security")
 if [ -n "$gd" ]; then echo "FAIL: generated files differ:"; echo "$gd"; fail=1; else echo "identical"; fi
 rm -rf "$gen"
 
-echo "== 1. build (MLink MReduction ME2E) =="
+echo "== 0b. MIdeal statements = the single-set Ideal/E2E statements under the renamings =="
+python3 -I scripts/check_ideal128s.py || { echo "FAIL: MIdeal textual check"; fail=1; }
+
+echo "== 0c. in-place Ideal / ReductionOpen libraries: module lists and import closure =="
+python3 -I - <<'EOP' || fail=1
+import json, os, re, sys
+sec = os.path.normpath("../../security")
+libs, cur = {}, None
+for line in open("lakefile.toml"):
+    line = line.strip()
+    if line.startswith("[["): cur = None; continue
+    m = re.match(r'(\w+)\s*=\s*(.*)$', line)
+    if not m: continue
+    if m.group(1) == "name": cur = json.loads(m.group(2)); libs[cur] = {}
+    elif cur: libs[cur][m.group(1)] = json.loads(m.group(2))
+def mods(d, skip=lambda f: False):
+    out = []
+    for r, _, fs in os.walk(os.path.join(sec, d)):
+        for f in fs:
+            p = os.path.relpath(os.path.join(r, f), sec)
+            if f.endswith(".lean") and not skip(p): out.append(p[:-5].replace("/", "."))
+    return sorted(out)
+ok = True
+want_i = mods("Ideal", lambda p: re.match(r"Ideal/Rust[^/]*\.lean$", p) is not None)
+want_o = mods(os.path.join("Reduction", "Open"))
+for lib, want in (("Ideal", want_i), ("ReductionOpen", want_o)):
+    have = sorted(libs[lib]["roots"])
+    if have != want: print(f"FAIL: {lib} roots differ from the directory:", sorted(set(have) ^ set(want))); ok = False
+    else: print(f"{lib}: {len(have)} modules = every module of the directory" + (" except Ideal/Rust*.lean" if lib == "Ideal" else ""))
+# what the compiled in-place modules import from security/Link, security/E2E, Spec, Slhdsa
+shim = set(libs["Shim"]["roots"]) | set(libs["LinkSecurity"]["roots"])
+for m in want_i + want_o:
+    for line in open(os.path.join(sec, *m.split(".")) + ".lean"):
+        for i in (re.match(r"\s*import\s+(.*)", line) or [None, ""])[1].split():
+            top = i.split(".")[0]
+            if top in ("E2E", "Spec", "Slhdsa") or (top == "Link" and i not in shim):
+                print(f"FAIL: {m} imports {i}"); ok = False
+print("their imports of security/Link are", sorted(i for i in shim if i.startswith("Link.")), "(stand-ins + Link.Security); none of E2E / Spec / Slhdsa" if ok else "")
+sys.exit(0 if ok else 1)
+EOP
+
+echo "== 1. build (MLink MReduction ME2E MIdeal) =="
 start=$(date +%s)
 # touch our own sources' build products so that #print axioms output is replayed in full
-lake build MLink MReduction ME2E > "$out/build.log" 2>&1
+lake build MLink MReduction ME2E MIdeal > "$out/build.log" 2>&1
 rc=$?
 tail -1 "$out/build.log"
 echo "build time: $(( $(date +%s) - start )) s"
@@ -32,8 +75,10 @@ grep -q "declaration uses .sorry." "$out/build.log" && { echo "FAIL: sorry warni
 
 echo "== 2. forbidden tokens outside comments (sorry / axiom / native_decide / bv_decide) =="
 # strip block comments and line comments, then grep; '#print axioms' lines are allowed
-bad=$(for f in MLink/*.lean MReduction/*.lean ME2E/*.lean ME2E/*/*.lean shim/*/*.lean MLink.lean MReduction.lean ME2E.lean \
-    ../../security/E2E/GuardedRom.lean ../../security/E2E/CodedRom.lean; do
+# (also the in-place E2E/*Rom.lean and the sources of the in-place Ideal / ReductionOpen libraries)
+bad=$(for f in MLink/*.lean MReduction/*.lean ME2E/*.lean ME2E/*/*.lean MIdeal/*.lean shim/*/*.lean MLink.lean MReduction.lean \
+    ME2E.lean MIdeal.lean ../../security/E2E/GuardedRom.lean ../../security/E2E/CodedRom.lean \
+    $(find ../../security/Ideal ../../security/Reduction/Open -name '*.lean' ! -name 'Rust*.lean'); do
   perl -0pe 's{/-.*?-/}{ my $c=$&; $c =~ s/[^\n]//g; $c }gse; s/--.*$//mg' "$f" |
     grep -nE '\b(sorry|native_decide|bv_decide)\b|^\s*(private |protected |noncomputable )*axiom\b' |
     sed "s|^|$f:|"
@@ -45,13 +90,29 @@ d=$(diff ../../security/Reduction/PrfDomainNonVacuity.lean shim/Reduction/PrfDom
 r=$(diff ../../security/Reduction/PrfDomainNonVacuity.lean shim/Reduction/PrfDomainNonVacuity.lean | grep -c '^<')
 echo "shim/Reduction/PrfDomainNonVacuity.lean vs security: $d lines added, $r removed (expected 0 added, 7 removed: prf_128s_spec)"
 [ "$d" -ne 0 ] || [ "$r" -ne 7 ] && { echo "FAIL: shim differs unexpectedly"; fail=1; }
+# Link/Sha256 stand-in: apart from its module docstring, the original with whole declarations deleted.
+nodoc() { perl -0pe 's{\A(import[^\n]*\n)\n/-!.*?-/\n}{$1}s' "$1"; }
+d=$(diff <(nodoc ../../security/Link/Sha256.lean) <(nodoc shim/Link/Sha256.lean) | grep -c '^>')
+r=$(diff <(nodoc ../../security/Link/Sha256.lean) <(nodoc shim/Link/Sha256.lean) | grep -c '^<')
+gone=$(diff <(nodoc ../../security/Link/Sha256.lean) <(nodoc shim/Link/Sha256.lean) | grep -oE '^< (@\[simp\] )?(theorem|def) [^ ]+' | awk '{print $NF}' | tr '\n' ' ')
+echo "shim/Link/Sha256.lean vs security (module docstring aside): $d lines added, $r removed (expected 0 added, 251 removed)"
+echo "  removed declarations: $gone"
+[ "$d" -ne 0 ] || [ "$r" -ne 251 ] && { echo "FAIL: Link/Sha256 shim differs unexpectedly"; fail=1; }
+left=$(perl -0pe 's{/-.*?-/}{}gs; s/--.*$//mg' shim/Link/Sha256.lean | grep -nE '\bSpec\b|\bspA?\b' )
+[ -n "$left" ] && { echo "FAIL: Link/Sha256 shim mentions Spec / sp / spA:"; echo "$left"; fail=1; }
 
 echo "== 4. #print axioms (our modules) =="
 cat > "$out/Ax.lean" <<'EOL'
 import MLink
 import MReduction
 import ME2E
+import MIdeal
 open MLink MReduction
+#print axioms MIdeal.sha2_128s.rust_ideal_security_closed_tight8
+#print axioms MIdeal.sha2_128s.rust_ideal_security_closed_pure_tight8
+#print axioms MIdeal.sha2_128s.api_ideal_security_closed_pure_tight8
+#print axioms MIdeal.sha2_128s.pure_bytes_end_to_end
+#print axioms MIdeal.sha2_128s.pureBytesAlg_realCF
 #print axioms MLink.sha512_eq
 #print axioms MLink.hmacSha512_eq
 #print axioms MLink.mgf1Sha512_eq
@@ -107,6 +168,9 @@ for s in $SETS; do
   echo "-- SLH-DSA-SHA2-$s: $(grep -c "sha2_${s}[._]" "$out/axioms.txt") checked, e.g."
   grep -o "'ME2E.sha2_${s}.\(rust\|api\|pure\)[a-z_]*'" "$out/axioms.txt" | tr '\n' ' '; echo
 done
+
+echo "-- ideal-compression bound (SLH-DSA-SHA2-128s only): $(grep -c "'MIdeal\." "$out/axioms.txt") checked:"
+grep -o "'MIdeal\.[A-Za-z0-9_.]*'" "$out/axioms.txt" | tr '\n' ' '; echo
 
 if [ $fail -eq 0 ]; then echo "CHECK PASSED"; else echo "CHECK FAILED"; fi
 exit $fail

@@ -1,5 +1,7 @@
 name = "multisecurity_hw"
 defaultTargets = ["MLink", "MReduction", "ME2E"]
+# MIdeal (and the in-place Ideal, ReductionOpen it imports) is not a default target, as in
+# ../security: `lake build MIdeal`, run by scripts/check.sh.
 # The security theorems of ../security (six SHA-2 sets), attached to the crate built with
 # `hw-sha2`.
 #
@@ -43,7 +45,7 @@ srcDir = "../lean-hw"
 [[lean_lib]]
 name = "Shim"
 srcDir = "../security/shim"
-roots = ["Link.Basic", "Link.Hash", "Link.Verify", "Reduction.PrfDomainNonVacuity"]
+roots = ["Link.Basic", "Link.Hash", "Link.Verify", "Reduction.PrfDomainNonVacuity", "Link.Sha256"]
 
 # security/Link/Security.lean, compiled in place.
 [[lean_lib]]
@@ -76,3 +78,21 @@ srcDir = "../security"
 [[lean_lib]]
 name = "ME2E"
 srcDir = "../security"
+
+[[lean_lib]]
+name = "MIdeal"
+srcDir = "../security"
+
+# ---- ideal-compression model (not default targets), the same libraries as ../security ----
+
+# security/Reduction/Open/*.lean, compiled in place.
+[[lean_lib]]
+name = "ReductionOpen"
+srcDir = "../../security"
+roots = ["Reduction.Open.Bundle","Reduction.Open.Fors","Reduction.Open.HSpec","Reduction.Open.MsgV","Reduction.Open.Phase1Fors","Reduction.Open.Phase1Tcr","Reduction.Open.Phase1Wots","Reduction.Open.Prf","Reduction.Open.Tcr","Reduction.Open.TcrStore","Reduction.Open.TcrStoreCount","Reduction.Open.TcrStoreCover","Reduction.Open.TcrStoreHeadline","Reduction.Open.WithHash","Reduction.Open.Wots","Reduction.Open.WotsCounts","Reduction.Open.WotsCountsSM","Reduction.Open.WotsCountsSamples","Reduction.Open.Wrappers"]
+
+# security/Ideal/**/*.lean except Ideal/Rust*.lean, compiled in place.
+[[lean_lib]]
+name = "Ideal"
+srcDir = "../../security"
+roots = ["Ideal.Compose","Ideal.Compose128","Ideal.ComposeFinal","Ideal.ComposeItsr","Ideal.ComposeNumeric","Ideal.Core.ChainFine","Ideal.Core.Defs","Ideal.Core.HPBad","Ideal.Core.HPBasic","Ideal.Core.HPFlag","Ideal.Core.HPHop","Ideal.Core.HPTable","Ideal.Core.HiddenInput","Ideal.Core.HiddenPrefix","Ideal.Core.LazyLemmas","Ideal.Core.SimLemmas","Ideal.Games.Dspr","Ideal.Games.DsprBridge","Ideal.Games.DsprDefs","Ideal.Games.DsprIdeal","Ideal.Games.Itsr","Ideal.Games.ItsrDefs","Ideal.Games.ItsrFine","Ideal.Games.ItsrTape","Ideal.Games.MsgPrf","Ideal.Games.MsgPrfBad","Ideal.Games.MsgPrfDefs","Ideal.Games.MsgPrfFine","Ideal.Games.MsgPrfHop","Ideal.Games.MsgPrfLazy","Ideal.Games.MsgPrfLemmas","Ideal.Games.Pre","Ideal.Games.PreBridge","Ideal.Games.PreDefs","Ideal.Games.PreIdeal","Ideal.Games.Prf","Ideal.Games.PrfDefs","Ideal.Games.PrfFine","Ideal.Games.PrfLemmas","Ideal.Games.Tcr","Ideal.Games.TcrBridge","Ideal.Games.TcrDefs","Ideal.Games.TcrFV","Ideal.Games.TcrFVBridge","Ideal.Games.TcrFVDefs","Ideal.Games.TcrFVIdeal","Ideal.Games.TcrFine","Ideal.Games.TcrIdeal","Ideal.Games.TcrMulti","Ideal.Games.TcrMultiBasic","Ideal.Games.TcrMultiBuild","Ideal.Games.TcrMultiDom","Ideal.Games.TcrMultiIdeal","Ideal.Games.TcrMultiPhase1","Ideal.Games.TcrMultiPhase2","Ideal.Games.TcrMultiSym","Ideal.Games.Ud","Ideal.Games.UdBridge","Ideal.Games.UdDefs","Ideal.Games.UdFine","Ideal.Games.UdIdeal","Ideal.Inst.ForsDspr128","Ideal.Inst.ForsTcr128","Ideal.Inst.Itsr128","Ideal.Inst.ItsrFine128","Ideal.Inst.ItsrNumeric","Ideal.Inst.MsgPrf128","Ideal.Inst.SkPrf128","Ideal.Inst.SkPrf128Fine","Ideal.Inst.Tcr128","Ideal.Inst.TcrTight128","Ideal.Inst.WotsPre128","Ideal.Inst.WotsUd128","Ideal.Realize.Chain","Ideal.Realize.Final","Ideal.Realize.FinalCore","Ideal.Realize.FinalPure","Ideal.Realize.FinalPureTight","Ideal.Realize.FinalPureTight2","Ideal.Realize.FinalPureTight3","Ideal.Realize.FinalPureTight4","Ideal.Realize.FinalPureTight5","Ideal.Realize.FinalPureTight6","Ideal.Realize.FinalPureTight7","Ideal.Realize.FinalPureTight8","Ideal.Realize.FinalTight","Ideal.Realize.FinalTight2","Ideal.Realize.FinalTight3","Ideal.Realize.FinalTight4","Ideal.Realize.FinalTight5","Ideal.Realize.FinalTight6","Ideal.Realize.FinalTight7","Ideal.Realize.FinalTight8","Ideal.Realize.ForsAdv","Ideal.Realize.ForsBound","Ideal.Realize.ForsCount","Ideal.Realize.ForsEq","Ideal.Realize.ForsGuess","Ideal.Realize.ForsL5","Ideal.Realize.ForsProg","Ideal.Realize.ForsRealize","Ideal.Realize.Itsr","Ideal.Realize.ItsrBound","Ideal.Realize.ItsrCount","Ideal.Realize.ItsrOpen","Ideal.Realize.ItsrReal","Ideal.Realize.ItsrWalk","Ideal.Realize.MsgCount","Ideal.Realize.MsgHarness","Ideal.Realize.MsgMark","Ideal.Realize.MsgPort","Ideal.Realize.MsgReal","Ideal.Realize.Phase1","Ideal.Realize.Port","Ideal.Realize.PrfCount","Ideal.Realize.PrfMark","Ideal.Realize.PrfPort","Ideal.Realize.PrfReal","Ideal.Realize.PrfTr","Ideal.Realize.PureForger","Ideal.Realize.PureReduce","Ideal.Realize.Tcr","Ideal.Realize.Tcr3","Ideal.Realize.TcrCount","Ideal.Realize.TcrCount3","Ideal.Realize.TcrLegsFine","Ideal.Realize.TcrStore3","Ideal.Realize.TcrWotsFine","Ideal.Realize.Walk","Ideal.Realize.WotsCount1","Ideal.Realize.WotsL5","Ideal.Realize.WotsLen","Ideal.Realize.WotsPort","Ideal.Realize.WotsReal","Ideal.Realize.WotsRealize","Ideal.Realize.WotsRealizers","Ideal.Realize.WotsUdFine","Ideal.Realize.WotsUniv","Ideal.Sha.Generic","Ideal.Sha.HmacShape","Ideal.Sha.HmsgShape","Ideal.Sha.Instantiate","Ideal.Sha.Shape","Ideal.Transport.AdvCommon","Ideal.Transport.AdvFors","Ideal.Transport.AdvItsr","Ideal.Transport.AdvLazy","Ideal.Transport.AdvMsg","Ideal.Transport.AdvPrf","Ideal.Transport.AdvTcr","Ideal.Transport.AdvWots","Ideal.Transport.Core","Ideal.Transport.Sign","Ideal.Transport.Verify"]

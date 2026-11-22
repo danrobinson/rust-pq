@@ -38,9 +38,9 @@ if diff "$out/libs.expected" "$out/libs.here" > "$out/libs.diff"; then
   echo "same ($(wc -l < "$out/libs.here" | tr -d ' ') libraries, plus Arm from $(libs lakefile.toml | awk '$1=="Arm"{print $2}'))"
 else echo "FAIL: libraries differ from ../security's:"; cat "$out/libs.diff"; fail=1; fi
 
-echo "== 1. build (MLink MReduction ME2E E2ERom) =="
+echo "== 1. build (MLink MReduction ME2E E2ERom MIdeal) =="
 start=$(date +%s)
-lake build MLink MReduction ME2E E2ERom > "$out/build.log" 2>&1
+lake build MLink MReduction ME2E E2ERom MIdeal > "$out/build.log" 2>&1
 rc=$?
 tail -1 "$out/build.log"
 echo "build time: $(( $(date +%s) - start )) s"
@@ -82,12 +82,18 @@ for f in Slhdsa/Funs.lean Slhdsa/Proofs/ChainTop.lean Slhdsa/Proofs/Hw/Chain.lea
 done
 grep -q "^$root/multi/lean/Slhdsa/Funs.lean$" "$out/srcs" && { echo "FAIL: the portable translation was compiled"; fail=1; }
 
-echo "== 3. #print axioms (the 252 headlines of ../security, here over the hw-sha2 translation) =="
+echo "== 3. #print axioms (the 257 headlines of ../security, here over the hw-sha2 translation) =="
 cat > "$out/Ax.lean" <<'EOL'
 import MLink
 import MReduction
 import ME2E
+import MIdeal
 open MLink MReduction
+#print axioms MIdeal.sha2_128s.rust_ideal_security_closed_tight8
+#print axioms MIdeal.sha2_128s.rust_ideal_security_closed_pure_tight8
+#print axioms MIdeal.sha2_128s.api_ideal_security_closed_pure_tight8
+#print axioms MIdeal.sha2_128s.pure_bytes_end_to_end
+#print axioms MIdeal.sha2_128s.pureBytesAlg_realCF
 #print axioms MLink.sha512_eq
 #print axioms MLink.hmacSha512_eq
 #print axioms MLink.mgf1Sha512_eq
@@ -131,9 +137,11 @@ for s in $SETS; do
 done
 lake env lean "$out/Ax.lean" > "$out/axioms.txt" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.txt" | head; fail=1; }
 # The environment these theorems live in is the hw-sha2 translation's: its chain kernel exists.
-printf 'import ME2E\nexample : True := by\n  have := @slhdsa.sha256.hw.chain_all\n  trivial\n' > "$out/Hw.lean"
-if lake env lean "$out/Hw.lean" > "$out/hw.txt" 2>&1; then echo "slhdsa.sha256.hw.chain_all is in ME2E's environment (hw-sha2 translation)"
-else echo "FAIL: slhdsa.sha256.hw.chain_all not in ME2E's environment"; cat "$out/hw.txt" | head -5; fail=1; fi
+for top in ME2E MIdeal; do
+  printf 'import %s\nexample : True := by\n  have := @slhdsa.sha256.hw.chain_all\n  trivial\n' "$top" > "$out/Hw.lean"
+  if lake env lean "$out/Hw.lean" > "$out/hw.txt" 2>&1; then echo "slhdsa.sha256.hw.chain_all is in $top's environment (hw-sha2 translation)"
+  else echo "FAIL: slhdsa.sha256.hw.chain_all not in $top's environment"; cat "$out/hw.txt" | head -5; fail=1; fi
+done
 cp "$out/axioms.txt" "$out/axioms.only"
 total=$(grep -c "depends on axioms\|does not depend" "$out/axioms.only")
 expected=$(grep -c "^#print axioms" "$out/Ax.lean")
@@ -151,6 +159,9 @@ for s in $SETS; do
   echo "-- SLH-DSA-SHA2-$s: $(grep -c "sha2_${s}[._]" "$out/axioms.only") checked, e.g."
   grep -o "'ME2E.sha2_${s}.\(rust\|api\|pure\)[a-z_]*'" "$out/axioms.only" | tr '\n' ' '; echo
 done
+
+echo "-- ideal-compression bound (SLH-DSA-SHA2-128s only): $(grep -c "'MIdeal\." "$out/axioms.only") checked:"
+grep -o "'MIdeal\.[A-Za-z0-9_.]*'" "$out/axioms.only" | tr '\n' ' '; echo
 
 if [ $fail -eq 0 ]; then echo "CHECK PASSED"; else echo "CHECK FAILED"; fi
 exit $fail
