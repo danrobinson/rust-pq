@@ -7,6 +7,9 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 # The opt-in hardware backend: the same tests against it, and its intrinsic
 # wrappers against the record in vectors/arm-wrappers.txt.
 (cd rust && cargo test --release --features hw-sha2)
+# The RustCrypto-compatible adapter (unverified glue): the same source against
+# both crates, with and without the hardware backend.
+(cd compat && cargo test && cargo test --features hw-sha2)
 # The default build: translation, proofs, specification tests.
 ./scripts/extract.sh
 (cd lean && lake build && lake build spectest)

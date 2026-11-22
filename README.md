@@ -46,6 +46,9 @@ hash function is assumed correct.
 - The Lean specification, compiled and run on the same vectors, matches all 28
   verification cases, 2 key generation cases and 4 signing cases, one from each
   signing group (`lake build spectest`; the spec is slow, so it runs a subset).
+- The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for
+  call: one piece of source compiled against both must give the same 86
+  results (`cd compat && cargo test`).
 
 ## Performance
 
@@ -136,6 +139,25 @@ backend works on four chains at once, staggered so the unit always has work,
 and skips the rounds whose inputs or outputs a chain step does not use. In the
 default build the same function is a plain loop.
 
+## In place of RustCrypto's `slh-dsa` ([compat/](compat))
+
+The verified crate is five functions over byte arrays. [compat/](compat) puts
+the interface of RustCrypto's `slh-dsa` 0.2 around them: the same `SigningKey`,
+`VerifyingKey` and `Signature` types, the `signature` crate's traits, and the
+PKCS#8 encodings. A program that uses `slh-dsa` with `Sha2_128s` switches by
+changing its dependency line, with no change to its source:
+
+```toml
+slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
+```
+
+The adapter is glue and is not covered by the proofs; it is tested against
+RustCrypto's crate on every entry point. It also adds what the verified crate
+leaves to the caller: keys from the operating system's random source, hedged
+signing (the default of FIPS 205), and a signing key that is wiped when
+dropped. Its limits: only this one parameter set, and it needs the standard
+library.
+
 ## What is not proven
 
 - **That SHA-256 has the properties the security proof needs.** Unforgeability
@@ -156,8 +178,12 @@ default build the same function is a plain loop.
   [Further work](#further-work-in-this-repository).
 - **Other parameter sets in the main tree.** `rust/` and `lean/` are SHA2-128s
   only; all six SHA-2 sets are covered in the separate `multi/` copy. The pre-hash variants
-  (HashSLH-DSA) and randomness generation are not implemented; callers supply
-  seeds and `addrnd`.
+  (HashSLH-DSA) are not implemented. The verified crate takes seeds and
+  `addrnd` from the caller; drawing them from the operating system is done in
+  `compat/`, outside the proofs.
+- **Wiping.** The verified crate does not overwrite its intermediate secret
+  values when it is done with them (FIPS 205 §3.1 requires it). `compat/` wipes
+  the signing key it holds, nothing more.
 
 ## Layout
 
@@ -180,6 +206,8 @@ default build the same function is a plain loop.
   statements for the `hw-sha2` build. It has no source of its own.
 - `vectors/` — the NIST vectors used by both test suites, and the record of
   the intrinsic wrappers on a processor.
+- `compat/` — the interface of RustCrypto's `slh-dsa` around the verified
+  crate, with operating-system randomness and key wiping. Not verified.
 - `bench/` — benchmark against other libraries, with interoperability checks.
 - `opt/` — working copy in which the hashing optimisation was developed and
   re-verified; `opt/original/` holds the crate and proofs from before it.

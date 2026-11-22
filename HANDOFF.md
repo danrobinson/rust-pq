@@ -291,6 +291,20 @@ and lane count are tuned to this CPU.
 **History:** commit `2a4bea5` is an intermediate, fully verified design (lockstep chains with
 `compress_many`, 41 ms sign); `ad4e485` is the first `hw-sha2` (one block at a time, 84 ms).
 
+## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
+
+`compat/` (package `slhdsa-compat`, library name `slh_dsa`) gives the verified crate the
+public interface of RustCrypto `slh-dsa` 0.2.0-rc.5 for `Sha2_128s`: the three types, the
+`signature` 3.0 traits, byte conversions, PKCS#8 and SubjectPublicKeyInfo. It is glue and
+is not verified. It adds `SigningKey::generate` and `try_sign_hedged` (operating-system
+randomness through `getrandom`), wipes the signing key on drop, and keeps the secret out of
+`Debug`. `tests/dropin.rs` compiles one source text against both crates and compares 86
+results; `tests/extras.rs` covers the additions and random inputs. Each of four deliberate
+breakages (no wipe, secret in `Debug`, wrong default randomiser, comparison skipping a
+byte) made the matching test fail. Limits: one parameter set; needs `std`; the verified
+crate itself still wipes nothing. The interface and the encoding glue follow RustCrypto's
+crate (Apache-2.0 OR MIT), credited in `compat/README.md` with both licence texts.
+
 ## Not done
 
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
@@ -322,6 +336,7 @@ cd security-hw && PATH=$HOME/.elan/bin:$PATH lake build
 cd lean-hw  && PATH=$HOME/.elan/bin:$PATH lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
 cd rust     && cargo test --release
 cd rust     && cargo test --release --features hw-sha2
+cd compat   && cargo test && cargo test --features hw-sha2
 ./scripts/check.sh        # all of the above except quantum, with both re-extractions
 cd bench    && ./run.sh
 ```

@@ -1,0 +1,45 @@
+[package]
+name = "slhdsa-compat"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The RustCrypto `slh-dsa` interface for SLH-DSA-SHA2-128s, backed by the formally verified `slhdsa` crate"
+
+# Standalone: not a member of any workspace, own target directory.
+[workspace]
+
+[lib]
+# Same library name as RustCrypto's crate, so `use slh_dsa::...` keeps working.
+name = "slh_dsa"
+
+[features]
+default = ["alloc", "getrandom"]
+# Same meaning as upstream: `to_vec` and the PKCS#8 / SPKI encoders.
+alloc = ["pkcs8/alloc"]
+# Accepted for compatibility with upstream's feature list. Signing keys are
+# always wiped on drop here, whether or not this is enabled.
+zeroize = []
+# Operating-system randomness: `SigningKey::generate` and
+# `SigningKey::try_sign_hedged`. Not part of upstream's interface.
+getrandom = ["dep:getrandom"]
+# Pass-through to the verified crate: ARMv8 SHA-256 instructions.
+hw-sha2 = ["slhdsa/hw-sha2"]
+
+[dependencies]
+slhdsa = { path = "../rust" }
+signature = { version = "3", features = ["rand_core"] }
+hybrid-array = { version = "0.4", features = ["extra-sizes", "zeroize"] }
+pkcs8 = { version = "0.11", default-features = false }
+const-oid = { version = "0.10", features = ["db"] }
+zeroize = { version = "1.8", default-features = false }
+getrandom = { version = "0.4", optional = true, features = ["sys_rng"] }
+
+[dev-dependencies]
+# The crate this one stands in for, pinned to the version it was written against.
+upstream = { package = "slh-dsa", version = "=0.2.0-rc.5" }
+pkcs8 = { version = "0.11", features = ["pem"] }
+hybrid-array = "0.4"
+
+# Signing is millions of hash calls: run the tests optimised, checks left on.
+[profile.dev]
+opt-level = 3
