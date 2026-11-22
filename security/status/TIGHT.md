@@ -1,0 +1,280 @@
+# TIGHT — tightening the closed ideal-compression bound (SLH-DSA-SHA2-128s)
+
+Scope: `suf_ideal_closed` / `euf_ideal_closed` (`Ideal/Realize/Final.lean`) and their
+context-string / Rust / API corollaries. Quantum side, other parameter sets and the
+standard-model statement are out of scope.
+
+## 0. The bound being tightened
+
+```
+sufI S ≤ epsItsrF qf (2·qs) qf (itsrQc qs) (itsrLc ℓ) qs ℓ           -- leg I   (ITSR of H_msg)
+       + (66·QcAll qf qs ℓ + 40) / 2^128                             -- leg II  (eleven games, 2^-128 part)
+       + polyP (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) / 2^256         -- leg III (eleven games, 2^-256 part)
+epsItsrF qP cP q qc Lc qs ℓ = reuseSum 63 12 14 (qP + cP + 2(qs+1))               -- I.a
+                            + (q + qc·Lc + (qs+1)((ℓ+56)/64+3))² / 2^256         -- I.b
+QcAll = qf + (qs+1)(2^25 + 2·⌊(ℓ+56)/64⌋),   NAll = max 2^81 (17920 + 182784·qs)
+```
+
+The three numeric points (all with `ℓ ≤ 2^26`, so `x := ⌊(ℓ+56)/64⌋ ≤ 2^20`):
+P20 = (`qf + 2^46 ≤ 2^60`, `qs ≤ 2^20`), P40 = (`qf ≤ 2^64`, `qs ≤ 2^40`),
+P64 = (`qf ≤ 2^64`, `qs ≤ 2^64`). Stated: P20 `2^-70 + 2^-128 + 2^-61`,
+P40 `2^-50 + 2^-88 + 2^-41`, P64 `2^-44 + 2^-43 + 2^-31`.
+
+All "value" numbers below are exact evaluations of the stated formulas at the cap values (Python
+with exact integers/fractions, scratch scripts `budget.py`, `num.py`, `cover.py`, `fors.py`, not
+machine-checked); "proved" numbers are Lean theorems.
+
+## 1. Loss budget (written before any proof work)
+
+Classification: **A** = artefact of the counting/arithmetic (better arithmetic on statements
+already proved removes it); **S** = structure of the reduction or of a proof technique (needs a
+different argument); **I** = inherent (a matching generic attack exists).
+
+### 1.1 Where each factor enters
+
+| # | factor | enters at (file : lemma) | class |
+|---|---|---|---|
+| L1 | numeric point rounds the cap up to a power of two: `Qc = 2^60 / 2^80 / 2^90` instead of `QcAll` (`2^60`, `2^65.6`, `2^89.1`) | `FinalCore.lean`: `suf_closed_2_80_W` (`QcAll_le_of … ≤ 2^80`), `ComposeFinal.lean`: `suf_final_2_80_2_40` | A |
+| L2 | one cap `Qc` for all eleven realisers, and `66 = Σ` of coefficients that include `2·q₁` / `q₁` terms, although every realiser has `q₁ = 0` (`Fors.pFors`, `Tcr.tcrP`, `Wots.pU/pP/pW` all start with `0`) | `Compose128.lean`: `Realizers.eps_le` (`epsUd_le` gives `3·Qc` for `q₂ + 2q₁`, `epsDspr_le` `2·Qc` for `2q₁`, `epsPre_le` `3Qc+2`, …) | A |
+| L3 | every realiser charged the largest per-signature count `2^25` (class TCR, `q₂T ≤ qf + (qs+1)(25135729 + x)`), although PRF/PRF_msg/FORS are ≈ `2^24.4` and the three WOTS realisers `11·121857 ≈ 2^20.35` per signature (`QcW`) | `FinalCore.lean`: `QcAll`, `qPrf_le_QcAll`, …, `Final.lean`: `QcW_le_QcAll` | A |
+| L4 | reduction's own hashing charged as adversary queries: each signature ≈ `2.0·10^6` tweakable-hash calls (`signHashes = 2007385`) re-evaluated by every reduction adversary in phase 2, each a potential "hit" at `2^-128` | `Realize/*Count.lean` (`q₂T`, `q2Fors`, `qPrf`, `qMsg`, `q2 … udH`), forced by the realiser shape `B g = inst A g` (`Compose.lean`: `Realizes*`) | S |
+| L5 | every `Thash` call charged `thashCost len = 11` compressions; `F`, `PRF`, `H` (> 99.8 % of the calls in a signature) cost 2 | `Realize/Chain.lean`: `thashCost`; uniform weight in `qb_simulateQ_classes*` (`PrfReal`, `ForsBound`, `TcrCount`, `WotsCount1`) | A (needs per-arity counts of the open programs, see §4) |
+| L6 | sum over the reduction's games: `qf` coefficient `1 + 2 + 3 + 4 + 14 + 2 + 1 = 27` (PRF, PRF_msg ×2 directions, FORS-TCR ×3, class TCR ×4, WOTS-UD ×(w−2)=14, PRE ×2, WOTS-TCR) | `Compose.lean`: `suf_ideal_bound`; `Reduction/HeadlineFinal.lean` | S (same structure as Hülsing–Kudinov / Barbosa et al.) |
+| L7 | ITSR coverers: `n = qf + 2qs + 2(qs+1)` digests each counted as a potential coverer of every other (forger's own `cB`-shaped queries included) | `Games/ItsrFine.lean`: `itsr_le_fine`; `Inst/ItsrFine128.lean` | S |
+| L8 | ITSR `2(qs+1)`: inner/outer SHA-256 of `H_msg` not domain separated, two coordinates per target | `Games/ItsrFine.lean` (`hashM_bound2`) | A (one more bad event, `IDEAL_STATUS.md` §7) |
+| L9 | `reuseSum ≤ n·2^-168·∏_{i<14}(i + n/2^63)` (`reuseSum_le_prod`) instead of the Stirling form `n·targetCoverBound` | `Inst/ItsrNumeric.lean`: `reuseSum_le_prod` | A |
+| L10 | `reuseSum_le_prod` further rounded at the points (`n ≤ 2^62` / `7·2^63` / `11·2^63`) | `ItsrNumeric.lean`: `reuseSum_63_12_14_le_small/_big`, `ComposeFinal.lean`: `_r11` | A |
+| L11 | I.b: `qc·Lc` with `Lc = 2^20+1` for ALL chain queries (`Thash` chains have ≤ 11 blocks; only the `≤ qs` inner `H_msg` chains are long) | `Inst/ItsrFine128.lean`: `itsr_bound_128s_fine` (`hLc` is a uniform length bound) | A (needs a two-class chain count) |
+| L12 | III: `18·(2Qc + 22N + 21)²` from `T_len`/`T_k` internal chaining-value collisions over all `≈ 2^80` key-structure targets | `Inst/TcrTight128.lean` / `Compose128.lean`: `epsTcrLen_le` | S (challenger-side collisions; negligible here) |
+| L13 | caps `qf ≤ 2^64` (P40, P64), `qf + 2^46 ≤ 2^60` (P20) | the numeric theorems | A (the formula is informative up to `qf ≈ 2^69.8`, L7) |
+
+### 1.2 Sizes at the three points (log₂ of each contribution; "stated" = the proved number)
+
+Leg II (`2^-128` part of the eleven games):
+
+| | P20 | P40 | P64 |
+|---|---|---|---|
+| stated (proved) | −61 | −41 | −31 |
+| formula at `QcAll` itself (L1 removed) | −61.96 | −56.31 | −32.87 |
+| L1 (rounding of the cap) | 1.0 bit | **15.3 bits** | 1.9 bits |
+| per-realiser counts, `q₁ = 0` used (L2 + L3 removed): `27qf + 253924886·qs + …` | −63.25 | −58.51 | −35.83 |
+| L2 + L3 | 1.3 bits (66→27 on `qf`) | 2.2 bits | **3.0 bits** (`66·2^25 = 2^31.04` → `2^27.92` per signature) |
+| of which reduction hashing (L4, incl. L5) | `qs·2^27.92` = 2^-80.1 (negligible) | 2^-60.1 (≈ ½ of leg II) | 2^-36.08 (**all** of leg II) |
+| L5 inside L4 (11 vs ≈2.03 compressions per call) | — | ≈ 2.4 bits of the qs part (0.4 of the total) | ≈ 2.4 bits of the hashing part (1.7 of leg II) |
+| L6 (27 games vs 1 generic target) | 4.75 bits | 4.75 bits | — (masked by L4) |
+| best possible (generic attack `qf/2^128`, I) | −68 | −64 | −64 |
+
+Leg I (ITSR):
+
+| | P20 | P40 | P64 |
+|---|---|---|---|
+| stated I.a / I.b | −70 / −128 | −50 / −88 | −44 / −43 |
+| `n` | 2^60.00 | 2^64.00 | 2^66.32 (`5·2^64`) |
+| `reuseSum_le_prod` at the actual `n` (L10 removed) | −77.9 | −63.75 | −45.69 |
+| Stirling form `n·targetCoverBound(n)` (L9 removed) | −95.5 | −69.7 | −47.1 |
+| I.b at actual counts, `Lc = 2^20+1` | −132.9 | −94.1 | −46.1 |
+| I.b with two-class chain lengths (L11 removed) | ≈ −133 | ≈ −120 | ≈ −79 |
+| ROM literature (`q·p(qs)`, below) — the inherent part | −151 | −127 | −69.75 |
+
+Leg III (`polyP/2^256`): P20 −79.9, P40 −79.9, P64 −70.5 (dominated by L12; `NAll ≥ 2^81` is
+the fixed key-structure target count, not a per-query cost). Never dominant.
+
+**Dominant term per point.** P20: leg II, `27·qf/2^128` (L6, structural; L1–L3 cost 2 bits).
+P40: leg II, by the rounding L1 (15 bits), then L2/L3 (2 bits); after that `27qf` and the
+reduction's hashing (L4) are each about half. P64: leg II, entirely the reduction's hashing
+(L4: `qs·2^27.92/2^128`), with ~3 bits of L2/L3 on top.
+
+### 1.3 Best possible bound, and the literature instantiated for random functions
+
+Generic attacks (lower bounds on any true bound):
+- (Second) preimage on one 128-bit tweakable-hash output: each query hits one target with
+  probability `2^-128` (the tweak/seed prevents multi-target amplification), so success
+  `≈ qf·2^-128`: P20 2^-68, P40 2^-64, P64 2^-64.
+- FORS few-time forgery (ITSR): per `H_msg` query the probability that all `k = 14` revealed
+  indices are covered, `p(qs) = Σ_γ C(qs,γ)(1−2^-63)^{qs−γ}2^{-63γ}(1−(1−2^-12)^γ)^{14}`:
+  `p(2^20) = 2^-211.0`, `p(2^40) = 2^-191.0`, `p(2^64) = 2^-133.75` (`fors.py`); attack success
+  `≈ qf·p(qs)`: 2^-151, 2^-127, 2^-69.75.
+- So the best possible bound is ≈ P20 `2^-68`, P40 `2^-64`, P64 `2^-63.9`.
+
+Literature, ROM instantiation (recalled, the papers were NOT re-read in this session):
+- Hülsing–Kudinov (ePrint 2022/346), SPHINCS+ tight bound:
+  `PRF + PRF_msg + ITSR + SM-TCR + 3·SM-DSPR`-type sum; in the ROM each SM-TCR/SM-DSPR term is
+  `O(q/2^{8n})` and ITSR is `q·p(qs)` (no `q²` term). Constant in front of `q/2^128`: a handful.
+- Barbosa et al. (ePrint 2024/910), the fixed WOTS-TW argument: adds the `(w−2)·SM-UD`,
+  `SM-PRE`, `SM-TCR`(chains) terms; ROM instantiation `≈ c·q/2^128 + q·p(qs)` with `c` of the
+  order of our 27 (our reduction is that structure: `Reduction/HeadlineFinal.lean`).
+- Neither charges the signing oracle's hashing to the adversary: in their ROM instantiations
+  the challenger answers signing queries, so `qs` enters only through `p(qs)`. Our L4 is
+  therefore not in the literature bound; it is an artefact of composing per-game ideal-model
+  bounds through realisers (`B g = inst A g`).
+
+## 2. Plan (ordered by bits gained per unit of work)
+
+1. L1 + L2 + L3 + L10 (pure arithmetic over proved statements): new per-realiser evaluation of
+   `Realizers.eps` with `q₁ = 0`, the actual per-realiser `q₂` caps, and exact numerics at the
+   three points. Expected: P20 −61 → −63, P40 −41 → −58, P64 −31 → −35; ITSR legs
+   −70/−50/−44 → −77/−63/−45, I.b −128/−88/−43 → −132/−94/−46.
+2. L5 (per-arity compression counts): ≈ 2.4 bits on the hashing part (P64 −35.8 → ≈ −37.5).
+   Needs per-arity hash-query counts of the eleven open programs. Plan in §4, not done.
+3. L4 (stop charging the reduction's hashing): ≈ 28 bits at P64. Structural. Plan in §4.
+4. L9 / L11 / L8: ITSR only; not dominant at any point after step 1. Not done.
+
+## 3. What was proved (step 1 of the plan; all built, standard axioms only)
+
+New files (nothing existing was changed except three `import` lines appended to `Ideal.lean`):
+`Ideal/Realize/FinalTight.lean`, `Ideal/Realize/FinalPureTight.lean`,
+`Ideal/RustFinalClosedTight.lean`.
+
+Mechanism (`FinalTight.lean`):
+- `Realizers.eps_le_tight` (`:184`): for any realiser bundle with `R.Le Qc N qs ℓ`, no
+  first-phase queries (`q₁ = 0` for all nine `P3`/`P5` parameters) and per-realiser
+  second-phase caps `QP, QM, QF, QT, QW`:
+  `R.eps γu ≤ nf (linT QP QM QF QT QW) (polyP Qc N qs ℓ)`,
+  `linT = QP + 2·QM + 3·QF + 4·QT + 17·QW + 40`. The `2^-256` part is the old `polyP`, unchanged.
+- `QlinT qf qs ℓ = 27·qf + (qs+1)·(253924886 + 45·⌊(ℓ+56)/64⌋)` (`:226`);
+  `linT_le_QlinT` (`:228`) at the realisers' proved caps (`Prf.qPrf_le'`, `Prf.qMsg_le'`,
+  `Fors.q2Fors_eq`, `Tcr.q₂T_le`, `Wots.pU_le/pP_le/pW_le`); `QlinT_le_old` (`:240`):
+  `QlinT ≤ 66·QcAll + 40` (never worse).
+- `reuseSum_63_12_14_le_frac` (`:341`): `reuseSum_le_prod` evaluated with `n ≤ r·2^(63−d)`
+  (fractional `n/2^63`), used with `d = 10`.
+
+Headlines (same forger hypotheses as `suf_ideal_closed`; `hQ : QcAll qf qs ℓ ≤ 2^126` as before):
+
+```
+theorem suf_ideal_closed_tight … (hQ : QcAll qf qs ℓ ≤ 2 ^ 126) :      -- FinalTight.lean:306
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+        ((QlinT qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+        (polyP (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256
+theorem euf_ideal_closed_tight …                                        -- FinalTight.lean:322
+```
+
+Numeric points (SUF and EUF each; `ℓ ≤ 2^26`):
+
+| point | hypotheses | old (proved) | new (proved) | theorem |
+|---|---|---|---|---|
+| P20 | `qf ≤ 2^60` (old: `qf + 2^46 ≤ 2^60`), `qs ≤ 2^20` | `2^-70 + 2^-128 + 2^-61` (≈ 2^-60.99) | `2^-77 + 2^-132 + 2^-63` (≈ 2^-62.99) | `suf/euf_ideal_closed_tight_2_20` (`:462`, `:483`) |
+| P40 | `qf ≤ 2^64`, `qs ≤ 2^40` | `2^-50 + 2^-88 + 2^-41` (≈ 2^-41.0) | `2^-63 + 2^-94 + 2^-58` (≈ 2^-57.96) | `…_tight_2_40` (`:504`, `:525`) |
+| P64 | `qf ≤ 2^64`, `qs ≤ 2^64` | `2^-44 + 2^-43 + 2^-31` (≈ 2^-31.0) | `2^-45 + 2^-46 + 2^-35` (≈ 2^-35.0) | `…_tight_2_64` (`:546`, `:567`) |
+
+Gain: 2.0 / 17.0 / 4.0 bits. Unrounded values of the new formula at the caps: leg II+III
+−63.25 / −58.51 / −35.83; ITSR −77.9 / −63.75 / −45.69 (I.a), −132.9 / −94.1 / −46.1 (I.b).
+
+Carried through:
+- `Ideal/Realize/FinalPureTight.lean`: `suf/euf_ideal_pure_closed_tight` (`:27`, `:44`) — the
+  general bound at message length `ℓ + 257` — and `…_tight_2_20/_2_40/_2_64` (`:61`–`:136`,
+  `ℓ + 257 ≤ 2^26`, same numbers).
+- `Ideal/RustFinalClosedTight.lean`: `rust_ideal_security_closed_tight` (`:36`, internal
+  interface), `rust_ideal_security_closed_pure_tight` (`:93`), `api_ideal_security_closed_pure_tight`
+  (`:140`): conjuncts 1 and 2 taken from the existing statements unchanged, conjunct 3 the tight
+  bounds (general + three points, SUF and EUF).
+
+## 4. What remains loose, and plans
+
+After step 1 the dominant terms are: P20 `27·qf/2^128` (L6); P40 `27·qf/2^128` and the
+reductions' hashing `2^27.92·qs/2^128` about equally; P64 the reductions' hashing alone
+(`2^-36.08`), plus the message-block part `45·x·qs/2^128 = 2^-38.5` (`x = 2^20` blocks for
+`2^26`-byte messages). Distance to the generic attacks: 5 / 6 / 29 bits.
+
+### 4.1 L5 — per-arity compression counts (artefact; ≈ 1.7 bits at P64, ≈ 0.4 at P40)
+
+Of the `2007385` hash calls per signature (`Reduction/Lazy/Open.lean: signHashes`), only
+`d·(2^hp+1) = 3591` are `T_len` (11 compressions) and one is `T_k` (5); the rest are `F`, `H`,
+`PRF` (2 compressions: `thashCost 1 = thashCost 2 = 2`). Weighted ≈ `4.05·10^6` compressions per
+signature instead of `2.21·10^7` (factor 5.46). The per-signature constant `253924886` would drop
+to ≈ `4.7·10^7`; with the unchanged message-block part, P64 leg II goes from `2^-35.83` to
+≈ `2^-37.5`.
+
+Statement: for each realiser family, `IsQueryBoundP A isCompQ q₂'` with
+`q₂' = qf + Hsmall·2 + Hlen·11 + Hk·5 + (msg terms)`, `Hsmall/Hlen/Hk` hash counts by arity.
+Work: (a) `Reduction/Lazy/Open.lean`, `Reduction/Open/{Prf,MsgV,Fors,Tcr,Wots*}.lean`: kind bounds
+split by arity — the generic lemmas `qb_wotsTops`, `qb_xmssNode`, `xmssSignB`, `xmssPkB` already
+take separate weights `cF cT cH cS`; only the instantiations (`openKeygen_kindBound`, the
+`sign` and `verify` bounds, `ind K .hash` used for all three) and the closed forms need a
+per-arity version (≈ 300–500 lines); (b) `Ideal/Realize/{PrfReal,MsgReal,ForsBound,TcrCount,
+WotsCount1}.lean`: replace the single `Thash` class with cost `thashCost Bmax` by three classes
+in `qb_simulateQ_classes4`-style transfers (≈ 150–300 lines each); (c) new `linT` instance.
+Estimate 1.5–2.5k lines. Not started.
+
+### 4.2 L4 — the reductions' own hashing charged as adversary queries (structural; ≈ 25 bits at P64)
+
+Why it is there: a realiser is ONE oracle program `A` with `B g = inst A g`; every hash
+evaluation of the reduction adversary `B` (≈ `2·10^6` per signature, recomputing honest
+signatures) becomes a compression query of `A`, and the per-game theorems (`Games/*`) charge
+every syntactic second-phase query `2^-128` (`ForgeBound q₂`, `DistBound q₂`).
+
+Two mechanisms are needed, by game:
+- (M1, shape marking; PRF, PRF_msg): as in `Games/ItsrFine.lean`, only queries whose first block
+  can be the hidden row matter — `PRF` calls are `Thash`-shaped with an `SkAdrs`-type tweak in
+  the first block (`PRF_eq_Thash`, `tblocks`), the distinguisher's `F`/`H`/`T` recomputations have
+  other address types. Statement: `skPrf_bound_128s_fine : boolDist ≤ qMarked·U + (q+qO)²·V`
+  with `qMarked` the raw queries whose first block has a PRF tweak plus chain queries whose
+  first block does; realisers then count only the forger's queries of that shape (`≤ qf`).
+  Files: `Games/Prf.lean`, `Games/MsgPrf*.lean` (fine variants, ≈ 600–900 lines each, the
+  `ItsrFine` invariant pattern), `Inst/SkPrf128.lean`, `Inst/MsgPrf128.lean`, the chain/raw split
+  of the PRF/Msg realisers (`Realize/PrfPort.lean`, `MsgPort.lean`: ≈ 300 lines each).
+- (M2, challenger-input accounting; class TCR, FORS TCR/DSPR, WOTS UD/PRE/TCR): a second-phase
+  query whose input is a challenger-registered input returns the registered value and can never
+  complete a second preimage. Statement: the per-game bounds with `ForgeBound q₂` replaced by a
+  bound on queries OUTSIDE the challenger's log (the per-step lemmas already charge only fresh
+  cells: `prEvent_routeRO_bad_le`, `potential_le_of_step`, `IDEAL_STATUS.md` §7 item 3). The
+  reductions register all key-structure nodes (`≈ 2^80` targets) in phase 1, so honest
+  re-signing reads only logged inputs; the required invariant is the cover property already
+  proved for the answer-storing class adversaries (`Reduction/Open/TcrStoreCover.lean`:
+  `hKeygen`, `hSign`). Obstacle noted in `TcrStoreCount.lean`: a lookup-with-fallback program has
+  no worst-case syntactic hash bound, so the realiser count must be the semantic one (on sound
+  stores), i.e. the per-game theorems must take the semantic hypothesis. Files: `Games/Tcr*.lean`,
+  `TcrMulti*.lean`, `Ud*.lean`, `Pre*.lean`, `Dspr*.lean` (a `…_fresh` variant of each headline,
+  ≈ 400–800 lines each), `Inst/*128.lean`, and per-realiser cover invariants through the open
+  programs (`Realize/{Tcr,Fors*,Wots*}.lean`, ≈ 1–2k lines per family).
+- Remaining after M1+M2 at P64: `27·qf + 45·x·qs` per `2^128` — the message blocks of the
+  signing oracle's `H_msg`/`PRF_msg` (`2^-38.5` at `ℓ = 2^26`). Removing those needs M1-style
+  marking in the TCR/UD/PRE games too (an `H_msg` chain cannot end in a `Thash` cell).
+Estimate: 8–12k lines; expected result ≈ `2^-59` at P64 (`27·qf` and ITSR `2^-45.7` then
+dominate — ITSR becomes the bottleneck, see 4.3).
+
+### 4.3 ITSR (L7–L11)
+
+Not dominant at any point after step 1, but it is the next bottleneck once L4 is removed
+(P64: `2^-45.7`). Cheapest: L9 (evaluate the Stirling form `n·targetCoverBound n` instead of
+`reuseSum_le_prod`: −45.7 → −47.1 at P64, needs a proof of the surjection counts `S(14,r)·r!`
+for `r ≤ 14`, by a recurrence, not by enumeration). L11 (two-class chain lengths in
+`itsr_bound_128s_fine`; I.b −46.1 → ≈ −79 at P64) needs the realiser's chain count split into
+`Thash` chains (≤ 11 blocks) and the `qs` inner `H_msg` chains (`Realize/ItsrCount.lean`,
+`ItsrBound.lean`, ≈ 400 lines). L7 (structural): a re-randomising hybrid in which only target
+digests are coverers (as on the quantum side, `quantum/PQ/QROM/ExactItsr4.lean`), giving
+`≈ qf·p(qs)`; large.
+
+### 4.4 Inherent / structural floor
+
+- `qf/2^128` (generic preimage on 128-bit outputs): inherent.
+- `qf·p(qs)` (FORS few-time forgery): inherent; `2^-69.75` at P64.
+- the factor 27 (L6) is the structure of the reduction (sum over games, `(w−2)·UD`); a
+  direct ideal-model proof could reach a small constant, but not with this reduction.
+- leg III (`≈ 2^-70`–`2^-80`): challenger-side chaining-value collisions over `2^80` targets
+  (L12); structural, never dominant.
+
+## 5. Things found in existing statements and documents
+
+No existing theorem was found false or overstated. Documentation points:
+- `HANDOFF.md` (repo root) and the brief say the ITSR leg is vacuous once `qf + 2·qs` reaches
+  about `2^70`; the argument of `reuseSum` is `qP + cP + 2(qs+1) = qf + 4·qs + 2`.
+- `security/README.md` says `Ideal` is not a default target; `lakefile.toml` lists it in
+  `defaultTargets`. `status/R-final.md` says `Final`/`RustFinalClosed` are not imported by
+  `Ideal.lean`; they are.
+- The P40 points (`suf/euf_ideal_closed_2_40`) are 15 bits weaker than their own general formula
+  at the same caps (rounding `QcAll ≤ 2^80`); true, just loose.
+
+## 6. Builds (run in this session)
+
+```
+cd security && export PATH=$HOME/.elan/bin:$PATH
+lake build Ideal.Realize.FinalTight        # Build completed successfully (7324 jobs).
+lake build Ideal.Realize.FinalPureTight    # Build completed successfully (7332 jobs).
+lake build Ideal.RustFinalClosedTight      # Build completed successfully (8061 jobs).
+lake build Ideal                           # Build completed successfully (8064 jobs).
+lake build                                 # Build completed successfully (8081 jobs).
+```
+Every `#print axioms` of the three new files: `[propext, Classical.choice, Quot.sound]`; no
+`sorryAx` anywhere in the `lake build` output. The new files contain no `sorry`, `axiom`,
+`native_decide`, `bv_decide`, `set_option` or `maxHeartbeats`.

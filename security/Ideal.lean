@@ -125,3 +125,6 @@ import Ideal.Realize.PureForger
 import Ideal.Realize.FinalPure
 import Ideal.RustFinalClosedPure
 import Ideal.RustFinalClosedPureApi
+import Ideal.Realize.FinalTight
+import Ideal.Realize.FinalPureTight
+import Ideal.RustFinalClosedTight

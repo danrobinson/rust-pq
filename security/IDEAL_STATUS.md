@@ -1,3 +1,11 @@
+> **Note, 2026-11-22 (tightening).** Tighter forms of the closed bounds, same forger hypotheses:
+> `suf_ideal_closed_tight` / `euf_ideal_closed_tight` (`Ideal/Realize/FinalTight.lean`; the
+> coefficient `66·QcAll + 40` becomes `QlinT = 27·qf + (qs+1)(253924886 + 45·⌊(ℓ+56)/64⌋)`) with
+> points `2^-77 + 2^-132 + 2^-63` (`qf ≤ 2^60`, `qs ≤ 2^20`), `2^-63 + 2^-94 + 2^-58`
+> (`qf ≤ 2^64`, `qs ≤ 2^40`), `2^-45 + 2^-46 + 2^-35` (`qf ≤ 2^64`, `qs ≤ 2^64`); context-string
+> and Rust/API forms in `Ideal/Realize/FinalPureTight.lean`, `Ideal/RustFinalClosedTight.lean`.
+> Loss budget and plans: `status/TIGHT.md`.
+
 # Ideal-compression-function bounds for the hash assumptions of the SLH-DSA-SHA2-128s reduction
 
 > **Note, 2026-11-21.** Where this file says the external pure interface (sign/verify with a
