@@ -1,0 +1,235 @@
+import Ct.Funs
+import Ct.Tactic
+import Ct.Facts
+import Ct.Erase
+import Slhdsa.Theorems
+
+/-!
+# Constant time: the SHA-256 layer
+
+For every function of `rust/src/sha256.rs` (as translated), two runs on data of the same
+lengths, with the same offsets and other public arguments, have the same trace; their results
+are again of equal length (arrays: by their type; vectors: stated). Secret buffers enter only
+through their lengths: a caller needs nothing but length equality for them.
+-/
+
+open Aeneas Aeneas.Std Ct
+
+namespace Ct.Sha256
+
+open slhdsa_leak
+
+@[ct_rel] theorem load_be32 (data data' : Slice U8) (off : Usize)
+    (h : data.length = data'.length) :
+    Rel (sha256.load_be32 data off) (sha256.load_be32 data' off) (fun _ _ => True) := by
+  unfold sha256.load_be32
+  ct_steps
+
+theorem schedule_loop0_body (data data' : Slice U8) (off : Usize) (w w' : Array U32 64#usize)
+    (i : Usize) (h : data.length = data'.length) :
+    Rel (sha256.schedule_loop0.body data off w i) (sha256.schedule_loop0.body data' off w' i)
+      (CFRel (fun p q => p.2 = q.2) (fun p q => p.2 = q.2)) := by
+  unfold sha256.schedule_loop0.body
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem schedule_loop0 (data data' : Slice U8) (off : Usize)
+    (w w' : Array U32 64#usize) (i : Usize) (h : data.length = data'.length) :
+    Rel (sha256.schedule_loop0 data off w i) (sha256.schedule_loop0 data' off w' i)
+      (fun p q => p.2 = q.2) := by
+  unfold sha256.schedule_loop0
+  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
+  rintro ⟨w1, i1⟩ ⟨w1', i1'⟩ (rfl : i1 = i1')
+  exact schedule_loop0_body data data' off w1 w1' i1 h
+
+theorem schedule_loop1_body (w w' : Array U32 64#usize) (i : Usize) :
+    Rel (sha256.schedule_loop1.body w i) (sha256.schedule_loop1.body w' i)
+      (CFRel (fun p q => p.2 = q.2) (fun _ _ => True)) := by
+  unfold sha256.schedule_loop1.body
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem schedule_loop1 (w w' : Array U32 64#usize) (i : Usize) :
+    Rel (sha256.schedule_loop1 w i) (sha256.schedule_loop1 w' i) (fun _ _ => True) := by
+  unfold sha256.schedule_loop1
+  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
+  rintro ⟨w1, i1⟩ ⟨w1', i1'⟩ (rfl : i1 = i1')
+  exact schedule_loop1_body w1 w1' i1
+
+@[ct_rel] theorem schedule (data data' : Slice U8) (off : Usize)
+    (h : data.length = data'.length) :
+    Rel (sha256.schedule data off) (sha256.schedule data' off) (fun _ _ => True) := by
+  unfold sha256.schedule
+  ct_steps
+
+theorem compress_portable_loop_body (w w' : Array U32 64#usize)
+    (a b c d e f g h a' b' c' d' e' f' g' h' : U32) (i : Usize) :
+    Rel (sha256.compress_portable_loop.body w a b c d e f g h i)
+      (sha256.compress_portable_loop.body w' a' b' c' d' e' f' g' h' i)
+      (CFRel (fun p q => p.2.2.2.2.2.2.2.2 = q.2.2.2.2.2.2.2.2) (fun _ _ => True)) := by
+  unfold sha256.compress_portable_loop.body
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem compress_portable_loop (w w' : Array U32 64#usize)
+    (a b c d e f g h a' b' c' d' e' f' g' h' : U32) (i : Usize) :
+    Rel (sha256.compress_portable_loop w a b c d e f g h i)
+      (sha256.compress_portable_loop w' a' b' c' d' e' f' g' h' i) (fun _ _ => True) := by
+  unfold sha256.compress_portable_loop
+  refine Rel.loop (fun p q => p.2.2.2.2.2.2.2.2 = q.2.2.2.2.2.2.2.2) ?_ rfl
+  rintro ⟨a, b, c, d, e, f, g, h, i⟩ ⟨a', b', c', d', e', f', g', h', i'⟩ (rfl : i = i')
+  exact compress_portable_loop_body w w' a b c d e f g h a' b' c' d' e' f' g' h' i
+
+@[ct_rel] theorem compress_portable (state state' : Array U32 8#usize) (data data' : Slice U8)
+    (off : Usize) (h : data.length = data'.length) :
+    Rel (sha256.compress_portable state data off) (sha256.compress_portable state' data' off)
+      (fun _ _ => True) := by
+  unfold sha256.compress_portable
+  ct_steps
+
+@[ct_rel] theorem compress (state state' : Array U32 8#usize) (data data' : Slice U8)
+    (off : Usize) (h : data.length = data'.length) :
+    Rel (sha256.compress state data off) (sha256.compress state' data' off)
+      (fun _ _ => True) := by
+  unfold sha256.compress
+  exact compress_portable state state' data data' off h
+
+theorem digest_loop_body (state state' : Array U32 8#usize) (out out' : Array U8 32#usize)
+    (i : Usize) :
+    Rel (sha256.digest_loop.body state out i) (sha256.digest_loop.body state' out' i)
+      (CFRel (fun p q => p.2 = q.2) (fun _ _ => True)) := by
+  unfold sha256.digest_loop.body
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem digest_loop (state state' : Array U32 8#usize) (out out' : Array U8 32#usize)
+    (i : Usize) :
+    Rel (sha256.digest_loop state out i) (sha256.digest_loop state' out' i) (fun _ _ => True) := by
+  unfold sha256.digest_loop
+  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
+  rintro ⟨o, i⟩ ⟨o', i'⟩ (rfl : i = i')
+  exact digest_loop_body state state' o o' i
+
+@[ct_rel] theorem digest (state state' : Array U32 8#usize) :
+    Rel (sha256.digest state) (sha256.digest state') (fun _ _ => True) := by
+  unfold sha256.digest
+  ct_steps
+
+theorem pad_loop_body (p p' : alloc.vec.Vec U8) (h : p.length = p'.length) :
+    Rel (sha256.pad_loop.body p) (sha256.pad_loop.body p')
+      (CFRel (fun q q' => q.length = q'.length) (fun q q' => q.length = q'.length)) := by
+  unfold sha256.pad_loop.body
+  simp only [(Facts.vec_len_congr h).symm]
+  ct_steps
+  all_goals (ct_facts; simp_all)
+
+@[ct_rel] theorem pad_loop (p p' : alloc.vec.Vec U8) (h : p.length = p'.length) :
+    Rel (sha256.pad_loop p) (sha256.pad_loop p') (fun q q' => q.length = q'.length) := by
+  unfold sha256.pad_loop
+  exact Rel.loop (fun q q' => q.length = q'.length) (fun q q' hq => pad_loop_body q q' hq) h
+
+@[ct_rel] theorem pad (msg msg' : Slice U8) (pre : Usize) (h : msg.length = msg'.length) :
+    Rel (sha256.pad msg pre) (sha256.pad msg' pre) (fun q q' => q.length = q'.length) := by
+  unfold sha256.pad
+  simp only [(Facts.slice_len_congr h).symm]
+  ct_steps
+  ct_facts; simp_all
+
+theorem sha256_from_loop0_body (msg msg' : Slice U8) (st st' : Array U32 8#usize) (off : Usize)
+    (h : msg.length = msg'.length) :
+    Rel (sha256.sha256_from_loop0.body msg st off) (sha256.sha256_from_loop0.body msg' st' off)
+      (CFRel (fun p q => p.2 = q.2) (fun p q => p.2 = q.2)) := by
+  unfold sha256.sha256_from_loop0.body
+  simp only [(Facts.slice_len_congr h).symm]
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem sha256_from_loop0 (msg msg' : Slice U8) (st st' : Array U32 8#usize)
+    (off : Usize) (h : msg.length = msg'.length) :
+    Rel (sha256.sha256_from_loop0 msg st off) (sha256.sha256_from_loop0 msg' st' off)
+      (fun p q => p.2 = q.2) := by
+  unfold sha256.sha256_from_loop0
+  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
+  rintro ⟨s, o⟩ ⟨s', o'⟩ (rfl : o = o')
+  exact sha256_from_loop0_body msg msg' s s' o h
+
+theorem sha256_from_loop1_body (p p' : alloc.vec.Vec U8) (st st' : Array U32 8#usize)
+    (o : Usize) (h : p.length = p'.length) :
+    Rel (sha256.sha256_from_loop1.body p st o) (sha256.sha256_from_loop1.body p' st' o)
+      (CFRel (fun a b => a.2 = b.2) (fun _ _ => True)) := by
+  unfold sha256.sha256_from_loop1.body
+  simp only [(Facts.vec_len_congr h).symm]
+  ct_steps
+  all_goals simp_all
+
+@[ct_rel] theorem sha256_from_loop1 (st st' : Array U32 8#usize) (p p' : alloc.vec.Vec U8)
+    (o : Usize) (h : p.length = p'.length) :
+    Rel (sha256.sha256_from_loop1 st p o) (sha256.sha256_from_loop1 st' p' o)
+      (fun _ _ => True) := by
+  unfold sha256.sha256_from_loop1
+  refine Rel.loop (fun a b => a.2 = b.2) ?_ rfl
+  rintro ⟨s, o⟩ ⟨s', o'⟩ (rfl : o = o')
+  exact sha256_from_loop1_body p p' s s' o h
+
+@[ct_rel] theorem sha256_from (state state' : Array U32 8#usize) (pre : Usize)
+    (msg msg' : Slice U8) (h : msg.length = msg'.length) :
+    Rel (sha256.sha256_from state pre msg) (sha256.sha256_from state' pre msg')
+      (fun _ _ => True) := by
+  unfold sha256.sha256_from
+  simp only [(Facts.slice_len_congr h).symm]
+  ct_steps
+
+@[ct_rel] theorem sha256 (msg msg' : Slice U8) (h : msg.length = msg'.length) :
+    Rel (sha256.sha256 msg) (sha256.sha256 msg') (fun _ _ => True) := by
+  unfold sha256.sha256
+  ct_steps
+
+theorem hmac_sha256_loop_body (key key' : Slice U8) (inner inner' outer outer' : alloc.vec.Vec U8)
+    (i : Usize) (hk : key.length = key'.length) (hi : inner.length = inner'.length)
+    (ho : outer.length = outer'.length) :
+    Rel (sha256.hmac_sha256_loop.body key inner outer i)
+      (sha256.hmac_sha256_loop.body key' inner' outer' i)
+      (CFRel (fun p q => p.1.length = q.1.length ∧ p.2.1.length = q.2.1.length ∧ p.2.2 = q.2.2)
+        (fun p q => p.1.length = q.1.length ∧ p.2.length = q.2.length)) := by
+  unfold sha256.hmac_sha256_loop.body
+  simp only [(Facts.slice_len_congr hk).symm]
+  ct_steps
+  all_goals (ct_facts; simp_all)
+
+@[ct_rel] theorem hmac_sha256_loop (key key' : Slice U8) (inner inner' outer outer' : alloc.vec.Vec U8)
+    (i : Usize) (hk : key.length = key'.length) (hi : inner.length = inner'.length)
+    (ho : outer.length = outer'.length) :
+    Rel (sha256.hmac_sha256_loop key inner outer i) (sha256.hmac_sha256_loop key' inner' outer' i)
+      (fun p q => p.1.length = q.1.length ∧ p.2.length = q.2.length) := by
+  unfold sha256.hmac_sha256_loop
+  refine Rel.loop
+    (fun p q => p.1.length = q.1.length ∧ p.2.1.length = q.2.1.length ∧ p.2.2 = q.2.2)
+    ?_ ⟨hi, ho, rfl⟩
+  rintro ⟨a, b, j⟩ ⟨a', b', j'⟩ ⟨ha, hb, (rfl : j = j')⟩
+  exact hmac_sha256_loop_body key key' a a' b b' j hk ha hb
+
+@[ct_rel] theorem hmac_sha256 (key key' msg msg' : Slice U8) (hk : key.length = key'.length)
+    (hm : msg.length = msg'.length) :
+    Rel (sha256.hmac_sha256 key msg) (sha256.hmac_sha256 key' msg') (fun _ _ => True) := by
+  unfold sha256.hmac_sha256
+  ct_steps
+
+/-! ## Headline: SHA-256 is constant time
+
+The instrumented `sha256` on any two messages of the same length (within the size limit of the
+functional theorem) returns the digests computed by the verified `slhdsa.sha256.sha256`, with
+the same trace. -/
+
+theorem sha256_trace_eq (msg msg' : Slice U8) (h : msg.length = msg'.length)
+    (hr : slhdsa.Room msg.length 72) :
+    ∃ d d' t, slhdsa.sha256.sha256 msg = .ok d ∧ slhdsa.sha256.sha256 msg' = .ok d' ∧
+      (slhdsa_leak.sha256.sha256 msg).run = .ok (d, t) ∧
+      (slhdsa_leak.sha256.sha256 msg').run = .ok (d', t) := by
+  obtain ⟨d, hd, -⟩ := slhdsa.sha256_correct msg hr
+  obtain ⟨d', hd', -⟩ := slhdsa.sha256_correct msg' (h ▸ hr)
+  obtain ⟨t, h1, h2, -⟩ := (sha256 msg msg' h).same_trace
+    ((slhdsa_leak.sha256.sha256.erase_eq msg).trans hd)
+    ((slhdsa_leak.sha256.sha256.erase_eq msg').trans hd')
+  exact ⟨d, d', t, hd, hd', h1, h2⟩
+
+end Ct.Sha256

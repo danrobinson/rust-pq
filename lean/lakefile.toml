@@ -11,6 +11,9 @@ name = "Slhdsa"
 [[lean_lib]]
 name = "Spec"
 
+[[lean_lib]]
+name = "Ct"
+
 [[lean_exe]]
 name = "spectest"
 root = "SpecTest"
