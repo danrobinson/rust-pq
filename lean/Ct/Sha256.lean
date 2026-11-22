@@ -2,7 +2,6 @@ import Ct.Funs
 import Ct.Tactic
 import Ct.Facts
 import Ct.Erase
-import Slhdsa.Theorems
 
 /-!
 # Constant time: the SHA-256 layer
@@ -213,23 +212,5 @@ theorem hmac_sha256_loop_body (key key' : Slice U8) (inner inner' outer outer' :
     Rel (sha256.hmac_sha256 key msg) (sha256.hmac_sha256 key' msg') (fun _ _ => True) := by
   unfold sha256.hmac_sha256
   ct_steps
-
-/-! ## Headline: SHA-256 is constant time
-
-The instrumented `sha256` on any two messages of the same length (within the size limit of the
-functional theorem) returns the digests computed by the verified `slhdsa.sha256.sha256`, with
-the same trace. -/
-
-theorem sha256_trace_eq (msg msg' : Slice U8) (h : msg.length = msg'.length)
-    (hr : slhdsa.Room msg.length 72) :
-    ∃ d d' t, slhdsa.sha256.sha256 msg = .ok d ∧ slhdsa.sha256.sha256 msg' = .ok d' ∧
-      (slhdsa_leak.sha256.sha256 msg).run = .ok (d, t) ∧
-      (slhdsa_leak.sha256.sha256 msg').run = .ok (d', t) := by
-  obtain ⟨d, hd, -⟩ := slhdsa.sha256_correct msg hr
-  obtain ⟨d', hd', -⟩ := slhdsa.sha256_correct msg' (h ▸ hr)
-  obtain ⟨t, h1, h2, -⟩ := (sha256 msg msg' h).same_trace
-    ((slhdsa_leak.sha256.sha256.erase_eq msg).trans hd)
-    ((slhdsa_leak.sha256.sha256.erase_eq msg').trans hd')
-  exact ⟨d, d', t, hd, hd', h1, h2⟩
 
 end Ct.Sha256

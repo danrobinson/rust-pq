@@ -12,6 +12,14 @@ import Ct.Rel
 import Ct.Tactic
 import Ct.Sha256
 import Ct.Hash
+import Ct.Wots
+import Ct.Xmss
+import Ct.Fors
+import Ct.Slh
+import Ct.Sim
+import Ct.SignFacts
+import Ct.Sign
+import Ct.Theorems
 /-!
 # `Ct`: constant-time proofs for the Aeneas translation of the SLH-DSA crate
 
@@ -27,5 +35,14 @@ import Ct.Hash
 * `Ct/Rel.lean`      the relational judgment `Rel` (and `RelIf` for public outputs) and rules.
 * `Ct/Tactic.lean`   `ct_step`/`ct_steps` lockstep tactic.
 * `Ct/Sha256.lean`   constant-time lemmas for `sha256.rs`.
-* `Ct/Hash.lean`     the first lemmas of `hash.rs` (started only).
+* `Ct/Hash.lean`     constant-time lemmas for `hash.rs` (and `xmss::hash2`).
+* `Ct/Wots.lean`     `util.rs`, `wots.rs`.
+* `Ct/Xmss.lean`     `xmss.rs` (`xmss_node` by strong induction on the height).
+* `Ct/Fors.lean`     `fors.rs` (including the new `fors_pk_gen`).
+* `Ct/Slh.lean`      key generation, `api.public_key`, digest helpers, one `ht_sign` layer,
+                     verification (`Rel.refl`).
+* `Ct/Sim.lean`      one-sided simulation: `Rel.sim`, `loop_sim`, `loop_post`, inversion lemmas.
+* `Ct/SignFacts.lean` functional facts used by signing (from `Slhdsa/Proofs` via erasure).
+* `Ct/Sign.lean`     the signing simulators `slhdsa_leak.Sim.*` and the simulation theorems.
+* `Ct/Theorems.lean` the headline theorems (K), (S), (V) with `#print axioms`.
 -/

@@ -13,6 +13,10 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 # The default build: translation, proofs, specification tests.
 ./scripts/extract.sh
 (cd lean && lake build && lake build spectest)
+# Constant time (default build): regenerate the instrumented copy of the translation, then the
+# checker, the erasure theorems and the headline statements.
+./scripts/ct-gen.sh
+(cd lean && lake build Ct)
 (cd security && lake build)
 # The build with hw-sha2: translation, proofs (the same six theorems, over the
 # instruction model in lean-hw/Arm.lean), and that model on the recorded cases.

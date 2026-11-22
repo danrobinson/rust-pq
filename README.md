@@ -49,7 +49,12 @@ The checked signer ([below](#the-interface-to-use-compat)) is not part of FIPS
 correct at the level of the specification: a WOTS+, XMSS or FORS signature
 leads back to the public key it was made under.
 
-The theorems are proved for both ways of building the crate: the default
+**Constant time.** For the default build, [lean/Ct](lean/Ct) proves that the
+branches and memory accesses of key generation reveal nothing, and that those
+of signing reveal only what can be computed from the public key, the message
+and the signature; see [Constant time](#constant-time-leanct-see-leanct_statusmd).
+
+The theorems of the two tables are proved for both ways of building the crate: the default
 build ([lean](lean)), and the build with the opt-in `hw-sha2` feature
 ([lean-hw](lean-hw)), which runs SHA-256 on the processor's SHA-256
 instructions. The second proof rests on one thing the first does not, a model
@@ -233,9 +238,12 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
   a transcription of Arm's pseudocode, checked against one processor on
   recorded inputs; and the eighteen functions that call the intrinsics are
   read, not translated. See [Opt-in hardware SHA-2](#opt-in-hardware-sha-2-hw-sha2).
-- **Side channels.** Nothing about timing or memory access patterns is proven.
-  There is an audit and binary-level evidence, with one timing finding; see
-  [Further work](#further-work-in-this-repository).
+- **Side channels, beyond the source.** For the default build it is proved
+  that the branches and memory accesses of key generation and signing reveal
+  only public data ([Constant time](#constant-time-leanct-see-leanct_statusmd)).
+  That is a statement about the Rust source: the compiler, the processor's
+  instruction timing, speculation, power and faults are outside it, and so is
+  the `hw-sha2` build.
 - **Other parameter sets in the main tree.** `rust/` and `lean/` are SHA2-128s
   only; all six SHA-2 sets are covered in the separate `multi/` copy. The pre-hash variants
   (HashSLH-DSA) are not implemented. The verified crate takes seeds and
@@ -262,6 +270,8 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
   the proofs about the hardware kernels (`Slhdsa/Proofs/Hw/`), and links to
   the proof files of `lean/` that do not depend on the build.
 - `lean/Slhdsa/Theorems.lean`, `ApiTheorems.lean` — the headline statements.
+- `lean/Ct/` — the constant-time proof: leakage model, the instrumented copy of
+  the translation, and the theorems (`Ct/Theorems.lean`).
 - `lean/Spec/Checked.lean`, `Correctness.lean` — the checked signer over the
   specification, and the proof that signing then verifying succeeds.
 - `security/` — the link to VCVio's security theorem (`Link`) and the
@@ -457,11 +467,28 @@ independent statement-level review of the internal-interface theorems is in
 [security/status/AUDIT-closed.md](security/status/AUDIT-closed.md); the
 context-string extension was made after it and has not been reviewed.
 
-### Side channels ([rust/ct-evidence](rust/ct-evidence), see `lean/CT_STATUS.md`)
+### Constant time ([lean/Ct](lean/Ct), see `lean/CT_STATUS.md`)
 
-Nothing about side channels is proven. A source audit found no
-secret-dependent branch or index, and emulated execution traces of the
-compiled code were identical across thousands of secret pairs. A timing test
-on bare SHA-256 showed a small data-dependent difference that disappears with
-the CPU's data-independent-timing mode, which the crate cannot enable itself.
-A Lean proof is designed but not built.
+For the default build, a Lean proof shows that what key generation and signing
+reveal through branches, memory-access indices, lengths and division operands
+is nothing, or is computable from public data:
+
+- **Key generation:** any two runs have the same trace, whatever the seeds.
+- **Signing:** the trace of a run that returns a signature equals the trace of
+  a simulator that is given only the public key, the message, the context and
+  that signature.
+- **Verification:** all inputs are public.
+
+The traced program is the verified translation's own text, elaborated against
+instrumented primitives; a checker rejects any use of an un-instrumented one,
+and erasing the trace is proved to give back the verified functions. The
+statements are in [lean/Ct/Theorems.lean](lean/Ct/Theorems.lean) (standard
+axioms only).
+
+It is a source-level statement. It does not cover the compiler, the
+processor's instruction timing (on Arm that needs the data-independent-timing
+mode, which the application must switch on), speculative execution, power or
+faults, and it has not yet been carried over to the `hw-sha2` build.
+[rust/ct-evidence](rust/ct-evidence) holds binary-level evidence (emulated
+execution traces and timing tests) recorded on 2026-11-20 for the crate as it
+then was.

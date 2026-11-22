@@ -178,7 +178,8 @@ abbrev alloc.vec.Vec.push {T : Type _} (v : Aeneas.Std.alloc.vec.Vec T) (x : T) 
 /-! ## Comparison of arrays
 
 Rust's `==` on arrays may stop at the first difference, so it leaks the length of the common
-prefix. (Only used in `ht_verify`, on public data.) -/
+prefix. (Used in `ht_verify`, on public data, and in `ht_sign_checked`, on roots that are
+public whenever the checks pass.) -/
 
 abbrev core.array.equality.PartialEqArray.eq {T : Type _} [DecidableEq T] {N : Usize}
     (inst : Aeneas.Std.core.cmp.PartialEq T T) (a0 a1 : Aeneas.Std.Array T N) : Ct.Leak Bool :=

@@ -99,4 +99,12 @@ theorem vec_len_congr {α : Type u} {β : Type v} {s : alloc.vec.Vec α} {s' : a
     (alloc.vec.Vec.deref v).length = v.length := by
   simp [alloc.vec.Vec.deref, alloc.vec.Vec.length, Slice.length, alloc.vec.Vec.val]
 
+theorem erase_liftM {α : Type} (r : Result α) : (liftM r : Ct.Leak α).erase = r :=
+  Ct.Leak.erase_lift r
+
+theorem liftM_run_ok {α : Type} {r : Result α} {a : α} (h : r = Result.ok a) :
+    (liftM r : Ct.Leak α).run = Result.ok (a, []) := by
+  show (Ct.Leak.prim [] r).run = _
+  rw [Ct.Leak.run_prim, h, bind_ok]
+
 end Ct.Facts

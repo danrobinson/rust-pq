@@ -334,6 +334,23 @@ check, **make the check opt-in** so that default signing does the same work as R
 - **Benchmark**: entry `verified-api` added (the adapter); `bench/variants/current` re-synced.
   **Not rerun yet**: the numbers in `bench/RESULTS.md` predate this round.
 
+## Constant time proved for the default build (`lean/Ct`, 2026-11-21)
+
+`lean/CT_STATUS.md` is the reference. In short: `lean/Ct/` instruments the verified translation's
+own text (branch outcomes, access indices and lengths, ranges, copy lengths, comparison prefix
+lengths, division operands), proves that erasing the trace gives the verified functions (190
+theorems), and proves in `Ct/Theorems.lean` (16 statements, standard axioms): key generation's
+trace is the same for all seeds; every signer's trace on a run that returns a signature equals
+that of a simulator given only (public key, message, context, signature); verification has only
+public inputs. No functional hypothesis was assumed beyond the message-length bound. Checked by
+rebuilding (`lake build Ct`, 3,701 jobs; 221 definitions pass the checker).
+- A research report on the method and its limits is in `reports/Constant time proofs for SLH
+  DSA.md`; the simulator form of the signing theorem comes from it.
+- Not done: the `hw-sha2` build; anything below the source (compiler, processor timing mode,
+  speculation, power). `rust/ct-evidence` results are still those of 2026-11-20.
+- Observation, not a defect: when a checked signer returns nothing after a failed recomputation,
+  its trace shows the common-prefix length of the two roots.
+
 ## Adapter for RustCrypto's interface (`compat/`, 2026-11-21)
 
 `compat/` (package `slhdsa-compat`, library name `slh_dsa`) gives the verified crate the

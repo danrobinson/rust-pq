@@ -24,8 +24,9 @@ same instrumented program text applied to (possibly) different arguments:
 * a primitive in tail position: `Rel.prim`, then `Rel.mono`;
 * `cond c a b` / `cond c' a' b'`: `Rel.cond`, with the side goal `decide c = decide c'`;
 * `pure a` / `pure b`: `Rel.pure`, leaving the postcondition;
-* tuple destructuring `uncurry f p` / `uncurry f' p'`: both pairs are destructured;
-* `let`: zeta-reduction.
+* tuple destructuring `uncurry f p` / `uncurry f' p'`: both pairs are destructured (variables:
+  by cases; explicit pairs, e.g. from `Array.to_slice_mut`: by projection);
+* `let`: zeta-reduction (and `let (s, back) := Array.to_slice_mut a`: destructured).
 
 Side conditions are tried with `ct_side`, which may use `ct_facts` (lengths of the results of
 `push`, `extend_from_slice`, `copy_from_slice`, range indexing, the back function of
@@ -64,6 +65,7 @@ macro "ct_side" : tactic => `(tactic| first
   | rfl
   | assumption
   | trivial
+  | (simp only [Aeneas.Std.Array.length_to_slice, Ct.Facts.deref_length]; done)
   | (simp only [List.cons.injEq, Event.index.injEq, Event.range.injEq, Event.copy.injEq,
       Event.extend.injEq, Event.div.injEq, Event.rem.injEq, Event.cmp.injEq, and_true,
       true_and, decide_eq_decide] at *; done)
@@ -163,7 +165,8 @@ macro "ct_step" : tactic => `(tactic| first
   | (with_reducible refine Rel.mono (Rel.prim ?_) (fun _ _ _ => ?_); try ct_clean)
   | (with_reducible refine Rel.bind (R := fun _ _ => True) ?_ (fun _ _ _ => ?_))
   | ct_uncurry
-  | fail_if_no_progress dsimp +zetaHave only)
+  | (with_reducible refine Rel.uncurry ?_; dsimp only)
+  | fail_if_no_progress dsimp +zetaHave only [Aeneas.Std.Array.to_slice_mut])
 
 /-- Repeat `ct_step` on all goals. -/
 macro "ct_steps" : tactic => `(tactic| repeat' ct_step)
