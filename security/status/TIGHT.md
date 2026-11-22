@@ -18,6 +18,13 @@
 > L5 for FORS (`_tight4`) and WOTS (`_tight5`), per-signature message-block coefficient
 > (`_tight6`). Dominant now at P64: the message blocks `31·x·qs`; at P20/P40: `27·qf`. §8.
 
+> **Update (fourth session, 2026-11-22).** Current best: `suf/euf_ideal_closed_tight8`
+> (`Ideal/Realize/FinalTight8.lean:431`), `QlinT8 = 27·qf + qs·(16771392 + 14·x) + 29487855 + 13·x`;
+> P64 `2^-45 + 2^-46 + 2^-39` (was `… + (2^-39 + 2^-40)`), P20/P40 unchanged. Step 1 (message blocks
+> as free chain queries, `Core/ChainFine.lean`) done for four of the nine games (SM-UD ×14 in
+> `_tight7`; class TCR `F`, `H` and WOTS TCR in `_tight8`); PRE, class TCR `T_len`/`T_k`, FORS TCR
+> not done. Steps 2–5 assessed only. §9.
+
 Scope: `suf_ideal_closed` / `euf_ideal_closed` (`Ideal/Realize/Final.lean`) and their
 context-string / Rust / API corollaries. Quantum side, other parameter sets and the
 standard-model statement are out of scope.
@@ -613,4 +620,189 @@ lake build              # Build completed successfully (8131 jobs); 0 `sorryAx` 
 All `#print axioms` lines of the new files: `[propext, Classical.choice, Quot.sound]` (a few
 arithmetic lemmas `[propext]` or `[propext, Quot.sound]`). No `sorry`, `axiom`, `native_decide`,
 `bv_decide`, `maxHeartbeats` in the new files. 17 new files, 17 `import` lines appended to
+`Ideal.lean`; nothing existing changed.
+
+## 9. Fourth session: message blocks as free chain queries (round-4 brief)
+
+### 9.1 Step 1, first game end to end — SM-UD (done, built)
+
+**The marking argument** (generic, `Ideal/Core/ChainFine.lean`).  A second-phase program may be
+given with *chain queries* `bs` (the Merkle–Damgård iteration from `IV` over `bs`, interface
+`pcS = unifSpec + (hS + chQ)`), expanded into raw compression queries by `expandImpl IV`.  In
+the ideal (hidden-prefix) game phase two answers `(IV, sb seed)` by `cv` and row `cv` from the
+private row table.  A chain query whose first block is not `sb seed` (`freeC`) reads only public
+cells unless a public cell read has the value `IV` or `cv` (`PubBad`): cell `0` is `(IV, b₀)`,
+`b₀ ≠ sb seed`, public since `cv ≠ IV`; every later cell's chaining value is the value of the
+previous (public) cell.  `free_fold`, `routeRO_potential_fine` (pathwise: a potential raised only
+by row cells rises by `≤ n·ε`, `n` the RAW queries, or the final cache is `PubBad`),
+`prEvent_routeRO_pubBad_le` (`Pr[PubBad] ≤ 2q₂/|St|` from a non-`PubBad` cache, `q₂` ALL
+compression queries).  The block *contents* play no role: a free chain may contain any blocks
+(the forger's messages are arbitrary); what is used is only that the chain does not start with
+the seed block, which the realiser guarantees by construction (below).  A query that does start
+with the seed block is issued raw and charged.
+
+**The game** (`Ideal/Games/UdFine.lean`).  `ud_ideal_le_fine` / `ud_bound_fine`: `ud_bound` with
+the distinguisher given as the expansion of `dC st pk` (`hdC`), and, outside a set `bad` of public
+seeds of probability `≤ β`, `dC st pk` with `≤ qM` raw queries and only free chain queries:
+`udRealI ≤ udIdealI + (qM + q₂·β)/|M'| + 2q₁γ + (old 2^-256 term + 1 + 2(q₁+qc)·max 1 L + 2q₂)/|St|`.
+The extra `/|St|` terms: `cv = IV`, a public value of phase one equal to `IV` or `cv`
+(`prEvent_preSim_pubHit_le`, `prT_preSim_cvBad_le`: `≤ (q₁+qc)·max 1 L/|St|` each; `cv` is drawn
+after phase one), a fresh public value of phase two equal to `IV` or `cv` (`2q₂/|St|`).  At bad
+seeds the old count `q₂` is charged.
+
+**The realiser** (`Ideal/Realize/WotsUdFine.lean`).  `udDistC st pk`: `udDist` with the handler
+`chainImplH st.1.1 pk`, which issues each of the two SHA-256 chains of an `H_msg` query as one
+chain query unless its first block is `sb128 pk` (then raw, `chainOrRaw`).  `udDist_eq_expand`
+(the same program), `udDistC_free` (by construction), `udDistC_boundR`: for `pk ≠ 0`, at most
+`qMU qf qs = qf + 2·udH qs + 9·udLg qs` raw queries — the `H_msg` chains cost none because every
+`H_msg` query of the second phase is at the public seed `pk` (`wUdP_foreign`) and both first
+blocks carry `pk` in bytes `16..31` where `sb128` has zeros (`iblocksH_head_ne`,
+`oblocksH_head_ne`).  `bad = {0}`, `β = γ`.  `wotsUd_bound_128s_fine`, `udLeg_fine(E)`.
+
+**The headline** (`Ideal/Realize/FinalTight7.lean`).  `ideal_bound_core_legs7` (UD leg as a
+hypothesis), `Realizers.epsL7_le_tight` (`linT7 = QP + 2QM + 3QF + 4QT + 3QW + 14QU + 40`,
+`polyP7 = polyP + 14·(20N + 1)`), `QlinT7 qf qs ℓ = 27·qf + qs·(16944233 + 17·x) + 29487867 + 17·x`
+(`QlinT7_add : QlinT7 + 14·(qs+2)·(x+3) = QlinT6`), `tight7_le_tight6` (the right-hand side is
+never above `_tight6`'s: the `2^-256` part gains `14(20·NAll+1) ≤ 14(qs+2)(x+3)·2^128`).
+```
+theorem suf_ideal_closed_tight7 (S : ForgerI) (oR …) {qf qs ℓ : ℕ} (hqf …) (hqs …) (hlong …) (hout …)
+    (hQ : QcAll qf qs ℓ ≤ 2 ^ 126) :
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+        ((QlinT7 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+        (polyP7 (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256
+```
+(`FinalTight7.lean`, same hypotheses as `suf_ideal_closed`), `euf_ideal_closed_tight7`; points
+`…_tight7_2_20/_2_40/_2_64`; context-string forms `FinalPureTight7.lean`; Rust/API forms
+`RustFinalClosedTight7.lean` (`rust_ideal_security_closed_tight7`,
+`rust_ideal_security_closed_pure_tight7`, `api_ideal_security_closed_pure_tight7`; conjuncts 1–2
+unchanged).
+
+| point | tight6 | tight7 (proved) |
+|---|---|---|
+| P20 (`qf ≤ 2^60`, `qs ≤ 2^20`) | `2^-77 + 2^-132 + 2^-63` | same |
+| P40 (`qf ≤ 2^64`, `qs ≤ 2^40`) | `2^-63 + 2^-94 + 2^-59` | same |
+| P64 (`qf ≤ 2^64`, `qs ≤ 2^64`) | `2^-45 + 2^-46 + (2^-39 + 2^-40)` | `2^-45 + 2^-46 + (2^-39 + 2^-43)` |
+
+Unrounded legs II+III (Python, exact integers, NOT machine-checked, `scratchpad/tight4/pt7.py`):
+P20 −63.245 (unchanged), P40 −59.096 → −59.138, P64 −38.44 → −38.95.
+
+### 9.2 Step 1, three more games — single-block SM-TCR (class TCR `F`, `H`; WOTS-chain TCR) (done, built)
+
+`Ideal/Games/TcrFine.lean`: `prEvent_chainRO_pubHit_le` (generic phase one: a fixed value is a
+public value with probability `≤ (q₁ + C)·max 1 L/|St|`), `prT_cvBad_le_of`,
+`idealGame_le_of_inv_fine` (`idealGame_le_of_inv` with the phase-two bound needed only from
+non-`PubBad` caches, larger by `b` on a seed set `bad`), `prEvent_tcr_phase2_le_fine`,
+`tcr_ideal_le_fine`, `tcr_bound_fine`:
+`tcrAdvantage ≤ (qM+1)·δ + (q₂+1)·δ·β + q₁γ + (old + 2(q₁+qch+qc)·max 1 L + 2q₂)/|St|`.
+Generic addition in `ChainFine.lean`: `prEvent_routeRO_bad_fine` (a bad predicate fired only by
+fresh row cells: `Pr[bad ∧ ¬PubBad] ≤ n·ε`, `n` raw queries).
+
+`Ideal/Realize/TcrWotsFine.lean`: `tcrForgeC` / `tcrForge_eq_expand` / `tcrForgeC_boundR`
+(WOTS-chain TCR, raw cap `qMW = qf + 2·tcrH + 9·tcrLg ≤ QU`), `tcrMOpenPS_foreign`,
+`forgeP3GC` / `forgeP3G_eq_expand` / `forgeP3GC_boundR` (class TCR, raw cap
+`qMT qf = qf + 86416`: the answer-storing realiser's only per-signature compressions were the
+`H_msg` chains).  `Ideal/Realize/TcrLegsFine.lean`: `tcrArityT_bound_128s_fine`,
+`wotsTcrT_bound_128s_fine`, `epsTcrF`, `classTcrLeg_fine(E)` (`n = 1 ∨ n = 2`),
+`wotsTcrLeg_fine(E)`.
+
+`Ideal/Realize/FinalTight8.lean`: `ideal_bound_core_legs8`, `Realizers.epsL8_le_tight`
+(`linT8 = QP + 2QM + 3QF + 2QT + 2QTF + 2QW + QWT + 14QU + 40`, `polyP8 = polyP7 + 3(Qc + 40N + 1)`),
+`QlinT8 qf qs ℓ = 27·qf + qs·(16771392 + 14·x) + 29487855 + 13·x` (`QlinT8_add`:
+`QlinT8 + 172841·qs + 3·qs·x + 4·x + 12 = QlinT7`), `tight8_le_tight7` (under the headline's own
+hypothesis `QcAll ≤ 2^126`).  Headline (`FinalTight8.lean:431`, same hypotheses as
+`suf_ideal_closed`):
+```
+theorem suf_ideal_closed_tight8 … (hQ : QcAll qf qs ℓ ≤ 2 ^ 126) :
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+        ((QlinT8 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+        (polyP8 (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256
+```
+`euf_ideal_closed_tight8` (`:447`); points `…_tight8_2_20/_2_40/_2_64`; `FinalPureTight8.lean`,
+`RustFinalClosedTight8.lean` (`rust_ideal_security_closed_tight8`, `…_pure_tight8`,
+`api_ideal_security_closed_pure_tight8`).
+
+| point | tight6 | tight7 | tight8 (proved) |
+|---|---|---|---|
+| P20 | `2^-77 + 2^-132 + 2^-63` | same | same |
+| P40 | `2^-63 + 2^-94 + 2^-59` | same | same |
+| P64 | `2^-45 + 2^-46 + (2^-39 + 2^-40)` | `… + (2^-39 + 2^-43)` | `2^-45 + 2^-46 + 2^-39` |
+
+Unrounded legs II+III (Python, NOT machine-checked, `scratchpad/tight4/pt8.py`): P20 −63.245,
+P40 −59.148, P64 −39.093 (tight6 −38.44).
+
+### 9.3 Step 1, what was NOT done (and why)
+
+Remaining message-block charge per signing query after `_tight8`: `14·x` (PRF 2, PRF_msg 2,
+FORS TCR 3×2, SM-PRE 2, class TCR `T_len`, `T_k` 1+1).  Not built (budget of the session), the
+route is the one of 9.1–9.2 in each case:
+* SM-PRE (`Games/PreIdeal.lean`): `prT_pre_phase2_le` uses `prEvent_routeRO_bad_le` (`PreGood`),
+  `routeRO_potential_le` (hidden reads) and the guess term; the fine forms are
+  `prEvent_routeRO_bad_fine` and `routeRO_potential_fine`; the cv-averaging needs
+  `prEvent_preSim_pubHit_le` generalised from `UdAdv.pick` to `PreAdv.choose` (same oracle
+  interface).  Realiser: `preInvC` exactly as `udDistC` (`wPreP_foreign` as `wTcrP_foreign`).
+  Expected P64 gain (outside Lean): −39.09 → −39.19.
+* class TCR `T_len`, `T_k` (`Games/TcrMulti*`, `MP2.prEvent_bad_le_of_step_cap`): a different
+  phase-two machinery (multi-block targets); the free-chain argument applies unchanged to the
+  `H_msg` chains but `MP2` would need its own fine step lemma.  −39.19 → −39.30.
+* FORS TCR (`Games/TcrFV*`): the game side is the same as `tcr_bound_fine` (`FvInv.good` gives
+  `TcrGood`; `prEvent_fv_phase2_le` has the same two calls).  The realiser side is the costly part:
+  its second phase is `simulateQ (outerC tg) (simulateQ (chainImplP tbl) …)` (`ForsGuess.lean`),
+  two stateful handler layers over the FORS game interface `GP P₀`, so `chainImplH` has to be
+  re-done for `liftCS`/`outerC` and the expansion identity carried through `StateT`.
+  −39.30 → −39.68.
+With all of step 1: P64 leg II ≈ `2^-39.68` (Python).
+
+### 9.4 Step 2 (FORS re-signing) — assessed, not started
+
+A sound marking exists and needs no hypothesis on the forger: in the FORS-TCR (and every
+single-block TCR) game, a cached private-row cell can break `TcrGood` only if its block's tweak
+`btw B` is a target tweak (`prEvent_not_tcrGood_cacheQuery_row_le` charges `δ` only then).
+So a raw phase-two query `(c, b)` with `c = IV` (never in row `cv`, since `cv ≠ IV`) or with
+`btw b ∉ T`, for a set `T` containing every challenge tweak of phase one (a hypothesis on the
+ideal-model adversary's OWN challenge queries, `AllQueriesSatisfy`), is never charged — on every
+run, whatever the queries are.  For the FORS realiser `T` = FORS-leaf addresses; marked raw
+queries per signature would be the second compression of each FORS-leaf `F` (`k·2^a = 57344`) and
+the continuation blocks of the long `Thash` queries (`9·3585`, their tweak bytes are hash values,
+so they must be charged in the worst case).  Missing: per-address-type counts through the FORS
+open programs (`Lazy.qb_forsSign`, `qb_authPath`, … are uniform in the address; a count of `F`
+calls at FORS-leaf addresses needs the address arguments of every call: est. 1.5–2k lines).
+Expected (Python): after steps 1 and 2, P64 leg II ≈ `2^-40.8`.
+
+### 9.5 Steps 3–5 — assessed, not started
+
+* Step 3 (WOTS re-signing, store route §8.3): `17·(2·121857 + 9·3577) = 4.69·10^6` per signing
+  query; after steps 1–2 it would be about half of the remaining per-signature coefficient
+  (Python), i.e. within the 2-bit window: worth doing after step 2, not before.
+* Step 4 (ITSR L7): ITSR is `2^-45.69 + 2^-46.1` at P64, leg II after all of steps 1–3 ≈
+  `2^-41.5`; ITSR is not the bottleneck at any point yet.  The plan of §8.6 stands: a
+  re-randomising hybrid (template `quantum/PQ/QROM/ExactItsr4.lean`) in which the coverers are the
+  target digests (themselves `H_msg` chains through the table), bringing I.a to `≈ qf·p(qs)`;
+  missing: the per-game ITSR bound in that form and its realiser count (several thousand lines).
+  L11 (two-class chain lengths, I.b −46.1 → ≈ −79) is the cheap part and should come first.
+* Step 5 (factor 27 on `qf`): the factor is the sum over the reduction's games of the per-game
+  charge of each forger query (PRF 1, PRF_msg 2, FORS TCR 3, class TCR 4, UD 14, PRE 2, WOTS TCR 1).
+  Tweak marking (9.4) would make a forger query count in a TCR-type game only if its block's tweak
+  is that game's target type, and the target-tweak sets of the games are nearly disjoint (the 14
+  UD hybrids target distinct chain positions).  But the composition applies each per-game bound
+  with a worst-case count per game, and the forger may put all its queries into any one game's
+  tweak set; a gain needs a JOINT accounting across games (`Σ_G E_G[#queries in T_G]` under
+  different experiments), which the per-game structure does not give.  Not an artefact of the
+  arithmetic; structural (L6).  Nothing cheap was found.
+
+### 9.6 Builds (this session)
+
+```
+cd security && export PATH=$HOME/.elan/bin:$PATH
+lake build Ideal.Core.ChainFine Ideal.Games.UdFine Ideal.Games.TcrFine
+lake build Ideal.Realize.WotsUdFine Ideal.Realize.TcrWotsFine Ideal.Realize.TcrLegsFine
+lake build Ideal.Realize.FinalTight7 Ideal.Realize.FinalPureTight7 Ideal.RustFinalClosedTight7
+lake build Ideal.Realize.FinalTight8 Ideal.Realize.FinalPureTight8 Ideal.RustFinalClosedTight8
+lake build Ideal        # Build completed successfully (8138 jobs); 0 `sorryAx`, 0 errors in the log.
+lake build              # Build completed successfully (8155 jobs); 0 `sorryAx`, 0 errors in the log.
+```
+All `#print axioms` of the new files: `[propext, Classical.choice, Quot.sound]` (a few arithmetic
+lemmas `[propext]` or `[propext, Quot.sound]`).  No `sorry`, `axiom`, `native_decide`,
+`bv_decide`, `maxHeartbeats` in the new files.  12 new files, 12 `import` lines appended to
 `Ideal.lean`; nothing existing changed.

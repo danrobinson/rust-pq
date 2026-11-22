@@ -153,3 +153,15 @@ import Ideal.RustFinalClosedTight5
 import Ideal.Realize.FinalTight6
 import Ideal.Realize.FinalPureTight6
 import Ideal.RustFinalClosedTight6
+import Ideal.Core.ChainFine
+import Ideal.Games.UdFine
+import Ideal.Realize.WotsUdFine
+import Ideal.Realize.FinalTight7
+import Ideal.Realize.FinalPureTight7
+import Ideal.RustFinalClosedTight7
+import Ideal.Games.TcrFine
+import Ideal.Realize.TcrWotsFine
+import Ideal.Realize.TcrLegsFine
+import Ideal.Realize.FinalTight8
+import Ideal.Realize.FinalPureTight8
+import Ideal.RustFinalClosedTight8
