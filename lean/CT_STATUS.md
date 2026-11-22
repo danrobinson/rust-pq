@@ -1,10 +1,11 @@
 # Constant time: what is proved (2026-11-21)
 
-For the default build of the crate, the Lean library [Ct](Ct) proves that what
-key generation and signing reveal through branches and memory accesses is
-either nothing or computable from public data. Build it with
-`cd lean && lake build Ct`; [Ct/Theorems.lean](Ct/Theorems.lean) holds the
-statements and prints their axioms (the three standard ones).
+For both builds of the crate, the Lean library [Ct](Ct) proves that what key
+generation and signing reveal through branches and memory accesses is either
+nothing or computable from public data. Build it with
+`cd lean && lake build Ct` (default build) and `cd lean-hw && lake build Ct`
+(`hw-sha2`); [Ct/Theorems.lean](Ct/Theorems.lean), one file for both, holds
+the statements and prints their axioms (the three standard ones).
 
 ## What is secret and what is public
 
@@ -31,7 +32,8 @@ A run of a function produces, besides its result, a list of events
 - for every sub-slice: its bounds and the length;
 - for every `copy_from_slice`, `push` and `extend_from_slice`: the lengths;
 - for every comparison of two arrays: how long their common prefix is;
-- for every division and remainder: both operands.
+- for every division and remainder: both operands;
+- for a `match` on an optional value: whether it is present.
 
 Not recorded: the operands of addition, subtraction, multiplication and bit
 operations, and shift amounts (every shift amount in the code is a public
@@ -43,11 +45,37 @@ is the text of the verified translation, `Slhdsa/Funs.lean`, copied verbatim by
 `scripts/ct-gen.sh` and elaborated where the primitives it names are the
 instrumented ones. Two things tie it to the verified program:
 
-- [Ct/Check.lean](Ct/Check.lean) inspects all 221 resulting definitions and
-  rejects any that reaches a primitive that is neither instrumented nor on a
-  short list of ones that leak nothing in this model.
-- [Ct/Erase.lean](Ct/Erase.lean) proves, for each of the 190 functions and
-  constants, that dropping the trace gives exactly the verified function.
+- [Ct/Check.lean](Ct/Check.lean) inspects all resulting definitions (221 in
+  the default build, 261 with `hw-sha2`) and rejects any that reaches a
+  primitive that is neither instrumented nor on a short list of ones that
+  leak nothing in this model.
+- [Ct/Erase.lean](Ct/Erase.lean) proves, for each function and constant (190
+  and 226), that dropping the trace gives exactly the verified function.
+
+## The `hw-sha2` build
+
+[lean-hw/Ct](../lean-hw/Ct) is the same library over that build's translation.
+Every file that does not depend on the build is shared; what is specific is
+the instrumented copy, the lemmas for the two functions whose bodies differ
+(`sha256::compress`, `hash::chain_blocks`), the lemmas for the hardware
+kernels, and a leakage model of the eighteen intrinsic wrappers
+([lean-hw/Ct/ModelBuild.lean](../lean-hw/Ct/ModelBuild.lean)):
+
+- the wrappers that load from or store to a caller's slice record the range
+  they touch and the slice's length;
+- the feature test records nothing itself (the `if` on its answer is a branch
+  like any other; whether the processor has the instructions is public);
+- **the register-only wrappers record nothing. This is an assumption about the
+  processor**: they are fixed-latency vector and SHA-256 instructions, which
+  Arm lists as taking time independent of their operands when its
+  data-independent-timing mode is on. The crate does not switch that mode on.
+
+The four-lane kernel's control flow has two inputs besides lengths: the step
+ranges, which are public, and a cache keyed on the first 16 bytes of a block.
+Those bytes are part of the hash address. The lemma about `chain_blocks`
+therefore requires the two runs' blocks to agree on their first 16 bytes
+(the value bytes are free), and the proofs of the callers show that every
+block that reaches it is built from a public address.
 
 ## The theorems
 
@@ -76,7 +104,6 @@ The only hypothesis is the message-length bound of the functional theorems.
 
 ## What this does not cover
 
-- **The `hw-sha2` build.** The proof is about the default build's translation.
 - **The compiler.** The statement is about the Rust source as Aeneas
   translates it. Nothing proves that rustc and LLVM preserve it, and Rust's
   own documentation says the language has no mechanism that guarantees

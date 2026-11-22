@@ -131,6 +131,19 @@ theorem cond {c c' : Prop} [Decidable c] [Decidable c'] {a b : Leak α} {a' b' :
   · have h' : ¬ c' := by simpa [h] using hc
     simp only [h, h', ite_false]; exact he h h'
 
+/-- The `match` on an `Option` (`Leak.matchOpt`): the two values must both be `some` or both
+`none` (whether it is `some` is emitted). -/
+theorem matchOpt {o : Option γ} {o' : Option δ} {n : Leak α} {n' : Leak β} {s : γ → Leak α}
+    {s' : δ → Leak β} {R : α → β → Prop} (h : o.isSome = o'.isSome)
+    (hn : o = none → o' = none → Rel n n' R)
+    (hs : ∀ a b, o = some a → o' = some b → Rel (s a) (s' b) R) :
+    Rel (Leak.matchOpt o n s) (Leak.matchOpt o' n' s') R := by
+  unfold Leak.matchOpt
+  refine bind (emit (by rw [h])) fun _ _ _ => ?_
+  cases o <;> cases o' <;> simp at h
+  · exact hn rfl rfl
+  · exact hs _ _ rfl rfl
+
 theorem uncurry {f : α → β → Leak γ} {f' : α' → β' → Leak δ} {p : α × β} {p' : α' × β'}
     {S : γ → δ → Prop} (h : Rel (f p.1 p.2) (f' p'.1 p'.2) S) :
     Rel (Aeneas.Std.uncurry f p) (Aeneas.Std.uncurry f' p') S := by

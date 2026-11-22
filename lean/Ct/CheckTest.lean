@@ -50,6 +50,15 @@ end sha256
 example (x y : Std.Usize) : (x / y) = Ct.Leak.prim [.div x.val y.val] (UScalar.div x y) := rfl
 example (x y : Std.U32) : (x % y) = Ct.Leak.prim [.rem x.val y.val] (UScalar.rem x y) := rfl
 
+/-- A `match` on an `Option` in a `do` block elaborates to `Leak.matchOpt`, which emits the
+branch (`Ct/Do.lean`); no other `match` is accepted there. -/
+example (o : Option Std.U8) :
+    (do
+      match o with
+      | none => ok 0#u8
+      | some x => ok x : Ct.Leak Std.U8) =
+    Ct.Leak.matchOpt o (Ct.Leak.pure 0#u8) (fun x => Ct.Leak.pure x) := rfl
+
 end slhdsa_leak
 
 namespace Ct.CheckTest

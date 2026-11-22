@@ -49,12 +49,12 @@ The checked signer ([below](#the-interface-to-use-compat)) is not part of FIPS
 correct at the level of the specification: a WOTS+, XMSS or FORS signature
 leads back to the public key it was made under.
 
-**Constant time.** For the default build, [lean/Ct](lean/Ct) proves that the
-branches and memory accesses of key generation reveal nothing, and that those
-of signing reveal only what can be computed from the public key, the message
-and the signature; see [Constant time](#constant-time-leanct-see-leanct_statusmd).
+**Constant time.** [lean/Ct](lean/Ct) proves that the branches and memory
+accesses of key generation reveal nothing, and that those of signing reveal
+only what can be computed from the public key, the message and the signature;
+see [Constant time](#constant-time-leanct-see-leanct_statusmd).
 
-The theorems of the two tables are proved for both ways of building the crate: the default
+All of this is proved for both ways of building the crate: the default
 build ([lean](lean)), and the build with the opt-in `hw-sha2` feature
 ([lean-hw](lean-hw)), which runs SHA-256 on the processor's SHA-256
 instructions. The second proof rests on one thing the first does not, a model
@@ -245,8 +245,9 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
   that the branches and memory accesses of key generation and signing reveal
   only public data ([Constant time](#constant-time-leanct-see-leanct_statusmd)).
   That is a statement about the Rust source: the compiler, the processor's
-  instruction timing, speculation, power and faults are outside it, and so is
-  the `hw-sha2` build.
+  instruction timing, speculation, power and faults are outside it. For the
+  `hw-sha2` build it assumes that the vector and SHA-256 instructions take
+  time independent of their operands.
 - **Other parameter sets in the main tree.** `rust/` and `lean/` are SHA2-128s
   only; all six SHA-2 sets are covered in the separate `multi/` copy. The pre-hash variants
   (HashSLH-DSA) are not implemented. The verified crate takes seeds and
@@ -273,8 +274,9 @@ slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
   the proofs about the hardware kernels (`Slhdsa/Proofs/Hw/`), and links to
   the proof files of `lean/` that do not depend on the build.
 - `lean/Slhdsa/Theorems.lean`, `ApiTheorems.lean` — the headline statements.
-- `lean/Ct/` — the constant-time proof: leakage model, the instrumented copy of
-  the translation, and the theorems (`Ct/Theorems.lean`).
+- `lean/Ct/`, `lean-hw/Ct/` — the constant-time proof for each build: leakage
+  model, the instrumented copy of the translation, and the theorems
+  (`Ct/Theorems.lean`, shared).
 - `lean/Spec/Checked.lean`, `Correctness.lean` — the checked signer over the
   specification, and the proof that signing then verifying succeeds.
 - `security/` — the link to VCVio's security theorem (`Link`) and the
@@ -472,7 +474,7 @@ context-string extension was made after it and has not been reviewed.
 
 ### Constant time ([lean/Ct](lean/Ct), see `lean/CT_STATUS.md`)
 
-For the default build, a Lean proof shows that what key generation and signing
+For both builds, a Lean proof shows that what key generation and signing
 reveal through branches, memory-access indices, lengths and division operands
 is nothing, or is computable from public data:
 
@@ -491,7 +493,9 @@ axioms only).
 It is a source-level statement. It does not cover the compiler, the
 processor's instruction timing (on Arm that needs the data-independent-timing
 mode, which the application must switch on), speculative execution, power or
-faults, and it has not yet been carried over to the `hw-sha2` build.
+faults. For the `hw-sha2` build ([lean-hw/Ct](lean-hw/Ct)) the intrinsic
+wrappers get a leakage model of their own, in which the vector and SHA-256
+instructions are assumed to reveal nothing about their operands.
 [rust/ct-evidence](rust/ct-evidence) holds binary-level evidence (emulated
 execution traces and timing tests) recorded on 2026-11-20 for the crate as it
 then was.

@@ -12,7 +12,7 @@ and fails the build unless every constant they mention is
 1. another definition of `Ct/Funs.lean` (a matcher among them may only have one alternative,
    so it destructures a tuple and cannot branch);
 2. one of the instrumented primitives or plumbing constants of `Ct/Leak.lean`/`Ct/Model.lean`
-   (`modelConsts`);
+   or of the build's `Ct/ModelBuild.lean` (`modelConsts`);
 3. a type former, a proof (theorem), or a constructor/projection of a structure of
    `Slhdsa/Types.lean` (pure data, cannot branch or index); or
 4. on the whitelist `nonLeaking` of non-leaking operations below.
@@ -32,6 +32,8 @@ namespace Ct.Check
 def modelConsts : List Name := [
   -- monad plumbing; `cond` emits the branch event, `prim` the events of a primitive
   ``Ct.Leak, ``Ct.Leak.bind, ``Ct.Leak.pure, ``Ct.Leak.cond, ``Ct.Leak.loop, ``Ct.Leak.prim,
+  -- `matchOpt` emits the branch event of a `match` on an `Option` (`Ct/Do.lean`)
+  ``Ct.Leak.matchOpt,
   ``Ct.Leak.lift, ``Ct.Leak.instMonad, ``Ct.Leak.instMonadLiftResult, ``Ct.Leak.instCCPO,
   -- the names of the generated text that are redefined
   ``slhdsa_leak.Result, ``slhdsa_leak.ok, ``slhdsa_leak.lift, ``slhdsa_leak.loop,
@@ -49,7 +51,7 @@ def modelConsts : List Name := [
   ``slhdsa_leak.core.array.equality.PartialEqArray.eq,
   ``slhdsa_leak.core.clone.Clone, ``slhdsa_leak.core.clone.Clone.mk,
   ``slhdsa_leak.core.marker.Copy, ``slhdsa_leak.core.marker.Copy.mk
-]
+] ++ Ct.Build.modelConsts   -- the build's own instrumented primitives (`Ct/ModelBuild.lean`)
 
 /-- Operations of Lean and Aeneas that the instrumented code may use without emitting events.
 Keep this short; every entry is an assumption of the leakage model. -/

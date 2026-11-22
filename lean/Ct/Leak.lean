@@ -112,6 +112,15 @@ def lift {α : Type u} (r : Result α) : Leak α := prim [] r
 def cond {α : Type u} (c : Prop) [Decidable c] (a b : Leak α) : Leak α :=
   bind (emit [.branch (decide c)]) fun _ => if c then a else b
 
+/-- The instrumented `match` on an `Option` (the only `match` of the translated text, in the
+`hw-sha2` build's `sha256::compress`): emit whether the value is `some`, as a branch, then run
+the chosen arm. -/
+def matchOpt {α : Type u} {β : Type v} (o : Option α) (n : Leak β) (s : α → Leak β) : Leak β :=
+  bind (emit [.branch o.isSome]) fun _ =>
+    match o with
+    | none => n
+    | some a => s a
+
 /-- Forget the trace. -/
 def erase {α : Type u} (m : Leak α) : Result α :=
   Aeneas.Std.bind m.run fun p => .ok p.1
@@ -336,6 +345,14 @@ theorem erase_eq {α : Type u} (m : Leak α) : m.erase = Aeneas.Std.bind m.run f
 @[simp, ct_erase] theorem erase_ite {α : Type u} (c : Prop) [Decidable c] (a b : Leak α) :
     (if c then a else b).erase = if c then a.erase else b.erase := by
   split <;> rfl
+
+@[simp, ct_erase] theorem erase_matchOpt {α : Type u} {β : Type v} (o : Option α) (n : Leak β)
+    (s : α → Leak β) :
+    (matchOpt o n s).erase = Option.casesOn (motive := fun _ => Result β) o n.erase
+      (fun a => (s a).erase) := by
+  unfold matchOpt
+  rw [erase_bind, erase_emit, bind_ok]
+  cases o <;> rfl
 
 @[simp, ct_erase] theorem erase_uncurry {α : Type u} {β : Type v} {γ : Type w}
     (f : α → β → Leak γ) (p : α × β) :

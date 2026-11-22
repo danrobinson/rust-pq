@@ -22,10 +22,14 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 # instruction model in lean-hw/Arm.lean), and that model on the recorded cases.
 ./scripts/extract-hw.sh
 (cd lean-hw && lake build && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
+# Constant time for the hw-sha2 build: the same statements, over this build's translation and a
+# leakage model of the intrinsic wrappers (lean-hw/Ct/ModelBuild.lean).
+./scripts/ct-gen.sh hw
+(cd lean-hw && lake build Ct)
 # The security statements of security/, compiled against the hw-sha2 build's translation.
 # (It compiles its own copies of the security libraries: about four minutes from clean.)
 (cd security-hw && lake build)
-if grep -rnE --include='*.lean' "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Spec lean/Ct lean/Ct.lean \
+if grep -rnE --include='*.lean' "sorry|native_decide|^axiom|bv_decide" lean/Slhdsa/Proofs lean/Slhdsa/Theorems.lean lean/Slhdsa/ApiTheorems.lean lean/Spec lean/Ct lean/Ct.lean lean-hw/Ct lean-hw/Ct.lean \
      security/Link security/E2E security/Reduction security/Ideal security/Link.lean security/E2E.lean security/Reduction.lean security/Ideal.lean \
      lean-hw/Arm.lean lean-hw/ArmTest.lean lean-hw/Slhdsa | grep -v "no .native_decide"; then
   echo "FOUND a placeholder or extra axiom"; exit 1

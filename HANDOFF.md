@@ -346,8 +346,20 @@ public inputs. No functional hypothesis was assumed beyond the message-length bo
 rebuilding (`lake build Ct`, 3,701 jobs; 221 definitions pass the checker).
 - A research report on the method and its limits is in `reports/Constant time proofs for SLH
   DSA.md`; the simulator form of the signing theorem comes from it.
-- Not done: the `hw-sha2` build; anything below the source (compiler, processor timing mode,
-  speculation, power). `rust/ct-evidence` results are still those of 2026-11-20.
+- **The `hw-sha2` build is covered too** (`lean-hw/Ct`, same day): the same 16 statements over
+  that build's translation (261 definitions pass the checker, 226 erasure theorems). Shared by
+  link with `lean/Ct` except the instrumented copy, `CompressTop.lean`, `ChainTop.lean`,
+  `Hw/Lanes.lean`, `Hw/Chain.lean` and the trusted wrapper model `ModelBuild.lean` (memory
+  wrappers record their range; register-only instructions record nothing, an assumption about
+  the processor that needs Arm's data-independent-timing mode). To share the callers, the
+  `chain_blocks` lemma now requires the two runs' blocks to agree on their first 16 bytes
+  (`Ct/Heads.lean`), which is what the kernel's cache of the first rounds compares; every caller
+  proves it from public addresses. Changes to meaning-bearing shared files: `Do.lean` accepts one
+  form of `match` (on an `Option`, recorded as a branch on `isSome`), needed by the hardware
+  `compress`; `Check.lean` accepts the build's wrapper list. `Model.lean`, the simulators and
+  `Theorems.lean` did not change. `scripts/ct-gen.sh hw` generates the hardware copy.
+- Not done: anything below the source (compiler, processor timing mode, speculation, power).
+  `rust/ct-evidence` results are still those of 2026-11-20.
 - Observation, not a defect: when a checked signer returns nothing after a failed recomputation,
   its trace shows the common-prefix length of the two roots.
 

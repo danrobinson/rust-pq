@@ -1,4 +1,4 @@
-import Ct.Hash
+import Ct.ChainTop
 
 /-!
 # Constant time: `util.rs` and `wots.rs`
@@ -119,43 +119,51 @@ theorem wots_digits_loop_body (msg msg' : alloc.vec.Vec U32) (c c' : U32) (i : U
   ct_steps
   all_goals (ct_facts; simp_all)
 
+/-! The block arrays below are secret except for their heads (`Ct/Heads.lean`), which are
+built from the public address and are the same in the two runs: the precondition of
+`chain_blocks`. -/
+
 theorem sk_blocks_loop0_body (sk sk' : Array U8 16#usize) (a : slhdsa.address.Adrs)
-    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) :
+    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : HeadsEq b.val b'.val) :
     Rel (wots.sk_blocks_loop0.body sk a b i) (wots.sk_blocks_loop0.body sk' a b' i)
-      (CFRel (fun p q => p.2 = q.2) (fun _ _ => True)) := by
+      (CFRel (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) (fun p q => HeadsEq p.val q.val)) := by
   unfold wots.sk_blocks_loop0.body
   ct_steps
-  all_goals simp_all
+  all_goals first | (simp only [CFRel_cont_cont, CFRel_done_done, and_true]; heads_tac) | simp_all
 
 @[ct_rel] theorem sk_blocks_loop0 (sk sk' : Array U8 16#usize) (a : slhdsa.address.Adrs)
-    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) :
-    Rel (wots.sk_blocks_loop0 sk a b i) (wots.sk_blocks_loop0 sk' a b' i) (fun _ _ => True) := by
+    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : HeadsEq b.val b'.val) :
+    Rel (wots.sk_blocks_loop0 sk a b i) (wots.sk_blocks_loop0 sk' a b' i)
+      (fun p q => HeadsEq p.val q.val) := by
   unfold wots.sk_blocks_loop0
-  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
-  rintro ⟨x, j⟩ ⟨x', j'⟩ (rfl : j = j')
-  exact sk_blocks_loop0_body sk sk' a x x' j
+  refine Rel.loop (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) ?_ ⟨h, rfl⟩
+  rintro ⟨x, j⟩ ⟨x', j'⟩ ⟨hx, (rfl : j = j')⟩
+  exact sk_blocks_loop0_body sk sk' a x x' j hx
 
-theorem sk_blocks_loop1_body (t : U32) (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) :
+theorem sk_blocks_loop1_body (t : U32) (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize)
+    (h : HeadsEq b.val b'.val) :
     Rel (wots.sk_blocks_loop1.body t b i) (wots.sk_blocks_loop1.body t b' i)
-      (CFRel (fun p q => p.2 = q.2) (fun _ _ => True)) := by
+      (CFRel (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) (fun p q => HeadsEq p.val q.val)) := by
   unfold wots.sk_blocks_loop1.body
   ct_steps
-  all_goals simp_all
+  all_goals first | (simp only [CFRel_cont_cont, CFRel_done_done, and_true]; heads_tac) | simp_all
 
 @[ct_rel] theorem sk_blocks_loop1 (t : U32) (b b' : Array (Array U8 64#usize) 35#usize)
-    (i : Usize) :
-    Rel (wots.sk_blocks_loop1 t b i) (wots.sk_blocks_loop1 t b' i) (fun _ _ => True) := by
+    (i : Usize) (h : HeadsEq b.val b'.val) :
+    Rel (wots.sk_blocks_loop1 t b i) (wots.sk_blocks_loop1 t b' i)
+      (fun p q => HeadsEq p.val q.val) := by
   unfold wots.sk_blocks_loop1
-  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
-  rintro ⟨x, j⟩ ⟨x', j'⟩ (rfl : j = j')
-  exact sk_blocks_loop1_body t x x' j
+  refine Rel.loop (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) ?_ ⟨h, rfl⟩
+  rintro ⟨x, j⟩ ⟨x', j'⟩ ⟨hx, (rfl : j = j')⟩
+  exact sk_blocks_loop1_body t x x' j hx
 
 @[ct_rel] theorem sk_blocks (sk sk' : Array U8 16#usize) (seed seed' : slhdsa.hash.Seed)
     (adrs : slhdsa.address.Adrs) :
-    Rel (wots.sk_blocks sk seed adrs) (wots.sk_blocks sk' seed' adrs) (fun _ _ => True) := by
+    Rel (wots.sk_blocks sk seed adrs) (wots.sk_blocks sk' seed' adrs)
+      (fun p q => HeadsEq p.val q.val) := by
   unfold wots.sk_blocks
   ct_steps
-  all_goals (ct_facts; simp_all)
+  all_goals first | (ct_facts; simp_all; done) | heads_tac
 
 /-- `wots_pkGen`: nothing secret (seed, `PK.seed` state) reaches the trace. -/
 @[ct_rel] theorem wots_pk_gen (sk sk' : Array U8 16#usize) (seed seed' : slhdsa.hash.Seed)
@@ -163,24 +171,26 @@ theorem sk_blocks_loop1_body (t : U32) (b b' : Array (Array U8 64#usize) 35#usiz
     Rel (wots.wots_pk_gen sk seed adrs) (wots.wots_pk_gen sk' seed' adrs) (fun _ _ => True) := by
   unfold wots.wots_pk_gen
   ct_steps
-  all_goals (ct_facts; simp_all)
+  all_goals first | (ct_facts; simp_all; done) | heads_tac
 
 theorem wots_pk_from_sig_loop_body (sig sig' : Slice U8) (a : slhdsa.address.Adrs)
-    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : sig.length = sig'.length) :
+    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : sig.length = sig'.length)
+    (hb : HeadsEq b.val b'.val) :
     Rel (wots.wots_pk_from_sig_loop.body sig a b i) (wots.wots_pk_from_sig_loop.body sig' a b' i)
-      (CFRel (fun p q => p.2 = q.2) (fun _ _ => True)) := by
+      (CFRel (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) (fun p q => HeadsEq p.val q.val)) := by
   unfold wots.wots_pk_from_sig_loop.body
   ct_steps
-  all_goals simp_all
+  all_goals first | (simp only [CFRel_cont_cont, CFRel_done_done, and_true]; heads_tac) | simp_all
 
 @[ct_rel] theorem wots_pk_from_sig_loop (sig sig' : Slice U8) (a : slhdsa.address.Adrs)
-    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : sig.length = sig'.length) :
+    (b b' : Array (Array U8 64#usize) 35#usize) (i : Usize) (h : sig.length = sig'.length)
+    (hb : HeadsEq b.val b'.val) :
     Rel (wots.wots_pk_from_sig_loop sig a b i) (wots.wots_pk_from_sig_loop sig' a b' i)
-      (fun _ _ => True) := by
+      (fun p q => HeadsEq p.val q.val) := by
   unfold wots.wots_pk_from_sig_loop
-  refine Rel.loop (fun p q => p.2 = q.2) ?_ rfl
-  rintro ⟨x, j⟩ ⟨x', j'⟩ (rfl : j = j')
-  exact wots_pk_from_sig_loop_body sig sig' a x x' j h
+  refine Rel.loop (fun p q => HeadsEq p.1.val q.1.val ∧ p.2 = q.2) ?_ ⟨hb, rfl⟩
+  rintro ⟨x, j⟩ ⟨x', j'⟩ ⟨hx, (rfl : j = j')⟩
+  exact wots_pk_from_sig_loop_body sig sig' a x x' j h hx
 
 /-- `wots_pkFromSig`: the message (its digits start the chains) is public; the signature
 values only matter through their length. -/
@@ -190,7 +200,7 @@ values only matter through their length. -/
       (fun _ _ => True) := by
   unfold wots.wots_pk_from_sig
   ct_steps
-  all_goals (ct_facts; simp_all)
+  all_goals first | (ct_facts; simp_all; done) | heads_tac
 
 theorem wots_sign_loop_body (b b' : Array (Array U8 64#usize) 35#usize)
     (sig sig' : alloc.vec.Vec U8) (i : Usize) (h : sig.length = sig'.length) :
@@ -216,6 +226,6 @@ theorem wots_sign_loop_body (b b' : Array (Array U8 64#usize) 35#usize)
       (fun p q => p.length = q.length) := by
   unfold wots.wots_sign
   ct_steps
-  all_goals (ct_facts; simp_all)
+  all_goals first | (ct_facts; simp_all; done) | heads_tac
 
 end Ct.Wots

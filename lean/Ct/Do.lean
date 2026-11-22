@@ -15,8 +15,11 @@ elaborates to the same term shape with
 Tuple patterns (`let (a, b) ← e`) are elaborated exactly as Aeneas does (`Aeneas.Std.uncurry`);
 we reuse Aeneas's pattern code. Only the `do` elements that occur in the generated code are
 supported: `let x ← e`, `let pat ← e`, `let x := e`, `let pat := e`, non-dependent
-`if … then … else …` chains, nested `do`, and a final term. Anything else (in particular `match`
-and `if h : c`) is rejected, so that no un-instrumented branching can be produced here.
+`if … then … else …` chains, nested `do`, a `match` on an `Option` with exactly the arms
+`none` and `some x` (it becomes `Ct.Leak.matchOpt`, which emits whether the value is `some`, as
+a branch; it occurs once, in the `hw-sha2` build's `sha256::compress`), and a final term.
+Anything else (any other `match`, `if h : c`) is rejected, so that no un-instrumented branching
+can be produced here.
 
 Adapted from Aeneas's `Do/Elab.lean` (Apache-2.0).
 -/
@@ -53,6 +56,7 @@ partial def elabDoElem (elem : Aeneas.Do.DoElem) (rest : List Aeneas.Do.DoElem) 
       #[(cond, thenSeq)] ++ econds.zip eseqs
     elabDoIfChain branches elseSeq rest
   | `(doElem| $expr:term)            => elabDoExpr expr rest
+  | `(doElem| match $d:term with $alts:matchAlt*) => elabDoMatchOption d alts rest
   | `(doElem| do $seq:doSeq) =>
     let innerElems ← getDoElems seq
     elabDoSeqCore (innerElems ++ rest)
@@ -169,6 +173,47 @@ partial def elabDoIfChain (branches : Array (TSyntax ``doIfCond × TSyntax ``doS
           result ← mkLeakCond propExpr thenExpr result
         | _ => throwError "Ct.Do: unsupported `if` condition (only `if c then …`){indentD c}"
       return result
+  elabMonadicAsDoElem elabAtType rest
+
+/-- The only `match` supported: on an `Option`, with one discriminant and exactly the two arms
+`| none => …` and `| some x => …` (in either order). It becomes `Leak.matchOpt d n (fun x => s)`,
+which emits whether `d` is `some`. Every other form is rejected. -/
+partial def elabDoMatchOption (d : Term) (alts : Array (TSyntax ``Term.matchAlt))
+    (rest : List Aeneas.Do.DoElem) : ElabM Expr := do
+  let mut noneSeq? : Option (TSyntax ``doSeq) := none
+  let mut someArm? : Option (Ident × TSyntax ``doSeq) := none
+  for alt in alts do
+    match alt with
+    | `(matchAltExpr| | $pats,* => $body) =>
+      let ps := pats.getElems
+      unless ps.size == 1 do throwError "Ct.Do: `match` with several discriminants{indentD alt}"
+      match ps[0]! with
+      | `(none) =>
+        if noneSeq?.isSome then throwError "Ct.Do: duplicate `none` arm"
+        noneSeq? := some ⟨body.raw⟩
+      | `(some $x:ident) =>
+        if someArm?.isSome then throwError "Ct.Do: duplicate `some` arm"
+        someArm? := some (x, ⟨body.raw⟩)
+      | _ => throwError "Ct.Do: unsupported `match` pattern (only `none`, `some x`){indentD alt}"
+    | _ => throwError "Ct.Do: unexpected `match` arm syntax{indentD alt}"
+  let (some noneSeq, some (x, someSeq)) := (noneSeq?, someArm?)
+    | throwError "Ct.Do: a `match` needs exactly the arms `none` and `some x`"
+  unless alts.size == 2 do throwError "Ct.Do: a `match` needs exactly two arms"
+  let elabAtType (ty : Expr) : ElabM Expr := do
+    let some α := ty.getAppArgs[0]?
+      | throwError "Ct.Do.elabDoMatchOption: expected monadic type, got{indentExpr ty}"
+    let τ ← mkFreshTypeMVar
+    let optTy := mkApp (mkConst ``Option [← getDecLevel τ]) τ
+    let dE ← elabTermEnsuringType d optTy
+    synthesizeSyntheticMVarsNoPostponing
+    let τ ← instantiateMVars τ
+    withReader (fun ctx => { ctx with expectedAlpha := α }) do
+      let nE ← elabDoSeqCore (← getDoElems noneSeq)
+      let sE ← ElabM.withLocalDeclD x.getId τ fun fvar => do
+        Term.addLocalVarInfo x fvar
+        let b ← elabDoSeqCore (← getDoElems someSeq)
+        mkLambdaFVars #[fvar] b
+      mkAppOptM ``Ct.Leak.matchOpt #[none, none, some dE, some nE, some sE]
   elabMonadicAsDoElem elabAtType rest
 
 partial def elabDoSeqCore : List Aeneas.Do.DoElem → ElabM Expr

@@ -1,0 +1,1 @@
+../../lean/Ct/CheckTest.lean

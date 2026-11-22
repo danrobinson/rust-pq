@@ -50,7 +50,10 @@ macro_rules
   | `(tactic| ct_erase_tac $l $o) => `(tactic| (
       intros
       simp only [$l:term, $o:term, ct_erase]
-      try rfl))
+      try rfl
+      -- a `match` on the `Option` just bound (`Leak.erase_matchOpt` gives `Option.rec`, the
+      -- source its own matcher, which `rfl` does not unfold)
+      try (refine bind_congr_ok fun x _ => ?_; cases x <;> rfl)))
 
 /-- Erasure of the two recursive functions (`fors_node`, `xmss_node`, recursion on the height `z`,
 which decreases by the checked `z - 1`): strong induction on `z.val`. -/
