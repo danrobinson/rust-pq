@@ -214,6 +214,9 @@ library.
 - `scripts/extract.sh`, `scripts/extract-hw.sh` — regenerate the Lean
   translation of the default build and of the `hw-sha2` build from the Rust.
 - `scripts/check.sh` — run everything.
+- `scripts/check-arm.sh` — on another AArch64 machine: replay the record of
+  the intrinsic wrappers on that processor and run the tests on the hardware
+  backend. Needs only Rust.
 
 ## Reproducing
 

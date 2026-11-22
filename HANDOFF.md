@@ -305,6 +305,16 @@ byte) made the matching test fail. Limits: one parameter set; needs `std`; the v
 crate itself still wipes nothing. The interface and the encoding glue follow RustCrypto's
 crate (Apache-2.0 OR MIT), credited in `compat/README.md` with both licence texts.
 
+## A second processor (`scripts/check-arm.sh`, 2026-11-21)
+
+The instruction model has been compared with one processor (Apple M5). `scripts/check-arm.sh`
+replays `vectors/arm-wrappers.txt` on whatever AArch64 machine it runs on, prints the
+processor's identity, and runs the crate's and the adapter's tests on the hardware backend;
+it needs only Rust. It has been run on the M5 only. On Linux the crate takes the
+runtime-detection path (`target_feature = "sha2"` is not static there), which the Mac never
+compiles by default; that path was built and tested here with
+`RUSTFLAGS="-C target-feature=-sha2,-sha3"`: all tests pass at the same speed.
+
 ## Not done
 
 - **x86 SHA-NI backend.** `hw-sha2` does nothing on x86-64.
