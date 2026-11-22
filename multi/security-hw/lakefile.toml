@@ -1,0 +1,78 @@
+name = "multisecurity_hw"
+defaultTargets = ["MLink", "MReduction", "ME2E"]
+# The security theorems of ../security (six SHA-2 sets), attached to the crate built with
+# `hw-sha2`.
+#
+# Nothing here is new source: every library is compiled in place from ../security,
+# ../../security, ../lean, ../lean-hw or ../../lean-hw. The one difference from
+# ../security/lakefile.toml is `Slhdsa`, which is the translation and the proofs of the
+# `hw-sha2` build (../lean-hw) instead of the default build's (../lean), plus `Arm`, the
+# instruction model that translation is written over. The headline files of ../lean-hw
+# (`Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean`) are links to ../lean's,
+# so `ME2E` sees the same statements about the Rust functions in both builds.
+
+# Reuse the dependency checkouts (Mathlib cache included) of the VCVio clone.
+packagesDir = "../../.tools/VCVio-upstream/.lake/packages"
+
+[[require]]
+name = "VCVio"
+path = "../../.tools/VCVio-upstream"
+
+[[require]]
+name = "aeneas"
+path = "../../.tools/aeneas/backends/lean"
+
+# The parameterised FIPS 205 transcription (six SHA-2 sets), compiled in place from ../lean.
+[[lean_lib]]
+name = "Spec"
+srcDir = "../lean"
+
+# The instruction model of the hardware backend, compiled in place from ../../lean-hw
+# (as ../lean-hw does).
+[[lean_lib]]
+name = "Arm"
+srcDir = "../../lean-hw"
+
+# The Aeneas translation of multi/rust built with `hw-sha2` and its refinement proofs,
+# compiled in place from ../lean-hw.
+[[lean_lib]]
+name = "Slhdsa"
+srcDir = "../lean-hw"
+
+# ../security's shims, compiled in place.
+[[lean_lib]]
+name = "Shim"
+srcDir = "../security/shim"
+roots = ["Link.Basic", "Link.Hash", "Link.Verify", "Reduction.PrfDomainNonVacuity"]
+
+# security/Link/Security.lean, compiled in place.
+[[lean_lib]]
+name = "LinkSecurity"
+srcDir = "../../security"
+roots = ["Link.Security"]
+
+# The generic standard-model reduction of ../../security, compiled in place (the same module
+# list as ../security/lakefile.toml).
+[[lean_lib]]
+name = "Reduction"
+srcDir = "../../security"
+roots = ["Reduction.Basic","Reduction.Games","Reduction.WotsGame","Reduction.Steps","Reduction.Main","Reduction.Harness","Reduction.PRFHop","Reduction.PRFMsgHop","Reduction.ITSR","Reduction.OpenPRE","Reduction.TCR","Reduction.WotsSim","Reduction.WotsEmbed","Reduction.WotsUD","Reduction.WotsFinal","Reduction.Final","Reduction.NonVacuity","Reduction.Instance128s","Reduction.Tables","Reduction.PrfDomain","Reduction.Lazy.Core","Reduction.Lazy.Open","Reduction.Lazy.MsgLazy","Reduction.Lazy.ItsrLazy","Reduction.Lazy.Sparse","Reduction.Lazy.OpenPreSparse","Reduction.Lazy.TcrSparse","Reduction.Lazy.WotsSparse","Reduction.Resources","Reduction.FinalV2","Reduction.Instance128sV2","Reduction.ForsTight","Reduction.ForsTightFinal","Reduction.ForsTightNonVacuity","Reduction.TcrSplit","Reduction.TcrSplitFinal","Reduction.VerifyArity","Reduction.TcrSplitClosed","Reduction.SufCollision","Reduction.SufHarness","Reduction.SufHopPrf","Reduction.SufHopMsg","Reduction.Suf","Reduction.SufInstance128s","Reduction.External","Reduction.SufPrfV2","Reduction.Lazy.SufMsgLazy","Reduction.SufSparse","Reduction.ExternalSuf","Reduction.Headline","Reduction.HeadlineSplit","Reduction.Resources2Wots","Reduction.Resources2Tcr","Reduction.Resources2Fors","Reduction.Resources2","Reduction.TightCaps","Reduction.TightCapsHeadline","Reduction.Bytes","Reduction.TcrMemo","Reduction.TcrMemoHeadline","Reduction.Linear","Reduction.LinearBytes","Reduction.HeadlineFinal","Reduction.ResourcesFinal"]
+
+# security/E2E/GuardedRom.lean and CodedRom.lean, compiled in place.
+[[lean_lib]]
+name = "E2ERom"
+srcDir = "../../security"
+roots = ["E2E.GuardedRom", "E2E.CodedRom"]
+
+# ../security's own libraries, compiled in place.
+[[lean_lib]]
+name = "MLink"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "MReduction"
+srcDir = "../security"
+
+[[lean_lib]]
+name = "ME2E"
+srcDir = "../security"
