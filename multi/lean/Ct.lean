@@ -19,6 +19,7 @@ import Ct.Sha256
 import Ct.Sha512
 import Ct.Heads
 import Ct.Hash
+import Ct.ChainTop
 import Ct.Wots
 import Ct.Xmss
 import Ct.Fors
@@ -58,6 +59,7 @@ Files marked (link) are symbolic links to the main tree's file of the same name,
 * `Ct/Tactic.lean` (copy) `ct_step`, with two more `ct_side` alternatives.
 * `Ct/Sha256Core.lean`, `Ct/CompressTop.lean`, `Ct/Sha256.lean` (link) SHA-256 (the same code).
 * `Ct/Sha512.lean` SHA-512.
+* `Ct/ChainTop.lean` `hash::chain_blocks` (build-specific: `../lean-hw/Ct` has its own).
 * `Ct/Hash.lean`, `Ct/Wots.lean`, `Ct/Xmss.lean`, `Ct/Fors.lean`, `Ct/Slh.lean`,
   `Ct/SignFacts.lean`, `Ct/Sign.lean` the relational lemmas and the simulators, generic in the
   hash length `N` and the parameter set `p` (adapted from the main tree's files of the same

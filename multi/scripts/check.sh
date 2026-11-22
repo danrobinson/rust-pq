@@ -141,4 +141,30 @@ for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Se
   echo "Ct/$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
 done
 
+# Constant time (hw-sha2 build): the same headline files over the hw translation.
+./scripts/ct-gen.sh hw
+(cd lean-hw && lake build Ct)
+if grep -RnwE "sorry|admit|native_decide|bv_decide" lean-hw/Ct lean-hw/Ct.lean \
+   || grep -RnE "^[[:space:]]*(axiom|opaque) " lean-hw/Ct lean-hw/Ct.lean; then
+  echo "FOUND sorry/axiom/native_decide/bv_decide in the hw constant-time proofs"; exit 1
+fi
+for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+  n=$(grep -c "^#print axioms" "lean-hw/Ct/$f.lean")
+  out=$(cd lean-hw && lake env lean "Ct/$f.lean" 2>&1)
+  good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
+  if [ "$good" -ne "$n" ] || echo "$out" | grep -q "error"; then
+    echo "$out" | grep -E "error|axioms" | head -20
+    echo "axiom check FAILED for lean-hw Ct/$f.lean ($good of $n)"; exit 1
+  fi
+  echo "lean-hw Ct/$f.lean: $n theorems, each depends on axioms: [propext, Classical.choice, Quot.sound]"
+done
+
+# Security link, both builds.
+(cd security && scripts/check.sh) | tail -1
+(cd security-hw && scripts/check.sh) | tail -1
+
+# Adapter crate.
+(cd compat && cargo test --release) | grep "test result"
+(cd compat && cargo test --release --features hw-sha2) | grep "test result"
+
 echo "All checks passed."

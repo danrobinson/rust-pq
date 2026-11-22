@@ -1,4 +1,4 @@
-import Ct.Hash
+import Ct.ChainTop
 
 /-!
 # Constant time: `util.rs` and `wots.rs`

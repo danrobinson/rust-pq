@@ -12,7 +12,9 @@ same outcome in both runs: `N` is shared.
 
 As in the main tree, the blocks of `chain_blocks` are related by `HeadsEq` (same first 16
 bytes); the portable kernel does not need it, but the statement is kept the same as the main
-tree's (whose hardware kernel does).
+tree's (whose hardware kernel does). `hash::chain_blocks` itself is in `Ct/ChainTop.lean`, the
+one file of this layer that depends on the build (`../lean-hw/Ct/ChainTop.lean` for
+`hw-sha2`); this file is shared by both builds.
 -/
 
 open Aeneas Aeneas.Std Ct
@@ -114,15 +116,6 @@ heads; the chain bounds are public. -/
       (fun p q => HeadsEq p.val q.val) := by
   unfold hash.chain_blocks_portable
   exact chain_blocks_portable_loop0 N state state' blocks blocks' start e 0#usize h
-
-/-- `chain_blocks` (the portable kernel in this build). -/
-@[ct_rel] theorem chain_blocks (N : Usize) (state state' : Array U32 8#usize)
-    (blocks blocks' : Slice (Array U8 64#usize)) (start e : Slice U32)
-    (h : HeadsEq blocks.val blocks'.val) :
-    Rel (hash.chain_blocks N state blocks start e) (hash.chain_blocks N state' blocks' start e)
-      (fun p q => HeadsEq p.val q.val) := by
-  unfold hash.chain_blocks
-  exact chain_blocks_portable N state state' blocks blocks' start e h
 
 theorem thash_values_loop0_body (N : Usize) (blocks blocks' : Slice (Array U8 64#usize))
     (buf buf' : Array U8 640#usize) (i : Usize) (h : blocks.length = blocks'.length) :

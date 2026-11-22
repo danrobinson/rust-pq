@@ -156,3 +156,149 @@ the per-set wrappers fix them.
 sh multi/scripts/ct-gen.sh && python3 -I multi/scripts/gen/ct_thms.py   # regenerate (no change expected)
 cd multi/lean && lake build Ct
 ```
+
+## The `hw-sha2` build (2026-11-22)
+
+This section supersedes the two lines above that say the `hw-sha2` build is not covered.
+
+For the `hw-sha2` build of `multi/rust`, all six sets, the library `Ct` of the package
+[lean-hw](lean-hw) proves the same statements as `lean/Ct`, over the `hw-sha2` translation
+`lean-hw/Slhdsa/Funs.lean`: the 15 `#print axioms` of `Ct/Theorems.lean` and the 26 of each
+`Ct/Sets/Sha2_<set>.lean` are the same files (symbolic links), word for word. Build it with
+
+```
+cd multi/lean-hw && lake build Ct
+```
+
+### Leakage model and the assumption about the processor
+
+The model is the main tree's `hw-sha2` model, unchanged
+([../lean-hw/Ct/ModelBuild.lean](../lean-hw/Ct/ModelBuild.lean)), plus this tree's one portable
+entry. [lean-hw/Ct/ModelBuild.lean](lean-hw/Ct/ModelBuild.lean) is a **copy** (not a link: both
+files define `Ct.Build.modelConsts`) of:
+
+* the main tree's entries for the eighteen intrinsic wrappers of `sha256::hw::arm`, the `Clone`
+  of `uint32x4_t` and `massert`, every definition and event unchanged. This tree's translation
+  calls the same eighteen wrappers (checked: the names `sha256.hw.arm.*` used by
+  `lean-hw/Slhdsa/Funs.lean` are exactly the eighteen of the main tree's), defined by the same
+  `FunsExternal.lean` (a link). The kernel generic in `N` uses no other wrapper. (The 21
+  declarations left out of the extraction are these eighteen, the vector type's `clone`,
+  `panic_bounds_check` and the vector type; `panic_bounds_check` and the type need no entry.)
+* `core.slice.index.Slice.index_mut` from `lean/Ct/ModelBuild.lean`, unchanged.
+
+So, as in the main tree:
+
+* the wrappers that load from or store to a caller's slice (`load_words`, `load_be`,
+  `store_be`) record the range they touch and the slice's length;
+* the feature test `available` records nothing itself (the `if` on its answer is a branch like
+  any other; whether the processor has the instructions is public);
+* **the register-only wrappers (`zero`, `pair`, `add`, `or`, `and`, `shr16`, `shl16`, `ext2`,
+  `ext3`, `sha256h`, `sha256h2`, `sha256su0`, `sha256su1`, and `store_words`, which writes an
+  array of its own) record nothing. This is an assumption about the processor**: they are
+  fixed-latency vector and SHA-256 instructions, which Arm lists as taking time independent of
+  their operands when its data-independent-timing mode (`PSTATE.DIT`) is on. The crate does not
+  switch that mode on; an application that needs data-independent timing must.
+
+Whitelist: none added. `Ct/Check.lean` is the portable build's checker (a link, with its five
+`[multi]` entries); it accepts all 524 definitions of this build's `Ct.Funs`.
+`Ct/Erase.lean` (a link) proves 481 erasure theorems, 0 failures.
+
+### The kernel's data-dependent part, for N = 16, 24, 32
+
+The only place the kernel's control flow or addresses depend on block contents is the
+first-round cache in `enter::<N>`: it copies `block[0..16]` into `head` and compares it with
+`first.head` (array `==`, so the trace has the length of the common prefix and the outcome).
+For every `N` the key is the same 16 bytes `block[0..16]` (`multi/rust/src/sha256.rs`, `enter`:
+`head.copy_from_slice(&block[0..16])`, independent of `N`). The blocks that reach
+`chain_blocks::<N>` are `ADRSc (22 bytes) ‖ value (N bytes) ‖ SHA-256 padding`: the value sits
+at bytes 22..22 + N, so for N > 16 it runs past byte 38 (into 38..46 for N = 24, 38..54 for
+N = 32), but it never reaches below byte 22. The key is the first 16 bytes of the compressed
+address, public for every `N`.
+
+The precondition is therefore the main tree's, unchanged for all three values of `N`:
+`HeadsEq blocks.val blocks'.val` (the two runs' blocks agree on bytes 0..16; everything else,
+the value, the step counter and, for N = 24, the padding bytes 46..54 that the kernel saves in
+`tail`, is treated as secret). The lemma is
+
+```lean
+-- lean-hw/Ct/Hw/Chain.lean
+theorem hw_chain_blocks (N : Usize) (state state' : Array U32 8#usize)
+    (blocks blocks' : Slice Block)
+    (start e : Slice U32) (hb : HeadsEq blocks.val blocks'.val) :
+    Rel (sha256.hw.chain_blocks N state blocks start e)
+      (sha256.hw.chain_blocks N state' blocks' start e)
+      (fun p q => p.1 = q.1 ∧ HeadsEq p.2.val q.2.val)
+```
+
+for every `N` (it covers 16, 24 and 32, the values for which the kernel runs, and the others,
+for which it returns `false` at once). `leave::<N>` writes bytes 18..22, 22..38 and, for
+N > 16, 38..54, all at or after byte 16, so `HeadsEq` holds again afterwards and is the
+invariant of `chain_all`'s loops (`Ct.Hw.leave`, via `headEq_of_store_be`). The other
+branches the generic kernel adds (`N = 16`, `N = 24`, `N > 16`, `N > 24`, the mask choice, the
+last `SHA256H2` for N > 16) are on `N`, shared by both runs; `xb` and `tail` only pass through
+register-only wrappers and fixed-position loads and stores.
+
+`Ct/ChainTop.lean` states `hash::chain_blocks` exactly as the portable build does (same
+`HeadsEq` hypothesis and conclusion). The callers are therefore the portable build's proofs,
+linked: every block given to `chain_blocks` is built by `hash::short_block` from a public
+address (`Ct.Hash.short_block` proves the two runs' blocks have equal heads whatever the
+message), and between steps only bytes ≥ 18 change. No new argument was needed in `Wots`,
+`Fors` or above.
+
+### Files
+
+`multi/lean-hw/Ct/`:
+
+* links to `../../lean/Ct/` (and from there, where those are links, to the main tree's):
+  `Arith`, `Attr`, `Check`, `CheckTest`, `Do`, `Encoding`, `Erase`, `Facts`, `FactsMulti`,
+  `Fors`, `Hash`, `Heads`, `Leak`, `Model`, `Rel`, `Sha256`, `Sha256Core`, `Sha512`, `Sign`,
+  `SignFacts`, `Sim`, `Slh`, `Tactic`, `Theorems`, `Wots`, `Xmss`, `Sets/Sha2_*.lean` (six);
+* link to the main tree's `../../../lean-hw/Ct/CompressTop.lean`: `sha256::compress`,
+  `sha256::hw::compress`, `compress_block` (and its loop) and `K` are the same definitions in
+  the two `hw-sha2` translations (compared definition by definition, source positions aside);
+* generated: `Funs.lean` (`multi/scripts/ct-gen.sh hw`);
+* this build's own: `ModelBuild` (above), `CheckTestBuild` (the main tree's `hw-sha2` tests
+  and this tree's portable ones, both copied unchanged), `Hw/Lanes`, `Hw/Chain` (the main
+  tree's `lean-hw/Ct/Hw/*.lean` with the hash length `N`, `efgh0` and `xb` added; `leave`
+  needed a step that keeps the heads through the `if N > 16`), `ChainTop`; and the root
+  `multi/lean-hw/Ct.lean`.
+
+To make `Hash.lean` shareable, `hash::chain_blocks` was moved out of `lean/Ct/Hash.lean` into a
+new `lean/Ct/ChainTop.lean` (the statement and proof unchanged), as in the main tree; `Wots`
+imports `Ct.ChainTop`. `multi/lean-hw/lakefile.toml` gained the `Ct` library.
+
+`multi/scripts/ct-gen.sh` takes `hw` (as `../scripts/ct-gen.sh` does): the expected header
+gains `public import Slhdsa.FunsExternal`, and `noncomputable section` is accepted before the
+namespace only in that mode. The portable invocation's output is byte-for-byte unchanged
+(`lean/Ct/Funs.lean`, SHA-1 `4eb188df…` before and after).
+
+### Statements
+
+The per-set statements are those of the portable build (same files); for 128s,
+`Ct/Sets/Sha2_128s.lean` lines 134–139 (quoted above). The simulators
+`slhdsa_leak.Sim.sha2_<set>.*` take the public key, the message, the context and the
+signature only; there they run over this build's instrumented program, so the simulated trace
+contains the same `available` branches as the signer's. No statement has a hypothesis about
+`Arm.haveSha2` (nor do the main tree's `hw-sha2` headlines): both values are covered, the
+relational lemmas being proved for both outcomes of the feature test.
+
+Axioms: every `#print axioms` (15 in `Ct/Theorems.lean`, 26 in each `Ct/Sets/*.lean`, 171 in
+all) reports `[propext, Classical.choice, Quot.sound]`. No `sorry`, `axiom`, `native_decide` or
+`bv_decide` in any file under `multi/lean-hw/Ct` (links followed).
+
+### Findings
+
+Nothing in the `hw-sha2` build's kernel generic in `N` branches, indexes, sizes a copy or
+divides on a secret: no new whitelist entry, and the relational lemmas hold with the seed
+state, the blocks (except their 16-byte heads), `x`, `xb`, `tail` and the round state treated
+as secret. The only data-dependent comparison is the main tree's first-round cache, keyed on
+public address bytes for every `N`. Not covered, as for the main tree: the compiler, the
+processor beyond the stated assumption (in particular without `PSTATE.DIT`), `hw-sha512`
+(untranslated), faults, erasure; no binary-level evidence was collected for this tree.
+
+### Check
+
+```
+sh multi/scripts/ct-gen.sh hw          # regenerate (no change expected)
+cd multi/lean-hw && lake build Ct
+```
