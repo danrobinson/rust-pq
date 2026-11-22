@@ -9,6 +9,15 @@
 > not begun (order of the brief). Details: §7.
 
 
+> **Update (third session, 2026-11-22).** Current best: `suf/euf_ideal_closed_tight6`
+> (`Ideal/Realize/FinalTight6.lean:126`), coefficient
+> `QlinT6 = 27·qf + qs·(16944275 + 31·x) + 29487951 + 45·x`; points `2^-77 + 2^-132 + 2^-63`,
+> `2^-63 + 2^-94 + 2^-59`, `2^-45 + 2^-46 + (2^-39 + 2^-40)` (P64 leg II `2^-38.44`, was
+> `2^-36.19`). Steps 1–2 (answer-storing class TCR, all arities): `_tight3`. Step 3: not done —
+> the store route is structurally impossible for FORS and was not built for WOTS (§8.3). Step 4:
+> L5 for FORS (`_tight4`) and WOTS (`_tight5`), per-signature message-block coefficient
+> (`_tight6`). Dominant now at P64: the message blocks `31·x·qs`; at P20/P40: `27·qf`. §8.
+
 Scope: `suf_ideal_closed` / `euf_ideal_closed` (`Ideal/Realize/Final.lean`) and their
 context-string / Rust / API corollaries. Quantum side, other parameter sets and the
 standard-model statement are out of scope.
@@ -428,3 +437,180 @@ lake build                                  # Build completed successfully (8097
 Every `#print axioms` of the eight new files: `[propext, Classical.choice, Quot.sound]` (two
 arithmetic lemmas `[propext, Quot.sound]`); `grep -c sorryAx` over the full `lake build` log: 0.
 No `sorry`, `axiom`, `native_decide`, `bv_decide`, `maxHeartbeats` in the new files.
+
+## 8. Third session: answer-storing realisers (round-3 brief)
+
+### 8.1 Steps 1–2 — class TCR, all four arities (done, built)
+
+The route of §7.2 works. One construction, parametric in the arity `n`, so steps 1 and 2 came
+together (no separate one-arity headline was made: it would be the same theorem at `n = 1`).
+
+| file | content |
+|---|---|
+| `Ideal/Realize/TcrStore3.lean` | generic: `lkImpl pk S` (no-fallback lookup handler: stored `Thash` values, `default` on a miss, no `Thash` query ever forwarded); `lk_tbl_eq` (on a sound store, a program whose pinned run has no `Thash` query outside the store is interpreted by the table identically with and without `lkImpl`; induction over the program); `miss_keygen`, `miss_sign` (from `TcrStoreCover.cover_keygen`, `pin_openSign_eq`, `wSign_subset`); `tcrMOpenPS` (the port program `tcrMOpenP` with key regeneration and signing through `lkImpl`, verification unchanged); `tcrMOpenPS_tbl` (`:351`, at the store `ann pk (honestCalls tbl pk)` it is interpreted as `tcrMOpenP`); counts `tcrMOpenPS_port/_th/_hmsg/_bad`; the hash-free recording router `routeHFA` (`= routeA`), `tcrPhase1A` (`= (bTcrArA n A).choose`, `bTcrArA_choose_eq_A` `:827`), `routeHFA_cap/_len` |
+| `Ideal/Realize/Tcr3.lean` | `advT3` (`:61`), `forgeP3G T H` (second phase written over `R₀ T H`), `forgeP3G_inst` (`:69`), `exp3_eq` (`:171`, via `bTcrArA_choose_run`, `bTcrArM_choose_run` at `structural₀`), `adv3G_TH` (bundle-independence by kernel `rfl` with abstract `T`, `H`), `advT3_eq` (`:210`): the experiment of `instRT (advT3 …) g` equals that of `bTcrArM n (S.typedS (optRandU oR) pkSeedDist g)` at every table |
+| `Ideal/Realize/TcrCount3.lean` | counts, `tcrP3`, `realizesTcr3S/E` (`:160`, the SAME families as `realizesTcrS/E`), `q₂T3_128s` (`:188`): `q₂T3 = qf + 86416 + (qs+1)·(x+3)` against `q₂T = qf + (277681 + 2007385·qs)·11 + (qs+1)(x+3)`; `q₂T3_le_q₂T` |
+| `Ideal/Realize/FinalTight3.lean` | bundles `sufRealizers3`/`eufRealizers3`, `QlinT3` (`:84`), `linT_le_QlinT3`, `QlinT3_le_QlinT2` (`:98`), headlines, `tight3_le_tight2` (`:208`), six points |
+| `Ideal/Realize/FinalPureTight3.lean`, `Ideal/RustFinalClosedTight3.lean` | context-string and Rust/API corollaries (conjuncts 1–2 unchanged) |
+
+Technical points met (for whoever extends this): (i) the elaborator and the kernel must never
+compare a term over `P₀ = R₀ dT dH` with one over `R₀ (thG g) (hmG g)` *through their arguments*
+— `dT =?= thG g` unfolds SHA-256 symbolically (timeouts, "deep recursion"). Every bridge is a
+lemma with ABSTRACT bundle functions (`tcrMOpenPS_withTH`, `adv3G_TH`, `tcrPhase1A_withTH`),
+proved by kernel `rfl`, then instantiated; the experiment comparison is done entirely over
+`R₀ (thG g) (hmG g)` (`adv3G … (thG g) (hmG g)`). (ii) `rw` with such lemmas often fails at
+instance transparency (`Bytes 16` vs `(R₀ …).PkSeed`); `erw` or `kexact` were used.
+
+Headline (`FinalTight3.lean:175`, same hypotheses as `suf_ideal_closed`):
+```
+theorem suf_ideal_closed_tight3 (S : ForgerI) (oR : Bytes 16 → Bytes 16 → ProbComp (Bytes 16))
+    {qf qs ℓ : ℕ} (hqf …) (hqs …) (hlong …) (hout …) (hQ : QcAll qf qs ℓ ≤ 2 ^ 126) :
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      epsItsrF qf (2 * qs) qf (Itsr.itsrQc qs) (Itsr.itsrLc ℓ) qs ℓ +
+        ((QlinT3 qf qs ℓ : ℕ) : ℝ≥0∞) / 2 ^ 128 +
+        (polyP (QcAll qf qs ℓ) (NAll qs) qs (ellB ℓ) : ℝ≥0∞) / 2 ^ 256
+QlinT3 qf qs ℓ = 27 * qf + (qs + 1) * (87595076 + 45 * ((ℓ + 56) / 64))
+```
+`euf_ideal_closed_tight3` (`:191`) the same with `eufI`.
+
+Points (proved, SUF and EUF, `ℓ ≤ 2^26`; `FinalTight3.lean:260`–`:360`):
+
+| point | tight2 | tight3 (proved) |
+|---|---|---|
+| P20 (`qf ≤ 2^60`, `qs ≤ 2^20`) | `2^-77 + 2^-132 + 2^-63` | `2^-77 + 2^-132 + 2^-63` |
+| P40 (`qf ≤ 2^64`, `qs ≤ 2^40`) | `2^-63 + 2^-94 + 2^-58` | `2^-63 + 2^-94 + (2^-59 + 2^-62)` |
+| P64 (`qf ≤ 2^64`, `qs ≤ 2^64`) | `2^-45 + 2^-46 + 2^-36` | `2^-45 + 2^-46 + (2^-37 + 2^-44)` |
+
+Unrounded legs II+III at the caps (Python, exact integers, NOT machine-checked; scratch
+`num3.py`, `pt.py`): P20 −63.245 (unchanged, `27·qf`), P40 −58.64 → −58.87, P64 −36.19 → −36.99.
+The two-term third summands are the best `2^-k + 2^-k'` roundings (−58.83, −36.99).
+
+State after steps 1–2, per signing query (`2^-128` units): FORS TCR/DSPR `3·21450308 =
+64350924`, WOTS UD/PRE/TCR `17·1340427 = 22787259`, PRF+PRF_msg marked `≈ 1.1·10^5`, class TCR
+`4·86419`; message blocks `45·x` (`47185920` at `x = 2^20`). P64 leg II `2^-37.0`; ITSR `2^-45.7`
+(not the bottleneck: leg II is 8.7 bits above it).
+
+### 8.2 What exists for the other families (checked before building)
+
+- Answer-storing adversaries and cover lemmas exist ONLY for class TCR
+  (`Reduction/Open/TcrStore*.lean`). Nothing for FORS (`Lazy.bOpenPreS`, `toTcr`, `toDspr`) or
+  WOTS (`Lazy.bWotsS`, `rUd`, `rPre`, `rTcrT`).
+
+### 8.3 Step 3 — FORS TCR/DSPR, WOTS UD/PRE/TCR: NOT done
+
+**FORS: the store route is impossible for these games, not merely unbuilt.**
+`forsTcrProblem` and `forsDsprProblem` are `.standalone` (`Reduction/ForsTightFinal.lean:51,58`):
+the collection is `Empty`, so the first phase of any adversary sees only the challenge oracle
+(images of the FORS-leaf targets) and never a `Thash` value at the game's seed. Every hash value
+of key regeneration and signing other than the target images depends on `PK.seed`, which is
+revealed only in phase two; in the ideal model it can be obtained only by compression queries
+of phase two. So for these games, with the per-game bounds that charge every phase-two query,
+the reduction's re-signing hashing is necessarily charged. Options: (a) a collection-augmented
+FORS game (new Reduction-level problems and per-game ideal bounds — a change of the
+standard-model reduction); (b) M1-style shape marking in the FORS games (only phase-two
+compression queries whose block is the first `F` block at a FORS-leaf tweak can matter; the
+honest `H`/`T_k`/WOTS/XMSS evaluations never are; the leaf `F` evaluations of re-signing
+`≈ k·2^a = 57344` per signature still would be): a `…Fine` version of the FORS-TCR and DSPR
+game bounds in the style of `Games/PrfFine.lean` (est. 1.5–2k lines), plus a marked count of
+the FORS realiser. Not attempted.
+
+**WOTS: possible in principle, not built (judged not worth it).** The three WOTS games have
+the whole `Thash` as collection, and `chooseBody` of `bWotsS` already makes a collection query
+for every hash it later needs (FORS trees, `T_k`, XMSS nodes; `WotsSparse.lean` header), so a
+recording phase one plus a cover lemma for `signFromHist` would remove the `121857` hash calls
+per signature of the three WOTS realisers. Nothing exists: recording `wColl`, the closed form of
+the recording phase one, the cover lemma for `signFromHist`, and three realisers (UD real+ideal,
+PRE, TCR) on the `WotsPort`/`WotsReal`/`WotsRealize` stack — est. 2–3k lines. Gain (outside
+Lean): P64 leg II `2^-36.99 → 2^-37.27` before L5, `≈ 0.1` bit after L5 (§8.4); none at P20/P40.
+Per the brief ("completely or not at all") it was not started.
+
+### 8.4 Step 4 — what was done (all built)
+
+Order chosen by gain at P64 after 8.1 (FORS 64.4M, message blocks 47.2M, WOTS 22.8M per
+signing query): L5 for FORS, L5 for WOTS, then the message-block coefficient. ITSR (`2^-45.7`) was
+never the bottleneck (8.6).
+
+**L5, FORS** (`Ideal/Realize/ForsL5.lean`): `forsSignOpen_long`, `openKeygen_long`,
+`forsFindOpenP_long` (long `Thash` queries — more than two values — of the FORS port program:
+`512 + 3585·qs`), `chainImplP_boundL` (4-class transfer: `2` per hash query, `9` more per long
+`Thash`, `hmsgCost ℓ` per `H_msg`; `thashCost_le_L`), `q2ForsL_eq` (`:240`):
+`q2ForsL = qf + 544286 + 3932321·qs + (2qs+1)(x+3)` (was `qf + 2968229 + 21450308·qs + …`),
+realisers `realizesDsprL_S/E`, `realizesForsTcrL_S/E` (`:285`–`:309`; same adversaries and
+experiments as `ForsRealize.lean`, new `hq₂`). Headline `suf/euf_ideal_closed_tight4`
+(`FinalTight4.lean:163`, `:179`), `QlinT4 = 27·qf + (qs+1)·(35041115 + 45x)` (`:71`),
+`QlinT4_le_QlinT3`, `tight4_le_tight3` (`:196`).
+
+**L5, WOTS** (`Ideal/Realize/WotsL5.lean`): `wotsSignFromHistO_long` (`3577` long per signature,
+`wotsSignLong_128s` `:156`), `wPhase2P_long` (the one-off answer extraction bounded by its hash
+count), `chain_countL`, `udDist/preInv/tcrForge_boundL`, realisers `realizesUdL`, `realizesPreL`,
+`realizesWotsTcrL` (+`…E`, `:285`–`:323`), cap `QcWL = qf + 2·(121857·qs + 146514) +
+9·(3577·qs + 146514) + (qs+2)(x+3)` (`:334`, `QcWL_le_QcW`). Headline `…_tight5`
+(`FinalTight5.lean:175`, `:191`), `QlinT5 = 27·qf + 16944275·qs + 29487951 + 45·x·(qs+1)` (`:82`;
+the shape changes because the one-off WOTS answer extraction, `≈ 2.9·10^7`, is now larger than
+the per-signature constant), `QlinT5_le_QlinT4`, `tight5_le_tight4` (`:208`).
+
+**Message blocks per signing query** (`Ideal/Realize/FinalTight6.lean`, arithmetic only, same
+bundle as `_tight5`): `QlinT5`'s `45·x·(qs+1)` uses the one-off coefficient for every signing
+query; per signing query the realisers issue `31` `H_msg` chains (PRF 2, PRF_msg 2, FORS 3·2,
+class TCR 4, WOTS 17). `QlinT6 = 27·qf + qs·(16944275 + 31·x) + 29487951 + 45·x` (`:33`),
+`QlinT6_le_QlinT5` (`:48`), headline `…_tight6` (`:126`, `:142`), `tight6_le_tight5` (`:159`).
+
+Each of `_tight4/5/6` has the six points, the context-string forms (`FinalPureTight{4,5,6}.lean`)
+and the Rust/API forms (`RustFinalClosedTight{4,5,6}.lean`: e.g. `rust_ideal_security_closed_tight6`
+`:38`, `rust_ideal_security_closed_pure_tight6` `:95`, `api_ideal_security_closed_pure_tight6`
+`:142`; conjuncts 1–2 those of the untightened statements).
+
+Points (proved, SUF and EUF each, `ℓ ≤ 2^26`):
+
+| | P20 (`qf ≤ 2^60, qs ≤ 2^20`) | P40 (`qf ≤ 2^64, qs ≤ 2^40`) | P64 (`qf ≤ 2^64, qs ≤ 2^64`) |
+|---|---|---|---|
+| tight2 | `2^-77 + 2^-132 + 2^-63` | `2^-63 + 2^-94 + 2^-58` | `2^-45 + 2^-46 + 2^-36` |
+| tight3 | same | `… + (2^-59 + 2^-62)` | `… + (2^-37 + 2^-44)` |
+| tight4 | same | `… + 2^-59` | `… + (2^-38 + 2^-40)` |
+| tight5 | same | `… + 2^-59` | `… + (2^-38 + 2^-49)` |
+| tight6 | same | `2^-63 + 2^-94 + 2^-59` | `2^-45 + 2^-46 + (2^-39 + 2^-40)` |
+
+Unrounded legs II+III at the caps (Python, exact integers, NOT machine-checked; `pt.py`,
+`pt5.py`, `pt6.py`): P20 −63.245 (all versions); P40 −58.64 (t2) → −58.87 → −59.00 → −59.05 →
+−59.10 (t6); P64 −36.19 (t2) → −36.99 → −37.71 → −38.07 → −38.44 (t6).
+
+### 8.5 What remains loose after `_tight6` (P64, per signing query, `2^-128` units)
+
+| part | size | class | what would remove it |
+|---|---|---|---|
+| message blocks `31·x` (`x ≤ 2^20`) | `3.25·10^7` | S | M1-style marking: an `H_msg` chain block is never target-shaped in the TCR/UD/PRE/DSPR games; `…Fine` per-game bounds for FORS TCR/DSPR, class TCR, WOTS UD/PRE/TCR (like `Games/PrfFine.lean`) |
+| FORS re-signing `3·3.93·10^6` | `1.18·10^7` | S | standalone FORS games (§8.3): marking (only first `F` blocks at FORS-leaf tweaks matter) or a collection-augmented FORS game |
+| WOTS re-signing `17·2.76·10^5` | `4.7·10^6` | S/A | the store route (§8.3; now worth `≈ 0.14` bit) |
+| class TCR, PRF, PRF_msg | `≈ 4.5·10^5` | A | negligible |
+| `27·qf` | — | S (L6) | dominant at P20, P40 |
+
+P64 leg II `2^-38.44`; ITSR `2^-45.7 + 2^-46.1`; generic attack `≈ 2^-64`.
+
+### 8.6 ITSR (L7, L9, L11) — assessed, not done
+
+ITSR is `2^-45.7` (I.a) and `2^-46.1` (I.b) at P64, 7.3 bits below leg II after `_tight6`, and
+below `2^-63` at P20/P40: no ITSR improvement changes any stated point now. L9 (Stirling form) and
+L11 (two-class chain lengths) are artefacts: −45.7 → −47.1 and −46.1 → ≈ −79. L7 (re-randomising
+hybrid in which only target digests are coverers; `quantum/PQ/QROM/ExactItsr4.lean` is the
+template) is structural: it would bring I.a to `≈ qf·p(qs) = 2^-69.75` at P64 and remove the
+vacuity limit at `qf ≈ 2^69.8`. It needs a new per-game ITSR bound in the ideal-compression model
+(the coverers become the challenger's target digests, themselves `H_msg` chains through the random
+table; the hybrid re-samples the cells of those chains) and a new realiser count — several
+thousand lines. It matters only once leg II is below `≈ 2^-46` at P64, i.e. after the message-block
+and FORS marking above. Not started.
+
+### 8.7 Builds (this session)
+
+```
+cd security && export PATH=$HOME/.elan/bin:$PATH
+lake build Ideal.Realize.TcrStore3 Ideal.Realize.Tcr3 Ideal.Realize.TcrCount3
+lake build Ideal.Realize.FinalTight3 Ideal.Realize.FinalPureTight3 Ideal.RustFinalClosedTight3
+lake build Ideal.Realize.ForsL5 Ideal.Realize.WotsL5
+lake build Ideal.Realize.FinalTight{4,5,6} Ideal.Realize.FinalPureTight{4,5,6} Ideal.RustFinalClosedTight{4,5,6}
+lake build Ideal        # Build completed successfully (8114 jobs).
+lake build              # Build completed successfully (8131 jobs); 0 `sorryAx` in the log.
+```
+All `#print axioms` lines of the new files: `[propext, Classical.choice, Quot.sound]` (a few
+arithmetic lemmas `[propext]` or `[propext, Quot.sound]`). No `sorry`, `axiom`, `native_decide`,
+`bv_decide`, `maxHeartbeats` in the new files. 17 new files, 17 `import` lines appended to
+`Ideal.lean`; nothing existing changed.
