@@ -213,6 +213,8 @@ done
 ./scripts/check-segmented-api-proof.py
 ./scripts/check-x86-core-proof.py
 ./scripts/check-portable-sha2-api-proof.py
+python3 scripts/check-shake-platform-api.py
+./scripts/check-cross-target-outputs.py
 for feat in "" "--features hw-sha2" "--no-default-features" "--no-default-features --features alloc" "--no-default-features --features getrandom"; do
   # shellcheck disable=SC2086
   out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }

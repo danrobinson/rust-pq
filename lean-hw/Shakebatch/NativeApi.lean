@@ -3,10 +3,8 @@ import Armplatform.Replay
 open Lean
 namespace PlatformProof
 
-/-- Rebuild all sixty public wrappers with the target's five proven FORS/WOTS operations
-and its sequential sponge for message hashing and all scalar fallback paths. -/
-def shakeBindings (backend sponge : Name) : List (Name × Name) := Id.run do
-  let mut bindings := [
+def spongeBindings (backend sponge : Name) : List (Name × Name) :=
+  [
     (`slhdsa.shake256.Sponge, sponge ++ `shake256.Sponge),
     (`slhdsa.shake256.Sponge.pos, sponge ++ `shake256.Sponge.pos),
     (`slhdsa.shake256.Sponge.lanes, sponge ++ `shake256.Sponge.lanes),
@@ -17,6 +15,10 @@ def shakeBindings (backend sponge : Name) : List (Name × Name) := Id.run do
     (`slhdsa.Keccak.new_spec, backend ++ `new_spec),
     (`slhdsa.Keccak.absorb_spec, backend ++ `absorb_spec),
     (`slhdsa.Keccak.finish_spec, backend ++ `finish_spec)]
+/-- Rebuild all sixty public wrappers with the target's five proven FORS/WOTS operations
+and its sequential sponge for message hashing and all scalar fallback paths. -/
+def shakeBindings (backend sponge : Name) : List (Name × Name) := Id.run do
+  let mut bindings := spongeBindings backend sponge
   for (moduleName, functionName, backendName) in
       [(`fors,`fors_sign,`sign),(`fors,`fors_pk_from_sig,`recover),
        (`wots,`wots_pk_gen,`wots_pk_gen),(`wots,`wots_sign,`wots_sign),

@@ -82,6 +82,69 @@ def check_target(target, namespace, scratch):
     check_extraction(package, namespace, scratch)
 
 
+def arm_agreement(set_name, operation, fresh, arch):
+    """Compare the fresh public entry to the other target's source-bound theorem."""
+    peer = "linux" if arch == "ArmApple" else "apple"
+    entry, theorem = arm_entry(set_name, operation, peer)
+    return agreement(set_name, operation, fresh + "_arm_agreement", fresh, fresh + "_fips", entry, theorem)
+
+
+def arm_entry(set_name, operation, target):
+    linux = target == "linux"
+    if operation in KEY_OPERATIONS:
+        owner = "ArmLinux." if linux else ""
+    elif operation in CONTEXT:
+        owner = ("LinuxContext." if linux else "") + "AppleContext.SegmentedSdk."
+    else:
+        owner = ("LinuxInternal." if linux else "") + "AppleInternal."
+    entry = ("" if operation == "public_key" else owner) + f"slhdsa.sets.{set_name}.{operation}"
+    return entry, owner + f"slhdsa.{set_name}.{operation}_spec"
+
+
+def agreement(set_name, operation, name, lhs, lhs_proof, rhs, rhs_proof):
+    family, shape = set_name.split("_")
+    n = int(shape[:-1]) // 8
+    context = operation in CONTEXT
+    key = operation in KEY_OPERATIONS
+    types = {"m":"Slice U8","sig":"Slice U8","ctx":"Slice U8"}
+    for arg, size in (("pk",2*n),("sk",4*n),("seeds",3*n),
+                      ("addrnd",n),("sk_seed",n),("sk_prf",n),("pk_seed",n)):
+        types[arg] = f"Array U8 {size}#usize"
+    if operation == "keygen":
+        args = "seeds sk pk"
+    elif operation == "slh_keygen_internal":
+        args = "sk_seed sk_prf pk_seed"
+    elif operation == "public_key":
+        args = "sk"
+    elif "verify" in operation:
+        args = "m sig ctx pk" if context else "m sig pk"
+    else:
+        args = ("m ctx sk" if context else "m sk") + ("" if "deterministic" in operation else " addrnd")
+    binders = " ".join(f"({a} : {types[a]})" for a in args.split())
+    proof_args = args
+    if family == "shake" and context:
+        binders += " (hm : Shake.ContextFits m ctx)"
+        proof_args += " hm"
+    elif family == "sha2" and not key:
+        slack = (409 if n == 16 else 561) if context else (152 if n == 16 else 304)
+        binders += f" (hm : Room m.length {slack})"
+        proof_args += " hm"
+    if "keygen" in operation:
+        observe = "(fun r => (bytes r.1.val, bytes r.2.val))"
+    elif "verify" in operation:
+        observe = "id"
+    elif "sign" in operation and context:
+        observe = "(fun r => r.map (fun v => bytes v.val))"
+    else:
+        observe = "(fun r => bytes r.val)"
+    return f"""
+theorem {name} {binders} :
+    PeerEquality.SameOutput ({lhs} {args}) ({rhs} {args}) {observe} :=
+  PeerEquality.sameOutput ({lhs_proof} {proof_args}) ({rhs_proof} {proof_args})
+#print axioms {name}
+"""
+
+
 def check_extraction(package, namespace, scratch):
     # Lean structures from different modules have nominal identity. Share only
     # declarations whose complete definitions match the checked hardware build.
@@ -98,7 +161,8 @@ def check_extraction(package, namespace, scratch):
             raise ValueError(f"unmatched type declaration: {item}")
         name = re.search(r"(?:structure|def) (slh\.message\.\w+)", item).group(1)
         aliases.append(f"abbrev {name} := {message_types[item]}.{name}")
-    source = f"""import Armplatform.Keygen
+    source = f"""import PeerEquality.Outputs
+import Armplatform.Keygen
 import Armplatform.LinuxMessageDigest
 import Armplatform.LinuxContext
 open Aeneas Aeneas.Std Result ControlFlow Error
@@ -138,6 +202,9 @@ end {namespace}
     for fips_proof, entry, fresh in bindings:
         source += (f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
                    f"`{fips_proof} `{entry} `{fresh} `{fresh}_fips\n#print axioms {fresh}_fips\n")
+    for s in SETS:
+        for op in OPERATIONS:
+            source += arm_agreement(s, op, f"{namespace}.sets.{s}.{op}", namespace)
     proof = scratch / "PublicAPI.lean"
     proof.write_text(source)
     result = subprocess.run(["lake", "env", "lean", proof], cwd=LEAN, stdout=subprocess.PIPE, text=True)
@@ -148,11 +215,17 @@ end {namespace}
         expected = f"'{fresh}_fips' depends on axioms: [propext, Classical.choice, Quot.sound]"
         if expected not in output.splitlines():
             raise ValueError(f"unexpected axiom audit for {fresh}\n{output}")
+    for s in SETS:
+        for op in OPERATIONS:
+            name = f"{namespace}.sets.{s}.{op}_arm_agreement"
+            if f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]" not in output.splitlines():
+                raise ValueError(f"unexpected axiom audit for {name}")
+    print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} cross-target equivalences")
     print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} public-entry theorems and segmented H_msg", flush=True)
 
 
 if __name__ == "__main__":
-    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest", "Armplatform.LinuxContext"], LEAN)
+    run(["lake", "build", "PeerEquality.Outputs", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest", "Armplatform.LinuxContext"], LEAN)
     for arch, namespace in TARGETS.items():
         with tempfile.TemporaryDirectory() as temp:
             check_target(arch, namespace, Path(temp))

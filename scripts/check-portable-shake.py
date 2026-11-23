@@ -1,7 +1,8 @@
-"""Bind the eight portable SHAKE entry-point proofs to independently extracted Rust."""
+"""Bind the portable SHAKE algorithms and every SDK wrapper to freshly extracted Rust."""
 from pathlib import Path
 import os
 import re
+import runpy
 import subprocess
 import tempfile
 
@@ -23,6 +24,9 @@ def body(path):
 def check(target, folder):
     folder.mkdir()
     roots = ["crate::shake::api::" + op for op in API] + ["crate::shake::slh::" + op for op in INTERNAL]
+    sdk = runpy.run_path(str(ROOT/"scripts/check-arm-api-proof.py"))
+    wrappers = [(s.replace("sha2_", "shake_"), op) for s in sdk["SETS"] for op in sdk["OPERATIONS"]]
+    roots += [f"crate::sets::{s}::{op}" for s, op in wrappers]
     subprocess.run([ROOT/".tools/aeneas/charon/bin/charon", "cargo", "--preset=aeneas",
                     *(arg for root in roots for arg in ("--start-from",root)), "--dest-file", folder/"slhdsa.llbc",
                     "--","--locked","--features","platform-sha2","--target",target],cwd=ROOT/"rust",check=True)
@@ -33,7 +37,7 @@ def check(target, folder):
     decls = lambda path: {s.strip() for s in re.split(r"/--.*?-/",body(path),flags=re.S) if s.strip()}
     if decls(folder/"Types.lean") - decls(LEAN/"Slhdsa/Types.lean"):
         raise ValueError("fresh nominal types differ from checked structures")
-    lines = ["import Shakeabs.Api", "open Aeneas Aeneas.Std Result ControlFlow Error",
+    lines = ["import Shakebatch.PortableApi", "open Aeneas Aeneas.Std Result ControlFlow Error",
              "open slhdsa", "set_option maxRecDepth 65536", "set_option maxHeartbeats 0",
              "noncomputable section", "namespace FreshPortable",
              "abbrev shake256.Sponge := ShakeAbsRust.shake256.Sponge", body(folder/"Funs.lean"), "end FreshPortable"]
@@ -47,6 +51,14 @@ def check(target, folder):
         lines.append(f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry `{thm} `{old} `{new} `{new}_spec")
         lines.append(f"#print axioms {new}_spec")
         claims.append(new+"_spec")
+    for s, op in wrappers:
+        prefix = "" if op == "public_key" else "PortableShakeSDK."
+        old = f"{prefix}slhdsa.sets.{s}.{op}"
+        new = f"FreshPortable.sets.{s}.{op}"
+        theorem = f"PortableShakeSDK.slhdsa.{s}.{op}_spec"
+        lines.append(f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry `{theorem} `{old} `{new} `{new}_spec")
+        lines.append(f"#print axioms {new}_spec")
+        claims.append(new+"_spec")
     proof = folder/"Portable.lean"
     proof.write_text("\n".join(lines)+"\n")
     result = subprocess.run(["lake","env","lean",proof],cwd=LEAN,stdout=subprocess.PIPE,text=True)
@@ -58,7 +70,7 @@ def check(target, folder):
 
 
 if __name__ == "__main__":
-    subprocess.run(["lake","build","Shakeabs.Api"],cwd=LEAN,check=True)
+    subprocess.run(["lake","build","Shakebatch.PortableApi"],cwd=LEAN,check=True)
     with tempfile.TemporaryDirectory() as scratch:
         for target in TARGETS:
             check(target,Path(scratch)/target)
