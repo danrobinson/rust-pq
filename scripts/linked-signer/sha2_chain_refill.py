@@ -31,7 +31,7 @@ from signer_inventory import import_stubs
 from segmented import Compression
 
 
-def verify(path, image, n):
+def verify(path, image, n, *, fors=False):
     env = ImageEnv(path, image, n)
     pc, words = image.function(
         b"4hash12chain_blocks" + f"Kj{n:x}_EB4_".encode(), b"6slhdsa"
@@ -44,7 +44,7 @@ def verify(path, image, n):
     count = c.BVS("num_blocks", 64)
     avail = [c.BVS("bounds_slice_length", 64) for _ in range(2)]
     st = env.blank(pc)
-    st.add_constraints(c.ULE(count, 67))
+    st.add_constraints(c.ULE(count, 128 if fors else 67))
     for length in avail:
         st.add_constraints(c.ULE(count, length), c.ULE(length, ((1 << 63) - 1) // 4))
     for i, v in enumerate([KEY, BLOCKS, count, START, avail[0], END, avail[1]]):
@@ -107,10 +107,24 @@ def verify(path, image, n):
         (23, KEY),
     ]:
         agrees(st, getattr(st.regs, f"x{reg}"), v, "initial scheduler context")
+    # A core-window certificate uses a shorter array to derive exactly this
+    # invariant. Only the designated count register may depend on its length.
+    lengths = set().union(*(v.variables for v in [count, *avail]))
+    for bank, items in enumerate(root):
+        for field, val in items:
+            if bank != 0 or field != 19:
+                require(
+                    not lengths.intersection(val.variables),
+                    "undeclared length-dependent machine context",
+                )
     saved = load(st, STACK - 0x90, 0x90)
     head = blob("WOTS_address_prefix", 16)
     block = c.Concat(head, blob("remaining_block_bytes", 48))
-    a, b = [c.BVS(i, 4).zero_extend(28) for i in ("start", "end")]
+    if fors:
+        a = c.BVS("FORS_tree_index", 20).zero_extend(12)
+        b = a + 1
+    else:
+        a, b = [c.BVS(i, 4).zero_extend(28) for i in ("start", "end")]
     ix = c.BVS("next_unread_lane", 64)
     packed = pack(hash, h, block, n, ix, a, b)
     hot = activate(

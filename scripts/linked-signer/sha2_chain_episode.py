@@ -78,7 +78,7 @@ def pack(hash, h, block, n, lane, now, end):
     )
 
 
-def verify(path, image, n, num, rounds):
+def verify(path, image, n, num, rounds, *, fors=False):
     env = ImageEnv(path, image, n)
     pc, words = image.function(
         b"4hash12chain_blocks" + f"Kj{n:x}_EB4_".encode(), b"6slhdsa"
@@ -93,8 +93,14 @@ def verify(path, image, n, num, rounds):
     for i, v in enumerate(h):
         put(s, KEY + 4 * i, v, 4)
     h0 = blob("shared_first_16_bytes", 16)
-    starts = [c.BVS("start", 4).zero_extend(28) for _ in range(num)]
+    if fors:
+        require(rounds == 1, "FORS has one compression per block")
+    bits = 20 if fors else 4
+    starts = [c.BVS("start", bits).zero_extend(32 - bits) for _ in range(num)]
     residual = [c.BVS("remaining_after_batch", 4).zero_extend(28) for _ in range(num)]
+    if fors:
+        # FORS leaf and parent indices need not be adjacent among active lanes.
+        residual = [c.BVV(0, 32) for _ in range(num)]
     # For a fifteen-round minimum every four-bit interval must be [0,15).
     # Prove the reduction locally before using constants to hash the long chain.
     if rounds == 15:
@@ -111,7 +117,7 @@ def verify(path, image, n, num, rounds):
     blocks, results, completed = [], [], []
     for i, (a, r) in enumerate(zip(starts, residual)):
         finish = a + rounds + r
-        s.add_constraints(c.ULE(finish, 15))
+        s.add_constraints(c.ULE(finish, (1 << 20) if fors else 15))
         put(s, START + 4 * i, a, 4)
         put(s, END + 4 * i, finish, 4)
         b = c.Concat(
@@ -199,7 +205,9 @@ def verify(path, image, n, num, rounds):
             new = env.blank(dispatch)
             new.add_constraints(*st.solver.constraints)
             new.add_constraints(
-                c.ULE(next_id, total), c.ULE(total, 67), c.ULT(lanes[-1], next_id)
+                c.ULE(next_id, total),
+                c.ULE(total, 128 if fors else 67),
+                c.ULT(lanes[-1], next_id),
             )
             for i in range(num - 1):
                 new.add_constraints(c.ULT(lanes[i], lanes[i + 1]))
@@ -311,7 +319,7 @@ def verify(path, image, n, num, rounds):
         )
         todo.extend((nxst, initial, steps + 1) for nxst in nx.flat_successors)
     require(
-        leaves == (1 if rounds == 15 else 2**num - 1),
+        leaves == (1 if fors or rounds == 15 else 2**num - 1),
         "missing feasible retirement subset",
     )
     print(n, num, rounds, leaves, steps_max, flush=True)

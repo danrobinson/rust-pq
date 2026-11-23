@@ -20,6 +20,7 @@ from sha2_chain_episode import verify as verify_window
 
 def windows(path, n, lanes):
     image = Image(path.read_bytes())
+    verify_window(path, image, n, lanes, 1, fors=True)
     for rounds in range(1, 16):
         verify_window(path, image, n, lanes, rounds)
 
@@ -50,6 +51,14 @@ def mutation_tests(path):
             "packed survivor record",
             lambda p, i: verify_window(p, i, 16, 2, 2),
         ),
+        # Drop a high address-counter bit. All WOTS round counters fit four bits.
+        (
+            0x1920,
+            0x53107DF0,
+            0x53117DF0,
+            "SHA chain writeback",
+            lambda p, i: verify_window(p, i, 16, 2, 1, fors=True),
+        ),
     ]
     with tempfile.TemporaryDirectory() as tmp:
         exe = Path(tmp) / "altered"
@@ -64,7 +73,7 @@ def mutation_tests(path):
                 require(witness in str(exc), f"wrong scheduler mutation failure: {exc}")
             else:
                 raise AssertionError("accepted a mutated native scheduler")
-    print("Rejected three linked scheduler mutations", flush=True)
+    print("Rejected four linked scheduler mutations", flush=True)
 
 
 if __name__ == "__main__":
@@ -78,6 +87,7 @@ if __name__ == "__main__":
     if a.self_test:
         mutation_tests(a.binary)
     for n in (16, 24, 32):
+        verify_edges(a.binary, image, n, fors=True)
         verify_edges(a.binary, image, n)
     with ProcessPoolExecutor(max_workers=a.workers) as pool:
         futures = [
@@ -87,5 +97,7 @@ if __name__ == "__main__":
         ]
         for future in futures:
             future.result()
-    print("All 180 native SHA-256 windows agree with sequential compression.")
+    print(
+        "All 180 WOTS windows and 12 one-round FORS windows agree with sequential SHA-256 compression."
+    )
     print("Mach-O SHA-256", hashlib.sha256(data).hexdigest())
