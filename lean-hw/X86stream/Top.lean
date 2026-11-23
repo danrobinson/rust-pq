@@ -1,4 +1,5 @@
 import X86stream.Prefix
+import Streamvector.Top
 open Aeneas Aeneas.Std Result
 open ChainAvx2Rust (fullChunks remainder)
 namespace slhdsa.X86.Stream
@@ -130,5 +131,17 @@ theorem fallback512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
   intro selected
   obtain ⟨_,vector⟩ := selected
   simp_all
+
+theorem stream256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
+    (aligned : pre.val%64=0) (space : Room (pre.val+msg.length) 72) :
+    X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
+      bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ :=
+  continued256 st pre msg (fun _ => prescheduled256 st _) aligned space
+
+theorem stream512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
+    (space : pre.val+msg.length+144 ≤ Usize.max) :
+    X86StreamRust.sha512.sha512_from st pre msg ⦃ out =>
+      bytes out.val = slhdsa.S512.ser (slhdsa.S512.hashFrom (slhdsa.S512.wv st.val) (slhdsa.S512.padFrom pre.val (bytes msg.val))) ⦄ :=
+  continued512 st pre msg (fun _ => prescheduled512 st _) space
 
 end slhdsa.X86.Stream

@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -860,6 +860,8 @@ NAMES
 cmp "$scratch/actual" "$scratch/expected"
 (cd lean-hw && lake build X86stream.Top && lake env lean --stdin > "$scratch/x86-stream-top-axioms" <<'LEAN'
 import X86stream.Top
+#print axioms slhdsa.X86.Stream.stream256
+#print axioms slhdsa.X86.Stream.stream512
 #print axioms slhdsa.X86.Stream.continued256
 #print axioms slhdsa.X86.Stream.continued512
 #print axioms slhdsa.X86.Stream.short256
@@ -868,7 +870,7 @@ import X86stream.Top
 #print axioms slhdsa.X86.Stream.fallback512
 LEAN
 )
-for name in continued256 continued512 short256 short512 fallback256 fallback512; do
+for name in stream256 stream512 continued256 continued512 short256 short512 fallback256 fallback512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-stream-top-axioms"
 done
 
@@ -907,3 +909,67 @@ import Wotsapi.Fallback
 LEAN
 )
 grep -Fx "'slhdsa.X86.Wots.Api.recover_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wotsapi-axioms"
+
+extract Streamvector StreamVectorRust streamvector --start-from 'crate::sha256::stream::prescheduled' \
+  --start-from 'crate::sha512::stream::prescheduled' --opaque 'crate::sha256::stream::round' \
+  --opaque 'crate::sha512::stream::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m256i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx._mm256_set_epi32
+
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+
+core.core_arch.x86.avx512f._mm512_add_epi32
+
+core.core_arch.x86.avx512f._mm512_add_epi64
+
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+
+core.core_arch.x86.avx512f._mm512_i32gather_epi32
+
+core.core_arch.x86.avx512f._mm512_i32gather_epi64
+
+core.core_arch.x86.avx512f._mm512_ror_epi32
+
+core.core_arch.x86.avx512f._mm512_ror_epi64
+
+core.core_arch.x86.avx512f._mm512_set1_epi32
+
+core.core_arch.x86.avx512f._mm512_set1_epi64
+
+core.core_arch.x86.avx512f._mm512_set_epi32
+
+core.core_arch.x86.avx512f._mm512_srli_epi32
+
+core.core_arch.x86.avx512f._mm512_srli_epi64
+
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi32
+
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+
+core.core_arch.x86.sse2._mm_set_epi32
+
+core.intrinsics.transmute
+
+core.ptr.const_ptr.RawPtrConstT.add
+
+core.ptr.const_ptr.RawPtrConstT.cast
+
+core.slice.Slice.as_ptr
+sha256.stream.round
+
+sha512.stream.round
+
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Streamvector.Top && lake env lean --stdin > "$scratch/vector-axioms" <<'LEAN'
+import Streamvector.Top
+#print axioms slhdsa.X86.Stream.prescheduled256
+#print axioms slhdsa.X86.Stream.prescheduled512
+LEAN
+)
+for name in prescheduled256 prescheduled512; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/vector-axioms"
+done

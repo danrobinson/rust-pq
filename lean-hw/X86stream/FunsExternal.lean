@@ -1,6 +1,7 @@
 module
 public import X86stream.Types
 public import X86remainder.Funs
+public import Streamvector.Funs
 @[expose] public section
 open Aeneas Aeneas.Std Result
 namespace X86StreamRust
@@ -14,8 +15,6 @@ opaque vectorAvailable : Bool
 def sha256.stream.available.get : Result Bool := ok vectorAvailable
 abbrev sha512.stream.available.get := sha256.stream.available.get
 
-/-- The group kernels remain abstract in this extraction. The driver theorem
-requires a sequential-compression specification whenever it selects one. -/
-opaque sha256.stream.prescheduled : Array U32 8#usize → Slice (Array (Array U8 64#usize) 16#usize) → Result (Array U32 8#usize)
-opaque sha512.stream.prescheduled : Array U64 8#usize → Slice (Array (Array U8 128#usize) 8#usize) → Result (Array U64 8#usize)
+abbrev sha256.stream.prescheduled := StreamVectorRust.sha256.stream.prescheduled
+abbrev sha512.stream.prescheduled := StreamVectorRust.sha512.stream.prescheduled
 end X86StreamRust
