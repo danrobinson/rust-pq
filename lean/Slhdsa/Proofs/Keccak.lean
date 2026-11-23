@@ -155,7 +155,7 @@ theorem rhoPi_spec (a b : Array U64 25#usize) (d : Array U64 5#usize) (i : Usize
       simpa only [h'] using h
   · exact ⟨hi, inv⟩
 
-private theorem words_get {n : Usize} (a : Array U64 n) (j : Nat) (h : j < n.val) :
+theorem words_get {n : Usize} (a : Array U64 n) (j : Nat) (h : j < n.val) :
     (words a)[j]! = (a.val[j]'(by simpa)).bv := by
   rw [words_at a h, getElem!_eq a.val j (by simpa)]
 

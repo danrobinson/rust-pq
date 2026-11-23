@@ -7,3 +7,4 @@ import Slhdsa.Compat128
 import Slhdsa.AdapterTheorems
 import Slhdsa.Proofs.Keccak
 import Slhdsa.Proofs.ShakeAddress
+import Slhdsa.Proofs.Shake256

@@ -59,39 +59,33 @@ padding bit occupies the high bit of byte 135, including when both coincide. -/
 def finalize (s : State × Nat) : State :=
   permute (xorByte (xorByte s.1 s.2 0x1f) 135 0x80)
 
-def outputBlock (a : State) : Bytes :=
-  (List.range 136).map fun i => ((a[i/8]! >>> (8*(i%8))).truncate 8)
+/-- Extract the next byte from the rate, applying the permutation whenever
+another output block is needed. -/
+def extractByte (a : State) (pos : Nat) : Byte :=
+  (a[pos/8]! >>> (8*(pos%8))).truncate 8
 
-def squeeze (a : State) : Nat → Bytes
+def squeeze (a : State) (pos : Nat) : Nat → Bytes
   | 0 => []
-  | blocks+1 => outputBlock a ++ (if blocks = 0 then [] else squeeze (permute a) blocks)
+  | n+1 =>
+    let (block, atPos) := if pos = 136 then (permute a, 0) else (a, pos)
+    extractByte block atPos :: squeeze block (atPos+1) n
 
 end Spec.Keccak
 
 /-- FIPS 202 SHAKE256 on byte strings, with the requested length in bytes. -/
 def Spec.shake256 (m : Bytes) (length : Nat) : Bytes :=
   let a := Keccak.finalize (m.foldl Keccak.feed Keccak.initial)
-  (Keccak.squeeze a ((length+135)/136)).take length
+  Keccak.squeeze a 0 length
 
 namespace Spec
 
-private theorem Keccak.squeeze_length (a : State) (n : Nat) :
-    (squeeze a n).length = 136*n := by
-  induction n generalizing a with
-  | zero => simp [squeeze]
-  | succ n ih =>
-    rw [squeeze, List.length_append]
-    have blockLen : (outputBlock a).length = 136 := by simp [outputBlock]
-    rw [blockLen]
-    split
-    · rename_i h
-      subst n
-      decide
-    · rw [ih]; omega
+@[simp] theorem Keccak.squeeze_length (a : State) (pos n : Nat) :
+    (squeeze a pos n).length = n := by
+  induction n generalizing a pos with
+  | zero => rfl
+  | succ n ih => simp [squeeze, ih]
 
 @[simp] theorem shake256_length (m : Bytes) (n : Nat) : (shake256 m n).length = n := by
-  simp only [shake256, List.length_take, Keccak.squeeze_length]
-  apply Nat.min_eq_left
-  omega
+  simp [shake256]
 
 end Spec
