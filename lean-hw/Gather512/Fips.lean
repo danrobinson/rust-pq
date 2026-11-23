@@ -19,7 +19,7 @@ private theorem be_word (w : BitVec 64) : w.toBEBytes = Spec.toByte w.toNat 8 :=
     simp only [BitVec.getElem_eq_testBit_toNat,BitVec.toNat_ofNat,modbit,Nat.testBit_shiftRight]
     exact h
 
-private theorem encode_take (ws : List (BitVec 64)) (n : Nat) :
+theorem encode_take (ws : List (BitVec 64)) (n : Nat) :
     bytes (Parents.encoded (ws.take n)) = (_root_.slhdsa.S512.ser ws).take (8*n) := by
   induction n generalizing ws with
   | zero => simp [Parents.encoded,bytes]

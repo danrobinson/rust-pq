@@ -11,7 +11,7 @@ extract() {
   namespace=$2
   llbc=$3
   shift 3
-  arch=x86_64-unknown-linux-gnu
+  arch=${platform_arch:-x86_64-unknown-linux-gnu}
   opaque=core::core_arch
   proofdir=lean
   if [ "$package" = Paired ]; then
@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -31,7 +31,7 @@ extract() {
   for name in Types Funs; do
     cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
   done
-  if [ "$package" = Keypadding ]; then
+  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ]; then
     # All operations in this extraction are implemented by Aeneas.
     for template in "$scratch/$package/"*External_Template.lean; do
       test ! -e "$template"
@@ -249,4 +249,21 @@ LEAN
 )
 for name in key_digests_spec tweakable_digest_spec; do
   grep -Fx "'slhdsa.X86.Digest.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/digest256-axioms.log"
+done
+
+# The same parent message constructor is compiled on both architectures.
+for platform_arch in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
+  extract Parentblock ParentBlockRust parentblock --start-from 'crate::sha512::parents::parent_block'
+  rm -r "$scratch/Parentblock"
+done
+unset platform_arch
+(cd lean-hw && lake build Parentblock.Fips && lake env lean --stdin > "$scratch/parentblock-axioms.log" <<'LEAN'
+import Parentblock.Fips
+#print axioms slhdsa.PlatformParent.parent_block_spec
+#print axioms slhdsa.PlatformParent.x86_parents
+#print axioms slhdsa.PlatformParent.arm_parents
+LEAN
+)
+for name in parent_block_spec x86_parents arm_parents; do
+  grep -Fx "'slhdsa.PlatformParent.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parentblock-axioms.log"
 done
