@@ -3,13 +3,15 @@ use super::RC;
 
 #[cfg(target_arch = "x86_64")]
 pub(crate) const WIDTH: usize = 8;
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
 pub(crate) const WIDTH: usize = 2;
+#[cfg(all(target_arch = "aarch64", not(target_vendor = "apple")))]
+pub(crate) const WIDTH: usize = 3;
 pub(crate) type States = [[u64; WIDTH]; 25];
 
 /// One copy of the FIPS 202 coordinates serves all instruction sets.
 /// The operators implement theta's column parity, rho/pi, and chi on each lane.
-macro_rules! permutation {
+macro_rules! round_function {
     ($feature:literal) => {
         #[inline]
         #[target_feature(enable = $feature)]
@@ -73,6 +75,12 @@ macro_rules! permutation {
             a[0] = iota!(a[0], rc);
             a
         }
+    };
+}
+
+macro_rules! permutation {
+    ($feature:literal) => {
+        round_function!($feature);
         #[target_feature(enable = $feature)]
         pub(super) unsafe fn permute(words: &mut States) {
             // Register conversions preserve lane order and cover exactly one word per state.
@@ -118,7 +126,7 @@ mod avx512 {
     permutation!("avx512f");
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
 mod sha3 {
     use super::*;
     use core::arch::aarch64::*;
@@ -151,7 +159,7 @@ mod sha3 {
     permutation!("neon,sha3");
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
 mod neon {
     use super::*;
     use core::arch::aarch64::*;
@@ -185,6 +193,82 @@ mod neon {
     permutation!("neon");
 }
 
+#[cfg(all(target_arch = "aarch64", not(target_vendor = "apple")))]
+mod mixed {
+    use super::*;
+    use core::arch::aarch64::*;
+    #[derive(Clone, Copy)]
+    struct V {
+        pair: uint64x2_t,
+        scalar: u64,
+    }
+    macro_rules! xor3 {
+        ($a:expr,$b:expr,$c:expr) => {{
+            let c = $c;
+            V {
+                pair: veorq_u64($a.pair, veorq_u64($b.pair, c.pair)),
+                scalar: $a.scalar ^ $b.scalar ^ c.scalar,
+            }
+        }};
+    }
+    macro_rules! theta {
+        ($a:expr,$b:expr) => {
+            V {
+                pair: veorq_u64(
+                    $a.pair,
+                    vsriq_n_u64::<63>(vshlq_n_u64::<1>($b.pair), $b.pair),
+                ),
+                scalar: $a.scalar ^ $b.scalar.rotate_left(1),
+            }
+        };
+    }
+    macro_rules! rho {
+        ($a:expr,$d:expr,$r:literal) => {{
+            let x = veorq_u64($a.pair, $d.pair);
+            V {
+                pair: vsriq_n_u64::<{ 64 - $r }>(vshlq_n_u64::<$r>(x), x),
+                scalar: ($a.scalar ^ $d.scalar).rotate_left($r),
+            }
+        }};
+    }
+    macro_rules! chi {
+        ($a:expr,$b:expr,$c:expr) => {
+            V {
+                pair: veorq_u64($a.pair, vbicq_u64($c.pair, $b.pair)),
+                scalar: $a.scalar ^ (!$b.scalar & $c.scalar),
+            }
+        };
+    }
+    macro_rules! iota {
+        ($a:expr,$rc:expr) => {
+            V {
+                pair: veorq_u64($a.pair, vdupq_n_u64($rc)),
+                scalar: $a.scalar ^ $rc,
+            }
+        };
+    }
+    round_function!("neon");
+
+    #[target_feature(enable = "neon")]
+    pub(super) unsafe fn permute(words: &mut States) {
+        // Run the third independent state on integer ALUs alongside two NEON lanes.
+        let mut a = core::array::from_fn(|i| V {
+            pair: vcombine_u64(vcreate_u64(words[i][0]), vcreate_u64(words[i][1])),
+            scalar: words[i][2],
+        });
+        for &rc in &RC {
+            a = unsafe { round(a, rc) };
+        }
+        for i in 0..25 {
+            words[i] = [
+                vgetq_lane_u64::<0>(a[i].pair),
+                vgetq_lane_u64::<1>(a[i].pair),
+                a[i].scalar,
+            ];
+        }
+    }
+}
+
 #[inline]
 pub(crate) fn available() -> bool {
     #[cfg(target_arch = "x86_64")]
@@ -204,7 +288,11 @@ pub(crate) fn permute(words: &mut States) {
     unsafe {
         avx512::permute(words)
     }
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(all(target_arch = "aarch64", not(target_vendor = "apple")))]
+    unsafe {
+        mixed::permute(words)
+    }
+    #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
     if crate::sha512::hw::arm::available() {
         unsafe { sha3::permute(words) }
     } else {
@@ -212,7 +300,7 @@ pub(crate) fn permute(words: &mut States) {
     }
 }
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
 pub(super) fn single(state: &mut [u64; 25]) {
     let mut words = core::array::from_fn(|i| [state[i]; WIDTH]);
     // SAFETY: the hardware check is made here before calling the SHA3 kernel.

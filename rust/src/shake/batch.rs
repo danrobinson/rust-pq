@@ -75,9 +75,14 @@ pub(super) fn pair<const N: usize>(
     read(&s)
 }
 
-fn secrets<const N: usize>(seed: &[u8; N], sk: &[u8; N], addr: Adrs, i: usize) -> [[u8; N]; WIDTH] {
+fn secrets<const N: usize>(
+    seed: &[u8; N],
+    sk: &[u8; N],
+    addr: Adrs,
+    ids: [usize; WIDTH],
+) -> [[u8; N]; WIDTH] {
     let prf = addr.with_type(WOTS_PRF).with_keypair(addr.keypair);
-    let addresses = core::array::from_fn(|lane| prf.with_word2((i + lane) as u32));
+    let addresses = core::array::from_fn(|lane| prf.with_word2(ids[lane] as u32));
     short(seed, &addresses, &[*sk; WIDTH])
 }
 
@@ -85,12 +90,12 @@ fn secrets<const N: usize>(seed: &[u8; N], sk: &[u8; N], addr: Adrs, i: usize) -
 fn chains<const N: usize>(
     seed: &[u8; N],
     addr: Adrs,
-    i: usize,
+    ids: [usize; WIDTH],
     values: &[[u8; N]; WIDTH],
     mut index: [u32; WIDTH],
     end: [u32; WIDTH],
 ) -> [[u8; N]; WIDTH] {
-    let addresses = core::array::from_fn(|lane| addr.with_word2((i + lane) as u32).with_word3(0));
+    let addresses = core::array::from_fn(|lane| addr.with_word2(ids[lane] as u32).with_word3(0));
     let mut input = header(seed, &addresses, 2 * N + 32);
     let offset = N / 8 + 4;
     put(&mut input, offset, values);
@@ -122,13 +127,36 @@ pub(super) fn keygen<const N: usize>(sk: &[u8; N], seed: &[u8; N], addr: Adrs) -
     let len = 2 * N + LEN2;
     let mut pk = start(seed, &addr.with_type(WOTS_PK).with_keypair(addr.keypair));
     for i in (0..len).step_by(WIDTH) {
-        let values = secrets(seed, sk, addr, i);
-        let values = chains(seed, addr, i, &values, [0; WIDTH], [W - 1; WIDTH]);
+        let ids = core::array::from_fn(|lane| i + lane);
+        let values = secrets(seed, sk, addr, ids);
+        let values = chains(seed, addr, ids, &values, [0; WIDTH], [W - 1; WIDTH]);
         for v in &values[..(len - i).min(WIDTH)] {
             pk.absorb(v);
         }
     }
     digest(pk)
+}
+
+/// Group chains with similar lengths so each SIMD register spends fewer
+/// iterations waiting for its longest chain. Output is scattered by chain ID.
+fn chain_order(digits: &[u32]) -> [usize; 67] {
+    let mut offsets = [0; 16];
+    for &digit in digits {
+        offsets[digit as usize] += 1;
+    }
+    let mut start = 0;
+    for offset in &mut offsets {
+        let count = *offset;
+        *offset = start;
+        start += count;
+    }
+    let mut order = [0; 67];
+    for (index, &digit) in digits.iter().enumerate() {
+        let at = &mut offsets[digit as usize];
+        order[*at] = index;
+        *at += 1;
+    }
+    order
 }
 
 pub(super) fn sign<const N: usize>(
@@ -137,13 +165,14 @@ pub(super) fn sign<const N: usize>(
     addr: Adrs,
     digits: &[u32],
 ) -> Vec<u8> {
-    let mut sig = Vec::with_capacity(N * digits.len());
-    for i in (0..digits.len()).step_by(WIDTH) {
-        let values = secrets(seed, sk, addr, i);
-        let end = core::array::from_fn(|lane| digits.get(i + lane).copied().unwrap_or(0));
-        let values = chains(seed, addr, i, &values, [0; WIDTH], end);
-        for v in &values[..(digits.len() - i).min(WIDTH)] {
-            sig.extend_from_slice(v);
+    let order = chain_order(digits);
+    let mut sig = alloc::vec![0; N*digits.len()];
+    for batch in order[..digits.len()].chunks(WIDTH) {
+        let ids = core::array::from_fn(|i| batch[i.min(batch.len() - 1)]);
+        let values = secrets(seed, sk, addr, ids);
+        let values = chains(seed, addr, ids, &values, [0; WIDTH], ids.map(|i| digits[i]));
+        for (lane, &id) in batch.iter().enumerate() {
+            sig[id * N..(id + 1) * N].copy_from_slice(&values[lane]);
         }
     }
     sig
@@ -155,20 +184,26 @@ pub(super) fn recover<const N: usize>(
     addr: Adrs,
     digits: &[u32],
 ) -> [u8; N] {
-    let mut pk = start(seed, &addr.with_type(WOTS_PK).with_keypair(addr.keypair));
-    for i in (0..digits.len()).step_by(WIDTH) {
-        let values = core::array::from_fn(|lane| {
-            if i + lane < digits.len() {
-                block(sig, i + lane)
-            } else {
-                [0; N]
-            }
-        });
-        let index = core::array::from_fn(|lane| digits.get(i + lane).copied().unwrap_or(W - 1));
-        let values = chains(seed, addr, i, &values, index, [W - 1; WIDTH]);
-        for v in &values[..(digits.len() - i).min(WIDTH)] {
-            pk.absorb(v);
+    let order = chain_order(digits);
+    let mut endpoints = [[0; N]; 67];
+    for batch in order[..digits.len()].chunks(WIDTH) {
+        let ids = core::array::from_fn(|i| batch[i.min(batch.len() - 1)]);
+        let values = ids.map(|i| block(sig, i));
+        let values = chains(
+            seed,
+            addr,
+            ids,
+            &values,
+            ids.map(|i| digits[i]),
+            [W - 1; WIDTH],
+        );
+        for (lane, &id) in batch.iter().enumerate() {
+            endpoints[id] = values[lane];
         }
+    }
+    let mut pk = start(seed, &addr.with_type(WOTS_PK).with_keypair(addr.keypair));
+    for key in &endpoints[..digits.len()] {
+        pk.absorb(key);
     }
     digest(pk)
 }
