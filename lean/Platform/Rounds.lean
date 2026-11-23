@@ -5,29 +5,32 @@ open Aeneas Aeneas.Std Result
 open core.core_arch.x86.avx512f
 namespace slhdsa.X86
 
-private theorem xor3 (a b c : BitVec 32) : ternary 150 a b c = a ^^^ b ^^^ c := by
-  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes 32) 0#32) (selectWord c 0#32 (BitVec.allOnes 32))) (selectWord b (selectWord c 0#32 (BitVec.allOnes 32)) (selectWord c (BitVec.allOnes 32) 0#32))) = _
+theorem xor3 {n : Nat} (a b c : BitVec n) : ternary 150 a b c = a ^^^ b ^^^ c := by
+  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes n) 0#n) (selectWord c 0#n (BitVec.allOnes n))) (selectWord b (selectWord c 0#n (BitVec.allOnes n)) (selectWord c (BitVec.allOnes n) 0#n))) = _
   ext i hi
   simp only [selectWord, Spec.SHA256.ch, Spec.SHA256.maj, BitVec.getElem_and,
     BitVec.getElem_or, BitVec.getElem_not, BitVec.getElem_xor, BitVec.getElem_zero,
     BitVec.getElem_allOnes]
   cases a[i] <;> cases b[i] <;> cases c[i] <;> rfl
 
-private theorem choose (a b c : BitVec 32) : ternary 202 a b c = Spec.SHA256.ch a b c := by
-  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes 32) (BitVec.allOnes 32)) (selectWord c 0#32 0#32)) (selectWord b (selectWord c (BitVec.allOnes 32) 0#32) (selectWord c (BitVec.allOnes 32) 0#32))) = _
+theorem chooseWord {n : Nat} (a b c : BitVec n) : ternary 202 a b c = (a &&& b) ^^^ (~~~a &&& c) := by
+  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes n) (BitVec.allOnes n)) (selectWord c 0#n 0#n)) (selectWord b (selectWord c (BitVec.allOnes n) 0#n) (selectWord c (BitVec.allOnes n) 0#n))) = _
   ext i hi
   simp only [selectWord, Spec.SHA256.ch, Spec.SHA256.maj, BitVec.getElem_and,
     BitVec.getElem_or, BitVec.getElem_not, BitVec.getElem_xor, BitVec.getElem_zero,
     BitVec.getElem_allOnes]
   cases a[i] <;> cases b[i] <;> cases c[i] <;> rfl
 
-private theorem majority (a b c : BitVec 32) : ternary 232 a b c = Spec.SHA256.maj a b c := by
-  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes 32) (BitVec.allOnes 32)) (selectWord c (BitVec.allOnes 32) 0#32)) (selectWord b (selectWord c (BitVec.allOnes 32) 0#32) (selectWord c 0#32 0#32))) = _
+theorem majorityWord {n : Nat} (a b c : BitVec n) : ternary 232 a b c = (a &&& b) ^^^ (a &&& c) ^^^ (b &&& c) := by
+  change (selectWord a (selectWord b (selectWord c (BitVec.allOnes n) (BitVec.allOnes n)) (selectWord c (BitVec.allOnes n) 0#n)) (selectWord b (selectWord c (BitVec.allOnes n) 0#n) (selectWord c 0#n 0#n))) = _
   ext i hi
   simp only [selectWord, Spec.SHA256.ch, Spec.SHA256.maj, BitVec.getElem_and,
     BitVec.getElem_or, BitVec.getElem_not, BitVec.getElem_xor, BitVec.getElem_zero,
     BitVec.getElem_allOnes]
   cases a[i] <;> cases b[i] <;> cases c[i] <;> rfl
+
+theorem choose (a b c : BitVec 32) : ternary 202 a b c = Spec.SHA256.ch a b c := chooseWord a b c
+theorem majority (a b c : BitVec 32) : ternary 232 a b c = Spec.SHA256.maj a b c := majorityWord a b c
 
 open Spec.SHA256
 abbrev Reg := core.core_arch.x86.__m512i
@@ -36,11 +39,11 @@ def laneState (a : Array Reg 8#usize) (j : Fin 16) : State :=
   (a.val[0]! j, a.val[1]! j, a.val[2]! j, a.val[3]! j,
    a.val[4]! j, a.val[5]! j, a.val[6]! j, a.val[7]! j)
 
-private theorem laneState_make (a b c d e f g h : Reg) (j : Fin 16) :
+theorem laneState_make (a b c d e f g h : Reg) (j : Fin 16) :
     laneState (Array.make 8#usize [a,b,c,d,e,f,g,h]) j =
       (a j, b j, c j, d j, e j, f j, g j, h j) := rfl
 
-private theorem read_lane (a : Array Reg 8#usize) (i : Usize) (h : i.val < 8) :
+theorem read_lane (a : Array Reg 8#usize) (i : Usize) (h : i.val < 8) :
     a.index_usize i = ok (a.val[i.val]!) := by
   have hi : i.val < a.val.length := by simpa using h
   unfold Array.index_usize
@@ -49,9 +52,9 @@ private theorem read_lane (a : Array Reg 8#usize) (i : Usize) (h : i.val < 8) :
 /-- Each register lane performs the FIPS 180-4 step for its own message schedule. -/
 theorem round_spec (a : Array Reg 8#usize) (w : Reg) (k : U32)
     (W : Fin 16 → List Word) (t : Nat) (hk : k.bv = K[t]!) (hw : ∀ j, w j = (W j)[t]!) :
-    sha256.x86.avx512.round a w k ⦃ out => ∀ j,
+    PlatformRust.sha256.x86.avx512.round a w k ⦃ out => ∀ j,
       laneState out j = Spec.SHA256.round (W j) (laneState a j) t ⦄ := by
-  simp (disch := decide) only [sha256.x86.avx512.round, read_lane, _mm512_ror_epi32,
+  simp (disch := decide) only [PlatformRust.sha256.x86.avx512.round, read_lane, _mm512_ror_epi32,
     _mm512_ternarylogic_epi32, _mm512_add_epi32, _mm512_set1_epi32, lift, bind_ok, step_simps]
   intro j
   rw [laneState_make]

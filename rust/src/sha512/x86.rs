@@ -26,55 +26,63 @@ pub(super) fn compress_parents<const N: usize>(
     }
 }
 
+#[inline(always)]
+unsafe fn compression_step<const I: usize>(s: &mut [__m512i; 8], w: &mut [__m512i; 16]) {
+    unsafe {
+        if I >= 16 {
+            let x = w[(I + 1) % 16];
+            let y = w[(I + 14) % 16];
+            let s0 = _mm512_ternarylogic_epi64::<0x96>(
+                _mm512_ror_epi64::<1>(x),
+                _mm512_ror_epi64::<8>(x),
+                _mm512_srli_epi64::<7>(x),
+            );
+            let s1 = _mm512_ternarylogic_epi64::<0x96>(
+                _mm512_ror_epi64::<19>(y),
+                _mm512_ror_epi64::<61>(y),
+                _mm512_srli_epi64::<6>(y),
+            );
+            w[I % 16] = _mm512_add_epi64(
+                _mm512_add_epi64(w[I % 16], w[(I + 9) % 16]),
+                _mm512_add_epi64(s0, s1),
+            );
+        }
+        let [a, b, c, d, e, f, g, h] = *s;
+        let sum1 = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<14>(e),
+            _mm512_ror_epi64::<18>(e),
+            _mm512_ror_epi64::<41>(e),
+        );
+        let ch = _mm512_ternarylogic_epi64::<0xca>(e, f, g);
+        let wk = _mm512_add_epi64(w[I % 16], _mm512_set1_epi64(super::K[I] as i64));
+        let t1 = _mm512_add_epi64(_mm512_add_epi64(h, sum1), _mm512_add_epi64(ch, wk));
+        let sum0 = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<28>(a),
+            _mm512_ror_epi64::<34>(a),
+            _mm512_ror_epi64::<39>(a),
+        );
+        let maj = _mm512_ternarylogic_epi64::<0xe8>(a, b, c);
+        *s = [
+            _mm512_add_epi64(t1, _mm512_add_epi64(sum0, maj)),
+            a,
+            b,
+            c,
+            _mm512_add_epi64(d, t1),
+            e,
+            f,
+            g,
+        ];
+    }
+}
+
 #[target_feature(enable = "avx512f")]
 fn compress(initial: [__m512i; 8], mut w: [__m512i; 16]) -> [__m512i; 8] {
     let mut s = initial;
     macro_rules! step {
         ($i:expr) => {{
             const I: usize = $i;
-            if I >= 16 {
-                let x = w[(I + 1) % 16];
-                let y = w[(I + 14) % 16];
-                let s0 = _mm512_ternarylogic_epi64::<0x96>(
-                    _mm512_ror_epi64::<1>(x),
-                    _mm512_ror_epi64::<8>(x),
-                    _mm512_srli_epi64::<7>(x),
-                );
-                let s1 = _mm512_ternarylogic_epi64::<0x96>(
-                    _mm512_ror_epi64::<19>(y),
-                    _mm512_ror_epi64::<61>(y),
-                    _mm512_srli_epi64::<6>(y),
-                );
-                w[I % 16] = _mm512_add_epi64(
-                    _mm512_add_epi64(w[I % 16], w[(I + 9) % 16]),
-                    _mm512_add_epi64(s0, s1),
-                );
-            }
-            let [a, b, c, d, e, f, g, h] = s;
-            let sum1 = _mm512_ternarylogic_epi64::<0x96>(
-                _mm512_ror_epi64::<14>(e),
-                _mm512_ror_epi64::<18>(e),
-                _mm512_ror_epi64::<41>(e),
-            );
-            let ch = _mm512_ternarylogic_epi64::<0xca>(e, f, g);
-            let wk = _mm512_add_epi64(w[I % 16], _mm512_set1_epi64(super::K[I] as i64));
-            let t1 = _mm512_add_epi64(_mm512_add_epi64(h, sum1), _mm512_add_epi64(ch, wk));
-            let sum0 = _mm512_ternarylogic_epi64::<0x96>(
-                _mm512_ror_epi64::<28>(a),
-                _mm512_ror_epi64::<34>(a),
-                _mm512_ror_epi64::<39>(a),
-            );
-            let maj = _mm512_ternarylogic_epi64::<0xe8>(a, b, c);
-            s = [
-                _mm512_add_epi64(t1, _mm512_add_epi64(sum0, maj)),
-                a,
-                b,
-                c,
-                _mm512_add_epi64(d, t1),
-                e,
-                f,
-                g,
-            ];
+            // SAFETY: compress enables AVX-512F.
+            unsafe { compression_step::<I>(&mut s, &mut w) };
         }};
     }
     macro_rules! four {
@@ -105,7 +113,21 @@ fn compress(initial: [__m512i; 8], mut w: [__m512i; 16]) -> [__m512i; 8] {
     four!(68);
     four!(72);
     four!(76);
-    core::array::from_fn(|i| _mm512_add_epi64(initial[i], s[i]))
+    macro_rules! add {
+        ($i:expr) => {
+            _mm512_add_epi64(initial[$i], s[$i])
+        };
+    }
+    [
+        add!(0),
+        add!(1),
+        add!(2),
+        add!(3),
+        add!(4),
+        add!(5),
+        add!(6),
+        add!(7),
+    ]
 }
 
 pub(crate) fn key_digests<const N: usize, const L: usize>(

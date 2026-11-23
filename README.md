@@ -136,7 +136,7 @@ chain kernel, pairs independent parents where SHA-512 instructions are available
 and uses RustCrypto compression for streaming messages. Long messages can be signed
 and verified without copying the entire message to prepend its context.
 
-**Proof coverage.** Lean proves functional refinement for both families in the default and `hw-sha2` configurations. The relational constant-time proofs cover their SHA-2 sets. For `platform-sha2`, Lean also proves each lane of the extracted AVX-512 SHA-256 round against FIPS 180-4 under the four intrinsic models. The complete platform dispatch and its callers have hardware, differential and interoperability tests. [AVX-512 proof](lean/Platform/Rounds.lean) [Latest measurements](bench/headroom.md)
+**Proof coverage.** Lean proves functional refinement for both families in the default and `hw-sha2` configurations. The relational constant-time proofs cover their SHA-2 sets. For `platform-sha2`, Lean proves the extracted AVX-512 SHA-256 and SHA-512 compression cores against FIPS 180-4 for all 16 and eight lanes respectively. These proofs assume the modeled register and instruction semantics and correctly transposed input words. The SHA-256 core also takes a precomputed four-round prefix. The complete dispatch and its callers have hardware, differential and interoperability tests. [Block theorems](lean-hw/Slhdsa/Proofs/Platform.lean) · [SHA-2 measurements](bench/headroom.md) · [SHAKE measurements](bench/merged.md)
 · [Wide x86 benchmarks](bench/wide-x86.md) · [Original cross-platform comparison](bench/platforms.md)
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)

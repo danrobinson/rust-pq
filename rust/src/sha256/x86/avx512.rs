@@ -2,6 +2,32 @@
 //! steps. Only the counter and the truncated digest change between steps.
 use core::arch::x86_64::*;
 
+// Called only by AVX-512F kernels. Forced inlining keeps each schedule slot constant.
+#[inline(always)]
+unsafe fn compression_step<const I: usize>(state: &mut [__m512i; 8], w: &mut [__m512i; 16]) {
+    unsafe {
+        if I >= 16 {
+            let x = w[(I + 1) % 16];
+            let y = w[(I + 14) % 16];
+            let s0 = _mm512_ternarylogic_epi32::<0x96>(
+                _mm512_ror_epi32::<7>(x),
+                _mm512_ror_epi32::<18>(x),
+                _mm512_srli_epi32::<3>(x),
+            );
+            let s1 = _mm512_ternarylogic_epi32::<0x96>(
+                _mm512_ror_epi32::<17>(y),
+                _mm512_ror_epi32::<19>(y),
+                _mm512_srli_epi32::<10>(y),
+            );
+            w[I % 16] = _mm512_add_epi32(
+                _mm512_add_epi32(w[I % 16], w[(I + 9) % 16]),
+                _mm512_add_epi32(s0, s1),
+            );
+        }
+        *state = round(*state, w[I % 16], super::super::K[I]);
+    }
+}
+
 // Expand within the chain loop so the compiler can specialize digest truncation.
 macro_rules! compression {
     ($initial:expr,$state:expr,$words:expr) => {{
@@ -13,25 +39,8 @@ macro_rules! compression {
         macro_rules! step {
             ($i:expr) => {{
                 const I: usize = $i;
-                if I >= 16 {
-                    let x = w[(I + 1) % 16];
-                    let y = w[(I + 14) % 16];
-                    let s0 = _mm512_ternarylogic_epi32::<0x96>(
-                        _mm512_ror_epi32::<7>(x),
-                        _mm512_ror_epi32::<18>(x),
-                        _mm512_srli_epi32::<3>(x),
-                    );
-                    let s1 = _mm512_ternarylogic_epi32::<0x96>(
-                        _mm512_ror_epi32::<17>(y),
-                        _mm512_ror_epi32::<19>(y),
-                        _mm512_srli_epi32::<10>(y),
-                    );
-                    w[I % 16] = _mm512_add_epi32(
-                        _mm512_add_epi32(w[I % 16], w[(I + 9) % 16]),
-                        _mm512_add_epi32(s0, s1),
-                    );
-                }
-                state = round(state, w[I % 16], super::super::K[I]);
+                // SAFETY: all expansion sites run under AVX-512F.
+                unsafe { compression_step::<I>(&mut state, &mut w) };
             }};
         }
         macro_rules! four {
@@ -57,7 +66,21 @@ macro_rules! compression {
         four!(52);
         four!(56);
         four!(60);
-        core::array::from_fn(|i| _mm512_add_epi32(initial[i], state[i]))
+        macro_rules! add {
+            ($i:expr) => {
+                _mm512_add_epi32(initial[$i], state[$i])
+            };
+        }
+        [
+            add!(0),
+            add!(1),
+            add!(2),
+            add!(3),
+            add!(4),
+            add!(5),
+            add!(6),
+            add!(7),
+        ]
     }};
 }
 

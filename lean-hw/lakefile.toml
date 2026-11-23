@@ -12,6 +12,10 @@ path = "../.tools/aeneas/backends/lean"
 name = "Spec"
 srcDir = "../lean"
 
+[[lean_lib]]
+name = "Platform"
+srcDir = "../lean"
+
 # The instruction model of the hardware backend (`Arm.lean`, trusted: a transcription of the
 # Arm ARM pseudocode of the instructions the wrappers of `sha256::hw::arm` (eighteen) and
 # `sha512::hw::arm` (ten) call).

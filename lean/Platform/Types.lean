@@ -19,6 +19,6 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
-namespace slhdsa
+namespace PlatformRust
 
-end slhdsa
+end PlatformRust
