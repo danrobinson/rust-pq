@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check the feature-selected RustCrypto facade and the core signing adapter on accelerated builds."""
 from pathlib import Path
+import re
 import runpy
 import subprocess
 import tempfile
@@ -34,6 +35,37 @@ def extract(crate, target, package, scratch, roots, cuts):
     return dest
 
 
+def check_exports(target, scratch):
+    roots = ("{impl pkcs8::traits::EncodePrivateKey for crate::signing_key::SigningKey}::to_pkcs8_der",
+             "{impl spki::traits::EncodePublicKey for crate::verifying_key::VerifyingKey}::to_public_key_der")
+    package = extract("compat", target, "Export", scratch, roots, ())
+    program = (LEAN / "Platformadapter/ExportsProgram.lean").read_text()
+    fresh_types = set(common["declarations"](common["body"](package / "Types.lean", "slh_dsa")))
+    shared = set(common["declarations"](common["body"](LEAN / "Facade/Types.lean", "slh_dsa")))
+    for declaration in fresh_types - shared:
+        if declaration not in program:
+            raise ValueError(f"unmatched exporter nominal type on {target}: {declaration}")
+    for declaration in common["declarations"](common["body"](package / "Funs.lean", "slh_dsa")):
+        if declaration not in program:
+            raise ValueError(f"unmatched exporter function on {target}: {declaration}")
+    source = ["import Platformadapter.ExportsProgram", "open Aeneas Aeneas.Std Result",
+              "open slh_dsa.PlatformExports", "variable [doc : Documents]"]
+    names = set()
+    template = (package / "FunsExternal_Template.lean").read_text()
+    for item in common["declarations"](template[template.index("/-- "):]):
+        match = re.fullmatch(r"(?:@\[.*?\]\s*)?axiom\s+([^\s:]+)\s*:(.*)", item, re.DOTALL)
+        if not match:
+            raise ValueError(f"unrecognized DER exporter external signature: {item}")
+        name, signature = match.groups()
+        source.append(f"example : {signature} := {name}")
+        names.add(name)
+    if names != {"der.document.Document.Insts.CoreConvertTryFromShared0SliceU8Error.try_from",
+                 "der.document.SecretDocument.Insts.CoreConvertTryFromShared0SliceU8Error.try_from",
+                 "pkcs8.error.Error.Insts.CoreConvertFromError.from", "spki.error.Error.Insts.CoreConvertFromError.from"}:
+        raise ValueError(f"unexpected DER export dependency: {names}")
+    run(["lake", "env", "lean", "--stdin"], LEAN, input="\n".join(source), text=True)
+
+
 def check(target, scratch):
     facade = extract("compat", target, "Facade", scratch, FACADE_ROOTS, ("slhdsa::params::Params",))
     for file in ("Types.lean", "Funs.lean"):
@@ -49,14 +81,11 @@ def check(target, scratch):
     reference = set(common["declarations"]((LEAN / "Platformadapter/Bindings.lean.txt").read_text()))
     if external != reference:
         raise ValueError(f"unexpected signing adapter inputs on {target}")
-    print(f"{target}: matched facade and signing adapter translations", flush=True)
+    check_exports(target, scratch)
+    print(f"{target}: matched facade, signing adapter, and DER exporters", flush=True)
 
 
-def audit(model, module):
-    names = [f"sha2_{bits}{speed}_{op}" for bits in (128, 192, 256) for speed in ("s", "f")
-             for op in ("sign", "sign_with_context", "verify", "verify_with_context", "randomized_sign", "new", "parsers", "der")]
-    names.extend(("multipart_sign_eq", "multipart_verify_eq", "multipart_randomized_eq"))
-    theorems = [f"{model}.FacadeContext.FacadeAdapter.slh_dsa.{name}" for name in names]
+def audit_theorems(module, theorems):
     source = f"import {module}\n" + "".join(f"#print axioms {name}\n" for name in theorems)
     result = run(["lake", "env", "lean", "--stdin"], LEAN, input=source, text=True, stdout=subprocess.PIPE)
     audits = " ".join(result.stdout.split())
@@ -64,14 +93,25 @@ def audit(model, module):
         expected = f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]"
         if expected not in audits:
             raise ValueError(f"unexpected facade axiom audit for {name}\n{result.stdout}")
+
+
+def audit(model, module):
+    names = [f"sha2_{bits}{speed}_{op}" for bits in (128, 192, 256) for speed in ("s", "f")
+             for op in ("sign", "sign_with_context", "verify", "verify_with_context", "randomized_sign", "new", "parsers", "der")]
+    names.extend(("multipart_sign_eq", "multipart_verify_eq", "multipart_randomized_eq"))
+    theorems = [f"{model}.FacadeContext.FacadeAdapter.slh_dsa.{name}" for name in names]
+    audit_theorems(module, theorems)
     print(f"{model}: checked {len(theorems)} facade theorems", flush=True)
 
 
 if __name__ == "__main__":
+    run(["lake", "build", "Platformadapter.Linux", "Platformadapter.X86", "Platformadapter.Exports"], LEAN)
     for target in TARGETS:
         with tempfile.TemporaryDirectory() as temp:
             check(target, Path(temp))
-    run(["lake", "build", "Platformadapter.Linux", "Platformadapter.X86"], LEAN)
+    exports = [f"slh_dsa.PlatformExports.{family}_{bits}{speed}_exports" for family in ("sha2", "shake")
+               for bits in (128, 192, 256) for speed in ("s", "f")]
+    audit_theorems("Platformadapter.Exports", exports)
     for model, module in (("AppleFacade", "Platformadapter.Apple"),
                           ("LinuxFacade.AppleFacade", "Platformadapter.Linux"),
                           ("X86Facade", "Platformadapter.X86")):

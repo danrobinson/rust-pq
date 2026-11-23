@@ -15,7 +15,7 @@ local macro "named_set " short:ident " from " long:ident " using " coreId:ident 
   let source := mkIdent src
   let target := mkIdent dest
   let algorithm := mkIdent `Slh_dsaParamsDerAlgorithm
-  let methods := #[`N, `sign, `verify, `keygen_seeds, `sk_from, `sig_from].map mkIdent
+  let methods := #[`N, `sign, `verify, `keygen_seeds, `sk_from, `sig_from, `with_pkcs8, `with_spki].map mkIdent
   `(section
     abbrev $short := SetOf $coreSrc
     namespace $target

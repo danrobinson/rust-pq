@@ -201,6 +201,10 @@ for d in security security-hw; do
   echo "$d: $(echo "$out" | grep "headline theorems reported") $(echo "$out" | tail -1)"
 done
 
+# Accelerated streaming and RustCrypto trait proofs.
+./scripts/check-segmented-continuation.py
+./scripts/check-platform-facade.py
+
 # Adapter crate.
 ./scripts/check-compat-proof.sh
 ./scripts/check-platform-proof.sh
