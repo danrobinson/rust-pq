@@ -227,47 +227,12 @@ bytes (at most 16,608 portable and 17,168 with `hw-sha2`, both for 256s).
 
 ## Timing
 
-`examples/timing.rs`: key generation, deterministic signing of a 31-byte message, and
-verification, through this crate and through RustCrypto's crate from the same seeds,
-alternating between the two; release build; medians of 7 runs (31 for verification), in
-milliseconds. Run twice on 2026-11-22 (Apple M5 Ultra, load average 1.8–2.7); the two runs agree
-within 1.5 %. RustCrypto's crate goes through `sha2` 0.11.1, which on this CPU detects and uses
-the ARMv8 SHA-256 *and* SHA-512 instructions at run time.
+The [main README](../README.md#performance) summarizes the cross-platform benchmarks.
+To time this checkout’s adapter against RustCrypto on a 31-byte message, run the timing example.
 
 ```bash
 cargo run --release --example timing --features hw-sha2
 ```
-
-Medians of the first run (this crate / RustCrypto; the last column is RustCrypto's time over
-this crate's, so above 1 means this crate is faster):
-
-| set | operation | `hw-sha2` | ratio |
-|---|---|---|---|
-| 128s | keygen | 3.95 / 8.29 | 2.10 |
-| 128s | sign | 30.4 / 62.6 | 2.06 |
-| 128s | verify | 0.034 / 0.057 | 1.68 |
-| 128f | keygen | 0.075 / 0.129 | 1.71 |
-| 128f | sign | 1.53 / 2.99 | 1.96 |
-| 128f | verify | 0.095 / 0.171 | 1.79 |
-| 192s | keygen | 6.13 / 12.5 | 2.04 |
-| 192s | sign | 67.7 / 124.8 | 1.84 |
-| 192s | verify | 0.066 / 0.111 | 1.67 |
-| 192f | keygen | 0.109 / 0.193 | 1.77 |
-| 192f | sign | 2.92 / 5.40 | 1.85 |
-| 192f | verify | 0.163 / 0.292 | 1.80 |
-| 256s | keygen | 4.11 / 8.40 | 2.04 |
-| 256s | sign | 65.1 / 115.6 | 1.78 |
-| 256s | verify | 0.092 / 0.156 | 1.68 |
-| 256f | keygen | 0.269 / 0.535 | 1.99 |
-| 256f | sign | 6.05 / 11.19 | 1.85 |
-| 256f | verify | 0.168 / 0.291 | 1.73 |
-
-With `hw-sha2` (SHA-256 and, for n = 24 and 32, SHA-512 on the instructions, both proved
-relative to the instruction model) this crate is 1.7–2.1× faster than RustCrypto's for every
-set and operation. Before 2026-11-22 the SHA-512 backend was a separate, unproved feature; the
-verified one signs 192s in 67.7 ms and 256s in 65.1 ms, as that one did (69.2 and 66.5 ms in the
-measurement of that time). The cost of the adapter itself (an extra signature copy, the 64 KiB
-stack scrub) was not measured separately.
 
 ## Credit and licence
 

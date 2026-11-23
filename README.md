@@ -98,32 +98,35 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
 ## Performance
 
-Apple M5 Ultra, release builds, median of three runs (method and every number: [STATUS.md](STATUS.md),
-"Measurements"); "RC" is RustCrypto's `slh-dsa` 0.2.0-rc.5 in the same binary, using hardware
-SHA-2 in the `hw-sha2` columns:
+The platform-optimized build had lower median latency than OpenSSL 4.1.0 in **1,344 of 1,344 workloads**
+and RustCrypto `slh-dsa` 0.2.0-rc.5 in **1,339 of 1,344**. The five RustCrypto wins were all
+extractions of a 32-byte public key on the Xeon 8275CL or Graviton4. These measurements cover
+the twelve-set SHA-2 and SHAKE build with `platform-sha2`. This checkout contains the earlier
+six-set SHA-2 implementation.
 
-The default build columns are from STATUS.md, "Measurements"; the `hw-sha2` columns (now with
-the verified hardware SHA-512) were measured on 2026-11-22 with `compat/examples/timing.rs`
-(medians of 7 runs, 31 for verification, through the adapter; [compat/README.md](compat/README.md),
-"Timing"):
+**Deterministic signing of a 32-byte message.** Each range gives the smallest and largest
+speedup across the twelve parameter sets. A 4× speedup means signing took one-quarter of
+the peer’s time.
 
-| set | keygen, default | sign, default | verify, default | keygen, `hw-sha2` | sign, `hw-sha2` | verify, `hw-sha2` | RC sign |
-|---|---|---|---|---|---|---|---|
-| 128s | 40.85 ms | 310.9 ms | 322.8 µs | 3.95 ms | 30.39 ms | 34 µs | 62.61 ms |
-| 128f | 619.8 µs | 14.77 ms | 943.4 µs | 75 µs | 1.53 ms | 95 µs | 2.99 ms |
-| 192s | 58.35 ms | 550.6 ms | 451.5 µs | 6.13 ms | 67.68 ms | 66 µs | 124.8 ms |
-| 192f | 915.0 µs | 24.42 ms | 1.28 ms | 109 µs | 2.92 ms | 163 µs | 5.40 ms |
-| 256s | 38.69 ms | 494.6 ms | 667.5 µs | 4.11 ms | 65.10 ms | 92 µs | 115.6 ms |
-| 256f | 2.42 ms | 50.29 ms | 1.33 ms | 269 µs | 6.05 ms | 168 µs | 11.19 ms |
+| Processor | Speedup over RustCrypto | Speedup over OpenSSL |
+|---|---:|---:|
+| Apple M5 Ultra | 1.8–4.0× | 1.8–2.8× |
+| Intel Xeon 8275CL | 11.6–18.9× | 5.4–11.0× |
+| Intel Xeon 8124M | 13.0–21.3× | 6.1–12.4× |
+| Intel Xeon 6975P-C | 4.0–12.1× | 3.2–5.5× |
+| AMD EPYC 9R45 | 4.3–16.5× | 3.5–7.3× |
+| AWS Graviton2 | 2.1–3.4× | 1.3–2.4× |
+| AWS Graviton4 | 3.3–6.0× | 1.5–2.6× |
 
-The default build uses only safe Rust in the Aeneas subset and is about 1.4 times slower than
-RustCrypto's portable build. With `hw-sha2` it is 1.6–2.1 times faster than RustCrypto (which
-uses the SHA-256 and SHA-512 instructions too) at every operation of every set.
+The suite measured key generation, public-key extraction, deterministic and hedged signing,
+verification, and raw and DER key conversions. Signing and verification used 32-byte and
+1 MiB messages. After warm-up, each workload ran six times, once per provider order.
+Speedups are medians of within-round peer/library latency ratios. Linux used a pinned vCPU.
+The Apple host ran under normal scheduling with concurrent work.
 
-The comparisons with OpenSSL 4.1, `fips205`, slhdsa-c and PQClean in [bench/RESULTS.md](bench/RESULTS.md)
-were measured on the single-set crate (SLH-DSA-SHA2-128s; for 128s the six-set crate is within
-2.5% of it). `bench/run.sh` now benchmarks the six-set crate's 128s functions under the same
-names, and `cargo bench --bench sets` in `bench/` the six sets against RustCrypto.
+[Interactive comparison by processor and operation](https://chatgpt.com/space/page_c6515006f9348191989c73423bcb0fbb) ·
+[Signature and key-generation timings](bench/results/peers-optimized/workloads.csv) ·
+[Key conversion timings](bench/results/peers-optimized/encoding-workloads.csv)
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)
 

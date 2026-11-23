@@ -1,4 +1,0 @@
-== round 1, config default, reverse=0 (load averages: 2.49 1.96 1.66)
-== round 1, config hw, reverse=0 (load averages: 1.35 1.62 1.61)
-== round 2, config hw, reverse=1 (load averages: 1.60 1.61 1.59)
-== round 2, config default, reverse=1 (load averages: 1.59 1.56 1.57)
