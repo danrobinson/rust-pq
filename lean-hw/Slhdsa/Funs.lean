@@ -965,7 +965,7 @@ def sha256.compress
   | some out => ok out
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::compress]:
-    Source: 'src/address.rs', lines 69:4-98:5
+    Source: 'src/address.rs', lines 83:4-112:5
     Visibility: public -/
 def address.Adrs.compress
   (self : address.Adrs) : Result (Array Std.U8 22#usize) := do
@@ -5330,6 +5330,68 @@ def address.Adrs.Insts.CoreMarkerCopy : core.marker.Copy address.Adrs := {
   cloneInst := address.Adrs.Insts.CoreCloneClone
 }
 
+/-- [slhdsa::address::{slhdsa::address::Adrs}::full]:
+    Source: 'src/address.rs', lines 69:4-79:5
+    Visibility: public -/
+def address.Adrs.full
+  (self : address.Adrs) : Result (Array Std.U8 32#usize) := do
+  let i ← self.layer >>> 24#i32
+  let i1 ← lift (UScalar.cast .U8 i)
+  let i2 ← self.layer >>> 16#i32
+  let i3 ← lift (UScalar.cast .U8 i2)
+  let i4 ← self.layer >>> 8#i32
+  let i5 ← lift (UScalar.cast .U8 i4)
+  let i6 ← lift (UScalar.cast .U8 self.layer)
+  let i7 ← self.tree >>> 56#i32
+  let i8 ← lift (UScalar.cast .U8 i7)
+  let i9 ← self.tree >>> 48#i32
+  let i10 ← lift (UScalar.cast .U8 i9)
+  let i11 ← self.tree >>> 40#i32
+  let i12 ← lift (UScalar.cast .U8 i11)
+  let i13 ← self.tree >>> 32#i32
+  let i14 ← lift (UScalar.cast .U8 i13)
+  let i15 ← self.tree >>> 24#i32
+  let i16 ← lift (UScalar.cast .U8 i15)
+  let i17 ← self.tree >>> 16#i32
+  let i18 ← lift (UScalar.cast .U8 i17)
+  let i19 ← self.tree >>> 8#i32
+  let i20 ← lift (UScalar.cast .U8 i19)
+  let i21 ← lift (UScalar.cast .U8 self.tree)
+  let i22 ← self.typ >>> 24#i32
+  let i23 ← lift (UScalar.cast .U8 i22)
+  let i24 ← self.typ >>> 16#i32
+  let i25 ← lift (UScalar.cast .U8 i24)
+  let i26 ← self.typ >>> 8#i32
+  let i27 ← lift (UScalar.cast .U8 i26)
+  let i28 ← lift (UScalar.cast .U8 self.typ)
+  let i29 ← self.keypair >>> 24#i32
+  let i30 ← lift (UScalar.cast .U8 i29)
+  let i31 ← self.keypair >>> 16#i32
+  let i32 ← lift (UScalar.cast .U8 i31)
+  let i33 ← self.keypair >>> 8#i32
+  let i34 ← lift (UScalar.cast .U8 i33)
+  let i35 ← lift (UScalar.cast .U8 self.keypair)
+  let i36 ← self.word2 >>> 24#i32
+  let i37 ← lift (UScalar.cast .U8 i36)
+  let i38 ← self.word2 >>> 16#i32
+  let i39 ← lift (UScalar.cast .U8 i38)
+  let i40 ← self.word2 >>> 8#i32
+  let i41 ← lift (UScalar.cast .U8 i40)
+  let i42 ← lift (UScalar.cast .U8 self.word2)
+  let i43 ← self.word3 >>> 24#i32
+  let i44 ← lift (UScalar.cast .U8 i43)
+  let i45 ← self.word3 >>> 16#i32
+  let i46 ← lift (UScalar.cast .U8 i45)
+  let i47 ← self.word3 >>> 8#i32
+  let i48 ← lift (UScalar.cast .U8 i47)
+  let i49 ← lift (UScalar.cast .U8 self.word3)
+  ok
+    (Array.make 32#usize [
+      i1, i3, i5, i6, 0#u8, 0#u8, 0#u8, 0#u8, i8, i10, i12, i14, i16, i18, i20,
+      i21, i23, i25, i27, i28, i30, i32, i34, i35, i37, i39, i41, i42, i44,
+      i46, i48, i49
+      ])
+
 /-- [slhdsa::api::keygen]:
     Source: 'src/api.rs', lines 24:0-29:1
     Visibility: public -/
@@ -7568,6 +7630,3303 @@ def sets.sha2_256f.params.SPKI_BYTES : Result Std.Usize := do
   let i1 ← sets.sha2_256f.params.PK_BYTES
   i + i1
 
+/-- [slhdsa::shake::hash::seed_ctx]:
+    Source: 'src/shake/hash.rs', lines 9:0-11:1
+    Visibility: public -/
+def shake.hash.seed_ctx
+  {N : Std.Usize} (pk_seed : Array Std.U8 N) : Result (Array Std.U8 N) := do
+  ok pk_seed
+
+/-- [slhdsa::shake256::round::ROT]
+    Source: 'src/shake256.rs', lines 47:4-50:6 -/
+@[global_simps, irreducible]
+def shake256.round.ROT : Array Std.U32 25#usize :=
+  Array.make 25#usize [
+    0#u32, 1#u32, 62#u32, 28#u32, 27#u32, 36#u32, 44#u32, 6#u32, 55#u32,
+    20#u32, 3#u32, 10#u32, 43#u32, 25#u32, 39#u32, 41#u32, 45#u32, 15#u32,
+    21#u32, 8#u32, 18#u32, 2#u32, 61#u32, 56#u32, 14#u32
+    ]
+
+/-- [slhdsa::shake256::round]: loop body 0:
+    Source: 'src/shake256.rs', lines 35:4-38:5 -/
+@[rust_loop_body]
+def shake256.round_loop0.body
+  (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
+  :
+  Result (ControlFlow ((Array Std.U64 5#usize) × Std.Usize) (Array Std.U64
+    5#usize))
+  := do
+  if x < 5#usize
+  then
+    let i ← Array.index_usize a x
+    let i1 ← x + 5#usize
+    let i2 ← Array.index_usize a i1
+    let i3 ← lift (i ^^^ i2)
+    let i4 ← x + 10#usize
+    let i5 ← Array.index_usize a i4
+    let i6 ← lift (i3 ^^^ i5)
+    let i7 ← x + 15#usize
+    let i8 ← Array.index_usize a i7
+    let i9 ← lift (i6 ^^^ i8)
+    let i10 ← x + 20#usize
+    let i11 ← Array.index_usize a i10
+    let i12 ← lift (i9 ^^^ i11)
+    let a1 ← Array.update parity x i12
+    let x1 ← x + 1#usize
+    ok (cont (a1, x1))
+  else ok (done parity)
+
+/-- [slhdsa::shake256::round]: loop 0:
+    Source: 'src/shake256.rs', lines 35:4-38:5 -/
+@[rust_loop]
+def shake256.round_loop0
+  (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
+  :
+  Result (Array Std.U64 5#usize)
+  := do
+  loop
+    (fun (parity1, x1) => shake256.round_loop0.body a parity1 x1)
+    (parity, x)
+
+/-- [slhdsa::shake256::round]: loop body 1:
+    Source: 'src/shake256.rs', lines 41:4-44:5 -/
+@[rust_loop_body]
+def shake256.round_loop1.body
+  (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
+  :
+  Result (ControlFlow ((Array Std.U64 5#usize) × Std.Usize) (Array Std.U64
+    5#usize))
+  := do
+  if x < 5#usize
+  then
+    let i ← x + 4#usize
+    let i1 ← i % 5#usize
+    let i2 ← Array.index_usize parity i1
+    let i3 ← x + 1#usize
+    let i4 ← i3 % 5#usize
+    let i5 ← Array.index_usize parity i4
+    let i6 ← lift (core.num.U64.rotate_left i5 1#u32)
+    let i7 ← lift (i2 ^^^ i6)
+    let a ← Array.update d x i7
+    ok (cont (a, i3))
+  else ok (done d)
+
+/-- [slhdsa::shake256::round]: loop 1:
+    Source: 'src/shake256.rs', lines 41:4-44:5 -/
+@[rust_loop]
+def shake256.round_loop1
+  (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
+  :
+  Result (Array Std.U64 5#usize)
+  := do
+  loop
+    (fun (d1, x1) => shake256.round_loop1.body parity d1 x1)
+    (d, x)
+
+/-- [slhdsa::shake256::round]: loop body 2:
+    Source: 'src/shake256.rs', lines 53:4-58:5 -/
+@[rust_loop_body]
+def shake256.round_loop2.body
+  (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize)
+  (b : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array Std.U64 25#usize) × Std.Usize) (Array Std.U64
+    25#usize))
+  := do
+  if i < 25#usize
+  then
+    let x ← i % 5#usize
+    let y ← i / 5#usize
+    let i1 ← Array.index_usize a i
+    let i2 ← Array.index_usize d x
+    let i3 ← lift (i1 ^^^ i2)
+    let i4 ← Array.index_usize shake256.round.ROT i
+    let i5 ← lift (core.num.U64.rotate_left i3 i4)
+    let i6 ← 2#usize * x
+    let i7 ← 3#usize * y
+    let i8 ← i6 + i7
+    let i9 ← i8 % 5#usize
+    let i10 ← 5#usize * i9
+    let i11 ← y + i10
+    let a1 ← Array.update b i11 i5
+    let i12 ← i + 1#usize
+    ok (cont (a1, i12))
+  else ok (done b)
+
+/-- [slhdsa::shake256::round]: loop 2:
+    Source: 'src/shake256.rs', lines 53:4-58:5 -/
+@[rust_loop]
+def shake256.round_loop2
+  (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize)
+  (b : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (Array Std.U64 25#usize)
+  := do
+  loop
+    (fun (b1, i1) => shake256.round_loop2.body a d b1 i1)
+    (b, i)
+
+/-- [slhdsa::shake256::round]: loop body 3:
+    Source: 'src/shake256.rs', lines 61:4-66:5 -/
+@[rust_loop_body]
+def shake256.round_loop3.body
+  (b : Array Std.U64 25#usize) (out : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array Std.U64 25#usize) × Std.Usize) (Array Std.U64
+    25#usize))
+  := do
+  if i < 25#usize
+  then
+    let x ← i % 5#usize
+    let row ← i - x
+    let i1 ← Array.index_usize b i
+    let i2 ← x + 1#usize
+    let i3 ← i2 % 5#usize
+    let i4 ← row + i3
+    let i5 ← Array.index_usize b i4
+    let i6 ← lift (~~~ i5)
+    let i7 ← x + 2#usize
+    let i8 ← i7 % 5#usize
+    let i9 ← row + i8
+    let i10 ← Array.index_usize b i9
+    let i11 ← lift (i6 &&& i10)
+    let i12 ← lift (i1 ^^^ i11)
+    let a ← Array.update out i i12
+    let i13 ← i + 1#usize
+    ok (cont (a, i13))
+  else ok (done out)
+
+/-- [slhdsa::shake256::round]: loop 3:
+    Source: 'src/shake256.rs', lines 61:4-66:5 -/
+@[rust_loop]
+def shake256.round_loop3
+  (b : Array Std.U64 25#usize) (out : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (Array Std.U64 25#usize)
+  := do
+  loop
+    (fun (out1, i1) => shake256.round_loop3.body b out1 i1)
+    (out, i)
+
+/-- [slhdsa::shake256::round]:
+    Source: 'src/shake256.rs', lines 32:0-69:1 -/
+def shake256.round
+  (a : Array Std.U64 25#usize) (rc : Std.U64) :
+  Result (Array Std.U64 25#usize)
+  := do
+  let parity := Array.repeat 5#usize 0#u64
+  let parity1 ← shake256.round_loop0 a parity 0#usize
+  let d := Array.repeat 5#usize 0#u64
+  let d1 ← shake256.round_loop1 parity1 d 0#usize
+  let b := Array.repeat 25#usize 0#u64
+  let b1 ← shake256.round_loop2 a d1 b 0#usize
+  let out := Array.repeat 25#usize 0#u64
+  let out1 ← shake256.round_loop3 b1 out 0#usize
+  let i ← Array.index_usize out1 0#usize
+  let i1 ← lift (i ^^^ rc)
+  Array.update out1 0#usize i1
+
+/-- [slhdsa::shake256::RC]
+    Source: 'src/shake256.rs', lines 5:0-30:2 -/
+@[global_simps, irreducible]
+def shake256.RC : Array Std.U64 24#usize :=
+  Array.make 24#usize [
+    1#u64, 32898#u64, 9223372036854808714#u64, 9223372039002292224#u64,
+    32907#u64, 2147483649#u64, 9223372039002292353#u64,
+    9223372036854808585#u64, 138#u64, 136#u64, 2147516425#u64, 2147483658#u64,
+    2147516555#u64, 9223372036854775947#u64, 9223372036854808713#u64,
+    9223372036854808579#u64, 9223372036854808578#u64, 9223372036854775936#u64,
+    32778#u64, 9223372039002259466#u64, 9223372039002292353#u64,
+    9223372036854808704#u64, 2147483649#u64, 9223372039002292232#u64
+    ]
+
+/-- [slhdsa::shake256::permute]: loop body 0:
+    Source: 'src/shake256.rs', lines 73:4-76:5 -/
+@[rust_loop_body]
+def shake256.permute_loop.body
+  (state : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array Std.U64 25#usize) × Std.Usize) (Array Std.U64
+    25#usize))
+  := do
+  if i < 24#usize
+  then
+    let i1 ← Array.index_usize shake256.RC i
+    let state1 ← shake256.round state i1
+    let i2 ← i + 1#usize
+    ok (cont (state1, i2))
+  else ok (done state)
+
+/-- [slhdsa::shake256::permute]: loop 0:
+    Source: 'src/shake256.rs', lines 73:4-76:5 -/
+@[rust_loop]
+def shake256.permute_loop
+  (state : Array Std.U64 25#usize) (i : Std.Usize) :
+  Result (Array Std.U64 25#usize)
+  := do
+  loop
+    (fun (state1, i1) => shake256.permute_loop.body state1 i1)
+    (state, i)
+
+/-- [slhdsa::shake256::permute]:
+    Source: 'src/shake256.rs', lines 71:0-77:1 -/
+@[reducible]
+def shake256.permute
+  (state : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
+  shake256.permute_loop state 0#usize
+
+/-- [slhdsa::shake256::RATE]
+    Source: 'src/shake256.rs', lines 4:0-4:24 -/
+@[global_simps, irreducible] def shake256.RATE : Std.Usize := 136#usize
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 0:
+    Source: 'src/shake256.rs', lines 95:8-103:9 -/
+@[rust_loop_body]
+def shake256.Sponge.absorb_loop.body
+  (data : Slice Std.U8) (self : shake256.Sponge) (i : Std.Usize) :
+  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
+  := do
+  let i1 := Slice.len data
+  if i < i1
+  then
+    let i2 ← Slice.index_usize data i
+    let i3 ← lift (UScalar.cast .U64 i2)
+    let i4 ← self.pos % 8#usize
+    let i5 ← 8#usize * i4
+    let i6 ← i3 <<< i5
+    let i7 ← self.pos / 8#usize
+    let i8 ← Array.index_usize self.lanes i7
+    let i9 ← lift (i8 ^^^ i6)
+    let (_, index_mut_back) ← Array.index_mut_usize self.lanes i7
+    let i10 ← self.pos + 1#usize
+    let (a, i11) ←
+      if i10 = shake256.RATE
+      then
+        do
+        let a1 := index_mut_back i9
+        let a2 ← shake256.permute a1
+        ok (a2, 0#usize)
+      else let a1 := index_mut_back i9
+           ok (a1, i10)
+    let i12 ← i + 1#usize
+    ok (cont ({ lanes := a, pos := i11 }, i12))
+  else ok (done self)
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 0:
+    Source: 'src/shake256.rs', lines 95:8-103:9 -/
+@[rust_loop]
+def shake256.Sponge.absorb_loop
+  (self : shake256.Sponge) (data : Slice Std.U8) (i : Std.Usize) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (self1, i1) => shake256.Sponge.absorb_loop.body data self1 i1)
+    (self, i)
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]:
+    Source: 'src/shake256.rs', lines 93:4-104:5 -/
+@[reducible]
+def shake256.Sponge.absorb
+  (self : shake256.Sponge) (data : Slice Std.U8) : Result shake256.Sponge := do
+  shake256.Sponge.absorb_loop self data 0#usize
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop body 0:
+    Source: 'src/shake256.rs', lines 112:8-120:9 -/
+@[rust_loop_body]
+def shake256.Sponge.finish_loop.body
+  (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
+  (i : Std.Usize) :
+  Result (ControlFlow ((Array Std.U64 25#usize) × (Slice Std.U8) × Std.Usize
+    × Std.Usize) (Slice Std.U8))
+  := do
+  let i1 := Slice.len out
+  if i < i1
+  then
+    let (a1, pos1) ←
+      if pos = shake256.RATE
+      then do
+           let a2 ← shake256.permute a
+           ok (a2, 0#usize)
+      else ok (a, pos)
+    let i2 ← pos1 / 8#usize
+    let i3 ← Array.index_usize a1 i2
+    let i4 ← pos1 % 8#usize
+    let i5 ← 8#usize * i4
+    let i6 ← i3 >>> i5
+    let i7 ← lift (UScalar.cast .U8 i6)
+    let s ← Slice.update out i i7
+    let pos2 ← pos1 + 1#usize
+    let i8 ← i + 1#usize
+    ok (cont (a1, s, pos2, i8))
+  else ok (done out)
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop 0:
+    Source: 'src/shake256.rs', lines 112:8-120:9 -/
+@[rust_loop]
+def shake256.Sponge.finish_loop
+  (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
+  (i : Std.Usize) :
+  Result (Slice Std.U8)
+  := do
+  loop
+    (fun (a1, out1, pos1, i1) => shake256.Sponge.finish_loop.body a1 out1 pos1
+      i1)
+    (a, out, pos, i)
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]:
+    Source: 'src/shake256.rs', lines 106:4-121:5 -/
+def shake256.Sponge.finish
+  (self : shake256.Sponge) (out : Slice Std.U8) : Result (Slice Std.U8) := do
+  let i ← self.pos % 8#usize
+  let i1 ← 8#usize * i
+  let i2 ← 31#u64 <<< i1
+  let i3 ← self.pos / 8#usize
+  let i4 ← Array.index_usize self.lanes i3
+  let i5 ← lift (i4 ^^^ i2)
+  let a ← Array.update self.lanes i3 i5
+  let i6 ← 1#u64 <<< 63#i32
+  let i7 ← shake256.RATE / 8#usize
+  let i8 ← i7 - 1#usize
+  let i9 ← Array.index_usize a i8
+  let i10 ← lift (i9 ^^^ i6)
+  let a1 ← Array.update a i8 i10
+  let a2 ← shake256.permute a1
+  shake256.Sponge.finish_loop a2 out 0#usize 0#usize
+
+/-- [slhdsa::shake::hash::digest]:
+    Source: 'src/shake/hash.rs', lines 20:0-24:1 -/
+def shake.hash.digest
+  (N : Std.Usize) (sponge : shake256.Sponge) : Result (Array Std.U8 N) := do
+  let out := Array.repeat N 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s1 ← shake256.Sponge.finish sponge s
+  ok (to_slice_mut_back s1)
+
+/-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::new]:
+    Source: 'src/shake256.rs', lines 86:4-91:5 -/
+def shake256.Sponge.new : Result shake256.Sponge := do
+  let a := Array.repeat 25#usize 0#u64
+  ok { lanes := a, pos := 0#usize }
+
+/-- [slhdsa::shake::hash::start]:
+    Source: 'src/shake/hash.rs', lines 13:0-18:1 -/
+def shake.hash.start
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result shake256.Sponge
+  := do
+  let sponge ← shake256.Sponge.new
+  let s ← lift (Array.to_slice seed)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let a ← address.Adrs.full adrs
+  let s1 ← lift (Array.to_slice a)
+  shake256.Sponge.absorb sponge1 s1
+
+/-- [slhdsa::shake::hash::thash]:
+    Source: 'src/shake/hash.rs', lines 26:0-30:1 -/
+def shake.hash.thash
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (value : Array Std.U8 N) :
+  Result (Array Std.U8 N)
+  := do
+  let sponge ← shake.hash.start seed adrs
+  let s ← lift (Array.to_slice value)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  shake.hash.digest N sponge1
+
+/-- [slhdsa::shake::wots::chain]: loop body 0:
+    Source: 'src/shake/wots.rs', lines 24:4-27:5 -/
+@[rust_loop_body]
+def shake.wots.chain_loop.body
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
+  («end» : Std.U32) (value : Array Std.U8 N) (j : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 N) × Std.U32) (Array Std.U8 N))
+  := do
+  if j < «end»
+  then
+    let a ← address.Adrs.with_word3 adrs j
+    let value1 ← shake.hash.thash seed a value
+    let j1 ← j + 1#u32
+    ok (cont (value1, j1))
+  else ok (done value)
+
+/-- [slhdsa::shake::wots::chain]: loop 0:
+    Source: 'src/shake/wots.rs', lines 24:4-27:5 -/
+@[rust_loop]
+def shake.wots.chain_loop
+  {N : Std.Usize} (value : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (j : Std.U32) («end» : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  loop
+    (fun (value1, j1) => shake.wots.chain_loop.body seed adrs «end» value1
+      j1)
+    (value, j)
+
+/-- [slhdsa::shake::wots::chain]:
+    Source: 'src/shake/wots.rs', lines 17:0-29:1 -/
+@[reducible]
+def shake.wots.chain
+  {N : Std.Usize} (value : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (j : Std.U32) («end» : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  shake.wots.chain_loop value seed adrs j «end»
+
+/-- [slhdsa::shake::wots::secret]:
+    Source: 'src/shake/wots.rs', lines 9:0-15:1 -/
+def shake.wots.secret
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (i : Std.Usize) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_PRF
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let i1 ← lift (UScalar.cast .U32 i)
+  let a2 ← address.Adrs.with_word2 a1 i1
+  shake.hash.thash seed a2 sk
+
+/-- [slhdsa::shake::wots::wots_pk_gen]: loop body 0:
+    Source: 'src/shake/wots.rs', lines 34:4-44:5 -/
+@[rust_loop_body]
+def shake.wots.wots_pk_gen_loop.body
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
+  := do
+  let i7 ← 2#usize * N
+  let i8 ← i7 + params.LEN2
+  if i6 < i8
+  then
+    let a ←
+      shake.wots.secret sk seed
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i6
+    let i9 ← lift (UScalar.cast .U32 i6)
+    let a1 ←
+      address.Adrs.with_word2
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i9
+    let i10 ← params.W - 1#u32
+    let «end» ← shake.wots.chain a seed a1 0#u32 i10
+    let s ← lift (Array.to_slice «end»)
+    let pk1 ← shake256.Sponge.absorb pk s
+    let i11 ← i6 + 1#usize
+    ok (cont (pk1, i11))
+  else ok (done pk)
+
+/-- [slhdsa::shake::wots::wots_pk_gen]: loop 0:
+    Source: 'src/shake/wots.rs', lines 34:4-44:5 -/
+@[rust_loop]
+def shake.wots.wots_pk_gen_loop
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (pk1, i7) => shake.wots.wots_pk_gen_loop.body sk seed i i1 i2 i3 i4 i5
+      pk1 i7)
+    (pk, i6)
+
+/-- [slhdsa::shake::wots::wots_pk_gen]:
+    Source: 'src/shake/wots.rs', lines 31:0-46:1 -/
+def shake.wots.wots_pk_gen
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_PK
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let pk ← shake.hash.start seed a1
+  let pk1 ←
+    shake.wots.wots_pk_gen_loop sk seed adrs.layer adrs.tree adrs.typ
+      adrs.keypair adrs.word2 adrs.word3 pk 0#usize
+  shake.hash.digest N pk1
+
+/-- [slhdsa::shake::hash::thash_pair]:
+    Source: 'src/shake/hash.rs', lines 32:0-42:1 -/
+def shake.hash.thash_pair
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (a : Array Std.U8 N) (b : Array Std.U8 N) :
+  Result (Array Std.U8 N)
+  := do
+  let sponge ← shake.hash.start seed adrs
+  let s ← lift (Array.to_slice a)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let s1 ← lift (Array.to_slice b)
+  let sponge2 ← shake256.Sponge.absorb sponge1 s1
+  shake.hash.digest N sponge2
+
+/-- [slhdsa::shake::xmss::hash2]:
+    Source: 'src/shake/../xmss.rs', lines 11:0-13:1
+    Visibility: public -/
+def shake.xmss.hash2
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (left : Array Std.U8 N) (right : Array Std.U8 N) :
+  Result (Array Std.U8 N)
+  := do
+  shake.hash.thash_pair seed adrs left right
+
+/-- [slhdsa::shake::xmss::xmss_node]:
+    Source: 'src/shake/../xmss.rs', lines 16:0-25:1
+    Visibility: public -/
+def shake.xmss.xmss_node
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (i : Std.U32) (z : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  if z = 0#u32
+  then
+    let a ← address.Adrs.with_type adrs address.WOTS_HASH
+    let a1 ← address.Adrs.with_keypair a i
+    shake.wots.wots_pk_gen sk_seed seed a1
+  else
+    let i1 ← 2#u32 * i
+    let i2 ← z - 1#u32
+    let lnode ← shake.xmss.xmss_node sk_seed i1 i2 seed adrs
+    let i3 ← i1 + 1#u32
+    let rnode ← shake.xmss.xmss_node sk_seed i3 i2 seed adrs
+    let a ← address.Adrs.with_type adrs address.TREE
+    let a1 ← address.Adrs.with_word2 a z
+    let a2 ← address.Adrs.with_word3 a1 i
+    shake.xmss.hash2 seed a2 lnode rnode
+partial_fixpoint
+
+/-- [slhdsa::shake::slh::slh_keygen_internal]:
+    Source: 'src/shake/../slh.rs', lines 22:0-39:1
+    Visibility: public -/
+def shake.slh.slh_keygen_internal
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (sk_prf : Array Std.U8 N) (pk_seed : Array Std.U8 N) (sk : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let a ← address.Adrs.new
+  let i ← p.d - 1#u32
+  let adrs ← address.Adrs.with_layer a i
+  let seed ← shake.hash.seed_ctx pk_seed
+  let pk_root ← shake.xmss.xmss_node sk_seed 0#u32 p.hp seed adrs
+  let (s, index_mut_back) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) sk
+      { start := 0#usize, «end» := N }
+  let s1 ← lift (Array.to_slice sk_seed)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let sk1 := index_mut_back s2
+  let i1 ← 2#usize * N
+  let (s3, index_mut_back1) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) sk1
+      { start := N, «end» := i1 }
+  let s4 ← lift (Array.to_slice sk_prf)
+  let s5 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 s4
+  let sk2 := index_mut_back1 s5
+  let i2 ← 3#usize * N
+  let (s6, index_mut_back2) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) sk2
+      { start := i1, «end» := i2 }
+  let s7 ← lift (Array.to_slice pk_seed)
+  let s8 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s6 s7
+  let sk3 := index_mut_back2 s8
+  let i3 ← 4#usize * N
+  let (s9, index_mut_back3) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) sk3
+      { start := i2, «end» := i3 }
+  let s10 ← lift (Array.to_slice pk_root)
+  let s11 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s9 s10
+  let (s12, index_mut_back4) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) pk
+      { start := 0#usize, «end» := N }
+  let s13 ← lift (Array.to_slice pk_seed)
+  let s14 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s12 s13
+  let pk1 := index_mut_back4 s14
+  let (s15, index_mut_back5) ←
+    core.slice.index.Slice.index_mut
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8) pk1
+      { start := N, «end» := i1 }
+  let s16 ← lift (Array.to_slice pk_root)
+  let s17 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s15 s16
+  let sk4 := index_mut_back3 s11
+  let pk2 := index_mut_back5 s17
+  ok (sk4, pk2)
+
+/-- [slhdsa::sets::shake_128s::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.PARAMS : params.Params := params.SHA2_128S
+
+/-- [slhdsa::sets::shake_128s::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.slh_keygen_internal
+  (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
+  (pk_seed : Array Std.U8 16#usize) :
+  Result ((Array Std.U8 64#usize) × (Array Std.U8 32#usize))
+  := do
+  let sk := Array.repeat 64#usize 0#u8
+  let pk := Array.repeat 32#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_128s.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::shake::hash::h_msg]:
+    Source: 'src/shake/hash.rs', lines 52:0-67:1 -/
+def shake.hash.h_msg
+  {N : Std.Usize} (p : params.Params) (r : Array Std.U8 N)
+  (pk_seed : Array Std.U8 N) (pk_root : Array Std.U8 N) (msg : Slice Std.U8) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let sponge ← shake256.Sponge.new
+  let s ← lift (Array.to_slice r)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let s1 ← lift (Array.to_slice pk_seed)
+  let sponge2 ← shake256.Sponge.absorb sponge1 s1
+  let s2 ← lift (Array.to_slice pk_root)
+  let sponge3 ← shake256.Sponge.absorb sponge2 s2
+  let sponge4 ← shake256.Sponge.absorb sponge3 msg
+  let out ← alloc.vec.from_elem core.clone.CloneU8 0#u8 p.m
+  let (s3, deref_mut_back) ← lift (alloc.vec.Vec.deref_mut out)
+  let s4 ← shake256.Sponge.finish sponge4 s3
+  ok (deref_mut_back s4)
+
+/-- [slhdsa::shake::hash::prf_msg]:
+    Source: 'src/shake/hash.rs', lines 44:0-50:1 -/
+def shake.hash.prf_msg
+  {N : Std.Usize} (sk_prf : Array Std.U8 N) (opt_rand : Array Std.U8 N)
+  (msg : Slice Std.U8) :
+  Result (Array Std.U8 N)
+  := do
+  let sponge ← shake256.Sponge.new
+  let s ← lift (Array.to_slice sk_prf)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let s1 ← lift (Array.to_slice opt_rand)
+  let sponge2 ← shake256.Sponge.absorb sponge1 s1
+  let sponge3 ← shake256.Sponge.absorb sponge2 msg
+  shake.hash.digest N sponge3
+
+/-- [slhdsa::shake::xmss::climb]: loop body 0:
+    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Visibility: public -/
+@[rust_loop_body]
+def shake.xmss.climb_loop.body
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 N) × Std.U32 × Std.U32) (Array Std.U8
+    N))
+  := do
+  if k < height
+  then
+    let i ← lift (UScalar.cast .Usize k)
+    let i1 ← first + i
+    let sibling ← util.block N auth i1
+    let parent ← index >>> 1#i32
+    let i2 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i2
+    let a1 ← address.Adrs.with_word3 a parent
+    let i3 ← lift (index &&& 1#u32)
+    let node1 ←
+      if i3 = 0#u32
+      then shake.xmss.hash2 seed a1 node sibling
+      else shake.xmss.hash2 seed a1 sibling node
+    ok (cont (node1, parent, i2))
+  else ok (done node)
+
+/-- [slhdsa::shake::xmss::climb]: loop 0:
+    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Visibility: public -/
+@[rust_loop]
+def shake.xmss.climb_loop
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  loop
+    (fun (node1, index1, k1) => shake.xmss.climb_loop.body auth first height
+      seed adrs node1 index1 k1)
+    (node, index, k)
+
+/-- [slhdsa::shake::xmss::climb]:
+    Source: 'src/shake/../xmss.rs', lines 50:0-75:1
+    Visibility: public -/
+@[reducible]
+def shake.xmss.climb
+  {N : Std.Usize} (node : Array Std.U8 N) (idx : Std.U32) (auth : Slice Std.U8)
+  (first : Std.Usize) (height : Std.U32) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  shake.xmss.climb_loop auth first height seed adrs node idx 0#u32
+
+/-- [slhdsa::shake::fors::fors_pk_from_sig]: loop body 0:
+    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
+@[rust_loop_body]
+def shake.fors.fors_pk_from_sig_loop.body
+  {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
+  (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (i6 : Std.U32) (indices : alloc.vec.Vec Std.U32) (roots : shake256.Sponge)
+  (i7 : Std.Usize) :
+  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
+  := do
+  let i8 := alloc.vec.Vec.len indices
+  if i7 < i8
+  then
+    let i9 ← lift (UScalar.cast .Usize i)
+    let i10 ← 1#usize + i9
+    let offset ← i7 * i10
+    let i11 ← lift (UScalar.cast .U32 i7)
+    let i12 ← i11 <<< i
+    let i13 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        indices i7
+    let idx ← i12 + i13
+    let a ←
+      address.Adrs.with_word2
+        {
+          layer := i1,
+          tree := i2,
+          typ := i3,
+          keypair := i4,
+          word2 := i5,
+          word3 := i6
+        } 0#u32
+    let a1 ← address.Adrs.with_word3 a idx
+    let a2 ← util.block N sig offset
+    let value ← shake.hash.thash seed a1 a2
+    let i14 ← offset + 1#usize
+    let root ←
+      shake.xmss.climb value idx sig i14 i seed
+        {
+          layer := i1,
+          tree := i2,
+          typ := i3,
+          keypair := i4,
+          word2 := i5,
+          word3 := i6
+        }
+    let s ← lift (Array.to_slice root)
+    let roots1 ← shake256.Sponge.absorb roots s
+    let i15 ← i7 + 1#usize
+    ok (cont (roots1, i15))
+  else ok (done roots)
+
+/-- [slhdsa::shake::fors::fors_pk_from_sig]: loop 0:
+    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
+@[rust_loop]
+def shake.fors.fors_pk_from_sig_loop
+  {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
+  (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (i6 : Std.U32) (indices : alloc.vec.Vec Std.U32) (roots : shake256.Sponge)
+  (i7 : Std.Usize) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (roots1, i8) => shake.fors.fors_pk_from_sig_loop.body i sig seed i1 i2
+      i3 i4 i5 i6 indices roots1 i8)
+    (roots, i7)
+
+/-- [slhdsa::shake::fors::fors_pk_from_sig]:
+    Source: 'src/shake/fors.rs', lines 56:0-79:1 -/
+def shake.fors.fors_pk_from_sig
+  {N : Std.Usize} (p : params.Params) (sig : Slice Std.U8) (md : Slice Std.U8)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let i ← lift (UScalar.cast .Usize p.k)
+  let indices ← util.base_2b md p.a i
+  let a ← address.Adrs.with_type adrs address.FORS_ROOTS
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let roots ← shake.hash.start seed a1
+  let roots1 ←
+    shake.fors.fors_pk_from_sig_loop p.a sig seed adrs.layer adrs.tree 
+      adrs.typ adrs.keypair adrs.word2 adrs.word3 indices roots 0#usize
+  shake.hash.digest N roots1
+
+/-- [slhdsa::shake::fors::fors_sk_gen]:
+    Source: 'src/shake/fors.rs', lines 9:0-15:1 -/
+def shake.fors.fors_sk_gen
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (idx : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.FORS_PRF
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let a2 ← address.Adrs.with_word3 a1 idx
+  shake.hash.thash seed a2 sk
+
+/-- [slhdsa::shake::fors::fors_node]:
+    Source: 'src/shake/fors.rs', lines 17:0-26:1 -/
+def shake.fors.fors_node
+  {N : Std.Usize} (sk : Array Std.U8 N) (i : Std.U32) (z : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_word2 adrs z
+  let a1 ← address.Adrs.with_word3 a i
+  if z = 0#u32
+  then
+    let a2 ← shake.fors.fors_sk_gen sk seed adrs i
+    shake.hash.thash seed a1 a2
+  else
+    let i1 ← 2#u32 * i
+    let i2 ← z - 1#u32
+    let left ← shake.fors.fors_node sk i1 i2 seed adrs
+    let i3 ← i1 + 1#u32
+    let right ← shake.fors.fors_node sk i3 i2 seed adrs
+    shake.hash.thash_pair seed a1 left right
+partial_fixpoint
+
+/-- [slhdsa::shake::fors::fors_sign]: loop body 1:
+    Source: 'src/shake/fors.rs', lines 45:8-50:9
+    Visibility: public -/
+@[rust_loop_body]
+def shake.fors.fors_sign_loop0_loop0.body
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (a : Std.U32) (i : Std.U32) (idx : Std.U32)
+  (sig : alloc.vec.Vec Std.U8) (j : Std.U32) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.U32) (alloc.vec.Vec
+    Std.U8))
+  := do
+  if j < a
+  then
+    let i1 ← idx >>> j
+    let s ← lift (i1 ^^^ 1#u32)
+    let i2 ← a - j
+    let i3 ← i <<< i2
+    let i4 ← i3 + s
+    let node ← shake.fors.fors_node sk_seed i4 j seed adrs
+    let s1 ← lift (Array.to_slice node)
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s1
+    let j1 ← j + 1#u32
+    ok (cont (sig1, j1))
+  else ok (done sig)
+
+/-- [slhdsa::shake::fors::fors_sign]: loop 1:
+    Source: 'src/shake/fors.rs', lines 45:8-50:9
+    Visibility: public -/
+@[rust_loop]
+def shake.fors.fors_sign_loop0_loop0
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (a : Std.U32) (sig : alloc.vec.Vec Std.U8)
+  (i : Std.U32) (idx : Std.U32) (j : Std.U32) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, j1) => shake.fors.fors_sign_loop0_loop0.body sk_seed seed adrs
+      a i idx sig1 j1)
+    (sig, j)
+
+/-- [slhdsa::shake::fors::fors_sign]: loop body 0:
+    Source: 'src/shake/fors.rs', lines 40:4-52:5
+    Visibility: public -/
+@[rust_loop_body]
+def shake.fors.fors_sign_loop0.body
+  {N : Std.Usize} (i : Std.U32) (sk_seed : Array Std.U8 N)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (a : Std.U32)
+  (indices : alloc.vec.Vec Std.U32) (sig : alloc.vec.Vec Std.U8) (i1 : Std.U32)
+  :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.U32) (alloc.vec.Vec
+    Std.U8))
+  := do
+  if i1 < i
+  then
+    let i2 ← lift (UScalar.cast .Usize i1)
+    let idx ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        indices i2
+    let i3 ← i1 <<< a
+    let i4 ← i3 + idx
+    let sk ← shake.fors.fors_sk_gen sk_seed seed adrs i4
+    let s ← lift (Array.to_slice sk)
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+    let sig2 ←
+      shake.fors.fors_sign_loop0_loop0 sk_seed seed adrs a sig1 i1 idx 0#u32
+    let i5 ← i1 + 1#u32
+    ok (cont (sig2, i5))
+  else ok (done sig)
+
+/-- [slhdsa::shake::fors::fors_sign]: loop 0:
+    Source: 'src/shake/fors.rs', lines 40:4-52:5
+    Visibility: public -/
+@[rust_loop]
+def shake.fors.fors_sign_loop0
+  {N : Std.Usize} (i : Std.U32) (sk_seed : Array Std.U8 N)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (a : Std.U32)
+  (indices : alloc.vec.Vec Std.U32) (sig : alloc.vec.Vec Std.U8) (i1 : Std.U32)
+  :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, i2) => shake.fors.fors_sign_loop0.body i sk_seed seed adrs a
+      indices sig1 i2)
+    (sig, i1)
+
+/-- [slhdsa::shake::fors::fors_sign]:
+    Source: 'src/shake/fors.rs', lines 29:0-54:1
+    Visibility: public -/
+def shake.fors.fors_sign
+  {N : Std.Usize} (p : params.Params) (md : Slice Std.U8)
+  (sk_seed : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let i ← lift (UScalar.cast .Usize p.k)
+  let indices ← util.base_2b md p.a i
+  shake.fors.fors_sign_loop0 p.k sk_seed seed adrs p.a indices
+    (alloc.vec.Vec.new Std.U8) 0#u32
+
+/-- [slhdsa::shake::slh::digest_leaf]:
+    Source: 'src/shake/../slh.rs', lines 48:0-51:1 -/
+def shake.slh.digest_leaf
+  (p : params.Params) (digest : Slice Std.U8) : Result Std.U32 := do
+  let i ← params.Params.md_bytes p
+  let i1 ← params.Params.tree_bytes p
+  let lo ← i + i1
+  let i2 ← params.Params.leaf_bytes p
+  let i3 ← lo + i2
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U8) digest { start := lo, «end» := i3 }
+  let i4 ← util.to_int s
+  let i5 ← 1#u64 <<< p.hp
+  let i6 ← i5 - 1#u64
+  let i7 ← lift (i4 &&& i6)
+  ok (UScalar.cast .U32 i7)
+
+/-- [slhdsa::shake::slh::digest_tree]:
+    Source: 'src/shake/../slh.rs', lines 42:0-45:1 -/
+def shake.slh.digest_tree
+  (p : params.Params) (digest : Slice Std.U8) : Result Std.U64 := do
+  let lo ← params.Params.md_bytes p
+  let i ← params.Params.tree_bytes p
+  let i1 ← lo + i
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U8) digest { start := lo, «end» := i1 }
+  let i2 ← util.to_int s
+  let i3 ← params.Params.tree_bits p
+  let i4 ← 64#u32 - i3
+  let i5 ← core.num.U64.MAX >>> i4
+  ok (i2 &&& i5)
+
+/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop body 0:
+    Source: 'src/shake/wots.rs', lines 80:4-90:5 -/
+@[rust_loop_body]
+def shake.wots.wots_pk_from_sig_loop.body
+  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
+  := do
+  let i7 := alloc.vec.Vec.len digits
+  if i6 < i7
+  then
+    let a ← util.block N sig i6
+    let i8 ← lift (UScalar.cast .U32 i6)
+    let a1 ←
+      address.Adrs.with_word2
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i8
+    let i9 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        digits i6
+    let i10 ← params.W - 1#u32
+    let «end» ← shake.wots.chain a seed a1 i9 i10
+    let s ← lift (Array.to_slice «end»)
+    let pk1 ← shake256.Sponge.absorb pk s
+    let i11 ← i6 + 1#usize
+    ok (cont (pk1, i11))
+  else ok (done pk)
+
+/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop 0:
+    Source: 'src/shake/wots.rs', lines 80:4-90:5 -/
+@[rust_loop]
+def shake.wots.wots_pk_from_sig_loop
+  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (pk1, i7) => shake.wots.wots_pk_from_sig_loop.body sig seed i i1 i2 i3
+      i4 i5 digits pk1 i7)
+    (pk, i6)
+
+/-- [slhdsa::shake::wots::wots_pk_from_sig]:
+    Source: 'src/shake/wots.rs', lines 71:0-92:1 -/
+def shake.wots.wots_pk_from_sig
+  {N : Std.Usize} (sig : Slice Std.U8) (msg : Array Std.U8 N)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let digits ← wots.wots_digits msg
+  let a ← address.Adrs.with_type adrs address.WOTS_PK
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let pk ← shake.hash.start seed a1
+  let pk1 ←
+    shake.wots.wots_pk_from_sig_loop sig seed adrs.layer adrs.tree adrs.typ
+      adrs.keypair adrs.word2 adrs.word3 digits pk 0#usize
+  shake.hash.digest N pk1
+
+/-- [slhdsa::shake::xmss::xmss_pk_from_sig]:
+    Source: 'src/shake/../xmss.rs', lines 78:0-88:1
+    Visibility: public -/
+def shake.xmss.xmss_pk_from_sig
+  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
+  (m : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let node ← shake.wots.wots_pk_from_sig sig m seed a1
+  let i ← 2#usize * N
+  let i1 ← i + params.LEN2
+  let a2 ← address.Adrs.with_type adrs address.TREE
+  shake.xmss.climb node idx sig i1 p.hp seed a2
+
+/-- [slhdsa::shake::wots::wots_sign]: loop body 0:
+    Source: 'src/shake/wots.rs', lines 57:4-67:5 -/
+@[rust_loop_body]
+def shake.wots.wots_sign_loop.body
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (digits : alloc.vec.Vec Std.U32)
+  (sig : alloc.vec.Vec Std.U8) (i : Std.Usize) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.Usize) (alloc.vec.Vec
+    Std.U8))
+  := do
+  let i1 := alloc.vec.Vec.len digits
+  if i < i1
+  then
+    let a ← shake.wots.secret sk seed adrs i
+    let i2 ← lift (UScalar.cast .U32 i)
+    let a1 ← address.Adrs.with_word2 adrs i2
+    let i3 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        digits i
+    let value ← shake.wots.chain a seed a1 0#u32 i3
+    let s ← lift (Array.to_slice value)
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+    let i4 ← i + 1#usize
+    ok (cont (sig1, i4))
+  else ok (done sig)
+
+/-- [slhdsa::shake::wots::wots_sign]: loop 0:
+    Source: 'src/shake/wots.rs', lines 57:4-67:5 -/
+@[rust_loop]
+def shake.wots.wots_sign_loop
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (digits : alloc.vec.Vec Std.U32)
+  (sig : alloc.vec.Vec Std.U8) (i : Std.Usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, i1) => shake.wots.wots_sign_loop.body sk seed adrs digits sig1
+      i1)
+    (sig, i)
+
+/-- [slhdsa::shake::wots::wots_sign]:
+    Source: 'src/shake/wots.rs', lines 48:0-69:1 -/
+def shake.wots.wots_sign
+  {N : Std.Usize} (msg : Array Std.U8 N) (sk : Array Std.U8 N)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let digits ← wots.wots_digits msg
+  shake.wots.wots_sign_loop sk seed adrs digits (alloc.vec.Vec.new Std.U8)
+    0#usize
+
+/-- [slhdsa::shake::xmss::xmss_sign]: loop body 0:
+    Source: 'src/shake/../xmss.rs', lines 38:4-43:5
+    Visibility: public -/
+@[rust_loop_body]
+def shake.xmss.xmss_sign_loop.body
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (idx : Std.U32) (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (sig : alloc.vec.Vec Std.U8) (j : Std.U32) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × Std.U32) (alloc.vec.Vec
+    Std.U8))
+  := do
+  if j < p.hp
+  then
+    let i ← idx >>> j
+    let k ← lift (i ^^^ 1#u32)
+    let node ← shake.xmss.xmss_node sk_seed k j seed adrs
+    let s ← lift (Array.to_slice node)
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+    let j1 ← j + 1#u32
+    ok (cont (sig1, j1))
+  else ok (done sig)
+
+/-- [slhdsa::shake::xmss::xmss_sign]: loop 0:
+    Source: 'src/shake/../xmss.rs', lines 38:4-43:5
+    Visibility: public -/
+@[rust_loop]
+def shake.xmss.xmss_sign_loop
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (idx : Std.U32) (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (sig : alloc.vec.Vec Std.U8) (j : Std.U32) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, j1) => shake.xmss.xmss_sign_loop.body p sk_seed idx seed adrs
+      sig1 j1)
+    (sig, j)
+
+/-- [slhdsa::shake::xmss::xmss_sign]:
+    Source: 'src/shake/../xmss.rs', lines 28:0-45:1
+    Visibility: public -/
+def shake.xmss.xmss_sign
+  {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
+  (sk_seed : Array Std.U8 N) (idx : Std.U32) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let sig ← shake.wots.wots_sign m sk_seed seed a1
+  shake.xmss.xmss_sign_loop p sk_seed idx seed adrs sig 0#u32
+
+/-- [slhdsa::shake::ht::ht_sign]: loop body 0:
+    Source: 'src/shake/../ht.rs', lines 23:4-31:5
+    Visibility: public -/
+@[rust_loop_body]
+def shake.ht.ht_sign_loop.body
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (seed : Array Std.U8 N) (sig : alloc.vec.Vec Std.U8) (root : Array Std.U8 N)
+  (tree : Std.U64) (leaf : Std.U32) (j : Std.U32) :
+  Result (ControlFlow ((alloc.vec.Vec Std.U8) × (Array Std.U8 N) × Std.U64 ×
+    Std.U32 × Std.U32) (alloc.vec.Vec Std.U8))
+  := do
+  if j < p.d
+  then
+    let a ← address.Adrs.new
+    let a1 ← address.Adrs.with_layer a j
+    let adrs ← address.Adrs.with_tree a1 tree
+    let s ← shake.xmss.xmss_sign p root sk_seed leaf seed adrs
+    let s1 := alloc.vec.Vec.deref s
+    let root1 ← shake.xmss.xmss_pk_from_sig p leaf s1 root seed adrs
+    let s2 := alloc.vec.Vec.deref s
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s2
+    let i ← 1#u64 <<< p.hp
+    let i1 ← i - 1#u64
+    let i2 ← lift (tree &&& i1)
+    let leaf1 ← lift (UScalar.cast .U32 i2)
+    let tree1 ← tree >>> p.hp
+    let j1 ← j + 1#u32
+    ok (cont (sig1, root1, tree1, leaf1, j1))
+  else ok (done sig)
+
+/-- [slhdsa::shake::ht::ht_sign]: loop 0:
+    Source: 'src/shake/../ht.rs', lines 23:4-31:5
+    Visibility: public -/
+@[rust_loop]
+def shake.ht.ht_sign_loop
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (seed : Array Std.U8 N) (sig : alloc.vec.Vec Std.U8) (root : Array Std.U8 N)
+  (tree : Std.U64) (leaf : Std.U32) (j : Std.U32) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (sig1, root1, tree1, leaf1, j1) => shake.ht.ht_sign_loop.body p
+      sk_seed seed sig1 root1 tree1 leaf1 j1)
+    (sig, root, tree, leaf, j)
+
+/-- [slhdsa::shake::ht::ht_sign]:
+    Source: 'src/shake/../ht.rs', lines 10:0-33:1
+    Visibility: public -/
+@[reducible]
+def shake.ht.ht_sign
+  {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
+  (sk_seed : Array Std.U8 N) (seed : Array Std.U8 N) (idx_tree : Std.U64)
+  (idx_leaf : Std.U32) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  shake.ht.ht_sign_loop p sk_seed seed (alloc.vec.Vec.new Std.U8) m idx_tree
+    idx_leaf 0#u32
+
+/-- [slhdsa::shake::slh::slh_sign_internal]:
+    Source: 'src/shake/../slh.rs', lines 56:0-76:1
+    Visibility: public -/
+def shake.slh.slh_sign_internal
+  {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Array Std.U8 N) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let sk_seed ← util.block N sk 0#usize
+  let sk_prf ← util.block N sk 1#usize
+  let pk_seed ← util.block N sk 2#usize
+  let pk_root ← util.block N sk 3#usize
+  let r ← shake.hash.prf_msg sk_prf addrnd m
+  let digest ← shake.hash.h_msg p r pk_seed pk_root m
+  let s := alloc.vec.Vec.deref digest
+  let idx_tree ← shake.slh.digest_tree p s
+  let s1 := alloc.vec.Vec.deref digest
+  let idx_leaf ← shake.slh.digest_leaf p s1
+  let a ← address.Adrs.new
+  let a1 ← address.Adrs.with_tree a idx_tree
+  let a2 ← address.Adrs.with_type a1 address.FORS_TREE
+  let adrs ← address.Adrs.with_keypair a2 idx_leaf
+  let seed ← shake.hash.seed_ctx pk_seed
+  let i ← params.Params.md_bytes p
+  let md ←
+    alloc.vec.Vec.index (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)
+      digest { start := 0#usize, «end» := i }
+  let sig_fors ← shake.fors.fors_sign p md sk_seed seed adrs
+  let s2 := alloc.vec.Vec.deref sig_fors
+  let pk_fors ← shake.fors.fors_pk_from_sig p s2 md seed adrs
+  let sig_ht ← shake.ht.ht_sign p pk_fors sk_seed seed idx_tree idx_leaf
+  let s3 ← lift (Array.to_slice r)
+  let sig ←
+    alloc.vec.Vec.extend_from_slice core.clone.CloneU8 (alloc.vec.Vec.new
+      Std.U8) s3
+  let s4 := alloc.vec.Vec.deref sig_fors
+  let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s4
+  let s5 := alloc.vec.Vec.deref sig_ht
+  alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s5
+
+/-- [slhdsa::sets::shake_128s::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_128s.params.PARAMS m s addrnd
+
+/-- [slhdsa::shake::ht::ht_verify]: loop body 0:
+    Source: 'src/shake/../ht.rs', lines 50:4-57:5
+    Visibility: public -/
+@[rust_loop_body]
+def shake.ht.ht_verify_loop.body
+  {N : Std.Usize} (p : params.Params) (sig : Slice Std.U8)
+  (seed : Array Std.U8 N) (xs : Std.Usize) (node : Array Std.U8 N)
+  (tree : Std.U64) (leaf : Std.U32) (j : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 N) × Std.U64 × Std.U32 × Std.U32)
+    (Array Std.U8 N))
+  := do
+  if j < p.d
+  then
+    let a ← address.Adrs.new
+    let a1 ← address.Adrs.with_layer a j
+    let adrs ← address.Adrs.with_tree a1 tree
+    let i ← lift (UScalar.cast .Usize j)
+    let off ← i * xs
+    let i1 ← off + xs
+    let s ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U8) sig { start := off, «end» := i1 }
+    let node1 ← shake.xmss.xmss_pk_from_sig p leaf s node seed adrs
+    let i2 ← 1#u64 <<< p.hp
+    let i3 ← i2 - 1#u64
+    let i4 ← lift (tree &&& i3)
+    let leaf1 ← lift (UScalar.cast .U32 i4)
+    let tree1 ← tree >>> p.hp
+    let j1 ← j + 1#u32
+    ok (cont (node1, tree1, leaf1, j1))
+  else ok (done node)
+
+/-- [slhdsa::shake::ht::ht_verify]: loop 0:
+    Source: 'src/shake/../ht.rs', lines 50:4-57:5
+    Visibility: public -/
+@[rust_loop]
+def shake.ht.ht_verify_loop
+  {N : Std.Usize} (p : params.Params) (sig : Slice Std.U8)
+  (seed : Array Std.U8 N) (xs : Std.Usize) (node : Array Std.U8 N)
+  (tree : Std.U64) (leaf : Std.U32) (j : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  loop
+    (fun (node1, tree1, leaf1, j1) => shake.ht.ht_verify_loop.body p sig seed
+      xs node1 tree1 leaf1 j1)
+    (node, tree, leaf, j)
+
+/-- [slhdsa::shake::ht::ht_verify]:
+    Source: 'src/shake/../ht.rs', lines 36:0-59:1
+    Visibility: public -/
+def shake.ht.ht_verify
+  {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N) (sig : Slice Std.U8)
+  (seed : Array Std.U8 N) (idx_tree : Std.U64) (idx_leaf : Std.U32)
+  (pk_root : Array Std.U8 N) :
+  Result Bool
+  := do
+  let xs ← params.Params.xmss_sig_bytes p
+  let node ← shake.ht.ht_verify_loop p sig seed xs m idx_tree idx_leaf 0#u32
+  core.array.equality.PartialEqArray.eq core.cmp.PartialEqU8 node pk_root
+
+/-- [slhdsa::shake::slh::slh_verify_internal]:
+    Source: 'src/shake/../slh.rs', lines 79:0-95:1
+    Visibility: public -/
+def shake.slh.slh_verify_internal
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let sig_bytes ← params.Params.sig_bytes p
+  let i := Slice.len sig
+  if i != sig_bytes
+  then ok false
+  else
+    let i1 ← params.Params.fors_sig_bytes p
+    let fors_end ← N + i1
+    let pk_seed ← util.block N pk 0#usize
+    let pk_root ← util.block N pk 1#usize
+    let r ← util.block N sig 0#usize
+    let digest ← shake.hash.h_msg p r pk_seed pk_root m
+    let s := alloc.vec.Vec.deref digest
+    let idx_tree ← shake.slh.digest_tree p s
+    let s1 := alloc.vec.Vec.deref digest
+    let idx_leaf ← shake.slh.digest_leaf p s1
+    let a ← address.Adrs.new
+    let a1 ← address.Adrs.with_tree a idx_tree
+    let a2 ← address.Adrs.with_type a1 address.FORS_TREE
+    let adrs ← address.Adrs.with_keypair a2 idx_leaf
+    let seed ← shake.hash.seed_ctx pk_seed
+    let s2 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U8) sig { start := N, «end» := fors_end }
+    let i2 ← params.Params.md_bytes p
+    let s3 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)
+        digest { start := 0#usize, «end» := i2 }
+    let pk_fors ← shake.fors.fors_pk_from_sig p s2 s3 seed adrs
+    let s4 ←
+      core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+        Std.U8) sig { start := fors_end, «end» := sig_bytes }
+    shake.ht.ht_verify p pk_fors s4 seed idx_tree idx_leaf pk_root
+
+/-- [slhdsa::sets::shake_128s::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 16#usize sets.shake_128s.params.PARAMS m sig s
+
+/-- [slhdsa::shake::slh::with_context]:
+    Source: 'src/shake/../slh.rs', lines 98:0-105:1 -/
+def shake.slh.with_context
+  (m : Slice Std.U8) (ctx : Slice Std.U8) : Result (alloc.vec.Vec Std.U8) := do
+  let mp ← alloc.vec.Vec.push (alloc.vec.Vec.new Std.U8) 0#u8
+  let i := Slice.len ctx
+  let i1 ← lift (UScalar.cast .U8 i)
+  let mp1 ← alloc.vec.Vec.push mp i1
+  let mp2 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 mp1 ctx
+  alloc.vec.Vec.extend_from_slice core.clone.CloneU8 mp2 m
+
+/-- [slhdsa::shake::slh::slh_sign]:
+    Source: 'src/shake/../slh.rs', lines 109:0-115:1
+    Visibility: public -/
+def shake.slh.slh_sign
+  {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
+  (sk : Slice Std.U8) (addrnd : Array Std.U8 N) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let i := Slice.len ctx
+  if i > 255#usize
+  then ok none
+  else
+    let mp ← shake.slh.with_context m ctx
+    let s := alloc.vec.Vec.deref mp
+    let v ← shake.slh.slh_sign_internal p s sk addrnd
+    ok (some v)
+
+/-- [slhdsa::sets::shake_128s::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_128s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::shake::slh::slh_verify]:
+    Source: 'src/shake/../slh.rs', lines 118:0-124:1
+    Visibility: public -/
+def shake.slh.slh_verify
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
+  (ctx : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let i := Slice.len ctx
+  if i > 255#usize
+  then ok false
+  else
+    let mp ← shake.slh.with_context m ctx
+    let s := alloc.vec.Vec.deref mp
+    shake.slh.slh_verify_internal N p s sig pk
+
+/-- [slhdsa::sets::shake_128s::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 16#usize sets.shake_128s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::shake::api::keygen]:
+    Source: 'src/shake/../api.rs', lines 24:0-29:1
+    Visibility: public -/
+def shake.api.keygen
+  (N : Std.Usize) (p : params.Params) (seeds : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let sk_seed ← util.block N seeds 0#usize
+  let sk_prf ← util.block N seeds 1#usize
+  let pk_seed ← util.block N seeds 2#usize
+  shake.slh.slh_keygen_internal p sk_seed sk_prf pk_seed sk pk
+
+/-- [slhdsa::sets::shake_128s::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.keygen
+  (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
+  (pk : Array Std.U8 32#usize) :
+  Result ((Array Std.U8 64#usize) × (Array Std.U8 32#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 16#usize sets.shake_128s.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::shake::api::public_key]:
+    Source: 'src/shake/../api.rs', lines 33:0-35:1
+    Visibility: public -/
+def shake.api.public_key
+  (N : Std.Usize) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let i ← 2#usize * N
+  let i1 ← 4#usize * N
+  let s ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U8) sk { start := i, «end» := i1 }
+  core.slice.Slice.copy_from_slice core.marker.CopyU8 pk s
+
+/-- [slhdsa::sets::shake_128s::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.public_key
+  (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 16#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::shake::api::sign]:
+    Source: 'src/shake/../api.rs', lines 39:0-41:1
+    Visibility: public -/
+def shake.api.sign
+  {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
+  (sk : Slice Std.U8) (addrnd : Array Std.U8 N) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  shake.slh.slh_sign p m ctx sk addrnd
+
+/-- [slhdsa::sets::shake_128s::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_128s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::shake::api::sign_deterministic]:
+    Source: 'src/shake/../api.rs', lines 45:0-48:1
+    Visibility: public -/
+def shake.api.sign_deterministic
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
+  (sk : Slice Std.U8) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let pk_seed ← util.block N sk 2#usize
+  shake.slh.slh_sign p m ctx sk pk_seed
+
+/-- [slhdsa::sets::shake_128s::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 16#usize sets.shake_128s.params.PARAMS m ctx s
+
+/-- [slhdsa::shake::api::verify]:
+    Source: 'src/shake/../api.rs', lines 51:0-53:1
+    Visibility: public -/
+def shake.api.verify
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
+  (ctx : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  shake.slh.slh_verify N p m sig ctx pk
+
+/-- [slhdsa::sets::shake_128s::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 16#usize sets.shake_128s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_128s::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let sk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128s::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128s::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_128s.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_128s::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.secret_keys_equal
+  (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_128s::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.PKCS8_PREFIX : Array Std.U8 20#usize :=
+  Array.make 20#usize [
+    48#u8, 82#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8,
+    72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 26#u8, 4#u8, 64#u8
+    ]
+
+/-- [slhdsa::sets::shake_128s::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.pkcs8_encode
+  (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
+  Result (Array Std.U8 84#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_128s.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_128s::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
+  Result (Bool × (Array Std.U8 64#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_128s.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_128s::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 48#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 26#u8, 3#u8, 33#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_128s::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.spki_encode
+  (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
+  let out := Array.repeat 50#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_128s.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_128s::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+def sets.shake_128s.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_128s.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128s::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.N : Std.Usize := 16#usize
+
+/-- [slhdsa::sets::shake_128s::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_128s.params.N
+
+/-- [slhdsa::sets::shake_128s::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_128s.params.N
+
+/-- [slhdsa::sets::shake_128s::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_128s.params.N
+
+/-- [slhdsa::sets::shake_128s::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_128s.params.PARAMS.a
+  let i1 ← sets.shake_128s.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_128s.params.PARAMS.n
+  let i4 ← sets.shake_128s.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_128s.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_128s.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_128s.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_128s.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_128s::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_128s.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_128s.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_128s::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128s.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_128s.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_128s.params.PK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_128f::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.PARAMS : params.Params := params.SHA2_128F
+
+/-- [slhdsa::sets::shake_128f::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.slh_keygen_internal
+  (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
+  (pk_seed : Array Std.U8 16#usize) :
+  Result ((Array Std.U8 64#usize) × (Array Std.U8 32#usize))
+  := do
+  let sk := Array.repeat 64#usize 0#u8
+  let pk := Array.repeat 32#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_128f.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_128f::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_128f.params.PARAMS m s addrnd
+
+/-- [slhdsa::sets::shake_128f::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 16#usize sets.shake_128f.params.PARAMS m sig s
+
+/-- [slhdsa::sets::shake_128f::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_128f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_128f::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 16#usize sets.shake_128f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_128f::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.keygen
+  (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
+  (pk : Array Std.U8 32#usize) :
+  Result ((Array Std.U8 64#usize) × (Array Std.U8 32#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 16#usize sets.shake_128f.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_128f::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.public_key
+  (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 16#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::sets::shake_128f::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
+  (addrnd : Array Std.U8 16#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_128f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_128f::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 16#usize sets.shake_128f.params.PARAMS m ctx s
+
+/-- [slhdsa::sets::shake_128f::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 32#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 16#usize sets.shake_128f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_128f::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let sk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128f::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128f::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_128f.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_128f::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.secret_keys_equal
+  (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_128f::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.PKCS8_PREFIX : Array Std.U8 20#usize :=
+  Array.make 20#usize [
+    48#u8, 82#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8,
+    72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 27#u8, 4#u8, 64#u8
+    ]
+
+/-- [slhdsa::sets::shake_128f::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.pkcs8_encode
+  (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
+  Result (Array Std.U8 84#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_128f.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_128f::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
+  Result (Bool × (Array Std.U8 64#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_128f.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_128f::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 48#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 27#u8, 3#u8, 33#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_128f::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.spki_encode
+  (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
+  let out := Array.repeat 50#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_128f.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_128f::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+def sets.shake_128f.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
+  let pk := Array.repeat 32#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_128f.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_128f::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.N : Std.Usize := 16#usize
+
+/-- [slhdsa::sets::shake_128f::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_128f.params.N
+
+/-- [slhdsa::sets::shake_128f::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_128f.params.N
+
+/-- [slhdsa::sets::shake_128f::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_128f.params.N
+
+/-- [slhdsa::sets::shake_128f::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_128f.params.PARAMS.a
+  let i1 ← sets.shake_128f.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_128f.params.PARAMS.n
+  let i4 ← sets.shake_128f.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_128f.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_128f.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_128f.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_128f.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_128f::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_128f.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_128f.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_128f::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_128f.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_128f.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_128f.params.PK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_192s::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.PARAMS : params.Params := params.SHA2_192S
+
+/-- [slhdsa::sets::shake_192s::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.slh_keygen_internal
+  (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
+  (pk_seed : Array Std.U8 24#usize) :
+  Result ((Array Std.U8 96#usize) × (Array Std.U8 48#usize))
+  := do
+  let sk := Array.repeat 96#usize 0#u8
+  let pk := Array.repeat 48#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_192s.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_192s::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_192s.params.PARAMS m s addrnd
+
+/-- [slhdsa::sets::shake_192s::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 24#usize sets.shake_192s.params.PARAMS m sig s
+
+/-- [slhdsa::sets::shake_192s::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_192s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_192s::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 24#usize sets.shake_192s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_192s::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.keygen
+  (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
+  (pk : Array Std.U8 48#usize) :
+  Result ((Array Std.U8 96#usize) × (Array Std.U8 48#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 24#usize sets.shake_192s.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_192s::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.public_key
+  (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 24#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::sets::shake_192s::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_192s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_192s::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 24#usize sets.shake_192s.params.PARAMS m ctx s
+
+/-- [slhdsa::sets::shake_192s::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 24#usize sets.shake_192s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_192s::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
+  let sk := Array.repeat 96#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192s::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192s::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_192s.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_192s::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.secret_keys_equal
+  (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_192s::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.PKCS8_PREFIX : Array Std.U8 20#usize :=
+  Array.make 20#usize [
+    48#u8, 114#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8,
+    72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 28#u8, 4#u8, 96#u8
+    ]
+
+/-- [slhdsa::sets::shake_192s::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.pkcs8_encode
+  (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
+  Result (Array Std.U8 116#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_192s.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_192s::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
+  Result (Bool × (Array Std.U8 96#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_192s.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_192s::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 64#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 28#u8, 3#u8, 49#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_192s::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.spki_encode
+  (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
+  let out := Array.repeat 66#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_192s.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_192s::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+def sets.shake_192s.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_192s.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192s::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.N : Std.Usize := 24#usize
+
+/-- [slhdsa::sets::shake_192s::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_192s.params.N
+
+/-- [slhdsa::sets::shake_192s::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_192s.params.N
+
+/-- [slhdsa::sets::shake_192s::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_192s.params.N
+
+/-- [slhdsa::sets::shake_192s::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_192s.params.PARAMS.a
+  let i1 ← sets.shake_192s.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_192s.params.PARAMS.n
+  let i4 ← sets.shake_192s.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_192s.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_192s.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_192s.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_192s.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_192s::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_192s.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_192s.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_192s::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192s.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_192s.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_192s.params.PK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_192f::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.PARAMS : params.Params := params.SHA2_192F
+
+/-- [slhdsa::sets::shake_192f::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.slh_keygen_internal
+  (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
+  (pk_seed : Array Std.U8 24#usize) :
+  Result ((Array Std.U8 96#usize) × (Array Std.U8 48#usize))
+  := do
+  let sk := Array.repeat 96#usize 0#u8
+  let pk := Array.repeat 48#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_192f.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_192f::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_192f.params.PARAMS m s addrnd
+
+/-- [slhdsa::sets::shake_192f::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 24#usize sets.shake_192f.params.PARAMS m sig s
+
+/-- [slhdsa::sets::shake_192f::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_192f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_192f::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 24#usize sets.shake_192f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_192f::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.keygen
+  (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
+  (pk : Array Std.U8 48#usize) :
+  Result ((Array Std.U8 96#usize) × (Array Std.U8 48#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 24#usize sets.shake_192f.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_192f::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.public_key
+  (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 24#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::sets::shake_192f::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
+  (addrnd : Array Std.U8 24#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_192f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_192f::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 24#usize sets.shake_192f.params.PARAMS m ctx s
+
+/-- [slhdsa::sets::shake_192f::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 48#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 24#usize sets.shake_192f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_192f::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
+  let sk := Array.repeat 96#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192f::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192f::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_192f.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_192f::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.secret_keys_equal
+  (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_192f::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.PKCS8_PREFIX : Array Std.U8 20#usize :=
+  Array.make 20#usize [
+    48#u8, 114#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8,
+    72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 29#u8, 4#u8, 96#u8
+    ]
+
+/-- [slhdsa::sets::shake_192f::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.pkcs8_encode
+  (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
+  Result (Array Std.U8 116#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_192f.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_192f::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
+  Result (Bool × (Array Std.U8 96#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_192f.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_192f::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 64#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 29#u8, 3#u8, 49#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_192f::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.spki_encode
+  (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
+  let out := Array.repeat 66#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_192f.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_192f::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+def sets.shake_192f.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
+  let pk := Array.repeat 48#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_192f.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_192f::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.N : Std.Usize := 24#usize
+
+/-- [slhdsa::sets::shake_192f::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_192f.params.N
+
+/-- [slhdsa::sets::shake_192f::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_192f.params.N
+
+/-- [slhdsa::sets::shake_192f::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_192f.params.N
+
+/-- [slhdsa::sets::shake_192f::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_192f.params.PARAMS.a
+  let i1 ← sets.shake_192f.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_192f.params.PARAMS.n
+  let i4 ← sets.shake_192f.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_192f.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_192f.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_192f.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_192f.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_192f::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_192f.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_192f.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_192f::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_192f.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_192f.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_192f.params.PK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_256s::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.PARAMS : params.Params := params.SHA2_256S
+
+/-- [slhdsa::sets::shake_256s::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.slh_keygen_internal
+  (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
+  (pk_seed : Array Std.U8 32#usize) :
+  Result ((Array Std.U8 128#usize) × (Array Std.U8 64#usize))
+  := do
+  let sk := Array.repeat 128#usize 0#u8
+  let pk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_256s.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_256s::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_256s.params.PARAMS m s addrnd
+
+/-- [slhdsa::sets::shake_256s::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 32#usize sets.shake_256s.params.PARAMS m sig s
+
+/-- [slhdsa::sets::shake_256s::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_256s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_256s::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 32#usize sets.shake_256s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_256s::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.keygen
+  (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
+  (pk : Array Std.U8 64#usize) :
+  Result ((Array Std.U8 128#usize) × (Array Std.U8 64#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 32#usize sets.shake_256s.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_256s::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.public_key
+  (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 32#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::sets::shake_256s::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_256s.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_256s::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 32#usize sets.shake_256s.params.PARAMS m ctx s
+
+/-- [slhdsa::sets::shake_256s::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 32#usize sets.shake_256s.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_256s::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
+  let sk := Array.repeat 128#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256s::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256s::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_256s.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_256s::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.secret_keys_equal
+  (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_256s::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.PKCS8_PREFIX : Array Std.U8 22#usize :=
+  Array.make 22#usize [
+    48#u8, 129#u8, 147#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8,
+    134#u8, 72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 30#u8, 4#u8, 129#u8, 128#u8
+    ]
+
+/-- [slhdsa::sets::shake_256s::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.pkcs8_encode
+  (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
+  Result (Array Std.U8 150#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_256s.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_256s::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
+  Result (Bool × (Array Std.U8 128#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_256s.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_256s::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 80#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 30#u8, 3#u8, 65#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_256s::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.spki_encode
+  (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
+  let out := Array.repeat 82#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_256s.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_256s::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+def sets.shake_256s.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_256s.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256s::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.N : Std.Usize := 32#usize
+
+/-- [slhdsa::sets::shake_256s::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_256s.params.N
+
+/-- [slhdsa::sets::shake_256s::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_256s.params.N
+
+/-- [slhdsa::sets::shake_256s::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_256s.params.N
+
+/-- [slhdsa::sets::shake_256s::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_256s.params.PARAMS.a
+  let i1 ← sets.shake_256s.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_256s.params.PARAMS.n
+  let i4 ← sets.shake_256s.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_256s.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_256s.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_256s.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_256s.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_256s::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_256s.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_256s.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_256s::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256s.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_256s.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_256s.params.PK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_256f::params::PARAMS]
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.PARAMS : params.Params := params.SHA2_256F
+
+/-- [slhdsa::sets::shake_256f::slh_keygen_internal]:
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.slh_keygen_internal
+  (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
+  (pk_seed : Array Std.U8 32#usize) :
+  Result ((Array Std.U8 128#usize) × (Array Std.U8 64#usize))
+  := do
+  let sk := Array.repeat 128#usize 0#u8
+  let pk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s1, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s2, s3) ←
+    shake.slh.slh_keygen_internal sets.shake_256f.params.PARAMS sk_seed sk_prf
+      pk_seed s s1
+  let sk1 := to_slice_mut_back s2
+  let pk1 := to_slice_mut_back1 s3
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_256f::slh_sign_internal]:
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.slh_sign_internal
+  (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign_internal sets.shake_256f.params.PARAMS m s addrnd
+
+/-- [slhdsa::sets::shake_256f::slh_verify_internal]:
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.slh_verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify_internal 32#usize sets.shake_256f.params.PARAMS m sig s
+
+/-- [slhdsa::sets::shake_256f::slh_sign]:
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.slh_sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.slh.slh_sign sets.shake_256f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_256f::slh_verify]:
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.slh_verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.slh.slh_verify 32#usize sets.shake_256f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_256f::keygen]:
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.keygen
+  (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
+  (pk : Array Std.U8 64#usize) :
+  Result ((Array Std.U8 128#usize) × (Array Std.U8 64#usize))
+  := do
+  let s ← lift (Array.to_slice seeds)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (s2, to_slice_mut_back1) ← lift (Array.to_slice_mut pk)
+  let (s3, s4) ←
+    shake.api.keygen 32#usize sets.shake_256f.params.PARAMS s s1 s2
+  let sk1 := to_slice_mut_back s3
+  let pk1 := to_slice_mut_back1 s4
+  ok (sk1, pk1)
+
+/-- [slhdsa::sets::shake_256f::public_key]:
+    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.public_key
+  (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let s ← lift (Array.to_slice sk)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let s2 ← shake.api.public_key 32#usize s s1
+  ok (to_slice_mut_back s2)
+
+/-- [slhdsa::sets::shake_256f::sign]:
+    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
+  (addrnd : Array Std.U8 32#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign sets.shake_256f.params.PARAMS m ctx s addrnd
+
+/-- [slhdsa::sets::shake_256f::sign_deterministic]:
+    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.sign_deterministic
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
+  Result (Option (alloc.vec.Vec Std.U8))
+  := do
+  let s ← lift (Array.to_slice sk)
+  shake.api.sign_deterministic 32#usize sets.shake_256f.params.PARAMS m ctx s
+
+/-- [slhdsa::sets::shake_256f::verify]:
+    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Array Std.U8 64#usize) :
+  Result Bool
+  := do
+  let s ← lift (Array.to_slice pk)
+  shake.api.verify 32#usize sets.shake_256f.params.PARAMS m sig ctx s
+
+/-- [slhdsa::sets::shake_256f::secret_key_from]:
+    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.secret_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
+  let sk := Array.repeat 128#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s1) ← encoding.secret_key_from bytes s
+  if b
+  then let sk1 := to_slice_mut_back s1
+       ok (some sk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256f::public_key_from]:
+    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.public_key_from
+  (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s1) ← encoding.public_key_from bytes s
+  if b
+  then let pk1 := to_slice_mut_back s1
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256f::signature_len_ok]:
+    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
+  encoding.signature_len_ok sets.shake_256f.params.PARAMS bytes
+
+/-- [slhdsa::sets::shake_256f::secret_keys_equal]:
+    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.secret_keys_equal
+  (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
+  let s ← lift (Array.to_slice a)
+  let s1 ← lift (Array.to_slice b)
+  encoding.secret_keys_equal s s1
+
+/-- [slhdsa::sets::shake_256f::PKCS8_PREFIX]
+    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.PKCS8_PREFIX : Array Std.U8 22#usize :=
+  Array.make 22#usize [
+    48#u8, 129#u8, 147#u8, 2#u8, 1#u8, 0#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8,
+    134#u8, 72#u8, 1#u8, 101#u8, 3#u8, 4#u8, 3#u8, 31#u8, 4#u8, 129#u8, 128#u8
+    ]
+
+/-- [slhdsa::sets::shake_256f::pkcs8_encode]:
+    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.pkcs8_encode
+  (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
+  Result (Array Std.U8 150#usize)
+  := do
+  let s ← lift (Array.to_slice sets.shake_256f.PKCS8_PREFIX)
+  let s1 ← lift (Array.to_slice sk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_256f::pkcs8_decode]:
+    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.pkcs8_decode
+  (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
+  Result (Bool × (Array Std.U8 128#usize))
+  := do
+  let s ← lift (Array.to_slice sets.shake_256f.PKCS8_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut sk)
+  let (b, s2) ← encoding.der_decode s der s1
+  let sk1 := to_slice_mut_back s2
+  ok (b, sk1)
+
+/-- [slhdsa::sets::shake_256f::SPKI_PREFIX]
+    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.SPKI_PREFIX : Array Std.U8 18#usize :=
+  Array.make 18#usize [
+    48#u8, 80#u8, 48#u8, 11#u8, 6#u8, 9#u8, 96#u8, 134#u8, 72#u8, 1#u8, 101#u8,
+    3#u8, 4#u8, 3#u8, 31#u8, 3#u8, 65#u8, 0#u8
+    ]
+
+/-- [slhdsa::sets::shake_256f::spki_encode]:
+    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.spki_encode
+  (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
+  let out := Array.repeat 82#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_256f.SPKI_PREFIX)
+  let s1 ← lift (Array.to_slice pk)
+  let (s2, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s3 ← encoding.der_encode s s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::sets::shake_256f::spki_decode]:
+    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+def sets.shake_256f.spki_decode
+  (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
+  let pk := Array.repeat 64#usize 0#u8
+  let s ← lift (Array.to_slice sets.shake_256f.SPKI_PREFIX)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut pk)
+  let (b, s2) ← encoding.der_decode s der s1
+  if b
+  then let pk1 := to_slice_mut_back s2
+       ok (some pk1)
+  else ok none
+
+/-- [slhdsa::sets::shake_256f::params::N]
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.N : Std.Usize := 32#usize
+
+/-- [slhdsa::sets::shake_256f::params::SK_BYTES]
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.SK_BYTES : Result Std.Usize :=
+  4#usize * sets.shake_256f.params.N
+
+/-- [slhdsa::sets::shake_256f::params::PK_BYTES]
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.PK_BYTES : Result Std.Usize :=
+  2#usize * sets.shake_256f.params.N
+
+/-- [slhdsa::sets::shake_256f::params::SEED_BYTES]
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.SEED_BYTES : Result Std.Usize :=
+  3#usize * sets.shake_256f.params.N
+
+/-- [slhdsa::sets::shake_256f::params::SIG_BYTES]
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.SIG_BYTES : Result Std.Usize := do
+  let i ← 1#u32 + sets.shake_256f.params.PARAMS.a
+  let i1 ← sets.shake_256f.params.PARAMS.k * i
+  let i2 ← lift (UScalar.cast .Usize i1)
+  let i3 ← i2 * sets.shake_256f.params.PARAMS.n
+  let i4 ← sets.shake_256f.params.PARAMS.n + i3
+  let i5 ← lift (UScalar.cast .Usize sets.shake_256f.params.PARAMS.d)
+  let i6 ← 2#usize * sets.shake_256f.params.PARAMS.n
+  let i7 ← i6 + params.LEN2
+  let i8 ← lift (UScalar.cast .Usize sets.shake_256f.params.PARAMS.hp)
+  let i9 ← i7 + i8
+  let i10 ← i5 * i9
+  let i11 ← i10 * sets.shake_256f.params.PARAMS.n
+  i4 + i11
+
+/-- [slhdsa::sets::shake_256f::params::PKCS8_BYTES]
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.PKCS8_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_256f.PKCS8_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_256f.params.SK_BYTES
+  i + i1
+
+/-- [slhdsa::sets::shake_256f::params::SPKI_BYTES]
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Visibility: public -/
+@[global_simps, irreducible]
+def sets.shake_256f.params.SPKI_BYTES : Result Std.Usize := do
+  let s ← lift (Array.to_slice sets.shake_256f.SPKI_PREFIX)
+  let i := Slice.len s
+  let i1 ← sets.shake_256f.params.PK_BYTES
+  i + i1
+
 /-- [slhdsa::sha256::hmac_sha256]: loop body 0:
     Source: 'src/sha256.rs', lines 173:4-178:5
     Visibility: public -/
@@ -7721,6 +11080,130 @@ def sha512.hmac_sha512
     Visibility: public -/
 def sha512.hw_active : Result Bool := do
   sha512.hw.arm.available
+
+/-- [slhdsa::shake::adapter::append]:
+    Source: 'src/shake/../adapter.rs', lines 30:0-32:1
+    Visibility: public -/
+def shake.adapter.append
+  (m : alloc.vec.Vec Std.U8) (part : Slice Std.U8) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  alloc.vec.Vec.extend_from_slice core.clone.CloneU8 m part
+
+/-- [slhdsa::shake::adapter::randomizer]:
+    Source: 'src/shake/../adapter.rs', lines 37:0-44:1 -/
+def shake.adapter.randomizer
+  (N : Std.Usize) (sk : Slice Std.U8) (has_addrnd : Bool)
+  (addrnd : Slice Std.U8) :
+  Result (Array Std.U8 N)
+  := do
+  let i := Slice.len addrnd
+  massert ((¬ has_addrnd) || (i = N))
+  if has_addrnd
+  then util.block N addrnd 0#usize
+  else util.block N sk 2#usize
+
+/-- [slhdsa::shake::adapter::sign_into]:
+    Source: 'src/shake/../adapter.rs', lines 51:0-68:1
+    Visibility: public -/
+def shake.adapter.sign_into
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
+  (sk : Slice Std.U8) (has_addrnd : Bool) (addrnd : Slice Std.U8)
+  (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let i := Slice.len ctx
+  if i > 255#usize
+  then ok (false, sig)
+  else
+    let rand ← shake.adapter.randomizer N sk has_addrnd addrnd
+    let mp ← shake.slh.with_context m ctx
+    let s := alloc.vec.Vec.deref mp
+    let s1 ← shake.slh.slh_sign_internal p s sk rand
+    let s2 := alloc.vec.Vec.deref s1
+    let sig1 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 sig s2
+    ok (true, sig1)
+
+/-- [slhdsa::shake::adapter::sign_internal_into]:
+    Source: 'src/shake/../adapter.rs', lines 72:0-83:1
+    Visibility: public -/
+def shake.adapter.sign_internal_into
+  (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
+  (has_addrnd : Bool) (addrnd : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let rand ← shake.adapter.randomizer N sk has_addrnd addrnd
+  let s ← shake.slh.slh_sign_internal p m sk rand
+  let s1 := alloc.vec.Vec.deref s
+  core.slice.Slice.copy_from_slice core.marker.CopyU8 sig s1
+
+/-- [slhdsa::shake::adapter::keygen_seeds]:
+    Source: 'src/shake/../adapter.rs', lines 88:0-101:1
+    Visibility: public -/
+def shake.adapter.keygen_seeds
+  (N : Std.Usize) (p : params.Params) (sk_seed : Slice Std.U8)
+  (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8) (sk : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let i := Slice.len sk_seed
+  massert (i = N)
+  let i1 := Slice.len sk_prf
+  massert (i1 = N)
+  let i2 := Slice.len pk_seed
+  massert (i2 = N)
+  let a ← util.block N sk_seed 0#usize
+  let b ← util.block N sk_prf 0#usize
+  let c ← util.block N pk_seed 0#usize
+  shake.slh.slh_keygen_internal p a b c sk pk
+
+/-- [slhdsa::shake::adapter::signing_key_from]:
+    Source: 'src/shake/../adapter.rs', lines 106:0-112:1
+    Visibility: public -/
+def shake.adapter.signing_key_from
+  (N : Std.Usize) (bytes : Slice Std.U8) (sk : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (b, sk1) ← encoding.secret_key_from bytes sk
+  if b
+  then let pk1 ← shake.api.public_key N sk1 pk
+       ok (true, sk1, pk1)
+  else ok (false, sk1, pk)
+
+/-- [slhdsa::shake::adapter::signature_from]:
+    Source: 'src/shake/../adapter.rs', lines 116:0-122:1
+    Visibility: public -/
+def shake.adapter.signature_from
+  (p : params.Params) (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let b ← encoding.signature_len_ok p bytes
+  if b
+  then
+    let sig1 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 sig bytes
+    ok (true, sig1)
+  else ok (false, sig)
+
+/-- [slhdsa::shake::adapter::bytes_equal]:
+    Source: 'src/shake/../adapter.rs', lines 127:0-132:1
+    Visibility: public -/
+def shake.adapter.bytes_equal
+  (a : Slice Std.U8) (b : Slice Std.U8) : Result Bool := do
+  let i := Slice.len a
+  let i1 := Slice.len b
+  if i != i1
+  then ok false
+  else encoding.secret_keys_equal a b
+
+/-- [slhdsa::shake256::shake256]:
+    Source: 'src/shake256.rs', lines 125:0-129:1
+    Visibility: public -/
+def shake256.shake256
+  (input : Slice Std.U8) (output : Slice Std.U8) : Result (Slice Std.U8) := do
+  let sponge ← shake256.Sponge.new
+  let sponge1 ← shake256.Sponge.absorb sponge input
+  shake256.Sponge.finish sponge1 output
 
 /-- [slhdsa::util::bytes_eq]: loop body 0:
     Source: 'src/util.rs', lines 54:4-57:5

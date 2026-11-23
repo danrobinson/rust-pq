@@ -13,7 +13,7 @@
 
 use alloc::vec::Vec;
 use crate::params::Params;
-use crate::slh::{slh_keygen_internal, slh_sign, slh_verify};
+use super::slh::{slh_keygen_internal, slh_sign, slh_verify};
 use crate::util::block;
 
 /// Algorithm 21, `slh_keygen`, given its random bytes: `seeds` is

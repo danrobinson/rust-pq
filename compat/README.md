@@ -1,11 +1,10 @@
-# slhdsa-compat: the interface to use, six SHA-2 sets
+# slhdsa-compat
 
-The interface of RustCrypto's [`slh-dsa`](https://github.com/RustCrypto/signatures/tree/master/slh-dsa)
-crate (0.2.0-rc.5) for the six SHA-2 parameter sets SLH-DSA-SHA2-{128s, 128f, 192s, 192f,
-256s, 256f}, on top of the verified crate in `../rust`. It is the single-set tree's adapter
-(SLH-DSA-SHA2-128s only; git commit 26aa3d8) extended to all six SHA-2 sets.
+The RustCrypto `slh-dsa` 0.2.0-rc.5 interface for all twelve pure FIPS 205
+parameter sets. All twelve sets have public-method refinement proofs, NIST ACVP coverage,
+and byte-for-byte interoperability tests against RustCrypto.
 
-Code written against `slh-dsa` that uses only SHA-2 sets switches by changing one line of its
+Code written against `slh-dsa` that uses the named parameter sets switches by changing one line of its
 `Cargo.toml`; the source stays as it is:
 
 ```toml
@@ -23,7 +22,7 @@ The same names with the same behaviour: `SigningKey<P>`, `VerifyingKey<P>`, `Sig
 (`Signer`, `Verifier`, `RandomizedSigner`, `Keypair`, the multi-part variants), the conversions
 to and from bytes, and the PKCS#8 and SubjectPublicKeyInfo encodings.
 
-The six types come from one macro (`src/params.rs`), which also checks at compile time that
+The twelve types come from one macro (`src/params.rs`), which also checks at compile time that
 each set's array lengths are the verified crate's (`slhdsa::sha2_*::params::{SK,PK,SIG}_BYTES`).
 
 Additions, as in the single-set adapter:
@@ -120,7 +119,7 @@ headline list `../lean/Slhdsa/AdapterTheorems.lean`), which this crate calls at 
 
 | what | verified function | proved (for every valid parameter set) |
 |---|---|---|
-| joining a multi-part message | `adapter::append`, once per part | appending is list append |
+| joining a multi-part message | `multipart::join` in this crate | the output contains every part in order |
 | order of the argument checks: a context over 255 bytes is refused before a randomizer of the wrong length is noticed; the randomizer must be `n` bytes | `adapter::sign_into` (with `randomizer`) | `adapter_sign_into_long_ctx`, `adapter_randomizer_panic` |
 | which randomness a deterministic signature uses (`PK.seed`) | `adapter::randomizer` | `adapter_randomizer_spec` (`randS`) |
 | signing, hedged or deterministic, with a context, into the caller's buffer | `adapter::sign_into` | `adapter_sign_into_spec`: success exactly when the context has ≤ 255 bytes, and then Algorithm 22 |
@@ -142,30 +141,39 @@ against the FIPS 205 transcription), `../lean/CT_STATUS.md` (constant time) and 
 check the adapter's functions only through the checker and the erasure theorems (every
 primitive they use is in the leakage model); there is no relational theorem about them.
 
-### The exact remaining unproved surface
+### Public API proofs
 
-`src/` is 941 lines, 598 of them neither blank nor comment (`lib.rs` 121 / 27, `params.rs`
-181 / 121, `signing_key.rs` 314 / 225, `verifying_key.rs` 166 / 124, `signature_encoding.rs`
-125 / 94, `scrub.rs` 34 / 7). None of it is translated. Line by line it is:
+`scripts/check-compat-proof.sh` extracts the production adapter with Charon and
+Aeneas and compares its translation with the checked-in files. The `Facade`
+Lean library composes that translation with each build of the core. For each
+SHA-2 and SHAKE set the caller-visible signature bytes and verifier verdict agree with
+the executable specification through the deterministic `Signer`, `Verifier`,
+and the explicit-context APIs. A supplied randomizer has the set's byte length.
+The proofs include parameter dispatch, array and slice conversions on those paths,
+and the result constructed by each method. `SigningKey::new` consumes the three
+n-byte RNG draws in order. Randomized signing uses the supplied bytes on success
+and returns an error on failure. Both proofs account for the resulting RNG state. On arbitrary part boundaries,
+the public multipart signer, randomized multipart signer, and multipart verifier
+return the same results as the single-message methods on the concatenated bytes.
+The three `TryFrom<&[u8]>` proofs establish exact-length acceptance, byte
+preservation, and reconstruction of the embedded verifying key. For all twelve
+sets, the DER import theorems prove the OID check, error selection, and returned
+key bytes for parsed `PrivateKeyInfoRef` and `SubjectPublicKeyInfoRef`. They
+assume the external library supplies the decoded identifier and payload, including
+whether the BIT STRING has unused bits. ASN.1 error positions are outside the
+observation. [DER import theorems](../lean/Facade/Der.lean)
 
-- **Forwarding** (each body calls one verified function on the caller's slices, at the set's
-  `PARAMS` and `N`, and copies nothing it decides): `params.rs`'s `Core` impl; the methods and
-  trait impls of the three types. Trusted: that each passes the set's `PARAMS` with the
-  matching `N` (the per-set `PN` facts `slhdsa.sha2_<set>.pn` hold for exactly those pairs) and
-  arrays of the set's lengths (fixed by the types; `params.rs` checks at compile time that the
-  lengths are the verified crate's).
-- **Type and trait plumbing that cannot be translated**: the generic `ParameterSet` / length
-  traits over `hybrid_array` sizes, `Signature`, `SigningKey`, `VerifyingKey`, the
-  `signature` crate's traits, `Clone`, `Debug`, `From`/`TryFrom` conversions, `to_bytes`,
-  `to_vec` (external traits and generic types; Aeneas translates neither the traits of other
-  crates nor `typenum` sizes).
-- **Three small pieces of logic, kept here and why**: the loop over the parts of a multi-part
-  message in `lib.rs` (`for part in parts { append(..) }`: a `&[&[u8]]` has nested borrows,
-  which Aeneas does not translate; the step it repeats is the verified `append`);
-  `params.rs`'s `split` (`Option<&[u8]>` to the pair `(has, bytes)` the verified signers take:
-  the erasure step of the constant-time library does not handle a `match` on `Option`); and
-  in `SigningKey::try_new` and `raw_try_sign_with_rng`, which byte ranges of a buffer the
-  random source fills (`[0, n)`, `[n, 2n)`, `[2n, 3n)`, and `[0, n)`), next to the RNG calls.
+The adapter uses native fixed-size arrays internally. Rust's associated-type
+equalities make each array the storage of its RustCrypto serialization type.
+`Facade/Multipart.lean` proves that recursive assembly preserves every part.
+
+### Remaining trust boundary
+
+The `Facade` theorems concern functional results. The existing core theorems
+continue to cover key generation, core codecs, and source-level trace behavior.
+General serialization traits, operating-system RNG convenience methods, and ASN.1 wire decoding require
+separate reasoning.
+
 - **The random source** (`rand_core`'s `try_fill_bytes`, `getrandom::SysRng`): randomness is
   outside any functional statement.
 - **The `pkcs8` / `spki` / `der` crates**: *decoding* a PKCS#8 or SPKI document (the
@@ -182,9 +190,6 @@ primitive they use is in the leakage model); there is no relational theorem abou
 
 ## Differences from RustCrypto's crate
 
-- Only the six SHA-2 sets. The six SHAKE sets (`Shake128s` … `Shake256f`) do not exist here,
-  nor do upstream's generic types `Sha2L1<N, M>` and `Sha2L35<N, M>`, of which its SHA-2 names
-  are type aliases (here they are plain structs).
 - `no_std` like RustCrypto's crate, but always needs an allocator. (The default `getrandom`
   feature needs a target the `getrandom` crate supports; turn it off on bare metal.)
 - A `SigningKey` is always wiped; its `Debug` output leaves the secret out; comparing two
@@ -200,7 +205,7 @@ cargo test --features hw-sha2
 ```
 
 - `tests/dropin.rs`: one piece of source, written against RustCrypto's interface, is compiled
-  against both crates for each of the six sets. All 516 recorded results (86 per set: keys,
+  against both crates for each of the twelve sets. All 1,032 recorded results (86 per set: keys,
   signatures, encodings, accept/reject answers, error cases) must be equal; the count is
   pinned.
 - `tests/extras.rs` (37 tests; 39 with `hw-sha2`, which adds checks that the two hardware

@@ -6,7 +6,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa
 
 /-- Appending a byte slice to a byte vector. -/
-private theorem xmss_extend_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
+theorem xmss_extend_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
     (h : v.length + s.length ≤ Usize.max) :
     alloc.vec.Vec.extend_from_slice core.clone.CloneU8 v s ⦃ r =>
       r.val = v.val ++ s.val ∧ r.length = v.length + s.length ⦄ := by
@@ -159,7 +159,7 @@ theorem xmss_sign_spec {N : Usize} (p : params.Params) (hp : PN p N) (m sk : Arr
       Spec.WOTS_HASH, address.WOTS_HASH]
 
 /-- One level of `Spec.climb`. -/
-private def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adrs : Spec.Adrs)
+def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adrs : Spec.Adrs)
     (st : Spec.Bytes × Nat) (j : Nat) : Spec.Bytes × Nat :=
   if (leaf / 2 ^ j) % 2 = 0 then
     (Spec.H P pk { adrs with word2 := j + 1, word3 := st.2 / 2 } (st.1 ++ Spec.block P auth j),
@@ -168,7 +168,7 @@ private def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adr
     (Spec.H P pk { adrs with word2 := j + 1, word3 := (st.2 - 1) / 2 }
       (Spec.block P auth j ++ st.1), (st.2 - 1) / 2)
 
-private theorem climb_eq (P : Spec.Params) (node : Spec.Bytes) (leaf ti : Nat) (auth : Spec.Bytes)
+theorem climb_eq (P : Spec.Params) (node : Spec.Bytes) (leaf ti : Nat) (auth : Spec.Bytes)
     (height : Nat) (pk : Spec.Bytes) (adrs : Spec.Adrs) :
     Spec.climb P node leaf ti auth height pk adrs =
       ((List.range height).foldl (climbStep P leaf auth pk adrs) (node, ti)).1 := by

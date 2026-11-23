@@ -17,10 +17,10 @@
 //! says, as for the functions of [`crate::slh`].
 
 use alloc::vec::Vec;
-use crate::api::public_key;
+use super::api::public_key;
 use crate::encoding::{secret_key_from, secret_keys_equal, signature_len_ok};
 use crate::params::Params;
-use crate::slh::{slh_keygen_internal, slh_sign_internal, with_context};
+use super::slh::{slh_keygen_internal, slh_sign_internal, with_context};
 use crate::util::block;
 
 /// One part of a multi-part message appended to the parts before it: the

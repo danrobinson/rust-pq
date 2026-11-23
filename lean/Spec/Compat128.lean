@@ -16,6 +16,7 @@ open Spec (sha2_128s)
 
 /-! ## Constants -/
 
+@[simp] theorem family_eq : sha2_128s.family = .sha2 := rfl
 @[simp] theorem n_eq : sha2_128s.n = n := rfl
 @[simp] theorem h_eq : sha2_128s.h = h := rfl
 @[simp] theorem d_eq : sha2_128s.d = d := rfl

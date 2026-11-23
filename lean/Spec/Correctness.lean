@@ -58,14 +58,15 @@ theorem Params.Valid.n_le {p : Params} (hv : p.Valid) : p.n ≤ 32 := by
 
 theorem F_length (p : Params) (hv : p.Valid) (pk : Bytes) (x : Adrs) (m : Bytes) :
     (F p pk x m).length = p.n := by
-  simp [F, sha256_length, hv.n_le]
+  cases hf : p.family <;> simp [F, hf, sha256_length, hv.n_le]
 theorem PRF_length (p : Params) (hv : p.Valid) (pk s : Bytes) (x : Adrs) :
     (PRF p pk s x).length = p.n := by
-  simp [PRF, sha256_length, hv.n_le]
+  cases hf : p.family <;> simp [PRF, hf, sha256_length, hv.n_le]
 theorem H_length (p : Params) (hv : p.Valid) (pk : Bytes) (x : Adrs) (m : Bytes) :
     (H p pk x m).length = p.n := by
   have := hv.n_le
-  unfold H; split <;> simp [sha256_length, sha512_length] <;> omega
+  cases hf : p.family <;> simp only [H, hf, shake256_length]
+  split <;> simp [sha256_length, sha512_length] <;> omega
 theorem T_length (p : Params) (hv : p.Valid) (pk : Bytes) (x : Adrs) (m : Bytes) :
     (T p pk x m).length = p.n := H_length p hv pk x m
 
@@ -521,7 +522,8 @@ theorem htRoot_keyOk (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t l : Nat) (
 
 theorem PRFmsg_length (p : Params) (hv : p.Valid) (k r m : Bytes) : (PRFmsg p k r m).length = p.n := by
   have := hv.n_le
-  unfold PRFmsg; split <;> simp [hmacSha256, hmacSha512, sha256_length, sha512_length] <;> omega
+  cases hf : p.family <;> simp only [PRFmsg, hf, shake256_length]
+  split <;> simp [hmacSha256, hmacSha512, sha256_length, sha512_length] <;> omega
 
 theorem forsSign_eq (p : Params) (md sk pk : Bytes) (adrs : Adrs) :
     forsSign p md sk pk adrs =

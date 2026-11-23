@@ -9,12 +9,12 @@
 
 use alloc::vec::Vec;
 use crate::address::{Adrs, FORS_TREE};
-use crate::fors::{fors_pk_from_sig, fors_sign};
-use crate::hash::{h_msg, prf_msg, seed_ctx};
-use crate::ht::{ht_sign, ht_verify};
+use super::fors::{fors_pk_from_sig, fors_sign};
+use super::hash::{h_msg, prf_msg, seed_ctx};
+use super::ht::{ht_sign, ht_verify};
 use crate::params::Params;
 use crate::util::{block, to_int};
-use crate::xmss::xmss_node;
+use super::xmss::xmss_node;
 
 /// Algorithm 18, `slh_keygen_internal`. Writes `SK` (4n bytes) to `sk` and
 /// `PK` (2n bytes) to `pk`.
