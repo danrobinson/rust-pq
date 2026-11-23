@@ -8,3 +8,5 @@ import Slhdsa.AdapterTheorems
 import Slhdsa.Proofs.Keccak
 import Slhdsa.Proofs.ShakeAddress
 import Slhdsa.Proofs.Shake256
+import Slhdsa.Proofs.ShakeHash
+import Slhdsa.Proofs.ShakeWots
