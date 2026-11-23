@@ -171,6 +171,11 @@ abbrev alloc.vec.Vec.extend_from_slice {T : Type _} (c : Aeneas.Std.core.clone.C
     Ct.Leak (Aeneas.Std.alloc.vec.Vec T) :=
   Leak.prim [.extend v.length s.length] (Aeneas.Std.alloc.vec.Vec.extend_from_slice c v s)
 
+/-- Vector initialization touches each of the requested elements. -/
+abbrev alloc.vec.from_elem {T : Type _} (c : Aeneas.Std.core.clone.Clone T) (x : T) (n : Usize) :
+    Ct.Leak (Aeneas.Std.alloc.vec.Vec T) :=
+  Leak.prim [.extend 0 n.val] (Aeneas.Std.alloc.vec.from_elem c x n)
+
 abbrev alloc.vec.Vec.push {T : Type _} (v : Aeneas.Std.alloc.vec.Vec T) (x : T) :
     Ct.Leak (Aeneas.Std.alloc.vec.Vec T) :=
   Leak.prim [.extend v.length 1] (Aeneas.Std.alloc.vec.Vec.push v x)

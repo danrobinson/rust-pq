@@ -303,3 +303,25 @@ fn sha512_hardware_backend_is_active_where_the_cpu_has_it() {
     #[cfg(target_vendor = "apple")]
     assert!(cpu_has_it);
 }
+
+/// Exercise continuation from a non-initial midstate, short final blocks,
+/// both padding lengths, and the odd and even block counts in the x86 backend.
+#[test]
+fn continued_hashes_match_at_block_and_padding_boundaries() {
+    use sha2::{Digest, Sha256, Sha512};
+    let mut bytes = vec![0; 3 * 1024 + 257];
+    Rng(0x434f_4e54).fill(&mut bytes);
+    let s256 = slhdsa::sha256::compress_portable(&slhdsa::sha256::H0, &bytes, 0);
+    let s512 = slhdsa::sha512::compress_portable(&slhdsa::sha512::H0, &bytes, 0);
+    for end in (128..=128 * 8 + 1).chain((1..=3).flat_map(|groups| {
+        [64, 128].into_iter().flat_map(move |prefix| {
+            let boundary = prefix + groups * 1024;
+            [boundary - 1, boundary, boundary + 1, boundary + 127]
+        })
+    })) {
+        assert_eq!(slhdsa::sha256::sha256_from(&s256, 64, &bytes[64..end]),
+                   Sha256::digest(&bytes[..end]).as_slice(), "SHA-256, length {end}");
+        assert_eq!(slhdsa::sha512::sha512_from(&s512, 128, &bytes[128..end]),
+                   Sha512::digest(&bytes[..end]).as_slice(), "SHA-512, length {end}");
+    }
+}

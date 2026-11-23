@@ -1,0 +1,60 @@
+c5 seed 11
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 26.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19820 | 20180 | 42065.0 | 42065.0 | +0.067 | +0.0002% | +1.69 | 2.39 (crop 62) | 2.77 | 2.08 | no leak detected | 28.797 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 20072 | 19928 | 33973.0 | 33973.0 | +1.111 | +0.0033% | +0.37 | 1.33 (crop 41) | 1.98 | 2.48 | no leak detected | 20.790 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 9927 | 10073 | 8220.5 | 8220.5 | +0.112 | +0.0014% | -0.50 | 2.26 (crop 1) | 2.45 | 1.86 | no leak detected | 15.737 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 16 | 10035 | 9965 | 2004.3 | 1606.8 | +551.492 | +31.9235% | +68.01 | 152.57 (crop 5) | 2.02 | 1.85 | leak detected (expected: control) | 5.727 |
+
+c5 seed 22
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 26.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19938 | 20062 | 41791.0 | 41795.0 | -5.466 | -0.0131% | -1.44 | 2.42 (crop 21) | 1.97 | 1.95 | no leak detected | 23.468 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 20077 | 19923 | 30310.0 | 30311.0 | -0.394 | -0.0013% | +1.05 | 2.04 (crop 61) | 4.13 | 1.64 | no leak detected | 14.588 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 10021 | 9979 | 8064.5 | 8064.5 | +0.075 | +0.0009% | -1.38 | 2.65 (crop 96) | 2.20 | 2.14 | no leak detected | 8.164 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 8 | 10002 | 9998 | 2008.9 | 1611.2 | +550.584 | +31.7663% | +67.37 | 153.67 (crop 5) | 1.79 | 1.61 | leak detected (expected: control) | 5.981 |
+
+c8i seed 11
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 22.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19820 | 20180 | 18022.0 | 18022.0 | -0.451 | -0.0025% | -1.27 | 1.52 (crop 24) | 2.93 | 1.52 | no leak detected | 19.806 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20072 | 19928 | 9199.0 | 9199.2 | -0.269 | -0.0029% | +0.32 | 2.34 (crop 17) | 1.90 | 2.08 | no leak detected | 4.296 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 8 | 9927 | 10073 | 4544.8 | 4543.6 | +0.398 | +0.0088% | +0.74 | 2.91 (crop 4) | 2.00 | 2.48 | no leak detected | 4.900 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 128 | 10035 | 9965 | 470.7 | 376.0 | +122.442 | +30.3183% | +64.18 | 111.38 (crop 12) | 1.77 | 0.77 | leak detected (expected: control) | 1.433 |
+
+c8i seed 22
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 23.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19938 | 20062 | 18035.0 | 18035.0 | -2.271 | -0.0125% | -1.09 | 2.56 (crop 4) | 1.76 | 1.66 | no leak detected | 20.371 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20077 | 19923 | 8649.8 | 8649.8 | +0.131 | +0.0015% | -0.03 | 2.64 (crop 2) | 1.76 | 1.75 | no leak detected | 2.816 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 8 | 10021 | 9979 | 4513.6 | 4514.1 | +0.202 | +0.0045% | +0.38 | 1.92 (crop 80) | 1.53 | 1.58 | no leak detected | 4.878 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 64 | 10002 | 9998 | 471.7 | 376.4 | +127.815 | +31.7249% | +69.49 | 118.17 (crop 10) | 1.57 | 0.67 | leak detected (expected: control) | 1.359 |
+
+c8a seed 11
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 20.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 19820 | 20180 | 15015.0 | 15015.0 | +0.103 | +0.0007% | -1.17 | 2.55 (crop 97) | 1.64 | 2.30 | no leak detected | 3.416 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20072 | 19928 | 7837.5 | 7837.5 | +0.038 | +0.0005% | +1.20 | 2.25 (crop 79) | 1.32 | 1.77 | no leak detected | 1.126 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 8 | 9927 | 10073 | 3776.2 | 3776.2 | +0.013 | +0.0003% | -0.01 | 1.09 (crop 66) | 1.84 | 1.92 | no leak detected | 1.674 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 256 | 10035 | 9965 | 346.4 | 278.2 | +95.409 | +31.9817% | +67.47 | 143.61 (crop 5) | 1.53 | 1.58 | leak detected (expected: control) | 0.996 |
+
+c8a seed 22
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 20.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 19938 | 20062 | 15005.0 | 15005.0 | +0.191 | +0.0013% | -1.95 | 1.95 | 1.08 | 1.97 | no leak detected | 4.809 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20077 | 19923 | 7352.5 | 7352.5 | -0.158 | -0.0021% | +1.03 | 2.18 (crop 3) | 1.51 | 2.35 | no leak detected | 1.166 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 8 | 10021 | 9979 | 3770.0 | 3770.0 | -0.126 | -0.0033% | -0.13 | 1.56 (crop 31) | 2.52 | 1.21 | no leak detected | 0.866 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 64 | 10002 | 9998 | 345.9 | 277.7 | +94.173 | +31.5877% | +70.93 | 144.52 (crop 5) | 1.62 | 1.13 | leak detected (expected: control) | 0.967 |
+

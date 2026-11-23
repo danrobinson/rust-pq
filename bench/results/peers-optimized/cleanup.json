@@ -1,0 +1,89 @@
+{
+  "region": "us-east-1",
+  "checked_utc": "2026-11-23T17:30:18.531650+00:00",
+  "instances": [
+    {
+      "instance_id": "i-01580a6264944481e",
+      "instance_type": "c5.large",
+      "state": "terminated",
+      "evidence": "17:06:24Z inventory (8 terminated) and subsequent SSH confirmation of the other 4 active IDs"
+    },
+    {
+      "instance_id": "i-018edd3e18e61c759",
+      "instance_type": "c8a.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0203b5dfe3deca8ec",
+      "instance_type": "c6g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-02efcbcd2bb586340",
+      "instance_type": "c8a.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0469b9ab7f496a4b9",
+      "instance_type": "c5.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-05074cd4bd4c91c05",
+      "instance_type": "c8g.large",
+      "state": "terminated",
+      "evidence": "17:06:24Z inventory (8 terminated) and subsequent SSH confirmation of the other 4 active IDs"
+    },
+    {
+      "instance_id": "i-085b224bfc1ad744d",
+      "instance_type": "c8i.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0b9ac8bd50011589b",
+      "instance_type": "c8g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0e1e845a230cee8fb",
+      "instance_type": "c8i.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0eddebb1e10772fa4",
+      "instance_type": "c6g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0f2668d56e8540801",
+      "instance_type": "c5n.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0f82f7c29317d27c4",
+      "instance_type": "c5.large",
+      "state": "terminated"
+    }
+  ],
+  "security_groups_deleted": [
+    "sg-0d9e93a363e24028c"
+  ],
+  "key_pairs_deleted": [
+    "slh-optimized-1795450310"
+  ],
+  "remaining_matching_security_groups": 0,
+  "remaining_matching_key_pairs": 0,
+  "observed_volume_ids": [
+    "vol-04cdcb47b78948bfa",
+    "vol-05b1c2863f8e63ba2",
+    "vol-02e0b841f63fb7cf2",
+    "vol-0e79e6310e0211f9f",
+    "vol-0c994e1d033c07754",
+    "vol-02facb2e806467860",
+    "vol-00e1b9e5705bb6929",
+    "vol-0e4fd6712824d2225",
+    "vol-0a4170caa57faa123",
+    "vol-080e193a773fab012"
+  ],
+  "remaining_observed_volumes": 0
+}

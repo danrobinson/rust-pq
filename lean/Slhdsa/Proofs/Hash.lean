@@ -129,12 +129,12 @@ def th256 (n : Nat) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) : Spec.By
 def th512 (n : Nat) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) : Spec.Bytes :=
   (Spec.sha512 (pk ++ Spec.toByte 0 (128 - n) ++ a.compress ++ m)).take n
 
-theorem F_eq (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
-    Spec.F P pk a m = th256 P.n pk a m := rfl
-theorem PRF_eq (P : Spec.Params) (pk sk : Spec.Bytes) (a : Spec.Adrs) :
-    Spec.PRF P pk sk a = th256 P.n pk a sk := rfl
-theorem H_eq (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
-    Spec.H P pk a m = if P.n = 16 then th256 P.n pk a m else th512 P.n pk a m := rfl
+theorem F_eq (P : Spec.Params) [family : Fact (P.family = .sha2)] (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
+    Spec.F P pk a m = th256 P.n pk a m := by simp [Spec.F, family.out, th256, th512]
+theorem PRF_eq (P : Spec.Params) [family : Fact (P.family = .sha2)] (pk sk : Spec.Bytes) (a : Spec.Adrs) :
+    Spec.PRF P pk sk a = th256 P.n pk a sk := by simp [Spec.PRF, family.out, th256, th512]
+theorem H_eq (P : Spec.Params) [family : Fact (P.family = .sha2)] (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
+    Spec.H P pk a m = if P.n = 16 then th256 P.n pk a m else th512 P.n pk a m := by simp [Spec.H, family.out, th256, th512]
 theorem T_eq_H (P : Spec.Params) (pk : Spec.Bytes) (a : Spec.Adrs) (m : Spec.Bytes) :
     Spec.T P pk a m = Spec.H P pk a m := rfl
 
@@ -451,7 +451,7 @@ theorem th512_one (n : Nat) (pk : Spec.Bytes) (hpk : pk.length = n) (hn : n ≤ 
 
 /-- `H(PK.seed, ADRS, left ‖ right)`. -/
 @[step]
-theorem thash_pair_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+theorem thash_pair_spec {N : Usize} (P : Spec.Params) [family : Fact (P.family = .sha2)] (hPN : P.n = N.val) (hN : NOk N)
     (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs) (l r : Array U8 N) :
     hash.thash_pair seed adrs l r ⦃ v =>
       bytes v.val = Spec.H P (bytes seed.pk_seed.val) (adrsS adrs) (bytes l.val ++ bytes r.val) ⦄ := by
@@ -509,7 +509,7 @@ theorem thash_pair_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : 
 
 /-- `T_l` on any message (in practice the `k` FORS roots). -/
 @[step]
-theorem thash_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+theorem thash_spec {N : Usize} (P : Spec.Params) [family : Fact (P.family = .sha2)] (hPN : P.n = N.val) (hN : NOk N)
     (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs) (m : Slice U8)
     (hm : m.length ≤ 4096) :
     hash.thash seed adrs m ⦃ r =>
@@ -670,7 +670,7 @@ theorem chain_succ (P : Spec.Params) (x : Spec.Bytes) (s n : Nat) (pk : Spec.Byt
     Spec.chain P x s (n + 1) pk A = Spec.F P pk { A with word3 := s + n } (Spec.chain P x s n pk A) := by
   simp only [Spec.chain, List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
 
-theorem chain_length (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+theorem chain_length (P : Spec.Params) [family : Fact (P.family = .sha2)] (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
     (x : Spec.Bytes) (hx : x.length = P.n) (s k : Nat) (A : Spec.Adrs) :
     (Spec.chain P x s k pk A).length = P.n := by
   cases k with
@@ -698,14 +698,14 @@ def seedState (n : Nat) (pk : Spec.Bytes) : List Spec.SHA256.Word :=
   Spec.SHA256.compress Spec.SHA256.H0 (pk ++ List.replicate (64 - n) 0#8)
 
 /-- One step with the seed state is `F` (or `PRF`) at the address of the step. -/
-theorem stepBlock_thash (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+theorem stepBlock_thash (P : Spec.Params) [family : Fact (P.family = .sha2)] (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
     (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length = P.n) (t : Nat) :
     stepBlock P.n (seedState P.n pk) (padFrom 64 (A.compress ++ m)) t =
       padFrom 64 ({ A with word3 := t }.compress ++ Spec.F P pk { A with word3 := t } m) := by
   rw [stepBlock_short _ hn _ _ _ hm, seedState, th256_one _ pk hpk (by omega) _ _ (by omega), F_eq]
 
 /-- A run of steps with the seed state is `chain`. -/
-theorem runBlock_chain (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+theorem runBlock_chain (P : Spec.Params) [family : Fact (P.family = .sha2)] (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
     (A : Spec.Adrs) (m B : Spec.Bytes) (hm : m.length = P.n) (hB : ValBlk A m B) (s k : Nat) :
     ValBlk A (Spec.chain P m s k pk A) (runBlock P.n (seedState P.n pk) B s (s + k)) := by
   induction k with
@@ -1147,7 +1147,7 @@ theorem len_cases {N : Usize} (hN : NOk N) :
 
 /-- `T_len` of the values held in the `len` chain blocks. -/
 @[step]
-theorem thash_values_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+theorem thash_values_spec {N : Usize} (P : Spec.Params) [family : Fact (P.family = .sha2)] (hPN : P.n = N.val) (hN : NOk N)
     (seed : hash.Seed N) (hs : SeedOk seed) (adrs : address.Adrs)
     (blocks : Slice (Array U8 64#usize)) (hb : blocks.length = 2 * N.val + 3) :
     hash.thash_values seed adrs blocks ⦃ r =>

@@ -439,7 +439,7 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     let stack = on_owned_stack(move |_| {
         let key = SigningKey::<P>::slh_keygen_internal(&c.seeds[0..N], &c.seeds[N..2 * N], &c.seeds[2 * N..3 * N]);
         let sig = key.try_sign_with_context(&c.msg, &c.ctx, Some(&c.addrnd)).unwrap();
-        *s.lock().unwrap() = sig.to_vec();
+        *s.lock().unwrap() = sig.to_bytes().as_slice().to_vec();
         std::hint::black_box(key.try_sign_with_context(&c.msg, &c.ctx, None).unwrap());
         // Move the key about before it is dropped. A moved value leaves its
         // bytes where it was, and nothing can wipe them there; the key

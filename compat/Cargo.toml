@@ -3,7 +3,7 @@ name = "slhdsa-compat"
 version = "0.2.0"
 edition = "2021"
 publish = false
-description = "The RustCrypto `slh-dsa` interface for the six SLH-DSA-SHA2 parameter sets, backed by the formally verified `slhdsa` crate of `../rust`"
+description = "The RustCrypto `slh-dsa` interface for the twelve pure SLH-DSA parameter sets, backed by the formally verified `slhdsa` crate of `../rust`"
 
 # Standalone: not a member of any workspace, own target directory.
 [workspace]
@@ -25,6 +25,12 @@ getrandom = ["dep:getrandom"]
 # Pass-through to the verified crate: ARMv8 SHA-256 and ARMv8.2 SHA-512
 # instructions (SHA-512 is used by the sets with n = 24, 32).
 hw-sha2 = ["slhdsa/hw-sha2"]
+platform-sha2 = ["slhdsa/platform-sha2"]
+
+# The full API comparison exercises Vec, DER and PEM encoders.
+[[test]]
+name = "dropin"
+required-features = ["alloc"]
 
 [dependencies]
 slhdsa = { path = "../rust" }

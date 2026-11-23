@@ -1,0 +1,199 @@
+c8a
+core      Running unittests src/lib.rs (target/release/build/slhdsa/baa83624d63632af/out/slhdsa-baa83624d63632af)
+core test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+core test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+core      Running tests/acvp.rs (target/release/build/slhdsa/e3fc73497c40f3bc/out/acvp-e3fc73497c40f3bc)
+core test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.32s
+core      Running tests/api.rs (target/release/build/slhdsa/fe3530562e3627d0/out/api-fe3530562e3627d0)
+core test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.60s
+core      Running tests/compress.rs (target/release/build/slhdsa/383a0b7688a0d65d/out/compress-383a0b7688a0d65d)
+core test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+core      Running tests/rustcrypto.rs (target/release/build/slhdsa/e3452b202d713e55/out/rustcrypto-e3452b202d713e55)
+core test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.14s
+core test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+asan      Running unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/79534aa527af6349/out/slhdsa-79534aa527af6349)
+asan test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+asan test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+asan      Running tests/compress.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/1c4ae76a9a9710eb/out/compress-1c4ae76a9a9710eb)
+asan test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+compat      Running unittests src/lib.rs (target/release/build/slhdsa-compat/23b434d7f9780ced/out/slh_dsa-23b434d7f9780ced)
+compat test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+compat      Running tests/dropin.rs (target/release/build/slhdsa-compat/38ac010d119e9d21/out/dropin-38ac010d119e9d21)
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.43s
+compat      Running tests/extras.rs (target/release/build/slhdsa-compat/f9deae5b850a4cf5/out/extras-f9deae5b850a4cf5)
+compat test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.67s
+compat      Running tests/heap.rs (target/release/build/slhdsa-compat/a38ba11a0bc24f8f/out/heap-a38ba11a0bc24f8f)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+compat      Running tests/wipe.rs (target/release/build/slhdsa-compat/0a06472863f94e97/out/wipe-0a06472863f94e97)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.43s
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+native-test      Running unittests src/lib.rs (target/release/build/slhdsa/bd2dd9b3eba38422/out/slhdsa-bd2dd9b3eba38422)
+native-test test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+native-test test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+native-test      Running tests/acvp.rs (target/release/build/slhdsa/2cac7623578d255a/out/acvp-2cac7623578d255a)
+native-test test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.31s
+native-test      Running tests/api.rs (target/release/build/slhdsa/118c0ee49bea7667/out/api-118c0ee49bea7667)
+native-test test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.25s
+native-test      Running tests/compress.rs (target/release/build/slhdsa/d6a4121cdcfb4025/out/compress-d6a4121cdcfb4025)
+native-test test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+native-test      Running tests/rustcrypto.rs (target/release/build/slhdsa/e01b0482ee9e7679/out/rustcrypto-e01b0482ee9e7679)
+native-test test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.41s
+native-test test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 20.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 19820 | 20180 | 6110.2 | 6110.0 | -0.021 | -0.0003% | -0.77 | 2.34 (crop 1) | 1.34 | 1.61 | no leak detected | 2.494 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20072 | 19928 | 5590.0 | 5590.0 | -0.103 | -0.0018% | -1.10 | 2.36 (crop 95) | 1.21 | 1.32 | no leak detected | 2.869 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 16 | 9927 | 10073 | 1883.8 | 1883.8 | +0.064 | +0.0034% | -0.77 | 1.15 (crop 2) | 2.61 | 1.84 | no leak detected | 1.257 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 256 | 10035 | 9965 | 351.3 | 282.2 | +95.134 | +31.8210% | +67.11 | 140.35 (crop 5) | 2.11 | 1.47 | leak detected (expected: control) | 0.997 |
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 20.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 19938 | 20062 | 6117.5 | 6117.5 | -0.119 | -0.0020% | +1.07 | 1.45 (crop 7) | 1.98 | 1.10 | no leak detected | 2.132 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20077 | 19923 | 5185.0 | 5185.0 | -0.077 | -0.0015% | -0.12 | 1.59 (crop 98) | 1.44 | 1.31 | no leak detected | 0.847 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 16 | 10021 | 9979 | 1887.5 | 1887.5 | -0.016 | -0.0008% | +0.27 | 2.37 (crop 2) | 1.59 | 1.36 | no leak detected | 0.430 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 64 | 10002 | 9998 | 356.0 | 285.8 | +97.354 | +31.7031% | +71.93 | 150.48 (crop 5) | 1.54 | 1.30 | leak detected (expected: control) | 0.988 |
+qemu-Nehalem.log:test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.89s
+qemu-Haswell.log:test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.90s
+
+c5
+core      Running unittests src/lib.rs (target/release/build/slhdsa/baa83624d63632af/out/slhdsa-baa83624d63632af)
+core test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+core test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+core      Running tests/acvp.rs (target/release/build/slhdsa/e3fc73497c40f3bc/out/acvp-e3fc73497c40f3bc)
+core test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.52s
+core      Running tests/api.rs (target/release/build/slhdsa/fe3530562e3627d0/out/api-fe3530562e3627d0)
+core test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.22s
+core      Running tests/compress.rs (target/release/build/slhdsa/383a0b7688a0d65d/out/compress-383a0b7688a0d65d)
+core test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.55s
+core      Running tests/rustcrypto.rs (target/release/build/slhdsa/e3452b202d713e55/out/rustcrypto-e3452b202d713e55)
+core test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 60.76s
+core test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+asan      Running unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/79534aa527af6349/out/slhdsa-79534aa527af6349)
+asan test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+asan test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+asan      Running tests/compress.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/1c4ae76a9a9710eb/out/compress-1c4ae76a9a9710eb)
+asan test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.02s
+compat      Running unittests src/lib.rs (target/release/build/slhdsa-compat/23b434d7f9780ced/out/slh_dsa-23b434d7f9780ced)
+compat test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+compat      Running tests/dropin.rs (target/release/build/slhdsa-compat/38ac010d119e9d21/out/dropin-38ac010d119e9d21)
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 99.34s
+compat      Running tests/extras.rs (target/release/build/slhdsa-compat/f9deae5b850a4cf5/out/extras-f9deae5b850a4cf5)
+compat test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 105.84s
+compat      Running tests/heap.rs (target/release/build/slhdsa-compat/a38ba11a0bc24f8f/out/heap-a38ba11a0bc24f8f)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+compat      Running tests/wipe.rs (target/release/build/slhdsa-compat/0a06472863f94e97/out/wipe-0a06472863f94e97)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 74.65s
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+native-test      Running unittests src/lib.rs (target/release/build/slhdsa/bd2dd9b3eba38422/out/slhdsa-bd2dd9b3eba38422)
+native-test test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+native-test test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+native-test      Running tests/acvp.rs (target/release/build/slhdsa/2cac7623578d255a/out/acvp-2cac7623578d255a)
+native-test test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.20s
+native-test      Running tests/api.rs (target/release/build/slhdsa/118c0ee49bea7667/out/api-118c0ee49bea7667)
+native-test test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.87s
+native-test      Running tests/compress.rs (target/release/build/slhdsa/d6a4121cdcfb4025/out/compress-d6a4121cdcfb4025)
+native-test test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.96s
+native-test      Running tests/rustcrypto.rs (target/release/build/slhdsa/e01b0482ee9e7679/out/rustcrypto-e01b0482ee9e7679)
+native-test test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 44.37s
+native-test test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 26.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19820 | 20180 | 11104.0 | 11103.0 | -0.638 | -0.0057% | +0.65 | 1.43 (crop 33) | 2.69 | 2.54 | no leak detected | 17.485 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 20072 | 19928 | 10082.0 | 10082.0 | -0.005 | -0.0000% | +0.34 | 1.26 (crop 14) | 1.95 | 1.90 | no leak detected | 8.292 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 9927 | 10073 | 3137.0 | 3136.5 | -0.247 | -0.0079% | +0.44 | 2.03 (crop 94) | 2.84 | 2.52 | no leak detected | 5.045 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 32 | 10035 | 9965 | 2036.6 | 1632.4 | +560.438 | +31.8587% | +64.83 | 153.25 (crop 5) | 1.76 | 1.90 | leak detected (expected: control) | 6.174 |
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 26.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19938 | 20062 | 11001.0 | 11000.0 | +0.332 | +0.0030% | -0.26 | 2.14 (crop 0) | 1.59 | 1.94 | no leak detected | 10.187 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 20077 | 19923 | 9179.0 | 9178.0 | +0.390 | +0.0043% | +0.96 | 2.31 (crop 7) | 2.42 | 1.98 | no leak detected | 15.623 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 2 | 10021 | 9979 | 3048.5 | 3048.5 | +0.091 | +0.0030% | -0.86 | 2.18 (crop 88) | 1.92 | 1.56 | no leak detected | 4.833 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 16 | 10002 | 9998 | 2038.8 | 1634.4 | +562.038 | +31.9426% | +66.44 | 154.12 (crop 5) | 1.53 | 2.39 | leak detected (expected: control) | 6.228 |
+
+c8i
+core      Running unittests src/lib.rs (target/release/build/slhdsa/baa83624d63632af/out/slhdsa-baa83624d63632af)
+core test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+core test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+core      Running tests/acvp.rs (target/release/build/slhdsa/e3fc73497c40f3bc/out/acvp-e3fc73497c40f3bc)
+core test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.27s
+core      Running tests/api.rs (target/release/build/slhdsa/fe3530562e3627d0/out/api-fe3530562e3627d0)
+core test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.89s
+core      Running tests/compress.rs (target/release/build/slhdsa/383a0b7688a0d65d/out/compress-383a0b7688a0d65d)
+core test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+core      Running tests/rustcrypto.rs (target/release/build/slhdsa/e3452b202d713e55/out/rustcrypto-e3452b202d713e55)
+core test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.36s
+core test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+asan      Running unittests src/lib.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/79534aa527af6349/out/slhdsa-79534aa527af6349)
+asan test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+asan test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+asan      Running tests/compress.rs (target/x86_64-unknown-linux-gnu/release/build/slhdsa/1c4ae76a9a9710eb/out/compress-1c4ae76a9a9710eb)
+asan test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.87s
+compat      Running unittests src/lib.rs (target/release/build/slhdsa-compat/23b434d7f9780ced/out/slh_dsa-23b434d7f9780ced)
+compat test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+compat      Running tests/dropin.rs (target/release/build/slhdsa-compat/38ac010d119e9d21/out/dropin-38ac010d119e9d21)
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.84s
+compat      Running tests/extras.rs (target/release/build/slhdsa-compat/f9deae5b850a4cf5/out/extras-f9deae5b850a4cf5)
+compat test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.36s
+compat      Running tests/heap.rs (target/release/build/slhdsa-compat/a38ba11a0bc24f8f/out/heap-a38ba11a0bc24f8f)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+compat      Running tests/wipe.rs (target/release/build/slhdsa-compat/0a06472863f94e97/out/wipe-0a06472863f94e97)
+compat test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 40.29s
+compat test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+native-test      Running unittests src/lib.rs (target/release/build/slhdsa/bd2dd9b3eba38422/out/slhdsa-bd2dd9b3eba38422)
+native-test test sha512::x86::tests::in_place_fors_parent_batches_match_scalar ... ok
+native-test test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+native-test      Running tests/acvp.rs (target/release/build/slhdsa/2cac7623578d255a/out/acvp-2cac7623578d255a)
+native-test test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.60s
+native-test      Running tests/api.rs (target/release/build/slhdsa/118c0ee49bea7667/out/api-118c0ee49bea7667)
+native-test test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.48s
+native-test      Running tests/compress.rs (target/release/build/slhdsa/d6a4121cdcfb4025/out/compress-d6a4121cdcfb4025)
+native-test test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+native-test      Running tests/rustcrypto.rs (target/release/build/slhdsa/e01b0482ee9e7679/out/rustcrypto-e01b0482ee9e7679)
+native-test test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.11s
+native-test test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 22.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 11; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 19820 | 20180 | 7864.0 | 7864.0 | +0.041 | +0.0005% | +1.00 | 1.81 (crop 0) | 2.63 | 3.26 | no leak detected | 4.982 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20072 | 19928 | 7179.0 | 7179.0 | -0.003 | -0.0000% | +0.92 | 1.55 (crop 68) | 2.28 | 1.41 | no leak detected | 9.192 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 16 | 9927 | 10073 | 2279.2 | 2279.2 | -0.014 | -0.0006% | -0.50 | 1.60 (crop 62) | 1.99 | 1.81 | no leak detected | 2.365 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 128 | 10035 | 9965 | 470.4 | 376.1 | +126.533 | +31.0524% | +64.95 | 121.24 (crop 9) | 2.04 | 1.07 | leak detected (expected: control) | 1.414 |
+slhdsa build: platform-sha2; clock: Instant, 1.000 ns/tick, observed granularity 22.0 ns; PSTATE.DIT = unmeasured; classes = fixed-random; fixed class = one fixed pseudo-random secret; seed 22; both classes prepared by the same code path
+
+| function (public params) | secret varied | calls per measurement | n class 0 | n class 1 | median class 0 (ns) | median class 1 (ns) | mean(class 0) - mean(class 1), 10%-trimmed (ns) | relative | t (uncropped) | max abs t (101 tests) | null max abs t (within class 1) | null max abs t (within class 0) | verdict at 4.5 | std err of mean diff, uncropped (ns) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| chain_blocks/n=35,steps=0..15 (wots_pk_gen) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 1 | 19938 | 20062 | 7953.0 | 7953.0 | +0.043 | +0.0005% | +1.84 | 2.44 (crop 79) | 1.79 | 2.06 | no leak detected | 8.226 |
+| chain_blocks/n=35,steps=0..d_i (wots_sign) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 4 | 20077 | 19923 | 6664.5 | 6664.8 | -0.076 | -0.0011% | +0.54 | 1.22 (crop 67) | 1.44 | 2.17 | no leak detected | 5.108 |
+| chain_blocks/n=128,steps=t_i..t_i+1 (FORS batch) | bytes 16..64 of every block (the step ranges and the 16-byte prefixes are public and fixed) | 16 | 10021 | 9979 | 2250.1 | 2250.1 | +0.016 | +0.0007% | +1.11 | 1.29 (crop 55) | 2.06 | 3.54 | no leak detected | 1.670 |
+| CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 64 | 10002 | 9998 | 458.0 | 366.3 | +117.809 | +29.7957% | +65.89 | 115.88 (crop 5) | 1.57 | 0.85 | leak detected (expected: control) | 1.383 |
+
+C5 target-cpu=native compatibility suite
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 67.28s
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 83.84s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 72.97s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+Apple platform-sha2 release tests
+local.log
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.37s
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.51s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.21s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+apple.compat
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.84s
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.02s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.74s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s

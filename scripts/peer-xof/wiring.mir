@@ -1,0 +1,158 @@
+sha3.proof_stream_api / 3
+  _0 = Tuple()
+  _5 = sha3.default()
+  _6 = _1
+  _4 = digest.Update.chain(_5, _6)
+  _8 = &_4
+  _7 = sha3.clone(_8)
+  _10 = &_7
+  _11 = &(*_2)
+  _9 = sha3.update(_10, _11)
+  _13 = _7
+  _14 = &(*_3)
+  _12 = digest.ExtendableOutput.finalize_xof_into(_13, _14)
+  _0 = Tuple()
+  drop _7 via sha3.Shake256
+  drop _4 via sha3.Shake256
+  return _0
+
+sha3.default / 0
+  _1 = sha3.block_api.default()
+  _2 = block_buffer.default()
+  _0 = sha3.Shake256(_1, _2)
+  drop _2 via block_buffer.BlockBuffer
+  drop _1 via sha3.block_api.Sha3HasherCore
+  return _0
+
+digest.Update.chain / 2
+  _8 = False
+  _8 = True
+  _4 = &_1
+  _7 = &_2
+  _6 = core.convert.as_ref(_7)
+  _5 = &(*_6)
+  _3 = sha3.update(_4, _5)
+  _8 = False
+  _0 = _1
+  return _0
+
+sha3.clone / 1
+  _4 = &(*_1).0
+  _3 = &(*_4)
+  _2 = sha3.block_api.clone(_3)
+  _7 = &(*_1).1
+  _6 = &(*_7)
+  _5 = block_buffer.clone(_6)
+  _0 = sha3.Shake256(_2, _5)
+  drop _5 via block_buffer.BlockBuffer
+  drop _2 via sha3.block_api.Sha3HasherCore
+  return _0
+
+sha3.update / 2
+  _0 = Tuple()
+  _3 = &(*_1).0
+  _4 = &(*_1).1
+  _6 = &(*_4)
+  _7 = &(*_2)
+  _9 = &(*_3)
+  _8 = sha3.update(_9)
+  _5 = block_buffer.digest_blocks(_6, _7, _8)
+  _0 = Tuple()
+  return _0
+
+digest.ExtendableOutput.finalize_xof_into / 2
+  _0 = Tuple()
+  _6 = _1
+  _5 = sha3.finalize_xof(_6)
+  _4 = &_5
+  _7 = &(*_2)
+  _3 = sha3.read(_4, _7)
+  drop _5 via sha3.Shake256Reader
+  _0 = Tuple()
+  return _0
+
+sha3.finalize_xof / 1
+  _4 = &_1
+  _2 = &(*_4).0
+  _3 = &(*_4).1
+  _6 = &(*_2)
+  _7 = &(*_3)
+  _5 = sha3.block_api.finalize_xof_core(_6, _7)
+  _8 = block_buffer.read.default()
+  _9 = _5
+  _10 = _8
+  _0 = sha3.Shake256Reader(_9, _10)
+  drop _9 via sha3.block_api.Sha3ReaderCore
+  drop _5 via sha3.block_api.Sha3ReaderCore
+  drop _1 via sha3.Shake256
+  return _0
+
+sha3.read / 2
+  _0 = Tuple()
+  _3 = &(*_1).0
+  _4 = &(*_1).1
+  _6 = &(*_4)
+  _7 = &(*_2)
+  _9 = &(*_3)
+  _8 = sha3.read(_9)
+  _5 = block_buffer.read.read(_6, _7, _8)
+  _0 = Tuple()
+  return _0
+
+sha3.update.call_mut / 2
+  _0 = Tuple()
+  _3 = _2.0
+  _4 = &(*(*_1).0)
+  _5 = &(*_3)
+  _0 = sha3.block_api.update_blocks(_4, _5)
+  return _0
+
+sha3.read.call_mut / 2
+  _0 = Tuple()
+  _3 = _2.0
+  _5 = &(*(*_1).0)
+  _4 = sha3.block_api.read_block(_5)
+  (*_3) = _4
+  _0 = Tuple()
+  return _0
+
+sha3.block_api.update_blocks / 2
+  _0 = Tuple()
+  _4 = &(*_1).1
+  _6 = &_2
+  _7 = &(*_1).0
+  _5 = sha3.block_api.update_blocks(_6, _7)
+  _3 = keccak.with_f1600(_4, _5)
+  _0 = Tuple()
+  return _0
+
+sha3.block_api.update_blocks.call_once / 2
+  _0 = Tuple()
+  _3 = _2.0
+  _5 = (*_1.0)
+  _4 = core.slice.iter.into_iter(_5)
+  _6 = _4
+  loop
+    _9 = &_6
+    _8 = &(*_9)
+    _7 = core.slice.iter.next(_8)
+    match _7
+    None:
+      break
+    Some:
+    end
+    _10 = _7.v1.0
+    _13 = &(*_1.1)
+    _12 = &(*_13)
+    _16 = &(*_10)
+    _15 = hybrid_array.deref(_16)
+    _14 = &(*_15)
+    _11 = sha3.block_api.xor_block(_12, _14)
+    _18 = _3
+    _20 = &(*_1.1)
+    _19 = &(*_20)
+    _17 = invoke _18(_19)
+    continue
+  end
+  _0 = Tuple()
+  return _0

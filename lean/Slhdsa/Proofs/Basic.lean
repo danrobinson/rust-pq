@@ -49,8 +49,10 @@ def adrsS (a : address.Adrs) : Spec.Adrs :=
 
 /-- The spec-level view of a parameter set. The Rust crate fixes `lg_w = 4`. -/
 def paramsS (p : params.Params) : Spec.Params :=
-  ⟨p.n.val, p.h.val, p.d.val, p.hp.val, p.a.val, p.k.val, 4, p.m.val⟩
+  ⟨p.n.val, p.h.val, p.d.val, p.hp.val, p.a.val, p.k.val, 4, p.m.val, .sha2⟩
 
+@[simp] theorem paramsS_family (p : params.Params) : (paramsS p).family = .sha2 := rfl
+instance (p : params.Params) : Fact ((paramsS p).family = .sha2) := ⟨rfl⟩
 @[simp] theorem paramsS_n (p : params.Params) : (paramsS p).n = p.n.val := rfl
 @[simp] theorem paramsS_h (p : params.Params) : (paramsS p).h = p.h.val := rfl
 @[simp] theorem paramsS_d (p : params.Params) : (paramsS p).d = p.d.val := rfl

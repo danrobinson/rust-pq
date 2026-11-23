@@ -17,10 +17,10 @@
 //! says, as for the functions of [`crate::slh`].
 
 use alloc::vec::Vec;
-use crate::api::public_key;
+use super::api::public_key;
 use crate::encoding::{secret_key_from, secret_keys_equal, signature_len_ok};
 use crate::params::Params;
-use crate::slh::{slh_keygen_internal, slh_sign_internal, with_context};
+use super::slh::{slh_keygen_internal, slh_sign_internal, with_context};
 use crate::util::block;
 
 /// One part of a multi-part message appended to the parts before it: the
@@ -61,6 +61,14 @@ pub fn sign_into<const N: usize>(
         return false;
     }
     let rand = randomizer::<N>(sk, has_addrnd, addrnd);
+    sha2_only! {
+        #[cfg(feature = "platform-sha2")]
+        if m.len() >= 1024 {
+            let s = super::slh::slh_sign(p, m, ctx, sk, &rand).unwrap();
+            sig.copy_from_slice(&s);
+            return true;
+        }
+    }
     let mp = with_context(m, ctx);
     let s = slh_sign_internal::<N>(p, &mp, sk, &rand);
     sig.copy_from_slice(&s);

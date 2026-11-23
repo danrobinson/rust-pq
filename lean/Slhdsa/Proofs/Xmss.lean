@@ -6,7 +6,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa
 
 /-- Appending a byte slice to a byte vector. -/
-private theorem xmss_extend_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
+theorem xmss_extend_u8_spec (v : alloc.vec.Vec U8) (s : Slice U8)
     (h : v.length + s.length ≤ Usize.max) :
     alloc.vec.Vec.extend_from_slice core.clone.CloneU8 v s ⦃ r =>
       r.val = v.val ++ s.val ∧ r.length = v.length + s.length ⦄ := by
@@ -78,6 +78,15 @@ theorem xmss_node_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array
         (adrsS a) ⦄ :=
   xmss_node_aux p hp sk seed hs a z.val i z rfl h
 
+theorem xmss_tree_node_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
+    (i z : U32) (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs)
+    (within : (i.val + 1) * 2 ^ z.val ≤ 2 ^ p.hp.val) :
+    xmss.xmss_node sk i z seed a ⦃ r =>
+      bytes r.val = Spec.xmssNode (paramsS p) (bytes sk.val) i.val z.val (bytes seed.pk_seed.val)
+        (adrsS a) ⦄ :=
+  xmss_node_spec p hp sk i z seed hs a (within.trans (Nat.pow_le_pow_right (by decide)
+    (le_trans (valid_hp_le p hp.valid) (by decide))))
+
 private theorem xmss_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
     (idx : U32) (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs) (sig : alloc.vec.Vec U8)
     (j : U32) (wsig : Spec.Bytes)
@@ -93,8 +102,6 @@ private theorem xmss_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N
       r.length = (2 * N.val + 3 + p.hp.val) * N.val ⦄ := by
   have hn32 := hp.le32
   have hhp := valid_hp_le p hp.valid
-  have hidx9 : idx.val < 2 ^ 9 :=
-    lt_of_lt_of_le hidx (Nat.pow_le_pow_right (by decide) hhp)
   unfold xmss.xmss_sign_loop
   apply loop.spec_decr_nat (measure := fun (q : alloc.vec.Vec U8 × U32) => p.hp.val - q.2.val)
     (inv := fun q => q.2.val ≤ p.hp.val ∧
@@ -114,13 +121,15 @@ private theorem xmss_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N
       let* ⟨ k, k_post, k_post1 ⟩ ← UScalar.xor_spec
       have hk : k.val = (idx.val / 2 ^ j.val) ^^^ 1 := by
         rw [k_post]; simp [i_post, Nat.shiftRight_eq_div_pow]
-      have hkb : k.val < 2 ^ 9 := by
-        rw [hk]
-        exact Nat.xor_lt_two_pow (lt_of_le_of_lt (Nat.div_le_self _ _) hidx9) (by decide)
-      let* ⟨ node, node_post ⟩ ← xmss_node_spec p hp
-      · calc (k.val + 1) * 2 ^ j.val ≤ 2 ^ 9 * 2 ^ 8 :=
-              Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by decide) (by omega))
-          _ ≤ 2 ^ 32 := by norm_num
+      have splitHeight : 2 ^ p.hp.val = 2 ^ (p.hp.val - j.val) * 2 ^ j.val := by
+        rw [← Nat.pow_add, Nat.sub_add_cancel (by omega)]
+      have siblings := (Nat.div_lt_iff_lt_mul (Nat.two_pow_pos j.val)).2 (splitHeight ▸ hidx)
+      have flipBit : 1 < 2 ^ (p.hp.val - j.val) :=
+        lt_of_lt_of_le (by decide : 1 < 2 ^ 1) (Nat.pow_le_pow_right (by decide) (by omega))
+      have siblingBound : k.val < 2 ^ (p.hp.val - j.val) := hk ▸ Nat.xor_lt_two_pow siblings flipBit
+      let* ⟨ node, node_post ⟩ ← xmss_tree_node_spec p hp
+      · rw [splitHeight]
+        exact Nat.mul_le_mul_right _ (by omega)
       have hb1 : N.val * (2 * N.val + 3) ≤ 32 * 67 :=
         Nat.mul_le_mul hn32 (by omega)
       have hb2 : N.val * j.val ≤ 32 * 9 := Nat.mul_le_mul hn32 (by omega)
@@ -159,7 +168,7 @@ theorem xmss_sign_spec {N : Usize} (p : params.Params) (hp : PN p N) (m sk : Arr
       Spec.WOTS_HASH, address.WOTS_HASH]
 
 /-- One level of `Spec.climb`. -/
-private def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adrs : Spec.Adrs)
+def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adrs : Spec.Adrs)
     (st : Spec.Bytes × Nat) (j : Nat) : Spec.Bytes × Nat :=
   if (leaf / 2 ^ j) % 2 = 0 then
     (Spec.H P pk { adrs with word2 := j + 1, word3 := st.2 / 2 } (st.1 ++ Spec.block P auth j),
@@ -168,7 +177,7 @@ private def climbStep (P : Spec.Params) (leaf : Nat) (auth pk : Spec.Bytes) (adr
     (Spec.H P pk { adrs with word2 := j + 1, word3 := (st.2 - 1) / 2 }
       (Spec.block P auth j ++ st.1), (st.2 - 1) / 2)
 
-private theorem climb_eq (P : Spec.Params) (node : Spec.Bytes) (leaf ti : Nat) (auth : Spec.Bytes)
+theorem climb_eq (P : Spec.Params) (node : Spec.Bytes) (leaf ti : Nat) (auth : Spec.Bytes)
     (height : Nat) (pk : Spec.Bytes) (adrs : Spec.Adrs) :
     Spec.climb P node leaf ti auth height pk adrs =
       ((List.range height).foldl (climbStep P leaf auth pk adrs) (node, ti)).1 := by

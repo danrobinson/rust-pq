@@ -51,7 +51,8 @@ macro_rules! interop {
                     assert_eq!(&ours_sk[..], &theirs.to_bytes()[..]);
                     assert_eq!(&ours_pk[..], &theirs_vk.to_bytes()[..]);
 
-                    let msg = rng.vec([0, 1000][round]);
+                    // Exercise the segmented platform path against the upstream implementation.
+                    let msg = rng.vec([0, 1025][round]);
                     let ctx = rng.vec([0, 255][round]);
                     let rand = rng.vec(N);
                     let rand_n: [u8; N] = rand.clone().try_into().unwrap();
@@ -178,4 +179,10 @@ interop! {
     rc_192f, sha2_192f, Sha2_192f, "2.16.840.1.101.3.4.3.23", 44;
     rc_256s, sha2_256s, Sha2_256s, "2.16.840.1.101.3.4.3.24", 55;
     rc_256f, sha2_256f, Sha2_256f, "2.16.840.1.101.3.4.3.25", 66;
+    rc_shake_128s, shake_128s, Shake128s, "2.16.840.1.101.3.4.3.26", 11;
+    rc_shake_128f, shake_128f, Shake128f, "2.16.840.1.101.3.4.3.27", 22;
+    rc_shake_192s, shake_192s, Shake192s, "2.16.840.1.101.3.4.3.28", 33;
+    rc_shake_192f, shake_192f, Shake192f, "2.16.840.1.101.3.4.3.29", 44;
+    rc_shake_256s, shake_256s, Shake256s, "2.16.840.1.101.3.4.3.30", 55;
+    rc_shake_256f, shake_256f, Shake256f, "2.16.840.1.101.3.4.3.31", 66;
 }

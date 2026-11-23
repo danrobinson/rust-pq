@@ -203,7 +203,7 @@ theorem hmsg_spec (R pk root : S.Node) (m : List UInt8) :
 
 example (k r m : Spec.Bytes) : Spec.PRFmsg S.spec k r m =
     if S.spec.n = 16 then (Spec.hmacSha256 k (r ++ m)).take S.spec.n
-    else (Spec.hmacSha512 k (r ++ m)).take S.spec.n := rfl
+    else (Spec.hmacSha512 k (r ++ m)).take S.spec.n := by cases S <;> rfl
 
 /-! ### The unrestricted `PRF` game is broken at every set (why the domain matters) -/
 

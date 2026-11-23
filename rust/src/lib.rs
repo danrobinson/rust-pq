@@ -1,15 +1,15 @@
-//! SLH-DSA with SHA-2 as specified in FIPS 205, for all six parameter sets
-//! SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}.
+//! SLH-DSA with SHA-2 and SHAKE256 as specified in FIPS 205, for all twelve sets
+//! at the 128s, 128f, 192s, 192f, 256s, and 256f parameter sizes.
 //!
 //! The code is deliberately plain: no `unsafe` (outside the opt-in hardware
 //! backend), no traits, no iterators, no closures, and no use of the standard
 //! library beyond an allocator (`no_std`). It is written to be translated to
 //! Lean by Aeneas and proven equivalent to a Lean transcription of FIPS 205.
 //!
-//! One implementation serves all six sets. Its functions take the parameter
+//! Each hash family serves six parameter sets. Its functions take the parameter
 //! set as a value, `p: &params::Params`, and the hash length `n` also as a
 //! const generic `N`, which sizes the arrays that hold hash values; the two
-//! must agree. The modules `sha2_128s` … `sha2_256f` are that implementation
+//! must agree. The `sha2_*` and `shake_*` modules instantiate the corresponding family
 //! at each parameter set, with fixed-size key types and the names of the
 //! single-set crate: `sha2_128s::api::keygen`, `sha2_128s::slh_sign_internal`,
 //! `sha2_128s::encoding::pkcs8_encode`, ….
@@ -24,6 +24,10 @@
 //! [`sha256`]'s `hw` and [`sha512`]'s `hw`, written in the Aeneas subset like
 //! the rest except for small functions that wrap the intrinsics. SHA-512 is
 //! used by the sets with n = 24 and 32.
+//!
+//! `platform-sha2` adds runtime-selected x86 and Arm compression and batched
+//! tree kernels, as well as segmented hashing of long messages. These paths
+//! are differentially tested. The proofs cover the default and `hw-sha2` builds.
 #![cfg_attr(not(feature = "hw-sha2"), forbid(unsafe_code))]
 #![cfg_attr(feature = "hw-sha2", deny(unsafe_code))]
 #![no_std]
@@ -48,6 +52,11 @@ extern crate alloc;
 ))]
 extern crate std;
 
+// The shared SLH and XMSS sources use these blocks for SHA-2-specific kernels.
+macro_rules! sha2_only {
+    ($($item:tt)*) => { $($item)* };
+}
+
 pub mod adapter;
 pub mod address;
 pub mod api;
@@ -59,9 +68,13 @@ pub mod params;
 pub mod sets;
 pub mod sha256;
 pub mod sha512;
+pub mod shake;
+pub mod shake256;
 pub mod slh;
 pub mod util;
 pub mod wots;
 pub mod xmss;
 
 pub use sets::{sha2_128f, sha2_128s, sha2_192f, sha2_192s, sha2_256f, sha2_256s};
+
+pub use sets::{shake_128f, shake_128s, shake_192f, shake_192s, shake_256f, shake_256s};

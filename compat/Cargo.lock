@@ -232,6 +232,10 @@ dependencies = [
 [[package]]
 name = "slhdsa"
 version = "0.2.0"
+dependencies = [
+ "cpufeatures",
+ "sha2",
+]
 
 [[package]]
 name = "slhdsa-compat"

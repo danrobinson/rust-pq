@@ -1,0 +1,16 @@
+cpu,candidate,test_suites,tests_passed,tests_failed
+c5,current,14,188,0
+c5,index,14,188,0
+c5,counter,14,188,0
+c8a,current,14,188,0
+c8a,index,14,188,0
+c8a,counter,14,188,0
+c8i,current,14,188,0
+c8i,index,14,188,0
+c8i,counter,14,188,0
+c6g,current,14,190,0
+c6g,index,14,190,0
+c6g,counter,14,190,0
+c8g,current,14,190,0
+c8g,index,14,190,0
+c8g,counter,14,190,0

@@ -26,8 +26,12 @@ const BATCH: usize = 128;
 /// node above the leaves is `H` of its children. For `n = 16` that is a
 /// single SHA-256 block whose last address word is its tree index: again one
 /// step, on the blocks of a level. For `n > 16` it is one SHA-512 block,
-/// computed node by node.
+/// computed in groups where a platform backend supports it.
 fn fors_batch<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+    if z >= 3 && matches!(N, 16 | 24 | 32) && crate::sha256::x86::avx512_available() {
+        return wide::subtree(sk_seed, i, z, seed, adrs);
+    }
     let n = 1usize << z;
     let prf_adrs = adrs.with_type(FORS_PRF).with_keypair(adrs.keypair);
     let mut blocks = [[0u8; 64]; BATCH];
@@ -73,6 +77,9 @@ fn fors_batch<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<N>,
                 j += 1;
             }
         } else {
+            #[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little"))))]
+            let mut j = crate::sha512::parents::parents(&seed.state512, adrs.with_word2(lvl), i << (z - lvl), &mut vals, cnt);
+            #[cfg(not(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little")))))]
             let mut j = 0;
             while j < cnt {
                 let idx = (i << (z - lvl)) + j as u32;
@@ -172,6 +179,9 @@ pub fn fors_pk_from_sig<const N: usize>(p: &Params, sig: &[u8], md: &[u8], seed:
                 i += 1;
             }
         } else {
+            #[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little"))))]
+            let mut i = crate::sha512::parents::path_parents(&seed.state512, adrs.with_word2(h + 1), &mut vals[..k], &mut idx, sig, a as usize, h as usize);
+            #[cfg(not(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little")))))]
             let mut i = 0;
             while i < k {
                 let sibling = block::<N>(sig, i * (a as usize + 1) + 1 + h as usize);
@@ -197,3 +207,6 @@ pub fn fors_pk_from_sig<const N: usize>(p: &Params, sig: &[u8], md: &[u8], seed:
     let pk_adrs = adrs.with_type(FORS_ROOTS).with_keypair(adrs.keypair);
     thash::<N>(seed, &pk_adrs, &roots)
 }
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+mod wide;
