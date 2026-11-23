@@ -1842,3 +1842,96 @@ five new files: only `#print axioms` lines.  The 30 `#print axioms` lines of the
 `[propext, Classical.choice, Quot.sound]`, 2 × `[propext, Quot.sound]` (`run_fuseS`,
 `cellOf_unique`).  `scripts/check.sh` (all default targets, generators, forbidden tokens, axioms,
 headline lists): `CHECK PASSED`, exit 0, no `FAIL` line.
+
+## 14. 2026-11-22 (eighth session): S1 proved; the joint handler; the whole domination proved; the core reduced to the bad bound `BadJS`/`BadJE`
+
+Seven new files under `Ideal/Direct/` (2522 lines), seven `import` lines appended to `Ideal.lean`;
+no existing Lean file changed.  `lake build Ideal`: success (7479 jobs).  No `sorry`/`axiom`/
+`native_decide`/`bv_decide` in the new files.  All new `#print axioms`:
+`[propext, Classical.choice, Quot.sound]`.  `scripts/check.sh`: `CHECK PASSED`, exit 0.
+
+**`DeferCoreGhostSufH`/`EufH` are NOT proved.**  They are now reduced (proved) to ONE remaining
+statement each, the bad bound of the coupling: `deferCoreGhostSufH_of_bad : BadJS →
+DeferCoreGhostSufH` (`CoupleDomP.lean:505`), `deferCoreGhostEufH_of_bad : BadJE →
+DeferCoreGhostEufH` (`:509`).  So every bound of `Headline.lean` holds under `BadJS` (resp.
+`BadJE`); `Headline.lean` itself was not edited and still states its bounds under
+`DeferCoreGhost*H`.  **No unconditional bound beyond tight8's is proved.**
+
+### 14.1 Files and statements proved
+
+| file | lines | content |
+|---|---|---|
+| `S1Disc.lean` | 328 | role-refined address discipline (adapted from VCVio `AddressDiscipline`/`ComponentTraces`, Apache 2.0, credited) |
+| `S1Prog.lean` | 496 | arity of ledger keys; S1 for the tagged programs (`s1_trace_S`/`E`) |
+| `CoupleJ.lean` | 297 | the joint handler `J`, its D-marginal, the assembly |
+| `CoupleUnif.lean` | 174 | `splice_unif`: `(ansOf t v, splice t h v)` is a uniform pair; `overlay_splice` |
+| `CoupleRun.lean` | 273 | run equations: deferred walks, `defH` per query kind, `romGE` eager steps |
+| `CoupleDomH.lean` | 437 | domination at honest queries (`core1`, `core2`, four rows) |
+| `CoupleDomP.lean` | 517 | domination at forger cells (four cases) and coins; `domJ` |
+
+Main statements (file:line):
+* **S1** (`S1Prog.lean`): `rq_arity` (:111) — a role-correct `Thash` query has
+  `|xs| = arityOf key` (ledger address ⇒ `AddressFacts` ⇒ SHA-2 checked domain ⇒ key = `ADRSc`,
+  type byte and tree-height word give the arity; FORS leaf/node split by `word2`);
+  `prf_arity` (:141) every `Dsk` input has arity 1; `prf_walk` (:148) the PRF walk is the arity-1
+  `Thash` walk; `HonOk pk` (per-query S1 predicate on `QT Dsk`);
+  **`s1_trace_S`** (:441), **`s1_trace_E`** (:465): for every stateful handler `J` and every state
+  predicate `Rec pk` preserved on `HonOk pk` queries and true initially for all `pk`, every final
+  state of a run of `PprfST` (`PprfET`) satisfies `Rec pk` for SOME `pk` (the key is chosen along
+  the path: `PK.seed`, then keygen — `HonOk ⟨ps, r⟩` for every `r` — then the rest at
+  `⟨ps, root⟩`).  Underlying: `S1Disc.keygen_ok`, `sign_ok`, `verify_ok` (every `F`/`H`/`T_l`
+  call of `keygenInternalWithSecretM`, `signInternalWithSecretRandomizerM`, `verifyInternalM` —
+  for every signature — is at a ledger address of the matching role, at the run's seed).
+  **S1 is true as stated in §13.1**; no change to the coupling was needed.
+* **Joint handler** (`CoupleJ.lean`): `J k` (:161) on `σJ = DS × (Tc × GS) × (log × flag)`: the
+  D step `defH k` as is, two fresh `h, h'`, the R state updated deterministically
+  (`updH` honest: `O(u) := ansOf u v`, ghost tail `splice u h v` if `v` fresh else `h`, inner
+  ghost `X` if fresh else `h'`; `updP` cells: classified by `T`/`relQ`/`innQ` as the simulator
+  does, R value = D answer), the flag raised when an R value R would draw fresh is not fresh on
+  the D side, or a held R value disagrees with the D answer.  Freshness of an outer label
+  excludes the case outer node = inner node (needed for exact domination).
+  `jm_marg` (:190): D-marginal of a `J` step = the `defH` step (`hm` of `coupling_le`).
+  `deferCoreGhostSufH_of_parts` (:278): `DomJ → BadJS → DeferCoreGhostSufH` (EUF twin after it).
+* **Domination (§13.4 step 3) — ALL table rows**: `domJ : DomJ` (`CoupleDomP.lean:492`), from
+  `dom_coin` (:483); `dom_port` (:416) with `G_fresh`, `G_inn`, `G_rel` (cells relevant with
+  `O(t)`/ghost each cached or fresh — 4 sub-cases), `G_some` (cached cell); `dom_thash` (`CoupleDomH:232`),
+  `dom_prf` (:283), `dom_hmsg` (:337), `dom_prfmsg` (:385), via `core1` (:64, one draw) and
+  `core2` (:123, inner then outer draw).  No invariant is used (`I = True`).
+
+### 14.2 What is done, by item of §13.1
+* S1: **proved** (above).  S2, S3, S4, S5: not proved (not needed by the domination; needed by the
+  bad bound).
+* B1, B2, B3: not bounded in Lean.
+* Table rows (domination): **all proved** (coin; cell cached / relevant / inner / fresh; honest
+  Thash, PRF, `H_msg`, `PRF_msg`).  Invariant J1–J7: not formalised.
+
+### 14.3 Exact remaining statements (`CoupleJ.lean:222`, `:234`)
+```
+def BadJS : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →
+  Pr{let k ← $ᵗ (Bytes 16)
+     let z ← (simulateQ (J k) (PprfST oR ($ᵗ (Bytes 16)) S)).run sJ0
+     let st ← RelabelState.endFill (πD z.2)}[badJ z.2 ∧ ¬ Gs.Bad st] ≤ epsHalf qf qs ℓ + qs / 2^128
+def BadJE : Prop := (the same with PprfET)
+```
+To prove: define `Inv` (J1–J7 of §13.1 on `σJ`, quantified over the `pk` of the log — use
+`s1_trace_S` with `Rec pk s := ∀ t ∈ s.log, HonOk pk t`), show each `J` step either keeps `Inv`
+and leaves the flag down, or hits B1/B2/B3 or a `Gs.Bad` of the D state (monotone, excluded
+after `endFill`); bound B1 by the hazard engine (`CollBudget.ex_hz_le_of_step_cap`, as in
+`MDBadSharp`), B3 by a union bound over the ≤ qs signer inner digests (S5).  Needs S2–S5.
+Then replace `DeferCoreGhost*H` by `BadJS`/`BadJE` in `Headline.lean` (one-line changes via
+`deferCoreGhost*H_of_bad`) and finally discharge them.
+
+### 14.4 Deviations, error terms
+* None to games or definitions outside `Ideal/Direct`.  `epsHalf`, `epsHop`, numerics unchanged
+  (the allocation `epsHalf + qs/2^128` is now exactly the right side of `BadJS`).
+* The flag of `J` is local ("this step is off the table") rather than "the invariant fails"; the
+  domination then needs no invariant, and all invariant reasoning moves into `BadJS`.
+
+### 14.5 Updated estimate
+Remaining: `BadJS`/`BadJE` only: `Inv` and its preservation 0.8–1.2k; S2–S5 0.3–0.6k; B1–B3
+(hazard engine) 0.6–1k; Headline rewiring 0.05k: **≈ 1.8–2.9k lines** (was 3.3–5.3k).
+
+### 14.6 Verification
+`lake build Ideal`: success (7479 jobs).  Forbidden-token grep on the seven new files: no hit.
+`#print axioms` of the new files: all `[propext, Classical.choice, Quot.sound]`.
+`scripts/check.sh`: `CHECK PASSED`, exit 0.

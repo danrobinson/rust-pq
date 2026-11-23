@@ -362,7 +362,32 @@ Not covered: other AArch64 processors, a CPU without the instructions running th
 that the register-only vector, SHA-256 and SHA-512 instructions take operand-independent time
 (Arm's `PSTATE.DIT`).
 
+## In progress, unfinished: a tighter ideal-compression bound (`security/Ideal/Direct`)
+
+Started 2026-11-22; 45 files, about 14,400 lines, all compiled and imported from
+`security/Ideal.lean`; no `sorry`. **It proves no new unconditional bound.** The proved closed
+bound for SLH-DSA-SHA2-128s is still tight8's (2^-63, 2^-59, 2^-39 at 2^20, 2^40, 2^64
+signatures).
+
+The route: reduce the compression-function game to VCVio's random-oracle theorem
+(`strongUnforgeableAdvantage_romScheme_le_securityBound`) through a simulator that answers the
+forger's compression queries from the oracles. `Ideal/Direct/Headline.lean` collects sixteen
+bounds for the same game objects as tight8 (2^-67, 2^-63, about 2^-62.4 at the three points),
+each **conditional** on the hypothesis `DeferCoreGhostSufH` / `DeferCoreGhostEufH`. Those follow,
+by proved implications (`CoupleDomP.lean`, `deferCoreGhost*H_of_bad`), from the one statement
+that is left: `BadJS` / `BadJE` (`CoupleJ.lean:222`, `:234`), the bound on the bad event of the
+coupling. Its right-hand side, `epsHalf + qs/2^128`, is an allocation supported by a paper
+derivation, not a machine-checked value; if the true value is larger the numbers change.
+
+`security/status/DIRECT.md` is the full record: the plan and what was wrong in it (§§1–8), the
+change of route (§§9–10), and in §14 what is proved, the exact remaining statements and a
+cold-start plan (estimate 1.8–2.9k lines). The early files (`Toy*`, `TwoColour`, `DagSwap`,
+`Extract*`, `Bridge`, `Tagged`, `Parse`) belong to the abandoned direct route; some are reused,
+the rest are kept as proved lemmas with no use yet.
+
 ## Not done
+
+- **The tighter ideal-compression bound** (section above): one statement short.
 
 - **SHAKE parameter sets**, pre-hash variants.
 - **Ideal-compression bound** for the sets other than 128s (needs the counting re-instantiated

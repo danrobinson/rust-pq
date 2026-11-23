@@ -87,7 +87,8 @@
 
 extern crate alloc;
 
-use alloc::vec::Vec;
+mod multipart;
+use multipart::join;
 
 pub use signature;
 
@@ -103,17 +104,6 @@ pub use scrub::SCRUB_BYTES;
 pub use signature_encoding::{Signature, SignatureLen};
 pub use signing_key::{SigningKey, SigningKeyLen};
 pub use verifying_key::{VerifyingKey, VerifyingKeyLen};
-
-/// The parts of a multi-part message, joined by the verified
-/// `slhdsa::adapter::append`. (The loop over `&[&[u8]]` itself cannot be
-/// translated: nested borrows.)
-fn join(parts: &[&[u8]]) -> Vec<u8> {
-    let mut m = Vec::new();
-    for part in parts {
-        slhdsa::adapter::append(&mut m, part);
-    }
-    m
-}
 
 /// Equality of two public byte strings, by the verified `slhdsa::adapter::bytes_equal`.
 fn same(a: &[u8], b: &[u8]) -> bool {

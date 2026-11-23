@@ -354,6 +354,10 @@ Machine-checked points, messages up to 2^26 bytes:
 | 2^40 | 2^64 | 2^-63 + 2^-94 + 2^-59 |
 | 2^64 | 2^64 | 2^-45 + 2^-46 + 2^-39 |
 
+A tighter bound (about 2^-67, 2^-63, 2^-62 at these points) is under way in
+`security/Ideal/Direct` and is **not proved**: its statements are conditional on one remaining
+hypothesis. See [HANDOFF.md](HANDOFF.md) and [security/status/DIRECT.md](security/status/DIRECT.md).
+
 Limits: the subset-resilience leg is vacuous once `qf + 4·qs + 2` (compression queries plus four
 times the signatures) reaches about 2^70; the statement averages over random tables and says
 nothing about the real compression function; no Davies–Meyer model; 128s only (the other sets

@@ -190,3 +190,10 @@ import Ideal.Direct.RomGhost
 import Ideal.Direct.Couple
 import Ideal.Direct.RomCoreGhost
 import Ideal.Direct.Headline
+import Ideal.Direct.S1Disc
+import Ideal.Direct.S1Prog
+import Ideal.Direct.CoupleJ
+import Ideal.Direct.CoupleUnif
+import Ideal.Direct.CoupleRun
+import Ideal.Direct.CoupleDomH
+import Ideal.Direct.CoupleDomP
