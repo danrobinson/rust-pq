@@ -350,7 +350,7 @@ if __name__ == "__main__":
             "Spec.ArmKeygen",
             "Spec.ArmInternalSigner",
             "Spec.ArmSha2InternalSigner",
-            "Spec.ArmSegmentedFrame",
+            "Spec.ArmSegmentedSigner",
             "Spec.ArmVerifyLength",
             "Spec.ArmVerifyBody",
             "Spec.ArmRateBlocks",
