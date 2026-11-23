@@ -64,4 +64,36 @@ theorem firstRows (a : Kdiag.Grid) (block : Slice U8) (size : block.length=136) 
       simp only [ho,step_simps]
       simpa only [show it.start.val=3 by omega] using prior
   · exact ⟨rfl,Nat.zero_le _,by simp⟩
+/-- The last rate row reads two words. Its remaining active state words are preserved. -/
+def lastRow (grid : Kdiag.Grid) (block : Slice U8) : Result Kdiag.Grid := do
+  let row ← grid.index_usize 3#usize
+  let raw ← core.slice.Slice.as_ptr block
+  let endPtr ← core.ptr.const_ptr.RawPtrConstT.add raw 120#usize
+  let cast ← core.ptr.const_ptr.RawPtrConstT.cast I64 endPtr
+  let tail ← core.core_arch.x86.avx512f._mm512_maskz_loadu_epi64 3#u8 cast
+  let result ← core.core_arch.x86.avx512f._mm512_xor_si512 row tail
+  grid.update 3#usize result
+
+theorem lastRow_spec (grid : Kdiag.Grid) (block : Slice U8) (size : block.length=136) :
+    lastRow grid block ⦃ out => ∀ r : Nat, r<5 → ∀ j : Fin 8,
+      out.val[r]! j = if r=3 ∧ j.val<2 then grid.val[r]! j ^^^ wordAt block.val (120+8*j.val)
+        else grid.val[r]! j ⦄ := by
+  unfold lastRow
+  step as ⟨row,hrow⟩
+  rw [bytePtr]
+  simp only [bind_ok]
+  rw [addBytes _ _ (by change 120 ≤ block.length;omega)]
+  simp only [bind_ok,core.ptr.const_ptr.RawPtrConstT.cast,GatherRust.core.ptr.const_ptr.RawPtrConstT.cast]
+  rw [loadTwo _ (by change 120+16 ≤ block.length;omega)]
+  simp only [bind_ok,core.core_arch.x86.avx512f._mm512_xor_si512,KavxRust.core.core_arch.x86.avx512f._mm512_xor_si512]
+  step as ⟨out,ho⟩
+  rename_i r hr j
+  rw [ho,afterUpdate _ _ _ _ hr]
+  by_cases same : r=3
+  · subst r
+    rw [hrow]
+    have bound : 3 < grid.val.length := by simp
+    rw [getElem!_pos grid.val 3 bound]
+    by_cases small : j.val<2 <;> simp [small]
+  · simp [same,Ne.symm same]
 end slhdsa.Kgridbulk
