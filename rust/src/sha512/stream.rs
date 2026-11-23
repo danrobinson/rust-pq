@@ -80,6 +80,22 @@ fn schedule_word(w: &mut [core::arch::x86_64::__m512i; 16], i: usize) -> [u64; 8
     unsafe { core::mem::transmute(wk) }
 }
 
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw,bmi2")]
+fn schedule_table(mut w: [core::arch::x86_64::__m512i; 16]) -> [[u64; 8]; 80] {
+    let mut ordered = [[0u64; 8]; 80];
+    // Expand in round order with fixed ring-buffer indices. Dynamic indices
+    // spill the sixteen-word sliding window on some AVX-512 processors.
+    macro_rules! expand {
+        ($index:expr) => {{
+            let i: usize = $index;
+            ordered[i] = schedule_word(&mut w, i);
+        }};
+    }
+    rounds!(expand);
+    ordered
+}
+
 #[target_feature(enable = "avx512f,avx512bw,bmi2")]
 fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
     use core::arch::x86_64::*;
@@ -88,24 +104,15 @@ fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
         0x08090a0b, 0x0c0d0e0f, 0x00010203, 0x04050607,
     ));
     for blocks in groups {
-        let mut ordered = [[0u64; 8]; 80];
         // Each gather reads the same word from every complete block in this group.
-        let mut w: [__m512i; 16] = core::array::from_fn(|i| unsafe {
+        let w: [__m512i; 16] = core::array::from_fn(|i| unsafe {
             let ptr = blocks.as_ptr().cast::<u8>();
             _mm512_shuffle_epi8(
                 _mm512_i32gather_epi64::<8>(offsets, ptr.add(i * 8).cast()),
                 swap,
             )
         });
-        // Expand in round order with fixed ring-buffer indices. Dynamic indices
-        // spill the sixteen-word sliding window on some AVX-512 processors.
-        macro_rules! expand {
-            ($index:expr) => {{
-                let i: usize = $index;
-                ordered[i] = schedule_word(&mut w, i);
-            }};
-        }
-        rounds!(expand);
+        let ordered = schedule_table(w);
         for lane in 0..8 {
             let mut v = *state;
             macro_rules! step {
