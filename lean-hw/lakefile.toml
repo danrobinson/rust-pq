@@ -125,3 +125,6 @@ name = "X86remainder"
 
 [[lean_lib]]
 name = "Streamvector"
+
+[[lean_lib]]
+name = "X86stream"

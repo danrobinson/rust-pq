@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar|X86remainder) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -840,4 +840,32 @@ LEAN
 )
 for name in offsets256 offsets512 swap256 swap512 gathered256 gathered512 ordered_round256 ordered_round512 write_ordered256 write_ordered512 prefix_groups256 prefix_groups512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-gather-axioms"
+done
+
+extract X86stream X86StreamRust x86stream --start-from 'crate::sha256::sha256_from' \
+  --start-from 'crate::sha512::sha512_from' --opaque 'crate::sha256::stream::remainder' \
+  --opaque 'crate::sha512::stream::remainder' --opaque 'crate::sha256::stream::prescheduled' \
+  --opaque 'crate::sha512::stream::prescheduled' --opaque 'crate::sha256::stream::available::get' \
+  --opaque 'crate::sha512::stream::available::get' --opaque 'crate::sha256::stream::dedicated::get'
+cat > "$scratch/expected" <<'NAMES'
+core.slice.Slice.as_chunks
+sha256.stream.available.get
+sha256.stream.dedicated.get
+sha256.stream.prescheduled
+sha256.stream.remainder
+sha512.stream.available.get
+sha512.stream.prescheduled
+sha512.stream.remainder
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build X86stream.Top && lake env lean --stdin > "$scratch/x86-stream-top-axioms" <<'LEAN'
+import X86stream.Top
+#print axioms slhdsa.X86.Stream.continued256
+#print axioms slhdsa.X86.Stream.continued512
+#print axioms slhdsa.X86.Stream.short256
+#print axioms slhdsa.X86.Stream.short512
+LEAN
+)
+for name in continued256 continued512 short256 short512; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-stream-top-axioms"
 done
