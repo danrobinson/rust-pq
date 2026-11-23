@@ -42,7 +42,7 @@ structure Facades : Prop where
     verifying_key.VerifyingKey.try_verify_with_context C ours m ctx parsed ⦃ ret =>
       ret = if verifyCtx c p k [bytes m.val] (bytes ctx.val) s then .Ok () else .Err () ⦄
 
-private theorem facades (positive : 0<p.d) (new : KeygenCorrect C p)
+theorem facades_of_specs (positive : 0<p.d) (new : KeygenCorrect C p)
     (sign : ∀ (k : signing_key.SigningKey P (Array U8 sk) (Array U8 vk) (Array U8 sig)) (m ctx : Slice U8)
       (rnd : Option (Slice U8)), (∀ r ∈ rnd, r.length=p.n) → Room m.length slack →
       signing_key.SigningKey.try_sign_with_context C k m ctx rnd ⦃ ret =>
@@ -71,51 +71,51 @@ private theorem facades (positive : 0<p.d) (new : KeygenCorrect C p)
 end
 
 theorem sha2_128s_facades : Facades params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 Spec.sha2_128s 409 :=
-  facades _ _ _ (by decide) sha2_128s_new (by
+  facades_of_specs _ _ _ (by decide) sha2_128s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_128s_sign_with_context _ _ _ _ hr hm) sha2_128s_verify_with_context
 
 theorem sha2_128f_facades : Facades params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 Spec.sha2_128f 409 :=
-  facades _ _ _ (by decide) sha2_128f_new (by
+  facades_of_specs _ _ _ (by decide) sha2_128f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_128f_sign_with_context _ _ _ _ hr hm) sha2_128f_verify_with_context
 
 theorem sha2_192s_facades : Facades params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 Spec.sha2_192s 561 :=
-  facades _ _ _ (by decide) sha2_192s_new (by
+  facades_of_specs _ _ _ (by decide) sha2_192s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_192s_sign_with_context _ _ _ _ hr hm) sha2_192s_verify_with_context
 
 theorem sha2_192f_facades : Facades params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 Spec.sha2_192f 561 :=
-  facades _ _ _ (by decide) sha2_192f_new (by
+  facades_of_specs _ _ _ (by decide) sha2_192f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_192f_sign_with_context _ _ _ _ hr hm) sha2_192f_verify_with_context
 
 theorem sha2_256s_facades : Facades params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 Spec.sha2_256s 561 :=
-  facades _ _ _ (by decide) sha2_256s_new (by
+  facades_of_specs _ _ _ (by decide) sha2_256s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_256s_sign_with_context _ _ _ _ hr hm) sha2_256s_verify_with_context
 
 theorem sha2_256f_facades : Facades params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 Spec.sha2_256f 561 :=
-  facades _ _ _ (by decide) sha2_256f_new (by
+  facades_of_specs _ _ _ (by decide) sha2_256f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact sha2_256f_sign_with_context _ _ _ _ hr hm) sha2_256f_verify_with_context
 
 theorem shake_128s_facades : Facades params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 Spec.shake_128s 409 :=
-  facades _ _ _ (by decide) shake_128s_new (by
+  facades_of_specs _ _ _ (by decide) shake_128s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_128s_sign_with_context _ _ _ _ hr hm) shake_128s_verify_with_context
 
 theorem shake_128f_facades : Facades params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 Spec.shake_128f 409 :=
-  facades _ _ _ (by decide) shake_128f_new (by
+  facades_of_specs _ _ _ (by decide) shake_128f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_128f_sign_with_context _ _ _ _ hr hm) shake_128f_verify_with_context
 
 theorem shake_192s_facades : Facades params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 Spec.shake_192s 561 :=
-  facades _ _ _ (by decide) shake_192s_new (by
+  facades_of_specs _ _ _ (by decide) shake_192s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_192s_sign_with_context _ _ _ _ hr hm) shake_192s_verify_with_context
 
 theorem shake_192f_facades : Facades params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 Spec.shake_192f 561 :=
-  facades _ _ _ (by decide) shake_192f_new (by
+  facades_of_specs _ _ _ (by decide) shake_192f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_192f_sign_with_context _ _ _ _ hr hm) shake_192f_verify_with_context
 
 theorem shake_256s_facades : Facades params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 Spec.shake_256s 561 :=
-  facades _ _ _ (by decide) shake_256s_new (by
+  facades_of_specs _ _ _ (by decide) shake_256s_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_256s_sign_with_context _ _ _ _ hr hm) shake_256s_verify_with_context
 
 theorem shake_256f_facades : Facades params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 Spec.shake_256f 561 :=
-  facades _ _ _ (by decide) shake_256f_new (by
+  facades_of_specs _ _ _ (by decide) shake_256f_new (by
     intro k m ctx rnd hr hm; cases rnd <;> exact shake_256f_sign_with_context _ _ _ _ hr hm) shake_256f_verify_with_context
 
 end slhdsa.PeerCall

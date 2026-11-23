@@ -58,14 +58,14 @@ private theorem specialize {c : Children} (api : Facades C p slack) (laws : Chil
 
 end
 
-private theorem sha2_link {P : Type} {sk vk sig : Usize} {C : @Core P sk vk sig} {slack : Nat}
+theorem sha2_link {P : Type} {sk vk sig : Usize} {C : @Core P sk vk sig} {slack : Nat}
     (s : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routing) (api : Facades C (RcSlhSha2.params s) slack) :
     RcSlhSha2.Observed route RcSlhSha2.nativeAlgorithms ∧
       SameFacade C (RcSlhSha2.params s) slack (Providers.sha2 s RcSlhSha2.nativeAlgorithms) := by
   have obs := (RcSlhSha2.observed_iff route RcSlhSha2.nativeAlgorithms).mpr rfl
   exact ⟨obs,specialize _ _ _ api (Providers.sha2_laws s route _ obs)⟩
 
-private theorem shake_link {P : Type} {sk vk sig : Usize} {C : @Core P sk vk sig}
+theorem shake_link {P : Type} {sk vk sig : Usize} {C : @Core P sk vk sig}
     {slack : Nat} {p : Spec.Params} (v : p.Valid) (family : p.family=.shake) (api : Facades C p slack) :
     SameFacade C p slack (Providers.shake p) :=
   specialize _ _ _ api (Providers.shake_laws p v family)
