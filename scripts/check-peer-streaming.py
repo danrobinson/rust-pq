@@ -77,7 +77,7 @@ def main():
         obligations, names = cert.program()
         if obligations != (ROOT / "lean-hw/Peerarmkeccak/BufferVcs.lean").read_text():
             raise ValueError("fresh LLVM verification obligations differ from checked Lean declarations")
-        audit(root, ["Peerarmkeccak.Xof","Peerarmkeccak.BufferVcs"], [*names,"PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
+        audit(root, ["Peerarmkeccak.Provider","Peerarmkeccak.BufferVcs"], [*names,"PeerShake.Backend.correct","PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
                "PeerShake.Buffer.updateView","PeerShake.Buffer.padView","PeerShake.Buffer.readView",
                "PeerShake.Buffer.descriptorStep","PeerShake.Buffer.foldParts"])
 
