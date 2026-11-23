@@ -19,10 +19,14 @@ SHAPES = {"128s": (16,7,9), "128f": (16,22,3), "192s": (24,7,9),
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--set", choices=[f"{f}_{s}" for f in ("sha2","shake") for s in SHAPES])
-    parser.add_argument("--operation", choices=["hypertree","xmss"], default="hypertree")
-    parser.add_argument("--harness", choices=["sign","recover","verify_layers"])
+    parser.add_argument("--operation", choices=["hypertree","hypertree-sign","xmss"], default="hypertree")
+    parser.add_argument("--harness", choices=["sign","recover","sign_layers","sign_step","verify_layers"])
+    parser.add_argument("--small-signatures", action="store_true", help="use a byte-sized observation type for ht_sign")
     args = parser.parse_args()
-    if args.harness and (args.harness == "verify_layers") != (args.operation == "hypertree"):
+    if args.small_signatures and args.operation != "hypertree-sign":
+        parser.error("--small-signatures requires --operation hypertree-sign")
+    if args.harness and ((args.harness == "verify_layers") != (args.operation == "hypertree")
+                         or (args.harness in ("sign_layers", "sign_step")) != (args.operation == "hypertree-sign")):
         parser.error("harness does not belong to the selected operation")
     graph = common["metadata"](ROOT/"bench/Cargo.toml")
     peer, = [x for x in graph["packages"] if x["name"] == "slh-dsa" and x["version"] == "0.2.0-rc.5"]
@@ -31,7 +35,18 @@ def main():
         p = Path(directory)
         common["unpack_peer"](peer, p, pins[peer["name"], peer["version"], peer["source"]])
         template_name = "peer-hypertree/verify.rs" if args.operation == "hypertree" else "peer-xmss/recover.rs"
+        if args.operation == "hypertree-sign":
+            template_name = "peer-hypertree/sign.rs"
+        module = "xmss" if args.operation == "xmss" else "hypertree"
         template = (ROOT/"scripts"/template_name).read_text()
+        if args.harness == "sign_step":
+            source = p / "src/hypertree.rs"
+            expose = runpy.run_path(str(ROOT / "scripts/peer-hypertree/sign-step.py"))["expose"]
+            source.write_text(expose(source.read_text()))
+            template = template[:template.index("#[kani::proof]")] + (ROOT/"scripts/peer-hypertree/sign-step.rs").read_text()
+        if args.small_signatures:
+            probe = (ROOT/"scripts/peer-hypertree/sign-projection.rs").read_text()
+            template = template.replace("type P = crate::PEER_TYPE;",probe).replace("PARAM_N","1")
         for shape, (n,d,hp) in SHAPES.items():
             for family, ty in (("sha2","Sha2_"), ("shake","Shake")):
                 name = family+"_"+shape
@@ -44,11 +59,11 @@ def main():
                     body = rf"impl\s+XmssParams\s+for\s+{ty+shape}\s*\{{\s*type HPrime = U<{hp}>;\s*\}}"
                     if len(re.findall(body, source)) != 1:
                         raise ValueError(f"XMSS implementation or height changed for {name}")
-                path = "proof_"+args.operation+"_"+name
+                path = "proof_"+module+"_"+name
                 (p/"src"/(path+".rs")).write_text(template.replace("PEER_TYPE",ty+shape)
 
                         .replace("PARAM_N",str(n)).replace("PARAM_HP",str(hp)).replace("PARAM_D",str(d)))
-                common["append"](p/"src"/(args.operation+".rs"),f'#[cfg(kani)] #[path="{path}.rs"] mod {path};')
+                common["append"](p/"src"/(module+".rs"),f'#[cfg(kani)] #[path="{path}.rs"] mod {path};')
         # As the root package Cargo otherwise resolves upstream benchmark-only
         # dependencies, which are absent from the benchmark's production graph.
         manifest = p/"Cargo.toml"
