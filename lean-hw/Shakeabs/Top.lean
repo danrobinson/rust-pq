@@ -20,7 +20,7 @@ theorem finish_eq (s : ShakeAbsRust.shake256.Sponge) (out : Slice U8) :
     ShakeAbsRust.shake256.Sponge.finish_loop.body shake256.Sponge.finish_loop.body
   simp only [ShakeAbsRust.shake256.RATE,shake256.RATE,ShakeAbsRust.shake256.permute,scalar_eq,asScalar]
 
-/-- The aligned x86 SHAKE sponge consumes and emits the FIPS 202 bytes for
+/-- The aligned scalar SHAKE sponge consumes and emits the FIPS 202 bytes for
 arbitrary input and output lengths, including complete rate blocks. -/
 theorem shake256_fips (input out : Slice U8) :
     ShakeAbsRust.shake256.shake256 input out ⦃ result => bytes result.val=Spec.shake256 (bytes input.val) out.length ⦄ := by

@@ -21,7 +21,7 @@ set_option maxRecDepth 2048
 namespace ShakeAbsRust
 
 /-- [slhdsa::shake256::Sponge]
-    Source: 'src/shake256.rs', lines 136:0-139:1 -/
+    Source: 'src/shake256.rs', lines 177:0-180:1 -/
 structure shake256.Sponge where
   lanes : Array Std.U64 25#usize
   pos : Std.Usize

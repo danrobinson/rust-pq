@@ -1010,6 +1010,7 @@ LEAN
 )
 grep -Fx "'slhdsa.X86.XmssRoot.batch_root_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmssroot-axioms"
 
+platform_arch=i686-unknown-linux-gnu
 extract Keccakscalar KeccakScalarRust keccakscalar --start-from 'crate::shake256::permute'
 extract Shakeabs ShakeAbsRust shakeabs --start-from 'crate::shake256::shake256' --opaque 'crate::shake256::permute'
 echo 'shake256.permute' > "$scratch/expected"
@@ -1021,4 +1022,6 @@ LEAN
 )
 grep -Fx "'slhdsa.PlatformShake.shake256_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/shakeabs-axioms"
 
+unset platform_arch
 python3 "$root/scripts/check-arm-api-proof.py"
+python3 "$root/scripts/check-platform-encoding.py"

@@ -26,17 +26,17 @@ noncomputable section
 namespace ShakeAbsRust
 
 /-- [slhdsa::shake256::RATE]
-    Source: 'src/shake256.rs', lines 11:0-11:24 -/
+    Source: 'src/shake256.rs', lines 30:0-30:24 -/
 @[global_simps, irreducible] def shake256.RATE : Std.Usize := 136#usize
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::new]:
-    Source: 'src/shake256.rs', lines 142:4-147:5 -/
+    Source: 'src/shake256.rs', lines 183:4-188:5 -/
 def shake256.Sponge.new : Result shake256.Sponge := do
   let a := Array.repeat 25#usize 0#u64
   ok { lanes := a, pos := 0#usize }
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 0:
-    Source: 'src/shake256.rs', lines 154:12-162:13 -/
+    Source: 'src/shake256.rs', lines 195:12-203:13 -/
 @[rust_loop_body]
 def shake256.Sponge.absorb_loop0.body
   (data : Slice Std.U8) (self : shake256.Sponge) (i : Std.Usize) :
@@ -71,7 +71,7 @@ def shake256.Sponge.absorb_loop0.body
   else ok (done (self.lanes, self.pos, i))
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 0:
-    Source: 'src/shake256.rs', lines 154:12-162:13 -/
+    Source: 'src/shake256.rs', lines 195:12-203:13 -/
 @[rust_loop]
 def shake256.Sponge.absorb_loop0
   (self : shake256.Sponge) (data : Slice Std.U8) (i : Std.Usize) :
@@ -82,7 +82,7 @@ def shake256.Sponge.absorb_loop0
     (self, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 1:
-    Source: 'src/shake256.rs', lines 163:12-172:13 -/
+    Source: 'src/shake256.rs', lines 237:12-246:13 -/
 @[rust_loop_body]
 def shake256.Sponge.absorb_loop1.body
   (data : Slice Std.U8) (a : Array Std.U64 25#usize) (i : Std.Usize)
@@ -117,7 +117,7 @@ def shake256.Sponge.absorb_loop1.body
   else ok (done (a, i, i1))
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 1:
-    Source: 'src/shake256.rs', lines 163:12-172:13 -/
+    Source: 'src/shake256.rs', lines 237:12-246:13 -/
 @[rust_loop]
 def shake256.Sponge.absorb_loop1
   (a : Array Std.U64 25#usize) (i : Std.Usize) (data : Slice Std.U8)
@@ -129,7 +129,7 @@ def shake256.Sponge.absorb_loop1
     (a, i, i1)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 2:
-    Source: 'src/shake256.rs', lines 174:8-182:9 -/
+    Source: 'src/shake256.rs', lines 248:8-256:9 -/
 @[rust_loop_body]
 def shake256.Sponge.absorb_loop2.body
   (data : Slice Std.U8) (a : Array Std.U64 25#usize) (i : Std.Usize)
@@ -164,7 +164,7 @@ def shake256.Sponge.absorb_loop2.body
   else ok (done (a, i))
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 2:
-    Source: 'src/shake256.rs', lines 174:8-182:9 -/
+    Source: 'src/shake256.rs', lines 248:8-256:9 -/
 @[rust_loop]
 def shake256.Sponge.absorb_loop2
   (a : Array Std.U64 25#usize) (i : Std.Usize) (data : Slice Std.U8)
@@ -176,7 +176,7 @@ def shake256.Sponge.absorb_loop2
     (a, i, i1)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]:
-    Source: 'src/shake256.rs', lines 149:4-183:5 -/
+    Source: 'src/shake256.rs', lines 190:4-257:5 -/
 def shake256.Sponge.absorb
   (self : shake256.Sponge) (data : Slice Std.U8) : Result shake256.Sponge := do
   let (a, i, i1) ← shake256.Sponge.absorb_loop0 self data 0#usize
@@ -185,7 +185,7 @@ def shake256.Sponge.absorb
   ok { lanes := a2, pos := i4 }
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop body 0:
-    Source: 'src/shake256.rs', lines 191:8-199:9 -/
+    Source: 'src/shake256.rs', lines 265:8-273:9 -/
 @[rust_loop_body]
 def shake256.Sponge.finish_loop.body
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -215,7 +215,7 @@ def shake256.Sponge.finish_loop.body
   else ok (done out)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop 0:
-    Source: 'src/shake256.rs', lines 191:8-199:9 -/
+    Source: 'src/shake256.rs', lines 265:8-273:9 -/
 @[rust_loop]
 def shake256.Sponge.finish_loop
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -228,7 +228,7 @@ def shake256.Sponge.finish_loop
     (a, out, pos, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]:
-    Source: 'src/shake256.rs', lines 185:4-200:5 -/
+    Source: 'src/shake256.rs', lines 259:4-274:5 -/
 def shake256.Sponge.finish
   (self : shake256.Sponge) (out : Slice Std.U8) : Result (Slice Std.U8) := do
   let i ← self.pos % 8#usize
@@ -248,7 +248,7 @@ def shake256.Sponge.finish
   shake256.Sponge.finish_loop a2 out 0#usize 0#usize
 
 /-- [slhdsa::shake256::shake256]:
-    Source: 'src/shake256.rs', lines 204:0-208:1
+    Source: 'src/shake256.rs', lines 278:0-282:1
     Visibility: public -/
 def shake256.shake256
   (input : Slice Std.U8) (output : Slice Std.U8) : Result (Slice Std.U8) := do

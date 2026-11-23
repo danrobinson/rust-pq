@@ -22,7 +22,7 @@ set_option maxRecDepth 2048
 namespace KeccakScalarRust
 
 /-- [slhdsa::shake256::RC]
-    Source: 'src/shake256.rs', lines 12:0-37:2 -/
+    Source: 'src/shake256.rs', lines 31:0-56:2 -/
 @[global_simps, irreducible]
 def shake256.RC : Array Std.U64 24#usize :=
   Array.make 24#usize [
@@ -36,7 +36,7 @@ def shake256.RC : Array Std.U64 24#usize :=
     ]
 
 /-- [slhdsa::shake256::rho_pi]:
-    Source: 'src/shake256.rs', lines 41:0-69:1 -/
+    Source: 'src/shake256.rs', lines 60:0-88:1 -/
 def shake256.rho_pi
   (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize) :
   Result (Array Std.U64 25#usize)
@@ -128,7 +128,7 @@ def shake256.rho_pi
       ])
 
 /-- [slhdsa::shake256::chi]:
-    Source: 'src/shake256.rs', lines 72:0-100:1 -/
+    Source: 'src/shake256.rs', lines 91:0-119:1 -/
 def shake256.chi
   (b : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
   let i ← Array.index_usize b 0#usize
@@ -238,7 +238,7 @@ def shake256.chi
       ])
 
 /-- [slhdsa::shake256::round]: loop body 0:
-    Source: 'src/shake256.rs', lines 105:4-108:5 -/
+    Source: 'src/shake256.rs', lines 124:4-127:5 -/
 @[rust_loop_body]
 def shake256.round_loop0.body
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -267,7 +267,7 @@ def shake256.round_loop0.body
   else ok (done parity)
 
 /-- [slhdsa::shake256::round]: loop 0:
-    Source: 'src/shake256.rs', lines 105:4-108:5 -/
+    Source: 'src/shake256.rs', lines 124:4-127:5 -/
 @[rust_loop]
 def shake256.round_loop0
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -279,7 +279,7 @@ def shake256.round_loop0
     (parity, x)
 
 /-- [slhdsa::shake256::round]: loop body 1:
-    Source: 'src/shake256.rs', lines 111:4-114:5 -/
+    Source: 'src/shake256.rs', lines 130:4-133:5 -/
 @[rust_loop_body]
 def shake256.round_loop1.body
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -302,7 +302,7 @@ def shake256.round_loop1.body
   else ok (done d)
 
 /-- [slhdsa::shake256::round]: loop 1:
-    Source: 'src/shake256.rs', lines 111:4-114:5 -/
+    Source: 'src/shake256.rs', lines 130:4-133:5 -/
 @[rust_loop]
 def shake256.round_loop1
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -314,7 +314,7 @@ def shake256.round_loop1
     (d, x)
 
 /-- [slhdsa::shake256::round]:
-    Source: 'src/shake256.rs', lines 102:0-120:1 -/
+    Source: 'src/shake256.rs', lines 121:0-139:1 -/
 def shake256.round
   (a : Array Std.U64 25#usize) (rc : Std.U64) :
   Result (Array Std.U64 25#usize)
@@ -330,7 +330,7 @@ def shake256.round
   Array.update out 0#usize i1
 
 /-- [slhdsa::shake256::permute]: loop body 0:
-    Source: 'src/shake256.rs', lines 129:4-132:5 -/
+    Source: 'src/shake256.rs', lines 169:8-172:9 -/
 @[rust_loop_body]
 def shake256.permute_loop.body
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -346,7 +346,7 @@ def shake256.permute_loop.body
   else ok (done state)
 
 /-- [slhdsa::shake256::permute]: loop 0:
-    Source: 'src/shake256.rs', lines 129:4-132:5 -/
+    Source: 'src/shake256.rs', lines 169:8-172:9 -/
 @[rust_loop]
 def shake256.permute_loop
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -357,7 +357,7 @@ def shake256.permute_loop
     (state, i)
 
 /-- [slhdsa::shake256::permute]:
-    Source: 'src/shake256.rs', lines 122:0-133:1 -/
+    Source: 'src/shake256.rs', lines 141:0-174:1 -/
 @[reducible]
 def shake256.permute
   (state : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
