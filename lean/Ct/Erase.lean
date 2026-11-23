@@ -178,4 +178,5 @@ elab "#ct_derive_erasure" : command => do
 
 end Ct.Erase
 
+set_option maxRecDepth 16000 in
 #ct_derive_erasure

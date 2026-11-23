@@ -203,6 +203,7 @@ done
 
 # Adapter crate.
 ./scripts/check-compat-proof.sh
+./scripts/check-platform-proof.sh
 for feat in "" "--features hw-sha2" "--no-default-features" "--no-default-features --features alloc" "--no-default-features --features getrandom"; do
   # shellcheck disable=SC2086
   out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }
