@@ -111,6 +111,48 @@ theorem successful_roundtrip {p secret prf seed sk pk msg ctx rand sig verdict}
   refine ⟨key.eq_spec, supported_pure_eq row valid sign, ?_, accepted⟩
   simpa [slhVerify, show ¬ctx.length > 255 by omega] using verify.eq_spec
 
+/-- The key-generation trace relation admits precisely the reference key pair. -/
+theorem keygen_trace_iff {p secret prf seed sk pk} :
+    Nonempty (KeyGeneration p secret prf seed sk pk) ↔
+      (sk, pk) = slhKeygenInternal p secret prf seed := by
+  constructor
+  · rintro ⟨v⟩; exact v.eq_spec
+  · intro keys
+    exact ⟨{ root := _, tree := referenceNode _ _ _ _ _ _,
+             secretBytes := congrArg Prod.fst keys, publicBytes := congrArg Prod.snd keys }⟩
+
+private def verificationLayers (p sig seed initial) : VerificationLayers p sig seed initial where
+  states j := (List.range j).foldl (htVerifyLayer p sig seed) initial
+  start := rfl
+  recover j _ := by
+    simp only [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    exact referenceLayerRoot _ _ _ _ _ _
+  coords j _ := by simp [List.range_succ, htVerifyLayer]
+
+/-- Even for arbitrary malformed signature bytes, the verifier relation is total
+    and admits exactly the verdict returned by the reference algorithm. -/
+theorem verification_trace_iff {p msg sig pk verdict} :
+    Nonempty (VerifyTrace p msg sig pk verdict) ↔ verdict = slhVerifyInternal p msg sig pk := by
+  constructor
+  · rintro ⟨v⟩; exact v.eq_spec
+  · rintro rfl
+    by_cases len : sig.length = p.sigBytes
+    · let seed := block p pk 0
+      let dg := Hmsg p (sig.take p.n) seed (block p pk 1) msg
+      let f := forsPkFromSig p ((sig.drop p.n).take p.forsSigBytes) (dg.take p.mdBytes)
+        seed (forsAddress p dg)
+      let ls := verificationLayers p (sig.drop (p.n + p.forsSigBytes)) seed
+        (f, digestTree p dg, digestLeaf p dg)
+      refine ⟨.checked len { digest := dg, digits := _, forsRoot := f,
+                             digest_eq := rfl, indices := rfl, forest := rfl,
+                             layers := ls, result := ?_ }⟩
+      simp only [slhVerifyInternal, len, ne_eq, not_true_eq_false, ↓reduceIte]
+      rfl
+    · simpa [slhVerifyInternal, len] using
+        (show Nonempty (VerifyTrace p msg sig pk false) from ⟨.wrongLength len⟩)
+
+#print axioms keygen_trace_iff
+#print axioms verification_trace_iff
 #print axioms KeyGeneration.eq_spec
 #print axioms VerifyTrace.eq_spec
 #print axioms pure_verdict

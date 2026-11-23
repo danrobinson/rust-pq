@@ -231,7 +231,7 @@ theorem supported_wrapper_eq {p msg ctx sk supplied random frame out} (h : p ∈
   subst random
   exact supported_pure_eq h valid v
 
-private theorem referenceNode (p sk pk a i h) : Node p sk pk a i h (xmssNode p sk i h pk a) := by
+theorem referenceNode (p sk pk a i h) : Node p sk pk a i h (xmssNode p sk i h pk a) := by
   induction h generalizing i with
   | zero => exact Node.leaf i
   | succ h ih => exact Node.parent i h _ _ (ih (2*i)) (ih (2*i+1))
@@ -251,7 +251,7 @@ private def referencePath (p i a pk auth leaf) :
   step j _ := by simp [List.range_succ]
   last := rfl
 
-private def referenceLayerRoot (p msg pk sig i a) :
+def referenceLayerRoot (p msg pk sig i a) :
     LayerRoot p msg pk sig i a (xmssPkFromSig p i sig msg pk a) where
   leaf := _
   wots_eq := rfl
