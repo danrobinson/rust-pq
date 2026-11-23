@@ -604,10 +604,14 @@ sha256.x86.avx512.round
 sha256.x86.avx512.write_words
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
+(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips Wots.Serialize && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
 import Wots.Slots
 import Wots.Input
 import Wots.Fips
+import Wots.Serialize
+#print axioms slhdsa.X86.Wots.stage_spec
+#print axioms slhdsa.X86.Wots.flatten_spec
+#print axioms slhdsa.X86.Wots.copy_rows_spec
 #print axioms slhdsa.X86.Wots.endpoint_chain_fips
 #print axioms slhdsa.X86.Wots.chain_spec
 #print axioms slhdsa.X86.Wots.step_spec
@@ -618,6 +622,6 @@ import Wots.Fips
 #print axioms slhdsa.X86.Wots.recovery_words
 LEAN
 )
-for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words; do
+for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec; do
   grep -Fx "'slhdsa.X86.Wots.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-axioms"
 done
