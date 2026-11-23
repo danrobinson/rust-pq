@@ -7,11 +7,11 @@ open Spec.SHA256
 def samePrefix (base w : Words) := ∀ k < 4, ∀ j : Fin 16, w.val[k]! j = base.val[k]! j
 def validCounters (m : U16) (c : Reg) := ∀ j, enabled m j = true → (c j).toNat < 15
 
-private theorem packed_prefix (w h : Nat → Word) (n : Nat) (t : Word) (k : Nat) (lt : k < 4) :
+theorem packed_prefix (w h : Nat → Word) (n : Nat) (t : Word) (k : Nat) (lt : k < 4) :
     packedWord w h n t k = w k := by
   simp (disch := omega) only [packedWord,Chain.valueWord,if_neg]
 
-private theorem recovery_prefix {base w : Words} (N : Usize) (h : Hash) (counter : Reg)
+theorem recovery_prefix {base w : Words} (N : Usize) (h : Hash) (counter : Reg)
     (iv pre : Hash) (same : samePrefix base w)
     (initial : Trace pre (fun j => Spec.SHA256.schedule (Leaf.blockOf (chainWords base j))) (laneState iv) 4) :
     Trace pre (fun j => Spec.SHA256.schedule (recoveryBlock N w h counter j)) (laneState iv) 4 := by

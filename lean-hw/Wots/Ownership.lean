@@ -76,7 +76,7 @@ theorem refill_owns {digits order ix st active pos ix' st' mask next assigned ow
     · exact unique i a.1
     · omega
 
-private theorem index_roundtrip (x : Usize) (bound : x.val < 67) :
+theorem index_roundtrip (x : Usize) (bound : x.val < 67) :
     (IScalar.hcast .Usize (UScalar.hcast .I32 x)).val = x.val := by
   have first : (UScalar.hcast .I32 x).val = (x.val : Int) :=
     by simpa only [lift,WP.spec_ok] using UScalar.hcast_inBounds_spec .I32 x (by scalar_tac)
