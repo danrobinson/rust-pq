@@ -604,13 +604,18 @@ sha256.x86.avx512.round
 sha256.x86.avx512.write_words
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips Wots.Serialize Wots.Address Wots.Entry && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
+(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips Wots.Serialize Wots.Address Wots.Driver && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
 import Wots.Slots
 import Wots.Input
 import Wots.Fips
 import Wots.Serialize
 import Wots.Address
-import Wots.Entry
+import Wots.Driver
+#print axioms slhdsa.X86.Wots.endpoints_fips
+#print axioms slhdsa.X86.Wots.placed_lane
+#print axioms slhdsa.X86.Wots.batch_frame
+#print axioms slhdsa.X86.Wots.write_batch_spec
+#print axioms slhdsa.X86.Wots.store_batch_eq
 #print axioms slhdsa.X86.Wots.entry_spec
 #print axioms slhdsa.X86.Wots.batch_body_eq
 #print axioms slhdsa.X86.Wots.batch_fips
@@ -629,6 +634,6 @@ import Wots.Entry
 #print axioms slhdsa.X86.Wots.recovery_words
 LEAN
 )
-for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec destination_spec key_prf_fips batch_body_eq batch_fips entry_spec; do
+for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec destination_spec key_prf_fips batch_body_eq batch_fips entry_spec endpoints_fips placed_lane batch_frame write_batch_spec store_batch_eq; do
   grep -Fx "'slhdsa.X86.Wots.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-axioms"
 done

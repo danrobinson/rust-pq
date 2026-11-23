@@ -4,13 +4,13 @@ import Chainni.Words
 open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Wots
 
-private theorem flat_length {N : Usize} (rows : List (Array U8 N)) :
+theorem flat_length {N : Usize} (rows : List (Array U8 N)) :
     (rows.flatMap (·.val)).length = N.val * rows.length := by
   induction rows with
   | nil => simp
   | cons row rows ih => simp [ih, Nat.mul_add, Nat.add_comm]
 
-private theorem flat_byte {N : Usize} (rows : List (Array U8 N)) (i k : Nat)
+theorem flat_byte {N : Usize} (rows : List (Array U8 N)) (i k : Nat)
     (hi : i < rows.length) (hk : k < N.val) :
     (rows.flatMap (·.val))[N.val*i+k]! = rows[i]!.val[k]! := by
   induction rows generalizing i with
