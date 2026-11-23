@@ -42,9 +42,7 @@ theorem chains_spec (N : Usize) (hN : N.val ≤ 32) (state : Array U32 8#usize)
 end slhdsa.X86.Platform
 
 open Lean Elab Command
-set_option maxHeartbeats 0 in
-run_cmd liftCoreM do
-  PlatformProof.replay `X86Platform
+def X86Platform.primitives : List (Name × Name) :=
     [(`slhdsa.xmss.xmss_node, `slhdsa.X86.Platform.node),
      (`slhdsa.xmss_tree_node_spec, `slhdsa.X86.Platform.node_spec),
      (`slhdsa.wots.wots_pk_from_sig, `slhdsa.X86.Platform.recover),
@@ -59,7 +57,10 @@ run_cmd liftCoreM do
      (`slhdsa.sha256_from_spec, `slhdsa.X86.Stream.stream256),
      (`slhdsa.sha512.sha512_from, `X86StreamRust.sha512.sha512_from),
      (`slhdsa.S512.sha512_from_spec, `slhdsa.X86.Stream.stream512)]
-    #[`slhdsa.ht_sign_spec, `slhdsa.ht_verify_spec]
+
+set_option maxHeartbeats 0 in
+run_cmd liftCoreM do
+  PlatformProof.replay `X86Platform X86Platform.primitives #[`slhdsa.ht_sign_spec, `slhdsa.ht_verify_spec]
 
 #print axioms X86Platform.slhdsa.ht_sign_spec
 #print axioms X86Platform.slhdsa.ht_verify_spec

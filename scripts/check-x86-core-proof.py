@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind the two hypertree FIPS theorems to fresh x86 platform Rust extractions."""
+"""Bind the public SHA-2 internal algorithms, FORS and hypertree proofs to fresh x86 Rust."""
 from pathlib import Path
 import re
 import runpy
@@ -19,11 +19,28 @@ BINDINGS = {
 }
 
 
-def check(scratch):
+# Every external name below resolves to its separately source-gated extraction.
+CORE_BINDINGS = {
+    **BINDINGS,
+    "sha256.x86.avx512_available": "WotsApiRust.sha256.x86.avx512_available",
+    "fors.wide.subtree": "slhdsa.X86.Platform.subtree",
+    "sha512.parents.parents": "Parentx86Rust.sha512.parents.parents",
+    "sha512.parents.path_parents": "Parentx86Rust.sha512.parents.path_parents",
+    "sha256.sha256_from": "X86StreamRust.sha256.sha256_from",
+    "sha512.sha512_from": "X86StreamRust.sha512.sha512_from",
+}
+TREE_ENTRIES = [(f"ht.{e}", f"X86Platform.slhdsa.{e}_spec", f"X86Platform.slhdsa.ht.{e}") for e in ENTRIES]
+CORE_ENTRIES = [(f"sets.{s}.{e}", f"X86Internal.slhdsa.{s}.{e}_spec", f"X86Internal.slhdsa.sets.{s}.{e}")
+                for s in common["SETS"] for e in ("slh_keygen_internal", "slh_sign_internal", "slh_verify_internal")]
+CORE_ENTRIES.extend((f"fors.{e}", f"X86Core.slhdsa.{e}_spec", f"X86Core.slhdsa.fors.{e}")
+                    for e in ("fors_sign", "fors_pk_from_sig"))
+
+
+def check(scratch, entries, bindings, module, namespace):
     llbc = scratch / "slhdsa.llbc"
     target = scratch / "Slhdsa"
-    roots = [f"crate::ht::{entry}" for entry in ENTRIES]
-    opaque = ["crate::" + name.replace(".", "::") for name in BINDINGS]
+    roots = ["crate::" + entry.replace(".", "::") for entry, _, _ in entries]
+    opaque = ["crate::" + name.replace(".", "::") for name in bindings]
     run([ROOT / ".tools/aeneas/charon/bin/charon", "cargo", "--preset=aeneas",
          *(arg for name in roots for arg in ("--start-from", name)),
          *(arg for name in opaque for arg in ("--opaque", name)),
@@ -31,10 +48,10 @@ def check(scratch):
          "--target", "x86_64-unknown-linux-gnu"], ROOT / "rust")
     run([ROOT / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error",
          "-no-progress-bar", "-split-files", "-dest", target, llbc], ROOT)
-    bind(target, scratch)
+    bind(target, scratch, entries, bindings, module, namespace)
 
 
-def bind(target, scratch):
+def bind(target, scratch, entries, bindings, module, namespace):
     types = set(declarations(body(LEAN / "Slhdsa/Types.lean")))
     for declaration in declarations(body(target / "Types.lean")):
         if declaration not in types:
@@ -48,25 +65,24 @@ def bind(target, scratch):
                 raise ValueError(f"unexpected external in {path}: {declaration}")
             name, signature = match.groups()
             args = " N" if signature.startswith(("{N :", "(N :")) else ""
-            aliases[name] = f"abbrev {name} {signature} := @{BINDINGS[name]}{args}"
-    if aliases.keys() != BINDINGS.keys():
+            aliases[name] = f"abbrev {name} {signature} := @{bindings[name]}{args}"
+    if aliases.keys() != bindings.keys():
         raise ValueError(f"unexpected external names: {aliases.keys()}")
-    source = ["import X86platform.Hypertree", "open Aeneas Aeneas.Std Result ControlFlow Error",
+    source = [f"import {module}", "open Aeneas Aeneas.Std Result ControlFlow Error",
               "open slhdsa", "set_option maxRecDepth 65536", "set_option maxHeartbeats 0",
-              "noncomputable section", "namespace X86Hypertree", *aliases.values(),
-              body(target / "Funs.lean"), "end X86Hypertree"]
-    for entry in ENTRIES:
+              "noncomputable section", f"namespace {namespace}", *aliases.values(),
+              body(target / "Funs.lean"), f"end {namespace}"]
+    for entry, theorem, reference in entries:
         source.append("run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
-                      f"`X86Platform.slhdsa.{entry}_spec `X86Platform.slhdsa.ht.{entry} "
-                      f"`X86Hypertree.ht.{entry} `X86Hypertree.ht.{entry}_fips")
-        source.append(f"#print axioms X86Hypertree.ht.{entry}_fips")
-    proof = scratch / "Hypertree.lean"
+                      f"`{theorem} `{reference} `{namespace}.{entry} `{namespace}.{entry}_fips")
+        source.append(f"#print axioms {namespace}.{entry}_fips")
+    proof = scratch / "SourceBinding.lean"
     proof.write_text("\n".join(source))
     result = subprocess.run(["lake", "env", "lean", proof], cwd=LEAN, stdout=subprocess.PIPE, text=True)
     if result.returncode:
         raise RuntimeError(result.stdout)
-    for entry in ENTRIES:
-        expected = (f"'X86Hypertree.ht.{entry}_fips' depends on axioms: "
+    for entry, _, _ in entries:
+        expected = (f"'{namespace}.{entry}_fips' depends on axioms: "
                     "[propext, Classical.choice, Quot.sound]")
         if expected not in result.stdout.splitlines():
             raise ValueError(f"unexpected axiom audit for {entry}\n{result.stdout}")
@@ -74,6 +90,10 @@ def bind(target, scratch):
 
 
 if __name__ == "__main__":
-    run(["lake", "build", "X86platform.Hypertree"], LEAN)
-    with tempfile.TemporaryDirectory() as temp:
-        check(Path(temp))
+    for entries, bindings, module, ns in [
+        (TREE_ENTRIES, BINDINGS, "X86platform.Hypertree", "X86Hypertree"),
+        (CORE_ENTRIES, CORE_BINDINGS, "X86platform.Sets", "X86InternalTarget"),
+    ]:
+        run(["lake", "build", module], LEAN)
+        with tempfile.TemporaryDirectory() as temp:
+            check(Path(temp), entries, bindings, module, ns)
