@@ -146,7 +146,7 @@ def main():
         choices=[f"{f}_{s}" for f in ("sha2", "shake") for s in SETS],
     )
     parser.add_argument(
-        "--operation", action="append", choices=["node", "row"]
+        "--operation", action="append", choices=["node", "row", "forest"]
     )
     args = parser.parse_args()
     shapes = (
