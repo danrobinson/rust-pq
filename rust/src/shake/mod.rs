@@ -1,6 +1,11 @@
 //! FIPS 205 §11.1 SHAKE instantiation. The hypertree, XMSS, and public
 //! algorithms have the same sources as the SHA-2 family.
 
+// The shared SLH and XMSS sources use these blocks for SHA-2-specific kernels.
+macro_rules! sha2_only {
+    ($($item:tt)*) => {  };
+}
+
 pub mod hash;
 mod wots;
 mod fors;

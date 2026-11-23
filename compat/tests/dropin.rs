@@ -102,6 +102,10 @@ macro_rules! usage {
             let rand = rng.bytes(N);
             let with_ctx = sk.try_sign_with_context(msg, ctx, None).unwrap();
             rec("ctx sign", &with_ctx.to_vec());
+            let long = [0x5a; 1025];
+            let long_signature = sk.try_sign_with_context(&long, ctx, None).unwrap();
+            rec("long ctx sign", &long_signature.to_vec());
+            rec("long ctx verify", &flag(vk.try_verify_with_context(&long, ctx, &long_signature).is_ok()));
             rec("ctx sign rand", &sk.try_sign_with_context(msg, ctx, Some(&rand)).unwrap().to_vec());
             rec("ctx 255", &sk.try_sign_with_context(msg, &[7u8; 255], None).unwrap().to_vec());
             rec("ctx 256", &flag(sk.try_sign_with_context(msg, &[7u8; 256], None).is_ok()));

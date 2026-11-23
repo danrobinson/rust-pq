@@ -51,7 +51,8 @@ macro_rules! interop {
                     assert_eq!(&ours_sk[..], &theirs.to_bytes()[..]);
                     assert_eq!(&ours_pk[..], &theirs_vk.to_bytes()[..]);
 
-                    let msg = rng.vec([0, 1000][round]);
+                    // Exercise the segmented platform path against the upstream implementation.
+                    let msg = rng.vec([0, 1025][round]);
                     let ctx = rng.vec([0, 255][round]);
                     let rand = rng.vec(N);
                     let rand_n: [u8; N] = rand.clone().try_into().unwrap();

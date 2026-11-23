@@ -30,6 +30,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rounds", type=int, choices=range(1, 256), metavar="1..255", default=6)
     parser.add_argument("--native", action="store_true", help="also try host-specific code generation")
+    parser.add_argument("--family", choices=("sha2", "shake", "all"), default="all")
     args = parser.parse_args()
     flags = os.environ.get("RUSTFLAGS", "")
     print(platform.platform(), subprocess.check_output(["rustc", "-vV"], text=True),
@@ -45,7 +46,7 @@ def main():
         for length in (32, 1048576):
             for i in range(len(modes)):
                 mode, exe = modes[(i + r) % len(modes)]
-                cmd = [exe, str(r), str(length)]
+                cmd = [exe, str(r), str(length), args.family]
                 if mode == "rustcrypto":
                     cmd.append("rustcrypto")
                 sample = subprocess.check_output(cmd, cwd=CRATE, text=True)

@@ -67,15 +67,29 @@ fn main() {
         .map(|a| a.parse().expect("message length in bytes"))
         .unwrap_or(32);
     let msg = vec![17 ^ round; len];
-    let peer = match args.next().as_deref() {
-        None => false,
-        Some("rustcrypto") => true,
-        _ => panic!("expected rustcrypto or no backend argument"),
-    };
-    bench_set!(sha2_128s, Sha2_128s, round, msg.as_slice(), peer);
-    bench_set!(sha2_128f, Sha2_128f, round, msg.as_slice(), peer);
-    bench_set!(sha2_192s, Sha2_192s, round, msg.as_slice(), peer);
-    bench_set!(sha2_192f, Sha2_192f, round, msg.as_slice(), peer);
-    bench_set!(sha2_256s, Sha2_256s, round, msg.as_slice(), peer);
-    bench_set!(sha2_256f, Sha2_256f, round, msg.as_slice(), peer);
+    let mut peer = false;
+    let mut family = String::from("sha2");
+    for option in args {
+        match option.as_str() {
+            "rustcrypto" => peer = true,
+            "sha2" | "shake" | "all" => family = option,
+            _ => panic!("expected a hash family or rustcrypto"),
+        }
+    }
+    if family != "shake" {
+        bench_set!(sha2_128s, Sha2_128s, round, msg.as_slice(), peer);
+        bench_set!(sha2_128f, Sha2_128f, round, msg.as_slice(), peer);
+        bench_set!(sha2_192s, Sha2_192s, round, msg.as_slice(), peer);
+        bench_set!(sha2_192f, Sha2_192f, round, msg.as_slice(), peer);
+        bench_set!(sha2_256s, Sha2_256s, round, msg.as_slice(), peer);
+        bench_set!(sha2_256f, Sha2_256f, round, msg.as_slice(), peer);
+    }
+    if family != "sha2" {
+        bench_set!(shake_128s, Shake128s, round, msg.as_slice(), peer);
+        bench_set!(shake_128f, Shake128f, round, msg.as_slice(), peer);
+        bench_set!(shake_192s, Shake192s, round, msg.as_slice(), peer);
+        bench_set!(shake_192f, Shake192f, round, msg.as_slice(), peer);
+        bench_set!(shake_256s, Shake256s, round, msg.as_slice(), peer);
+        bench_set!(shake_256f, Shake256f, round, msg.as_slice(), peer);
+    }
 }

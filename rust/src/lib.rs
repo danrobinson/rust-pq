@@ -52,6 +52,11 @@ extern crate alloc;
 ))]
 extern crate std;
 
+// The shared SLH and XMSS sources use these blocks for SHA-2-specific kernels.
+macro_rules! sha2_only {
+    ($($item:tt)*) => { $($item)* };
+}
+
 pub mod adapter;
 pub mod address;
 pub mod api;

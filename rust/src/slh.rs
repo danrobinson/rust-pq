@@ -124,9 +124,11 @@ pub fn slh_sign<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8], add
     if ctx.len() > 255 {
         return None;
     }
-    #[cfg(feature = "platform-sha2")]
-    if m.len() >= 1024 {
-        return Some(message::sign(p, m, ctx, sk, addrnd));
+    sha2_only! {
+        #[cfg(feature = "platform-sha2")]
+        if m.len() >= 1024 {
+            return Some(message::sign(p, m, ctx, sk, addrnd));
+        }
     }
     let mp = with_context(m, ctx);
     Some(slh_sign_internal::<N>(p, &mp, sk, addrnd))
@@ -137,13 +139,17 @@ pub fn slh_verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], 
     if ctx.len() > 255 {
         return false;
     }
-    #[cfg(feature = "platform-sha2")]
-    if m.len() >= 1024 {
-        return message::verify::<N>(p, m, ctx, sig, pk);
+    sha2_only! {
+        #[cfg(feature = "platform-sha2")]
+        if m.len() >= 1024 {
+            return message::verify::<N>(p, m, ctx, sig, pk);
+        }
     }
     let mp = with_context(m, ctx);
     slh_verify_internal::<N>(p, &mp, sig, pk)
 }
 
-#[cfg(feature = "platform-sha2")]
-mod message;
+sha2_only! {
+    #[cfg(feature = "platform-sha2")]
+    mod message;
+}
