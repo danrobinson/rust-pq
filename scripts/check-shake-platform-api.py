@@ -2,6 +2,7 @@
 """Check named SHAKE APIs against independently extracted target-specific Rust."""
 import re
 import runpy
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -145,14 +146,58 @@ def forest(package, platform, scratch):
     print(f"{platform}: fresh FORS signer and verifier use verified native operations",flush=True)
 
 
+def facade_adapter(target, scratch):
+    operations = ("append", "sign_into", "sign_internal_into", "keygen_seeds",
+                  "signing_key_from", "signature_from", "bytes_equal")
+    roots = tuple(f"crate::shake::adapter::{name}" for name in operations)
+    cuts = tuple(f"crate::shake::slh::{name}" for name in
+                 ("with_context", "slh_sign_internal", "slh_keygen_internal"))
+    package = facade["extract"]("rust", target, "ShakeAdapter", scratch, roots, cuts)
+    for filename in ("Funs.lean", "Types.lean"):
+        known = set(common["declarations"](common["body"](LEAN / "Slhdsa" / filename)))
+        actual = set(common["declarations"](common["body"](package / filename)))
+        if actual - known:
+            raise ValueError(f"unmatched SHAKE facade implementation: {actual - known}")
+    declared = common["declarations"]((package / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1])
+    names = {re.search(r"axiom ([^\s:]+)", d)[1] for d in declared}
+    if names != {cut.replace("crate::", "").replace("::", ".") for cut in cuts}:
+        raise ValueError(f"unexpected SHAKE adapter cut on {target}: {names}")
+
+
+def audit_facade(platform):
+    roots = [f"slh_dsa.{s}_{op}" for s in SETS for op in
+             ("sign", "sign_with_context", "verify", "verify_with_context",
+              "randomized_sign", "new", "parsers", "der")]
+    roots += [f"slh_dsa.Kat.{s}_{op}" for s in SETS for op in ("algorithms", "errors")]
+    roots += [f"slh_dsa.multipart_{s}_eq" for s in ("sign", "verify", "randomized")]
+    # Functionally unchanged definitions may be shared with the portable facade.
+    namespace = f"NativeShake{platform}Facade"
+    source = [f"import Shakebatch.{platform}Facade", "open Lean Elab Command"]
+    for name in roots:
+        source += ["run_cmd do",
+                   f"  let n := if (← getEnv).contains `{namespace}.{name} then `{namespace}.{name} else `{name}",
+                   f"  if n == `{name} && {str(name.endswith(('_sign', '_verify', '_algorithms', '_new'))).lower()} then throwError \"missing native facade binding\"",
+                   "  elabCommand (← `(#print axioms $(mkIdent n):ident))"]
+    result = common["run"](["lake", "env", "lean", "--stdin"], LEAN,
+                           input="\n".join(source), text=True, stdout=subprocess.PIPE)
+    audit = " ".join(result.stdout.split())
+    for name in roots:
+        if not any(f"'{n}' depends on axioms: [propext, Classical.choice, Quot.sound]" in audit
+                   for n in (name, f"{namespace}.{name}")):
+            raise ValueError(f"missing native facade theorem {name}")
+    print(f"{platform}: verified {len(roots)} SHAKE facade theorem groups", flush=True)
+
+
 if __name__ == "__main__":
-    common["run"](["lake","build","Shakebatch.AppleApi"],LEAN)
+    common["run"](["lake","build","Shakebatch.AppleFacade"],LEAN)
     with tempfile.TemporaryDirectory() as folder:
         p=Path(folder)
         dispatch=facade["extract"]("rust","aarch64-apple-darwin","Dispatch",p,
             ("crate::shake::fors::fors_sign","crate::shake::fors::fors_pk_from_sig"),
             ("crate::shake::batch","crate::shake::fors_batch","crate::shake::hash","crate::shake::xmss","crate::shake256"))
         forest(dispatch,"Apple",p)
+        facade_adapter("aarch64-apple-darwin", p)
+        audit_facade("Apple")
         public = extraction("aarch64-apple-darwin",p)
         proof(public,["Shakebatch.AppleApi"],native_models("Apple", "KappleouterRust", "Kadisp"),
               "NativeShakeApple", "KappleouterRust", p)
