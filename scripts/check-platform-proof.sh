@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -995,3 +995,17 @@ import Treehash.Proof
 LEAN
 )
 grep -Fx "'slhdsa.X86.TreeHash.hash2_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/treehash-axioms"
+
+extract Xmssroot XmssRootRust xmssroot --start-from 'crate::xmss::wide::batch_root' \
+  --opaque 'crate::xmss::wide::keys' --opaque 'crate::xmss::hash2'
+cat > "$scratch/expected" <<'NAMES'
+xmss.hash2
+xmss.wide.keys
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Xmssroot.Top && lake env lean --stdin > "$scratch/xmssroot-axioms" <<'LEAN'
+import Xmssroot.Top
+#print axioms slhdsa.X86.XmssRoot.batch_root_fips
+LEAN
+)
+grep -Fx "'slhdsa.X86.XmssRoot.batch_root_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmssroot-axioms"

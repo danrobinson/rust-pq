@@ -140,3 +140,6 @@ name = "Xmsskeys"
 
 [[lean_lib]]
 name = "Treehash"
+
+[[lean_lib]]
+name = "Xmssroot"
