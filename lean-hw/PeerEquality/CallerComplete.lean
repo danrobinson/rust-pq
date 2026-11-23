@@ -24,7 +24,7 @@ theorem round_trip (c : Children) (p : Params) (laws : ChildLaws c p) (valid : p
     (a b d : Bytes) (ha : a.length=p.n) (hb : b.length=p.n) (hd : d.length=p.n)
     (msg : Parts) (rand : Option Bytes) :
     let k := keygen c p a b d
-    rawVerify c k.public msg (rawSign c p k msg rand) = true := by
+    rawVerify c p k.public msg (rawSign c p k msg rand) = true := by
   let k := keygen c p a b d
   have shape : k.Shape p := key_shape c p valid laws.node _ _ _ ha hb hd
   have pos : 0 < p.d := Nat.lt_of_lt_of_le (by decide : 0<2) valid.d_ge
@@ -32,8 +32,8 @@ theorem round_trip (c : Children) (p : Params) (laws : ChildLaws c p) (valid : p
   have keyok := keygen_keyOk p valid a b d ha hb hd
   have hs : k.bytes = (slhKeygenInternal p a b d).1 := congrArg Prod.fst hgen
   have hp : k.public.bytes = (slhKeygenInternal p a b d).2 := congrArg Prod.snd hgen
-  change rawVerify c k.public msg (rawSign c p k msg rand) = true
-  rw [verify_fips c p laws k.public ⟨shape.publicSeed,shape.root⟩ _ _ (produced_shape c p laws valid k shape msg rand),
+  change rawVerify c p k.public msg (rawSign c p k msg rand) = true
+  rw [verify_fips c p laws pos k.public ⟨shape.publicSeed,shape.root⟩ _ _ (produced_shape c p laws valid k shape msg rand),
     sign_fips c p laws pos k shape,hs,hp,keyok.2]
   exact slh_complete_internal p valid _ _ _ keyok.1
 

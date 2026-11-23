@@ -15,29 +15,29 @@ def rawSign (c : Children) (p : Params) (k : Key) (msg : Parts) (opt_rand : Opti
   let ht := pk_seed
   let randomizer := c.prfMsg k.prf rand msg
   let digest := c.hMsg randomizer pk_seed k.root msg
-  let (md, idx_tree, idx_leaf) := c.split digest
+  let (md, idx_tree, idx_leaf) := splitResult p digest
   let adrs := forsAddress idx_tree idx_leaf
   let fors_sig := c.forsSign md sk_seed ht adrs
   let fors_pk := c.forsRecover fors_sig md ht adrs
   let ht_sig := PeerCall.ht c.xmss p fors_pk sk_seed ht idx_tree idx_leaf
   ⟨randomizer, fors_sig, ht_sig⟩
 
-def rawVerify (c : Children) (k : PublicKey) (msg : Parts) (signature : Signature) : Bool :=
+def rawVerify (c : Children) (p : Params) (k : PublicKey) (msg : Parts) (signature : Signature) : Bool :=
   let pk_seed := k.seed
   let ht := pk_seed
   let randomizer := signature.r
   let fors_sig := signature.fors
   let ht_sig := signature.tree
   let digest := c.hMsg randomizer pk_seed k.root msg
-  let (md, idx_tree, idx_leaf) := c.split digest
+  let (md, idx_tree, idx_leaf) := splitResult p digest
   let adrs := forsAddress idx_tree idx_leaf
   let fors_pk := c.forsRecover fors_sig md ht adrs
-  c.htVerify fors_pk ht_sig ht idx_tree idx_leaf k.root
+  htVerifyWith c.xmss p fors_pk ht_sig ht idx_tree idx_leaf k.root
 
 def signCtx (c : Children) (p : Params) (k : Key) (msg : List Bytes) (ctx : Bytes) (rand : Option Bytes) : Option Signature :=
   if ctx.length ≤ 255 then some (rawSign c p k (contextParts ctx msg) rand) else none
 
-def verifyCtx (c : Children) (k : PublicKey) (msg : List Bytes) (ctx : Bytes) (s : Signature) : Bool :=
-  if ctx.length ≤ 255 then rawVerify c k (contextParts ctx msg) s else false
+def verifyCtx (c : Children) (p : Params) (k : PublicKey) (msg : List Bytes) (ctx : Bytes) (s : Signature) : Bool :=
+  if ctx.length ≤ 255 then rawVerify c p k (contextParts ctx msg) s else false
 
 end slhdsa.PeerCall

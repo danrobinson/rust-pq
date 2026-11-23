@@ -13,8 +13,9 @@ import PeerEquality.CallerFacade
 import PeerEquality.CallerComplete
 import PeerEquality.Slots
 import PeerEquality.VerifyLayers
-#print axioms slhdsa.PeerCall.htVerifyWith_fips
 import PeerEquality.CallerSha2
+#print axioms slhdsa.PeerCall.htVerifyWith_fips
+#print axioms slhdsa.PeerCall.split_correct
 #print axioms slhdsa.PeerCall.sha2_128s_facades
 #print axioms slhdsa.PeerCall.sha2_128f_facades
 #print axioms slhdsa.PeerCall.sha2_192s_facades
@@ -43,7 +44,7 @@ import sys
 from pathlib import Path
 import re
 lines=Path(sys.argv[1]).read_text().splitlines()
-if len(lines)!=23: raise SystemExit("missing proof audit")
+if len(lines)!=24: raise SystemExit("missing proof audit")
 for line in lines:
     if not re.fullmatch(r"'slhdsa\.PeerCall\.\w+' (?:does not depend on any axioms|depends on axioms: \[(?:propext|Classical\.choice|Quot\.sound)(?:, (?:propext|Classical\.choice|Quot\.sound))*\])",line):
         raise SystemExit(line)
