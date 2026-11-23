@@ -6,7 +6,7 @@ open ChainAvx2Rust (fullChunks remainder)
 namespace slhdsa.X86.Stream
 
 def usesVector256 (b : Slice (Array U8 64#usize)) : Prop :=
-  8 ≤ b.length ∧ X86StreamRust.vectorAvailable = true ∧ RcDispatchRust.sha = false
+  8 ≤ b.length ∧ X86StreamRust.vectorAvailable256 = true ∧ RcDispatchRust.sha = false
 
 def groupSpec256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize)) : Prop :=
   X86StreamRust.sha256.stream.prescheduled st (fullChunks 8#usize b) ⦃ out =>
@@ -21,7 +21,7 @@ theorem prefix256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize))
   by_cases short : b.len < 8#usize
   · simp [short,step_simps]
   simp only [short,ite_false,X86StreamRust.sha256.stream.available.get,X86StreamRust.sha256.stream.available.get,bind_ok]
-  cases avail : X86StreamRust.vectorAvailable with
+  cases avail : X86StreamRust.vectorAvailable256 with
   | false => simp [step_simps]
   | true =>
     simp only [ite_true]
@@ -41,7 +41,7 @@ theorem prefix256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize))
       rw [fold_groups,← List.foldl_append,ChainAvx2Rust.chunk_parts]
 
 def usesVector512 (b : Slice (Array U8 128#usize)) : Prop :=
-  8 ≤ b.length ∧ X86StreamRust.vectorAvailable = true
+  8 ≤ b.length ∧ X86StreamRust.vectorAvailable512 = true
 
 def groupSpec512 (st : Array U64 8#usize) (b : Slice (Array U8 128#usize)) : Prop :=
   X86StreamRust.sha512.stream.prescheduled st (fullChunks 8#usize b) ⦃ out =>
@@ -56,7 +56,7 @@ theorem prefix512 (st : Array U64 8#usize) (b : Slice (Array U8 128#usize))
   by_cases short : b.len < 8#usize
   · simp [short,step_simps]
   simp only [short,ite_false,X86StreamRust.sha512.stream.available.get,X86StreamRust.sha256.stream.available.get,bind_ok]
-  cases avail : X86StreamRust.vectorAvailable with
+  cases avail : X86StreamRust.vectorAvailable512 with
   | false => simp [step_simps]
   | true =>
     simp only [ite_true]

@@ -178,6 +178,9 @@ name = "Keccakasm"
 name = "Kspongel"
 
 [[lean_lib]]
+name = "S512driver"
+
+[[lean_lib]]
 name = "S8driver"
 
 [[lean_lib]]

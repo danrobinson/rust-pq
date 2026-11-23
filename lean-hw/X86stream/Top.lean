@@ -1,5 +1,5 @@
 import X86stream.Prefix
-import Streamvector.Top
+import S512driver.Top
 import S8driver.Top
 open Aeneas Aeneas.Std Result
 open ChainAvx2Rust (fullChunks remainder)
@@ -110,7 +110,7 @@ theorem short512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
 
 
 theorem fallback256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
-    (fallback : X86StreamRust.vectorAvailable = false ∨ RcDispatchRust.sha = true)
+    (fallback : X86StreamRust.vectorAvailable256 = false ∨ RcDispatchRust.sha = true)
     (aligned : pre.val%64=0) (space : Room (pre.val+msg.length) 72) :
     X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ := by
@@ -120,7 +120,7 @@ theorem fallback256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
   rcases fallback with noVector | shaNi <;> simp_all
 
 theorem fallback512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
-    (fallback : X86StreamRust.vectorAvailable = false)
+    (fallback : X86StreamRust.vectorAvailable512 = false)
     (space : pre.val+msg.length+144 ≤ Usize.max) :
     X86StreamRust.sha512.sha512_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.S512.ser (slhdsa.S512.hashFrom (slhdsa.S512.wv st.val) (slhdsa.S512.padFrom pre.val (bytes msg.val))) ⦄ := by
@@ -139,6 +139,6 @@ theorem stream512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
     (space : pre.val+msg.length+144 ≤ Usize.max) :
     X86StreamRust.sha512.sha512_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.S512.ser (slhdsa.S512.hashFrom (slhdsa.S512.wv st.val) (slhdsa.S512.padFrom pre.val (bytes msg.val))) ⦄ :=
-  continued512 st pre msg (fun _ => prescheduled512 st _) space
+  continued512 st pre msg (fun _ => Eight512.prescheduled512 st _) space
 
 end slhdsa.X86.Stream
