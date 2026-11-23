@@ -111,6 +111,8 @@ The table includes every paired median at or below one. Key-copy measurements op
 | Graviton4 | sha2_128s | 1048576 | Public-key extraction | RustCrypto | 0.9236× |
 | Graviton4 | sha2_128s | 32 | Public-key extraction | RustCrypto | 0.9626× |
 
+The dedicated 100,000-call extraction runs favored the library in all 20 paired samples for each of the three distinct CPU/set combinations above. The machine-code review found only the required copy in the library’s timed loop. [Timing intervals and assembly](key-extraction.md)
+
 ## x86 message schedule trials
 
 On the two older Xeons, we compared the original rolled SHA-256 schedule with fixed-index expansion, several equivalent scalar round expressions, and four-, eight- and sixteen-lane schedules. The selected implementation keeps eight consecutive message blocks in 256-bit vectors, and executes their dependent scalar rounds in block order. Both Xeons use AVX-512VL rotate/ternary instructions and AVX2 gather. A separate SHA-512 trial compared the separated schedule table to the unrolled baseline on all four x86 CPUs using SHA2-192s verification and raw hashing of 1 MiB. Each SHA-512 sample measured 100 calls, with three samples per process and five process pairs. [SHA-256 schedule trials](sha256-schedule-trials.csv) · [SHA-256 lane widths](sha256-width-trials.csv) · [SHA-512 table trials](sha512-table-trials.csv)
