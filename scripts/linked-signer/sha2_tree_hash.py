@@ -30,6 +30,7 @@ from driver import (
     require,
     wrbytes,
 )
+from signer_inventory import import_stubs
 from segmented import Compression
 import arm_vector_ir
 
@@ -54,9 +55,21 @@ def seed_record(n, seed, h256, h512):
 
 def verify(path, image, n, operation):
     _, _, _, _, hooks = objects(path, image, n, "s", "sha2")
-    stem = {"prefix": b"8seed_ctx", "short": b"11thash_short", "pair": b"10thash_pair"}[
-        operation
-    ]
+    stem = {
+        "prefix": b"8seed_ctx",
+        "short": b"11thash_short",
+        "pair": b"10thash_pair",
+        "wots": b"12thash_values",
+    }[operation]
+    chain_count = 2 * n + 3
+    if operation == "wots":
+        hooks.update(
+            {
+                addr: "zero"
+                for addr, name in import_stubs(image, path).items()
+                if name == "_bzero"
+            }
+        )
     pc, words = image.function(
         b"6slhdsa4hash" + stem + f"Kj{n:x}_EB4_".encode(), b"6slhdsa"
     )
@@ -112,16 +125,25 @@ def verify(path, image, n, operation):
             if operation == "pair"
             else c.Concat(compressed, left)
         )
-        wide = operation == "pair" and n != 16
+        if operation == "wots":
+            state.regs.x3 = chain_count
+            values = [blob("chain_value", n) for _ in range(chain_count)]
+            for i, val in enumerate(values):
+                wrbytes(state, LEFT + 64 * i + 22, val)
+            msg = c.Concat(compressed, *values)
+        wide = operation in ("pair", "wots") and n != 16
         width = 128 if wide else 64
         msglen = msg.size() // 8
-        tail = c.Concat(
-            msg,
-            c.BVV(0x80, 8),
-            zeros(width - msglen - 3),
-            c.BVV(8 * (width + msglen), 16),
-        )
-        new = (sha512 if wide else sha256).block(h512 if wide else h256, tail)
+        padlen = (width - (msglen + 1 + width // 8) % width) % width
+        pieces = [msg, c.BVV(0x80, 8)]
+        if padlen:
+            pieces.append(zeros(padlen))
+        pieces.append(c.BVV(8 * (width + msglen), width))
+        padded = c.Concat(*pieces)
+        circuit = sha512 if wide else sha256
+        new = h512 if wide else h256
+        for off in range(0, padded.size() // 8, width):
+            new = circuit.block(new, padded.get_bytes(off, width))
         expected = c.Concat(*new).get_bytes(0, n)
     sha256.hooks(project, path, pc, words)
     sha512.hooks(project, path, pc, words)
@@ -133,13 +155,13 @@ def verify(path, image, n, operation):
             return
         ptr = integer(st, getattr(st.inspect, f"mem_{kind}_address"))
         size = integer(st, getattr(st.inspect, f"mem_{kind}_length"))
-        ranges = [(STACK - 2048, 2048), (RESULT, expected.size() // 8)]
+        ranges = [(STACK - 4096, 4096), (RESULT, expected.size() // 8)]
         if kind == "read":
             ranges.extend(
                 [
                     (KEY, n if operation == "prefix" else 96 + n),
                     (ADDRESS, 28),
-                    (LEFT, n),
+                    (LEFT, 64 * chain_count if operation == "wots" else n),
                     (RIGHT, n),
                     image.sections[b"__const"][:2],
                 ]
@@ -157,7 +179,7 @@ def verify(path, image, n, operation):
     completed = 0
     while todo:
         st, steps = todo.pop()
-        require(steps < 1000, "SHA-2 tree hash execution bound")
+        require(steps < 12000, "SHA-2 tree hash execution bound")
         st.globals["native"] = False
         if st.addr == RETURN:
             require(st.solver.satisfiable(), "infeasible SHA tree hash")
@@ -183,6 +205,18 @@ def verify(path, image, n, operation):
                     "preserved SHA tree hash vector",
                 )
             completed += 1
+            continue
+        if hooks.get(st.addr) == "zero":
+            dst = integer(st, st.regs.x0)
+            length = integer(st, st.regs.x1)
+            require(
+                integer(st, st.regs.sp) <= dst <= STACK - length and 0 < length <= 4096,
+                "WOTS pad buffer bounds",
+            )
+            wrbytes(st, dst, zeros(length))
+            clobber_scratch(st)
+            st.regs.pc = st.regs.lr
+            todo.append((st, steps + 1))
             continue
         if hooks.get(st.addr) == "copy":
             require(operation == "short", "unexpected SHA tree hash copy")
@@ -225,7 +259,9 @@ if __name__ == "__main__":
         image = Image(data)
         for n in (16, 24, 32):
             for operation in (
-                ["short", "pair"] if n == 16 else ["prefix", "short", "pair"]
+                ["short", "pair", "wots"]
+                if n == 16
+                else ["prefix", "short", "pair", "wots"]
             ):
                 verify(path, image, n, operation)
         if args.self_test:
