@@ -109,3 +109,25 @@ fn read_block() {
         assert_eq!(b, (state[i / 8] >> (8 * (i % 8))) as u8);
     }
 }
+
+#[kani::proof]
+#[kani::unwind(138)]
+fn cached_clone_and_default() {
+    let mut original = crate::Shake256::default();
+    same(original.core.state, [0; 25]);
+    assert!(original.buffer.get_data().is_empty());
+    let state: State1600 = kani::any();
+    let pending: [u8; 136] = kani::any();
+    let pos: usize = kani::any();
+    kani::assume(pos < 136);
+    original.core.state = state;
+    original.buffer.set(pending.into(), pos);
+    let clone = original.clone();
+    same(clone.core.state, state);
+    assert!(clone.buffer.get_pos() == pos);
+    let result = clone.buffer.get_data();
+    assert!(result.len() == pos);
+    for i in 0..pos {
+        assert!(result[i] == pending[i]);
+    }
+}
