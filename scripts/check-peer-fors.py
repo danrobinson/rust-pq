@@ -4,6 +4,7 @@
 import argparse
 import json
 import re
+import runpy
 from pathlib import Path
 import shutil
 import subprocess
@@ -39,11 +40,9 @@ def setup(tmp, shapes, operations):
     if peer["version"] != "0.2.0-rc.5" or not peer["source"].startswith("registry+"):
         raise ValueError("unexpected peer package")
     crate = tmp / "peer"
-    shutil.copytree(
-        Path(peer["manifest_path"]).parent,
-        crate,
-        ignore=shutil.ignore_patterns("target"),
-    )
+    digest_gate = runpy.run_path(str(ROOT / "scripts/check-peer-digest.py"))
+    checksums = digest_gate["registry_checksums"](ROOT / "bench/Cargo.lock")
+    digest_gate["unpack_peer"](peer, crate, checksums[peer["name"], peer["version"], peer["source"]])
     # Use the comparator's dependency versions, even when the published peer ships
     # a different lockfile for its own test suite.
     manifest = crate / "Cargo.toml"
