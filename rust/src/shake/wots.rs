@@ -29,6 +29,8 @@ fn chain<const N: usize>(
 }
 
 pub(super) fn wots_pk_gen<const N: usize>(sk: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if super::batch::available::<N>() { return super::batch::keygen(sk, seed, adrs); }
     let mut pk = start(seed, &adrs.with_type(WOTS_PK).with_keypair(adrs.keypair));
     let mut i = 0;
     while i < 2 * N + LEN2 {
@@ -52,6 +54,8 @@ pub(super) fn wots_sign<const N: usize>(
     adrs: Adrs,
 ) -> Vec<u8> {
     let digits = wots_digits(msg);
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if super::batch::available::<N>() { return super::batch::sign(sk, seed, adrs, &digits); }
     let mut sig = Vec::new();
     let mut i = 0;
     while i < digits.len() {
@@ -75,6 +79,8 @@ pub(super) fn wots_pk_from_sig<const N: usize>(
     adrs: Adrs,
 ) -> [u8; N] {
     let digits = wots_digits(msg);
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if super::batch::available::<N>() { return super::batch::recover(sig, seed, adrs, &digits); }
     let mut pk = start(seed, &adrs.with_type(WOTS_PK).with_keypair(adrs.keypair));
     let mut i = 0;
     while i < digits.len() {

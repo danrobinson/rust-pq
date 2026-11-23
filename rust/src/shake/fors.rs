@@ -35,6 +35,8 @@ pub fn fors_sign<const N: usize>(
 ) -> Vec<u8> {
     let a = p.a;
     let indices = base_2b(md, a, p.k as usize);
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if super::batch::available::<N>() { return super::fors_batch::sign(p, &indices, sk_seed, seed, adrs); }
     let mut sig: Vec<u8> = Vec::new();
     let mut i: u32 = 0;
     while i < p.k {
@@ -61,6 +63,8 @@ pub(super) fn fors_pk_from_sig<const N: usize>(
     adrs: Adrs,
 ) -> [u8; N] {
     let indices = base_2b(md, p.a, p.k as usize);
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if super::batch::available::<N>() { return super::fors_batch::recover(p, &indices, sig, seed, adrs); }
     let mut roots = start(seed, &adrs.with_type(FORS_ROOTS).with_keypair(adrs.keypair));
     let mut i = 0;
     while i < indices.len() {
