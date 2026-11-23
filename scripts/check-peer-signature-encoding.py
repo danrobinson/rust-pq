@@ -10,6 +10,8 @@ constrained only to differ from the parameter set's fixed signature size.
 """
 
 import argparse
+import json
+import shutil
 from pathlib import Path
 import re
 import runpy
@@ -68,6 +70,104 @@ def instruments(crate):
     return probes
 
 
+def cross_library(work, probes):
+    """Build a single LTO module so both actual crate implementations are available."""
+    crate = work / "cross"
+    (crate / "src").mkdir(parents=True)
+    source = (ROOT / "scripts/peer-fors/codec_cross.rs").read_text()
+    (crate / "src/lib.rs").write_text(
+        "\n".join(
+            source.replace("PEER", name).replace("SIZE", str(size))
+            for name, size, _ in probes
+        )
+    )
+    (crate / "Cargo.toml").write_text(f"""[package]
+name = "slh-wire-cross"
+version = "0.1.0"
+edition = "2024"
+[workspace]
+[lib]
+crate-type = ["staticlib"]
+[dependencies]
+peer = {{package = "slh-dsa", path = "../peer"}}
+ours = {{package = "slhdsa-compat", path = {json.dumps(str(ROOT / "compat"))}, features = ["platform-sha2"]}}
+[profile.release]
+codegen-units = 1
+panic = "abort"
+lto = true
+""")
+    shutil.copyfile(ROOT / "bench/Cargo.lock", crate / "Cargo.lock")
+    metadata = lambda path, locked: json.loads(
+        subprocess.check_output(
+            [
+                "cargo",
+                "metadata",
+                *(["--locked"] if locked else []),
+                "--format-version",
+                "1",
+                "--manifest-path",
+                str(path),
+            ]
+        )
+    )
+    baseline = metadata(work / "peer/Cargo.toml", True)
+    actual = metadata(crate / "Cargo.toml", False)
+
+    def peer_graph(graph):
+        packages = {x["id"]: x for x in graph["packages"]}
+        nodes = {n["id"]: n for n in graph["resolve"]["nodes"]}
+        pending = [next(k for k, p in packages.items() if p["name"] == "slh-dsa")]
+        visited = set()
+        while pending:
+            k = pending.pop()
+            if k in visited:
+                continue
+            visited.add(k)
+            pending += [
+                dep["pkg"]
+                for dep in nodes[k]["deps"]
+                if any(edge["kind"] != "dev" for edge in dep["dep_kinds"])
+            ]
+        return {
+            (packages[k]["name"], packages[k]["version"], packages[k]["source"])
+            for k in visited
+        }
+
+    if peer_graph(actual) != peer_graph(baseline):
+        raise ValueError("cross-build peer dependency graph differs from benchmark")
+    return crate
+
+
+def cross_check(crate, artifacts, target, probes):
+    subprocess.run(
+        [
+            "cargo",
+            "rustc",
+            "--locked",
+            "--release",
+            "--lib",
+            "--target",
+            target,
+            "--target-dir",
+            str(artifacts),
+            "--",
+            "--emit=llvm-ir",
+        ],
+        cwd=crate,
+        check=True,
+    )
+    (ir_path,) = (artifacts / target / "release").rglob("slh_wire_cross*.ll")
+    ir = ir_path.read_text()
+    for name, size, _ in probes:
+        for suffix in ("peer_to_ours", "ours_to_peer"):
+            ORIGINS["check"](ir, name + "_" + suffix, size)
+        ORIGINS["check_invalid"](ir, name + "_both_invalid", size)
+    print(
+        f"{target}: both compiled libraries interoperate byte-for-byte in both directions on all twelve sets",
+        flush=True,
+    )
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--target", choices=TARGETS, action="append")
@@ -76,6 +176,7 @@ def main():
         work = Path(temp)
         crate = DRIVER["setup"](work, [], [])
         probes = instruments(crate)
+        cross = cross_library(work, probes)
         for target in args.target or TARGETS:
             subprocess.run(
                 [
@@ -108,6 +209,8 @@ def main():
                     f"{target}: verified {name} parser, both writers and FORS rows",
                     flush=True,
                 )
+
+            cross_check(cross, work / "cross-artifacts", target, probes)
 
 
 if __name__ == "__main__":
