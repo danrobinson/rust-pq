@@ -160,3 +160,21 @@ def providerCorrect : PeerShake.Correct provider where
 
 #print axioms providerCorrect
 end PeerShake.Buffer
+
+namespace PeerShake.Buffer
+
+/-- The outer and inner loops over borrowed slice descriptors have the same
+    induction. Each descriptor consists of its 8-byte data pointer and length. -/
+theorem descriptorStep (length index : Int) (size : 0 ≤ length ∧ length ≤ (2^63-1)/16)
+    (live : 0 ≤ index ∧ index < length) :
+    0 ≤ index*16 ∧ index*16+16 ≤ 2^63-1 ∧ index+1 ≤ length ∧
+      (index+1=length ↔ index=length-1) ∧ length-(index+1)<length-index := by
+  omega
+
+theorem foldParts {α σ : Type} (visit : σ → α → σ) (init : σ) (groups : List (List α)) :
+    groups.foldl (fun s parts => parts.foldl visit s) init = groups.flatten.foldl visit init := by
+  induction groups generalizing init with
+  | nil => rfl
+  | cons group rest ih => simp only [List.foldl_cons,List.flatten_cons,List.foldl_append,ih]
+
+end PeerShake.Buffer
