@@ -1,6 +1,6 @@
 import S512driver.Funs
 import Streamvector.Top
-import Streamvector.FixedTable
+import S512schedule.Proof
 open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Stream.Eight512
 set_option maxRecDepth 16384
@@ -93,7 +93,7 @@ theorem prescheduled512 (st : Array U64 8#usize) (groups : Slice (Array (Array U
       rw [get]
       simp only [bind_ok]
       step with initial _ offsets stride as ⟨w,win⟩
-      step with fixedTable512 w _ win as ⟨ordered,spec⟩
+      step with schedule w _ win as ⟨ordered,spec⟩
       step with lanes512 state ordered _ spec as ⟨out,hash⟩
       refine ⟨slice,by change it.i+1 ≤ groups.length; omega,?_,by change groups.length-(it.i+1) < groups.length-it.i; omega⟩
       rw [hash,prior]

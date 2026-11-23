@@ -1,12 +1,13 @@
 module
 public import S512driver.Types
+public import S512schedule.Funs
 public import Streamvector.Funs
 public import Digest256.FunsExternal
 public import Streamround.Funs
 @[expose] public section
 open Aeneas Aeneas.Std Result
 namespace S512driverRust
-abbrev sha512.stream.schedule_table := StreamVectorRust.sha512.stream.schedule_table
+abbrev sha512.stream.schedule_table := S512scheduleRust.sha512.stream.schedule_table
 abbrev sha512.stream.round := StreamRoundRust.sha512.stream.round
 namespace core
 abbrev slice.Slice.as_ptr {L : Usize} := @GatherRust.core.slice.Slice.as_ptr L
