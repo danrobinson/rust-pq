@@ -12,7 +12,8 @@ ROOT=locked["ROOT"]
 WOTS=ROOT/"scripts/peer-wots"
 suite=runpy.run_path(str(ROOT/"scripts/check-peer-wots.py"))["SUITES"]
 D=runpy.run_path(str(ROOT/"scripts/peer-shake/dispatch.py"))
-TARGETS=("aarch64-apple-darwin","x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","wasm32-unknown-unknown")
+TARGETS=("aarch64-apple-darwin","x86_64-unknown-linux-gnu","aarch64-unknown-linux-gnu","wasm32-unknown-unknown",
+         "powerpc64-unknown-linux-gnu","i686-unknown-linux-gnu","x86_64-unknown-none")
 
 
 def prepare(p):
