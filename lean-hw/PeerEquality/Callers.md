@@ -1,0 +1,9 @@
+# RustCrypto SLH callers
+
+Run `scripts/check-peer-callers.sh` from the repository root. It checks the pinned crate archive against the benchmark lockfile, regenerates the signing and verification call graphs, compares them to the checked-in Lean code and audits the kernel axioms.
+
+`keygen_fips`, `sign_fips` and `verify_fips` characterize the packed secret/public key pair, serialized signature and acceptance Boolean. `ht_fips` proves the peer’s initial layer and its remaining loop yield Algorithm 12. The last iteration omits the unused recovery call. The domain includes all twelve standard parameter sets. `sign_context` and `verify_context` handle arbitrary multipart messages, the context length byte, and rejection above 255 bytes. `sign_entry_wrong_randomness` covers the hidden peer API's invalid randomizer size and `sign_entry_rejects` checks that context rejection takes precedence.
+
+The call graph is a restricted source translation. It preserves Rust let bindings, selectors, calls, arguments and returns. The checker also recognizes the exact bodies of the public wrappers, seed constructor and hypertree loop. It trusts its Rust-to-Lean interpretation of initialized byte arrays, options, loops, views and typed object construction. Seeded hash contexts store the public seed; typed child signatures are observed through their byte encoding. Raw verification receives a parsed signature with the standard lengths. RNG observations concern the returned bytes and error status. No distribution assumption is used.
+
+`ChildLaws` lists the independent cryptographic obligations for XMSS, the message hashes, digest splitting, FORS and hypertree verification. The caller theorems are conditional on those child behaviors. `sha2_prf` and `sha2_hmsg` discharge the two message-hash obligations for the checked SHA-2 provider routes. The underlying source, hardware and compiler boundaries are documented in `RcSlhSha2/README.md`.
