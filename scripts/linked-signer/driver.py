@@ -266,7 +266,7 @@ class Driver:
     def workspace(s, pointer, width):
         address = integer(s, pointer)
         require(
-            STACK - 2048 <= address <= STACK - width,
+            max(STACK - 2048, integer(s, s.regs.sp)) <= address <= STACK - width,
             "callee output outside stack frame",
         )
         return address
@@ -348,7 +348,7 @@ class Driver:
         dest = lambda i: integer(s, x[i])
         check = lambda i, y: equal(s, x[i], y, f"{name}: x{i}")
         buf = lambda i, v: equal(
-            s, load(s, x[i], v.size() // 8), v, f"{name}: buffer {i}"
+            s, self.argument_bytes(s, dest(i), v.size() // 8), v, f"{name}: buffer {i}"
         )
         calls = s.globals["calls"]
         if name not in (
@@ -469,10 +469,12 @@ class Driver:
             equal(s, unsigned(s, desc), length, "grow_one invoked on a full vector")
             if length:
                 require(old == s.globals["indices"], "grown index vector pointer")
-                self.release(s, old, 4 * length, 4)
+                self.live_bytes(s, old, 4 * length)
             else:
                 require(old == 4, "u32 vector dangling sentinel")
             contents = [] if not length else [(0, load(s, old, 4 * length))]
+            if length:
+                self.release(s, old, 4 * length, 4)
             self.vec(
                 s, desc, "indices", length, 4, contents, capacity=max(4, length * 2)
             )
@@ -556,7 +558,7 @@ class Driver:
             previous = integer(s, unsigned(s, desc)) if upper else None
             if used:
                 require(old == s.globals[region], "reserve old pointer")
-                self.release(s, old, unsigned(s, desc), 1)
+                self.live_bytes(s, old, used)
             else:
                 equal(s, unsigned(s, desc), 0, "empty vector")
                 require(old == 1, "initial dangling sentinel")
@@ -564,6 +566,8 @@ class Driver:
             data = [
                 (i, load(s, old + i, min(used - i, 128))) for i in range(0, used, 128)
             ]
+            if used:
+                self.release(s, old, unsigned(s, desc), 1)
             new = self.vec(
                 s,
                 desc,
@@ -591,8 +595,10 @@ class Driver:
                 else self.htlen
             )
             require(count == expected, "copy source length")
-            cap = s.globals["allocations"][str(out)][0]
-            equal(s, c.ULE(dst - out + count, cap), True, "copy destination capacity")
+            self.live_bytes(s, src, count)
+            self.live_bytes(s, out, dst - out + count)
+            require(src + count <= dst or dst + count <= src, "overlapping memcpy")
+
             for i in range(0, count, 128):
                 wrbytes(s, dst + i, load(s, src + i, min(count - i, 128)))
         elif name == "free":
@@ -626,6 +632,19 @@ class Driver:
         equal(s, load(s, addr, self.k * 4), self.idx, "all big-endian FORS digits")
         s.globals["base_ret"] = None
 
+    @staticmethod
+    def live_bytes(s, addr, count):
+        allocations = s.globals["allocations"]
+        require(str(addr) in allocations, "read or copy involving a retired allocation")
+        capacity, alignment, _ = allocations[str(addr)]
+        require(0 <= count <= STRIDE, "invalid heap extent")
+        equal(
+            s,
+            c.ULE(count, capacity * alignment),
+            True,
+            "access exceeds live allocation",
+        )
+
     def release(self, s, addr, cap, align):
         alloc = dict(s.globals["allocations"])
         expected, a, _ = alloc.pop(str(addr))
@@ -634,9 +653,22 @@ class Driver:
         s.globals["allocations"] = alloc
 
     @staticmethod
+    def argument_bytes(s, address, size):
+        # Summary reads do not trigger the native memory-access breakpoint.
+        ordinal, offset = divmod(address - HEAP, STRIDE)
+        if 1 <= ordinal <= s.globals.get("serial", 0):
+            Driver.live_bytes(s, address - offset, offset + size)
+        return load(s, address, size)
+
+    @staticmethod
     def check_chunks(s, addr, chunks):
         for off, val in chunks:
-            equal(s, load(s, addr + off, val.size() // 8), val, "signature bytes")
+            equal(
+                s,
+                Driver.argument_bytes(s, addr + off, val.size() // 8),
+                val,
+                "signature bytes",
+            )
 
     def finish(self, s):
         require(s.solver.satisfiable(), "infeasible terminal state")
@@ -679,14 +711,18 @@ class Driver:
             )
 
 
-def guard_access(s, kind, driver):
+def guard_access(s, kind, driver, *, result_size=24, key_size=None):
     if not s.globals.get("in_driver", False):
         return
     ptr = integer(s, getattr(s.inspect, f"mem_{kind}_address"))
     size = integer(s, getattr(s.inspect, f"mem_{kind}_length"))
-    ranges = [(STACK - 2048, 2048), (RESULT, 24)]
+    ranges = [(STACK - 2048, 2048), (RESULT, result_size)]
     if kind == "read":
-        ranges += [(driver.param, 36), (KEY, 4 * driver.n), driver.constants_range]
+        ranges += [
+            (driver.param, 36),
+            (KEY, 4 * driver.n if key_size is None else key_size),
+            driver.constants_range,
+        ]
     for start, length in ranges:
         if start <= ptr and ptr + size <= start + length:
             return

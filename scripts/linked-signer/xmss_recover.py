@@ -105,10 +105,9 @@ def verify(path, image, n, variant, family):
             ]
         ):
             return
-        if RESULT <= ptr < RESULT + n:
-            require(ptr + size <= RESULT + n, "XMSS root output bounds")
-            return
-        guard_access(st, kind, model)
+        # The indirect result is an n-byte node and KEY is one n-byte message.
+        # The general signing driver uses a larger Vec descriptor and a full SK.
+        guard_access(st, kind, model, result_size=n, key_size=n)
 
     for kind in ("read", "write"):
         s.inspect.b(

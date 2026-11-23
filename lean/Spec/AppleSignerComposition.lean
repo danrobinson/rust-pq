@@ -231,6 +231,92 @@ theorem supported_wrapper_eq {p msg ctx sk supplied random frame out} (h : p ∈
   subst random
   exact supported_pure_eq h valid v
 
+private theorem referenceNode (p sk pk a i h) : Node p sk pk a i h (xmssNode p sk i h pk a) := by
+  induction h generalizing i with
+  | zero => exact Node.leaf i
+  | succ h ih => exact Node.parent i h _ _ (ih (2*i)) (ih (2*i+1))
+
+private def referenceLayerSig (p msg sk pk i a) :
+    LayerSignature p msg sk pk i a (xmssSign p msg sk i pk a) where
+  wots := _
+  auth := fun j => xmssNode p sk ((i / 2^j) ^^^ 1) j pk a
+  wots_eq := rfl
+  auth_eq _j _ := referenceNode _ _ _ _ _ _
+  layout := rfl
+
+private def referencePath (p i a pk auth leaf) :
+    Path p i a pk auth leaf (climb p leaf i i auth p.hp pk a) where
+  state := fun j => (List.range j).foldl (parent p pk auth i a) (leaf,i)
+  initial := rfl
+  step j _ := by simp [List.range_succ]
+  last := rfl
+
+private def referenceLayerRoot (p msg pk sig i a) :
+    LayerRoot p msg pk sig i a (xmssPkFromSig p i sig msg pk a) where
+  leaf := _
+  wots_eq := rfl
+  path := referencePath _ _ _ _ _ _
+
+private def referenceState (p : Params) (sk pk : Bytes) (init : LayerState) (j : Nat) :=
+  (List.range j).foldl (slhdsa.signNext p.d (slhdsa.htSignStep p sk pk)) init
+
+private def referenceLayers (p : Params) (sk pk : Bytes) (init : LayerState) : Layers where
+  signature j :=
+    let st := referenceState p sk pk init j
+    xmssSign p st.2.1 sk st.2.2.2 pk (address j st)
+  root j :=
+    let st := referenceState p sk pk init j
+    let sig := xmssSign p st.2.1 sk st.2.2.2 pk (address j st)
+    xmssPkFromSig p st.2.2.2 sig st.2.1 pk (address j st)
+
+private theorem referenceLayers_state (p sk pk init j) :
+    afterLayers p (referenceLayers p sk pk init) init j = referenceState p sk pk init j := by
+  induction j with
+  | zero => simp only [afterLayers, referenceState, List.range_zero, List.foldl_nil]
+  | succ j ih =>
+    rw [afterLayers, referenceState, List.range_succ, List.foldl_append, List.foldl_append]
+    change advance p _ (afterLayers p _ init j) j = _
+    rw [ih]
+    rfl
+
+private def referenceCalls (p sk pk init) : LayerCalls p sk pk init (referenceLayers p sk pk init) where
+  sign j _ := by
+    dsimp only
+    rw [referenceLayers_state]
+    exact referenceLayerSig _ _ _ _ _ _
+  recover j _ := by
+    dsimp only
+    rw [referenceLayers_state]
+    exact referenceLayerRoot _ _ _ _ _ _
+
+/-- The mathematical call equations have a witness at exactly the FIPS output.
+    This existence construction runs the reference operations, independently of any
+    claim that the execution of the native executable yields such a witness. -/
+theorem trace_iff {p msg sk random out} (h : p ∈ parameterSets) :
+    Nonempty (Signature p msg sk random out) ↔ out = slhSignInternal p msg sk random := by
+  constructor
+  · rintro ⟨v⟩; exact supported_internal_eq h v
+  · rintro rfl
+    let skSeed := block p sk 0
+    let pkSeed := block p sk 2
+    let r := PRFmsg p (block p sk 1) random msg
+    let dg := Hmsg p r pkSeed (block p sk 3) msg
+    let md := dg.take p.mdBytes
+    let ad := forsAddress p dg
+    let f := forsSign p md skSeed pkSeed ad
+    let root := forsPkFromSig p f md pkSeed ad
+    let init : LayerState := ([],root,digestTree p dg,digestLeaf p dg)
+    let calls := referenceCalls p skSeed pkSeed init
+    refine ⟨{ scratch := fun _ => fun _ => 0, r := r, digest := dg, sigFors := f,
+              pkFors := root, digits := base2b md p.a p.k,
+              layers := referenceLayers p skSeed pkSeed init,
+              randomness := ?_, digest_eq := ?_, decode := rfl, forest_sig := rfl,
+              forest_pk := rfl, layer_calls := calls, layout := ?_ }⟩
+    · simp [r, PRFmsg, (supported h).1, sponge_eq _ _ _ (supported h).2.1]
+    · simp [dg, Hmsg, (supported h).1, sponge_eq _ _ _ (supported h).2.2, pkSeed]
+    · rw [layers_eq calls]; rfl
+
+#print axioms trace_iff
 #print axioms supported_internal_eq
 #print axioms supported_pure_eq
 #print axioms supported_wrapper_eq
