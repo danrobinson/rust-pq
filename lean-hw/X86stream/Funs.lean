@@ -25,27 +25,34 @@ noncomputable section
 
 namespace X86StreamRust
 
+/-- [slhdsa::sha256::stream::FORCE_SOFT]
+    Source: 'src/sha256/stream.rs', lines 115:0-115:85 -/
+@[global_simps, irreducible] def sha256.stream.FORCE_SOFT : Bool := false
+
 /-- [slhdsa::sha256::stream::prefix]:
     Source: 'src/sha256/stream.rs', lines 43:0-53:1 -/
 def sha256.stream.prefix
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize)) :
   Result ((Slice (Array Std.U8 64#usize)) × (Array Std.U32 8#usize))
   := do
-  let i := Slice.len blocks
-  if i < 16#usize
+  if sha256.stream.FORCE_SOFT
   then ok (blocks, state)
   else
-    let b ← sha256.stream.available.get
-    if b
-    then
-      let b1 ← sha256.stream.dedicated.get
-      if b1
-      then ok (blocks, state)
-      else
-        let (groups, tail) ← core.slice.Slice.as_chunks 16#usize blocks
-        let state1 ← sha256.stream.prescheduled state groups
-        ok (tail, state1)
-    else ok (blocks, state)
+    let i := Slice.len blocks
+    if i < 16#usize
+    then ok (blocks, state)
+    else
+      let b ← sha256.stream.available.get
+      if b
+      then
+        let b1 ← sha256.stream.dedicated.get
+        if b1
+        then ok (blocks, state)
+        else
+          let (groups, tail) ← core.slice.Slice.as_chunks 16#usize blocks
+          let state1 ← sha256.stream.prescheduled state groups
+          ok (tail, state1)
+      else ok (blocks, state)
 
 /-- [slhdsa::sha256::pad]: loop body 0:
     Source: 'src/sha256.rs', lines 113:4-115:5 -/
@@ -181,23 +188,30 @@ def sha256.sha256_from
   let state3 ← sha256.stream.remainder state2 final_blocks
   sha256.digest state3
 
+/-- [slhdsa::sha512::stream::FORCE_SOFT]
+    Source: 'src/sha512/stream.rs', lines 128:0-128:85 -/
+@[global_simps, irreducible] def sha512.stream.FORCE_SOFT : Bool := false
+
 /-- [slhdsa::sha512::stream::prefix]:
     Source: 'src/sha512/stream.rs', lines 45:0-55:1 -/
 def sha512.stream.prefix
   (state : Array Std.U64 8#usize) (blocks : Slice (Array Std.U8 128#usize)) :
   Result ((Slice (Array Std.U8 128#usize)) × (Array Std.U64 8#usize))
   := do
-  let i := Slice.len blocks
-  if i < 8#usize
+  if sha512.stream.FORCE_SOFT
   then ok (blocks, state)
   else
-    let b ← sha512.stream.available.get
-    if b
-    then
-      let (groups, tail) ← core.slice.Slice.as_chunks 8#usize blocks
-      let state1 ← sha512.stream.prescheduled state groups
-      ok (tail, state1)
-    else ok (blocks, state)
+    let i := Slice.len blocks
+    if i < 8#usize
+    then ok (blocks, state)
+    else
+      let b ← sha512.stream.available.get
+      if b
+      then
+        let (groups, tail) ← core.slice.Slice.as_chunks 8#usize blocks
+        let state1 ← sha512.stream.prescheduled state groups
+        ok (tail, state1)
+      else ok (blocks, state)
 
 /-- [slhdsa::sha512::pad]: loop body 0:
     Source: 'src/sha512.rs', lines 136:4-138:5 -/

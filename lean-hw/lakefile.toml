@@ -173,3 +173,6 @@ name = "Portableplatform"
 
 [[lean_lib]]
 name = "Rcni"
+
+[[lean_lib]]
+name = "Rcdispatch"

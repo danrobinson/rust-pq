@@ -6,7 +6,7 @@ open ChainAvx2Rust (fullChunks remainder)
 namespace slhdsa.X86.Stream
 
 def usesVector256 (b : Slice (Array U8 64#usize)) : Prop :=
-  16 ≤ b.length ∧ X86StreamRust.vectorAvailable = true ∧ ChainWideRust.shaNiAvailable = false
+  16 ≤ b.length ∧ X86StreamRust.vectorAvailable = true ∧ RcDispatchRust.sha = false
 
 def groupSpec256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize)) : Prop :=
   X86StreamRust.sha256.stream.prescheduled st (fullChunks 16#usize b) ⦃ out =>
@@ -17,6 +17,7 @@ theorem prefix256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize))
     X86StreamRust.sha256.stream.prefix st b ⦃ tail out =>
       fold256 (slhdsa.wv out.val) tail.val = fold256 (slhdsa.wv st.val) b.val ⦄ := by
   unfold X86StreamRust.sha256.stream.prefix
+  simp only [X86StreamRust.sha256.stream.FORCE_SOFT,Bool.false_eq_true,ite_false]
   by_cases short : b.len < 16#usize
   · simp [short,step_simps]
   simp only [short,ite_false,X86StreamRust.sha256.stream.available.get,X86StreamRust.sha256.stream.available.get,bind_ok]
@@ -25,7 +26,7 @@ theorem prefix256 (st : Array U32 8#usize) (b : Slice (Array U8 64#usize))
   | true =>
     simp only [ite_true]
     simp only [X86StreamRust.sha256.stream.dedicated.get,X86RemainderRust.sha256.stream.dedicated.get,bind_ok]
-    cases sha : ChainWideRust.shaNiAvailable with
+    cases sha : RcDispatchRust.sha with
     | true => simp [step_simps]
     | false =>
       have selected : usesVector256 b := ⟨by change 16 ≤ b.len.val; scalar_tac,avail,sha⟩
@@ -50,6 +51,7 @@ theorem prefix512 (st : Array U64 8#usize) (b : Slice (Array U8 128#usize))
     X86StreamRust.sha512.stream.prefix st b ⦃ tail out =>
       fold512 (slhdsa.S512.wv out.val) tail.val = fold512 (slhdsa.S512.wv st.val) b.val ⦄ := by
   unfold X86StreamRust.sha512.stream.prefix
+  simp only [X86StreamRust.sha512.stream.FORCE_SOFT,Bool.false_eq_true,ite_false]
   by_cases short : b.len < 8#usize
   · simp [short,step_simps]
   simp only [short,ite_false,X86StreamRust.sha512.stream.available.get,X86StreamRust.sha256.stream.available.get,bind_ok]

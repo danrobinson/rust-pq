@@ -22,7 +22,7 @@ theorem block512 (st : Array U64 8#usize) (blk : Array U8 128#usize) :
     TreeHashRust.sha512.compress st blk.to_slice 0#usize = sha512.compress st blk.to_slice 0#usize := by
   have room : (0#usize).val+128≤blk.to_slice.length := by simp
   obtain ⟨x,hx,sx⟩ := spec_imp_exists (Stream.single512 st _ _ room)
-  obtain ⟨y,hy,sy⟩ := spec_imp_exists (S512.compress_spec st _ _ room)
+  obtain ⟨y,hy,sy⟩ := spec_imp_exists (slhdsa.S512.compress_spec st _ _ room)
   rw [show TreeHashRust.sha512.compress = X86RemainderRust.sha512.compress from rfl,hx,hy]
   congr 1
   apply Aeneas.Std.Array.ext
