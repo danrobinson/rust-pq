@@ -4,7 +4,7 @@ A Rust implementation of all twelve pure **SLH-DSA** parameter sets in FIPS 205
 (the standardised SPHINCS+). Lean 4 proofs connect the Rust SHA-2 and SHAKE256
 implementations to signing, verification, key generation
 and key parsing through this library’s RustCrypto-compatible API. All twelve sets pass NIST ACVP vectors and byte-for-byte
-comparisons with RustCrypto. All twelve sets also have source-level leakage proofs and classical unforgeability bounds under named hash assumptions. Lean also proves that the measured Apple arm64 keygen, internal sign and internal verify drivers return the same bytes as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
+comparisons with RustCrypto. All twelve sets also have source-level leakage proofs and classical unforgeability bounds under named hash assumptions. Lean also proves that the measured Apple arm64 public keygen, signing and verification drivers return the same keys, signature bytes and verdict as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
 [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
 Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree

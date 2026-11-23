@@ -38,6 +38,7 @@ def main():
             "lake",
             "build",
             "Facade.NativeAgreement",
+            "Facade.ApplePublicAgreement",
             "Spec.AppleNativeSession",
             "Spec.AppleChainScheduler",
             "Spec.ArmRootComparison",
