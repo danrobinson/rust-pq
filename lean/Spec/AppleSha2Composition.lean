@@ -44,6 +44,28 @@ theorem HashCalls.eq_spec {p msg sk random r digest}
     rw [hc.output, allCounters, hc.firstHash]
     by_cases h : p.n = 16 <;> simp [Hmsg, family, sha, blockSize, h, mgf1, count]
 
+/-- Actual reference computations for both HMAC hashes, the message hash and
+    every MGF1 counter. This constructs the HashCalls data, including intermediate
+    bytes, for arbitrary arguments. -/
+def referenceHashes (p : Params) (msg sk random : Bytes) (family : p.family = .sha2)
+    (keyFits : p.n ≤ (if p.n = 16 then 64 else 128)) :
+    HashCalls p msg sk random (PRFmsg p (block p sk 1) random msg)
+      (Hmsg p (PRFmsg p (block p sk 1) random msg) (block p sk 2) (block p sk 3) msg) := by
+  let key := keyPad p (block p sk 1)
+  let inner := sha p (key.map (· ^^^ 0x36#8) ++ (random ++ msg))
+  let r := (sha p (key.map (· ^^^ 0x5c#8) ++ inner)).take p.n
+  let first := sha p (r ++ block p sk 2 ++ block p sk 3 ++ msg)
+  let counter := fun i => sha p ((r ++ block p sk 2 ++ first) ++ toByte i 4)
+  let digest := ((List.range ((p.m + blockSize p / 2 - 1) / (blockSize p / 2))).flatMap counter).take p.m
+  have hc : HashCalls p msg sk random r digest :=
+    { inner, first, counters := counter, keySize := by
+        exact (List.length_take_le ..).trans keyFits
+      ipad := rfl, opad := rfl, firstHash := rfl, counter := fun _ _ => rfl, output := rfl }
+  obtain ⟨rEq,dgEq⟩ := hc.eq_spec family
+  rw [rEq] at dgEq
+  rw [rEq,dgEq] at hc
+  exact hc
+
 structure Signature (p : Params) (msg sk random out : Bytes) where
   r : Bytes
   digest : Bytes
@@ -81,16 +103,9 @@ theorem trace_iff {p msg sk random out}
   constructor
   · rintro ⟨s⟩; exact s.eq_spec props.1
   · rintro rfl
-    let key := keyPad p (block p sk 1)
-    let inner := sha p (key.map (· ^^^ 0x36#8) ++ (random ++ msg))
-    let r := (sha p (key.map (· ^^^ 0x5c#8) ++ inner)).take p.n
-    let first := sha p (r ++ block p sk 2 ++ block p sk 3 ++ msg)
-    let counter := fun i => sha p ((r ++ block p sk 2 ++ first) ++ toByte i 4)
-    let digest := ((List.range ((p.m + blockSize p / 2 - 1) / (blockSize p / 2))).flatMap counter).take p.m
-    have hc : HashCalls p msg sk random r digest :=
-      { inner, first, counters := counter, keySize := by
-          exact (List.length_take_le ..).trans props.2
-        ipad := rfl, opad := rfl, firstHash := rfl, counter := fun _ _ => rfl, output := rfl }
+    let r := PRFmsg p (block p sk 1) random msg
+    let digest := Hmsg p r (block p sk 2) (block p sk 3) msg
+    let hc := referenceHashes p msg sk random props.1 props.2
     let md := digest.take p.mdBytes
     let a := forsAddress p digest
     let sig := forsSign p md (block p sk 0) (block p sk 2) a
@@ -103,7 +118,6 @@ theorem trace_iff {p msg sk random out}
               calls, output := ?_ }⟩
     rw [layers_eq calls]
     dsimp only [init, root, sig, a, md]
-    rw [(hc.eq_spec props.1).2, (hc.eq_spec props.1).1]
     rfl
 
 theorem successful_roundtrip {p secret prf seed sk pk msg ctx supplied sig verdict}
