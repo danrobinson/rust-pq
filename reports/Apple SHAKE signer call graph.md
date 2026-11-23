@@ -42,3 +42,15 @@ scripts/apple-binary/signer_inventory.py /path/to/acvp > signer-inventory.json
 ```
 
 The JSON identifies every function by preferred virtual address, mangled names, demangled aliases, size and code digest. Each explicit cross-function transfer gives its source and destination, each import gives its stub address and each open exit gives its instruction or possible destination. The scan follows explicit local calls and cross-function branches, scans the entire extent of each discovered function, and records potential cross-extent fallthrough as open. Indirect and exception destinations can reach code outside this listing. The binary’s hash is computed from the same immutable snapshot read by the metadata tools.
+
+### Linked SHAKE digest follow-up
+
+The 212-byte `Sponge::finish` at `0x100076560` implements SHAKE padding, Keccak-f and byte extraction for every valid input cursor and every output length from zero through 136 bytes. The checker symbolically tracks lane XOR masks for all 136 cursor positions, including the case where the two padding writes alias. After the linked single-state Keccak call it tracks the source lane, bit offset and destination of each output byte for all 137 lengths. Lean identifies the resulting operation with FIPS 202 finalization and squeezing using the checked-in linked Keccak witness. Reading machine instructions, checking normal control flow, and validating memory accesses rely on restricted Python checkers. [Lean digest theorems](../lean/Spec/AppleShakeDigest.lean) · [Finalizer checker](../scripts/apple-binary/finish.py)
+
+The three linked `H_msg` functions are 348 bytes each, at `0x100075a8c`, `0x100075be8` and `0x100075d44` for widths 16, 24 and 32. For all six parameter rows the driver checker follows successful control flow, starting with arbitrary input and message pointers and a symbolic message length. It verifies the zero-initialized sponge, the four absorption arguments in order, the copy of all 208 bytes into the consuming finalizer, the requested allocation and the returned vector representation. Lean composes this driver with the linked finalizer to obtain FIPS 205 `H_msg`, assuming linked `Sponge::absorb` implements incremental byte absorption on reachable states. Symbolic execution assumes valid disjoint writable regions and a successful ABI-compliant allocator. The linked streaming absorption implementation, panic paths, allocation failures and finalizer outputs longer than one rate block remain outside this result. [Driver checker](../scripts/apple-binary/hmsg.py)
+
+Replay against the measured executable with the following command. The six controls alter the padding byte, permutation target, output store, absorbed input pointer, copied state and returned vector metadata.
+
+```sh
+python3 scripts/apple-binary/check_digest.py --self-test /path/to/acvp
+```
