@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kdiag|Kgridbulk|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|S8driver|Kdiag|Kgridbulk|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1074,6 +1074,19 @@ import S8table.Top
 LEAN
 )
 grep -Fx "'slhdsa.X86.Stream.Eight.table_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream8-table-axioms"
+extract S8driver S8driverRust s8driver --start-from 'crate::sha256::stream::prescheduled' \
+  --opaque 'crate::sha256::stream::round' --opaque 'crate::sha256::stream::schedule'
+cat > "$scratch/expected" <<'NAMES'
+sha256.stream.round
+sha256.stream.schedule
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build S8driver.Top && lake env lean --stdin > "$scratch/stream8-driver-axioms" <<'LEAN'
+import S8driver.Top
+#print axioms slhdsa.X86.Stream.Eight.prescheduled256
+LEAN
+)
+grep -Fx "'slhdsa.X86.Stream.Eight.prescheduled256' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream8-driver-axioms"
 platform_arch=x86_64-unknown-linux-gnu
 extract Kavx KavxRust kavx --start-from 'crate::shake256::parallel::avx512::round'
 cat > "$scratch/expected" <<'NAMES'
