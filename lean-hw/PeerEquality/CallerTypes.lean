@@ -1,3 +1,4 @@
+import PeerEquality.Xmss
 import PeerEquality.VerifyLayers
 import PeerEquality.DigestSplit
 
@@ -27,14 +28,16 @@ def Signature.bytes (s : Signature) := s.r ++ s.fors ++ s.tree
 abbrev Parts := List (List Bytes)
 
 structure Children where
-  xmss : Xmss
+  wots : PeerXmss.Children
   prfMsg : Bytes → Bytes → Parts → Bytes
   hMsg : Bytes → Bytes → Bytes → Parts → Bytes
   forsSign : Bytes → Bytes → Bytes → Adrs → Bytes
   forsRecover : Bytes → Bytes → Bytes → Adrs → Bytes
 
+def Children.xmss (c : Children) (p : Params) := PeerXmss.operations c.wots p
+
 def specChildren (p : Params) : Children :=
-  ⟨xmssSpec p, fun k r m => PRFmsg p k r m.flatten.flatten,
+  ⟨PeerXmss.children p, fun k r m => PRFmsg p k r m.flatten.flatten,
    fun r s root m => Hmsg p r s root m.flatten.flatten,
    forsSign p,forsPkFromSig p⟩
 

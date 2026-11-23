@@ -22,20 +22,31 @@ structure Signature.Shape (s : Signature) (p : Params) : Prop where
 /-- The remaining interfaces are named separately so a caller theorem does
 not assume equality of peer and FIPS signing or verification. -/
 structure ChildLaws (c : Children) (p : Params) : Prop where
-  node : c.xmss.node = xmssNode p
-  sign : c.xmss.sign = xmssSign p
-  recover : c.xmss.recover = xmssPkFromSig p
+  wotsKey : c.wots.wotsKey = wotsPkGen p
+  wotsSign : c.wots.wotsSign = Spec.wotsSign p
+  wotsRecover : c.wots.wotsRecover = wotsPkFromSig p
+  binaryHash : c.wots.hash = (PeerXmss.children p).hash
   prfMsg : ∀ key rand msg, key.length = p.n → c.prfMsg key rand msg = PRFmsg p key rand msg.flatten.flatten
   hMsg : c.hMsg = (specChildren p).hMsg
   params : p.Valid
   forsSign : c.forsSign = Spec.forsSign p
   forsRecover : c.forsRecover = forsPkFromSig p
 
-private theorem xmss_is_spec {c : Children} {p : Params} (laws : ChildLaws c p) :
-    c.xmss = xmssSpec p := by
-  obtain ⟨⟨sign,recover,node⟩,other⟩ := c
-  cases laws with
-  | mk hn hs hr _ _ _ _ _ => simp only at hn hs hr; subst_vars; rfl
+theorem ChildLaws.xmss {c : Children} {p : Params} (h : ChildLaws c p) : c.xmss p = xmssSpec p := by
+  have w : c.wots = PeerXmss.children p := by
+    obtain ⟨⟨key,sign,recover,hash⟩,other⟩ := c
+    obtain ⟨hk,hs,hr,hh,_⟩ := h
+    simp only at hk hs hr hh
+    subst_vars
+    rfl
+  unfold Children.xmss
+  rw [w,PeerXmss.operations_fips]
+
+theorem ChildLaws.node {c : Children} {p : Params} (h : ChildLaws c p) : (c.xmss p).node = xmssNode p :=
+  congrArg Xmss.node h.xmss
+
+theorem ChildLaws.recover {c : Children} {p : Params} (h : ChildLaws c p) : (c.xmss p).recover = xmssPkFromSig p :=
+  congrArg Xmss.recover h.xmss
 
 /-- For D > 0 and H' < 32 the checked narrowing and bit mask agree with
 the FIPS natural-number leaf operation for every 64-bit tree index. -/
@@ -44,7 +55,7 @@ theorem leaf_bits (tree height : Nat) (small : height < 32) :
   exact ⟨Nat.and_two_pow_sub_one_eq_mod _ _, lt_trans (Nat.mod_lt tree (Nat.two_pow_pos height))
     (Nat.pow_lt_pow_right (by decide) small)⟩
 
-theorem keygen_fips (c : Children) (p : Params) (node : c.xmss.node = xmssNode p) (sk prf pk : Bytes) :
+theorem keygen_fips (c : Children) (p : Params) (node : (c.xmss p).node = xmssNode p) (sk prf pk : Bytes) :
     let k := keygen c p sk prf pk
     (k.bytes,k.public.bytes) = slhKeygenInternal p sk prf pk := by
   simp only [keygen,Key.bytes,Key.public,PublicKey.bytes,slhKeygenInternal,node,layer]; rfl
@@ -75,7 +86,7 @@ theorem sign_fips (c : Children) (p : Params) (laws : ChildLaws c p) (positive :
       slhSignInternal p msg.flatten.flatten k.bytes (rand.getD k.publicSeed) := by
   obtain ⟨a,b,d,e⟩ := key_blocks p k shape
   simp only [rawSign,Signature.bytes,slhSignInternal,a,b,d,e,laws.prfMsg _ _ _ shape.prf,
-    laws.hMsg,split_correct p laws.params,laws.forsSign,laws.forsRecover,xmss_is_spec laws, specChildren,
+    laws.hMsg,split_correct p laws.params,laws.forsSign,laws.forsRecover,laws.xmss, specChildren,
     ht_fips _ positive]
   rfl
 
@@ -93,7 +104,7 @@ theorem verify_fips (c : Children) (p : Params) (laws : ChildLaws c p) (positive
   have t : s.bytes.drop (p.n+p.forsSigBytes) = s.tree := by
     simp [Signature.bytes,List.append_assoc,List.drop_append,sig.r,sig.fors]
   rw [r,f,t]
-  simp only [rawVerify,laws.hMsg,split_correct p laws.params,laws.forsRecover,htVerifyWith_fips c.xmss p positive laws.recover,specChildren]
+  simp only [rawVerify,laws.hMsg,split_correct p laws.params,laws.forsRecover,htVerifyWith_fips (c.xmss p) p positive laws.recover,specChildren]
   rfl
 
 private theorem context_bytes (ctx : Bytes) (msg : List Bytes) :
