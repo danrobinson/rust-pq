@@ -1,7 +1,7 @@
 #!/bin/sh
 # Re-run every check of the repository except the quantum one
 # (quantum/scripts/check-integration.sh): the Rust tests in every build (NIST
-# ACVP vectors for all six sets, interoperability with RustCrypto, the
+# ACVP vectors for all twelve sets, interoperability with RustCrypto, the
 # interface tests, the hash kernels against the `sha2`
 # crate), both re-extractions with Charon + Aeneas and their opaque/axiom
 # checks, the refinement proofs of the default build (lean/Slhdsa/Proofs, the
@@ -19,6 +19,13 @@
 set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
+
+case "${1:-}" in
+  "") mode=ver ;;
+  full) mode=all ;;
+  *) echo "usage: scripts/check.sh [full]" >&2; exit 2 ;;
+esac
+[ "$#" -le 1 ] || { echo "usage: scripts/check.sh [full]" >&2; exit 2; }
 
 (cd rust && cargo test --release)
 (cd rust && cargo test --release --features hw-sha2)
@@ -123,8 +130,17 @@ out=$(cd lean-hw && printf 'import Slhdsa.Proofs.Compress512Top\n#print axioms s
 [ "$(echo "$out" | grep -c "depends on axioms: \[propext, Quot.sound\]$")" -eq 2 ] || { echo "$out"; echo "hw_active check FAILED"; exit 1; }
 echo "lean-hw hw_active theorems: 2, each depends on axioms: [propext, Quot.sound]"
 
-mode=ver
-[ "$1" = "full" ] && mode=all
+# Missing, empty and incomplete verification groups must fail before running any hash cases.
+tmp_vectors=$(mktemp)
+for invalid in '{}' '{"sigVer":[]}' '{"sigVer":[{},{}]}'; do
+  printf '%s\n' "$invalid" > "$tmp_vectors"
+  if (cd lean && .lake/build/bin/spectest 128f ver "$tmp_vectors") >/dev/null 2>&1; then
+    rm -f "$tmp_vectors"
+    echo "spec test accepted malformed vectors" >&2
+    exit 1
+  fi
+done
+rm -f "$tmp_vectors"
 jobs_started=""
 for s in 128s 128f 192s 192f 256s 256f shake-128s shake-128f shake-192s shake-192f shake-256s shake-256f; do
   (cd lean && .lake/build/bin/spectest "$s" "$mode") &

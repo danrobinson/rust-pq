@@ -51,14 +51,23 @@ private def check (v : Json) (p : Params) (name op : String) : IO Unit := do
   let (ng, nt) := if op == "keyGen" then (1, 10) else if op == "sigGen" then (4, 7) else (2, 14)
   unless groups.size == ng do throw (IO.userError s!"{name} {op} requires {ng} groups")
   let mut ids : List Nat := []
+  let mut groupIds : List Nat := []
   let mut modes : List (Bool × Bool) := []
   for g in groups do
+    let groupId : Nat ← required g "tgId"
+    if groupIds.contains groupId then throw (IO.userError s!"duplicate {op} tgId {groupId}")
+    groupIds := groupId :: groupIds
+    unless (← required (α := String) g "testType") == "AFT" do
+      throw (IO.userError s!"unexpected {op} test type")
     let set : String ← required g "parameterSet"
     unless set == name do throw (IO.userError s!"expected {name}, found {set}")
     let iface : String ← if op == "keyGen" then pure "internal" else required g "signatureInterface"
     unless iface == "internal" || iface == "external" do throw (IO.userError s!"unknown signatureInterface {iface}")
     let det : Bool ← if op == "sigGen" then required g "deterministic" else pure false
     let internal := iface == "internal"
+    if op != "keyGen" then
+      unless (← required (α := String) g "preHash") == (if internal then "none" else "pure") do
+        throw (IO.userError s!"unexpected {op} preHash mode")
     if modes.contains (internal, det) then throw (IO.userError s!"duplicate {op} group")
     modes := (internal, det) :: modes
     let cases : Array Json ← required g "tests"
