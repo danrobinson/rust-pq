@@ -138,12 +138,23 @@ def verify(image, n):
                     val,
                     "tree hash preserved vector",
                 )
+            # The normal path is straight-line for these fixed input lengths.
+            # A concretization must not have excluded any symbolic input value.
+            require(
+                not c.Solver().satisfiable(
+                    extra_constraints=[c.Not(c.And(*st.solver.constraints))]
+                ),
+                "tree hash terminal excludes admissible inputs",
+            )
             count += 1
             continue
         if st.addr == single:
             require(not hashed, "extra tree hash permutation")
             ptr = integer(st, st.regs.x0)
-            require(STACK - 4096 <= ptr <= STACK - 200, "tree hash state outside frame")
+            require(
+                max(STACK - 4096, integer(st, st.regs.sp)) <= ptr <= STACK - 200,
+                "tree hash state outside active frame",
+            )
             equal(
                 st,
                 load(st, ptr, 200),
