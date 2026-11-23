@@ -3,7 +3,7 @@ import Facade.Verify
 open Aeneas Aeneas.Std Result
 namespace slh_dsa
 
-private theorem join_single (parts : Slice (Slice U8)) (m : Slice U8)
+theorem multipart.join_single (parts : Slice (Slice U8)) (m : Slice U8)
     (h : parts.val.flatMap (·.val) = m.val) :
     multipart.join parts = multipart.join (Array.make 1#usize [m]).to_slice := by
   obtain ⟨a, ha, ea⟩ := _root_.slhdsa.spec_imp_exists
@@ -23,7 +23,7 @@ theorem multipart_sign_eq {P Sk Vk Sig : Type} (C : params.Core P Sk Vk Sig)
     signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign C sk m := by
   simp only [signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign,
     signing_key.SigningKey.Insts.SignatureSignerMultipartSignerSignature.try_multipart_sign,
-    lift, bind_ok, signing_key.SigningKey.raw_try_sign_with_context, join_single parts m h]
+    lift, bind_ok, signing_key.SigningKey.raw_try_sign_with_context, multipart.join_single parts m h]
 
 theorem multipart_verify_eq {P Sk Vk Sig : Type} (C : params.Core P Sk Vk Sig)
     (vk : verifying_key.VerifyingKey P Sk Vk Sig) (parts : Slice (Slice U8)) (m : Slice U8)
@@ -32,7 +32,7 @@ theorem multipart_verify_eq {P Sk Vk Sig : Type} (C : params.Core P Sk Vk Sig)
     verifying_key.VerifyingKey.Insts.SignatureVerifierVerifierSignature.verify C vk m sig := by
   simp only [verifying_key.VerifyingKey.Insts.SignatureVerifierVerifierSignature.verify,
     verifying_key.VerifyingKey.Insts.SignatureVerifierMultipartVerifierSignature.multipart_verify,
-    lift, bind_ok, verifying_key.VerifyingKey.raw_try_verify_with_context, join_single parts m h]
+    lift, bind_ok, verifying_key.VerifyingKey.raw_try_verify_with_context, multipart.join_single parts m h]
 
 /-- Equality includes errors and the RNG state returned by the translated method. -/
 theorem multipart_randomized_eq {P Sk Vk Sig R E : Type} (C : params.Core P Sk Vk Sig)
@@ -43,7 +43,7 @@ theorem multipart_randomized_eq {P Sk Vk Sig R E : Type} (C : params.Core P Sk V
   simp only [signing_key.SigningKey.Insts.SignatureSignerRandomizedSignerSignature.try_sign_with_rng,
     signing_key.SigningKey.Insts.SignatureSignerRandomizedMultipartSignerSignature.try_multipart_sign_with_rng,
     signing_key.SigningKey.raw_try_sign_with_rng, signing_key.SigningKey.sign_with_rng_buffer,
-    signing_key.SigningKey.raw_try_sign_with_context, lift, bind_ok, join_single parts m h]
+    signing_key.SigningKey.raw_try_sign_with_context, lift, bind_ok, multipart.join_single parts m h]
 
 #print axioms multipart_sign_eq
 #print axioms multipart_verify_eq
