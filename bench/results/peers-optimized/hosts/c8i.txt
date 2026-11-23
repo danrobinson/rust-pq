@@ -41,7 +41,7 @@ Vulnerability Srbds:                     Not affected
 Vulnerability Tsa:                       Not affected
 Vulnerability Tsx async abort:           Not affected
 Vulnerability Vmscape:                   Not affected
-Linux ip-172-30-0-93.ec2.internal 6.18.62-127.179.amzn2023.x86_64 #2 SMP PREEMPT_DYNAMIC Wed Nov 11 00:36:10 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+Linux ip-172-30-0-229.ec2.internal 6.18.62-127.179.amzn2023.x86_64 #2 SMP PREEMPT_DYNAMIC Wed Nov 11 00:36:10 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
 NAME="Amazon Linux"
 VERSION="2023"
 ID="amzn"
