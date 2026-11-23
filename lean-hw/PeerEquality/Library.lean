@@ -1,5 +1,5 @@
 import PeerEquality.Providers
-import PeerEquality.CallerFacade
+import PeerEquality.Multipart
 
 open Aeneas Aeneas.Std Result
 namespace slhdsa.PeerCall
@@ -33,8 +33,28 @@ structure SameFacade (c : Children) : Prop where
     verifying_key.VerifyingKey.try_verify_with_context C ours m ctx parsed ⦃ ret =>
       ret = if verifyCtx c p k [bytes m.val] (bytes ctx.val) s then .Ok () else .Err () ⦄
 
+  signParts : ∀ (k : Key) (_ : k.Shape p)
+    (ours : signing_key.SigningKey P (Array U8 sk) (Array U8 vk) (Array U8 sig)),
+    bytes ours.bytes.val = k.bytes → ∀ (parts : Slice (Slice U8)) (m ctx : Slice U8),
+    parts.val.flatMap (·.val) = m.val → ∀ (rnd : Option (Slice U8)),
+    (∀ r ∈ rnd, r.length=p.n) → Room m.length slack →
+    signing_key.SigningKey.raw_try_sign_with_context C ours parts ctx rnd ⦃ ret =>
+      signatureBytes ret = (signCtx c p k (byteParts parts) (bytes ctx.val)
+        (rnd.map fun x => bytes x.val)).map Signature.bytes ⦄
+  verifyParts : ∀ (k : PublicKey) (_ : k.Shape p)
+    (ours : verifying_key.VerifyingKey P (Array U8 sk) (Array U8 vk) (Array U8 sig)),
+    bytes ours.bytes.val = k.bytes → ∀ (parts : Slice (Slice U8)) (m ctx : Slice U8),
+    parts.val.flatMap (·.val) = m.val → ∀ (s : Signature) (_ : s.Shape p)
+    (parsed : signature_encoding.Signature P (Array U8 sk) (Array U8 vk) (Array U8 sig)),
+    bytes parsed.bytes.val = s.bytes → Room m.length slack →
+    verifying_key.VerifyingKey.raw_try_verify_with_context C ours parts ctx parsed ⦃ ret =>
+      ret = if verifyCtx c p k (byteParts parts) (bytes ctx.val) s then .Ok () else .Err () ⦄
+
 private theorem specialize {c : Children} (api : Facades C p slack) (laws : ChildLaws c p) :
-    SameFacade C p slack c := ⟨api.keys c laws,api.sign c laws,api.verify c laws⟩
+    SameFacade C p slack c := by
+  have positive := Nat.lt_of_lt_of_le (by decide : 0 < 2) laws.params.d_ge
+  exact ⟨api.keys c laws,api.sign c laws,api.verify c laws,
+    multipart_sign_peer api c laws positive,multipart_verify_peer api c laws positive⟩
 
 end
 
