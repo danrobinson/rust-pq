@@ -11,6 +11,7 @@ import struct
 import subprocess
 import tempfile
 
+from entries import certificate as entry_certificate
 from hypertree import verify as verify_hypertree
 from image import Image, require
 from permute import decode
@@ -220,6 +221,20 @@ def mutation_tests(image, scratch, env):
         )
     else:
         raise AssertionError("changed SHA-256 instruction passed")
+    # Change a keygen wrapper's public-key buffer length while preserving a valid MOV.
+    kg, body = image.function(b"10shake_128s6keygen", b"6slhdsa4sets")
+    (j,) = [i for i, w in enumerate(body) if w == 0x52800406]
+    bad = bytearray(image.data)
+    bad[kg - image.base + 4 * j] ^= 0x20
+    try:
+        entry_certificate(Image(bad))
+    except ValueError as err:
+        require(
+            "incorrect forwarded public arguments" in str(err),
+            f"unexpected keygen mutation failure: {err}",
+        )
+    else:
+        raise AssertionError("wrong keygen buffer size passed")
     # Change the top-layer guard from unsigned >= to >. This must add one recovery.
     ht, body = image.function(b"7ht_signKj10_EB6_", b"6slhdsa5shake2ht")
     (guard,) = [i for i, w in enumerate(body) if w & 0xFF00001F == 0x54000002]
@@ -277,7 +292,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="reject six independent binary mutations",
+        help="reject seven independent binary mutations",
     )
     parser.add_argument(
         "--certificate", type=Path, help="save the checked Lean certificate"
@@ -295,7 +310,7 @@ if __name__ == "__main__":
         PATH=str(Path.home() / ".elan/bin") + os.pathsep + os.environ["PATH"],
     )
     subprocess.run(
-        ["lake", "build", "Spec.ShakeWords", "Spec.ArmSha3Binary"],
+        ["lake", "build", "Spec.ShakeWords", "Spec.ArmSha3Binary", "Spec.SlhDsa"],
         cwd=ROOT / "lean",
         env=env,
         check=True,
@@ -329,6 +344,14 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as folder:
         snapshot = Path(folder) / "release-image"
         snapshot.write_bytes(data)
+        subprocess.run(
+            ["lake", "env", "lean", "--stdin"],
+            cwd=ROOT / "lean",
+            env=env,
+            input=entry_certificate(image),
+            text=True,
+            check=True,
+        )
         for bits in (256, 512):
             verify_sha2(image, snapshot, bits)
         verify_hypertree(image, snapshot)
@@ -336,7 +359,8 @@ if __name__ == "__main__":
         if args.self_test:
             mutation_tests(image, Path(folder), env)
     if args.self_test:
-        print("Rejected six mutations in the linked image")
+        print("Rejected seven mutations in the linked image")
+    print("Verified all 36 keygen, internal signing and verification entry stubs")
     print("Verified the linked Arm hardware SHA-256 and SHA-512 compression routines")
     print("Verified Apple arm64 two-state Keccak-f[1600] and single-state wrapper")
     print(
