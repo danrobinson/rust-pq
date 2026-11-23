@@ -37,9 +37,14 @@ def scalar_source(path, manifest, target):
     [ir] = list((path / "ir" / target / "release").rglob("keccak-*.ll"))
     scripts = ROOT / "scripts/peer-shake"
     checked = runpy.run_path(str(scripts / "dispatch.py"))["select"](ir.read_text(), target)
-    result = runpy.run_path(str(scripts / "soft.py"))["program"](checked)
-    name = "Soft" if target == "aarch64-apple-darwin" else "SoftLinux"
-    if result.replace("PeerKeccak.Soft", "PeerKeccak."+name) != (PACKAGE / (name+"Program.lean")).read_text():
+    if target in ("powerpc64-unknown-linux-gnu", "wasm32-unknown-unknown"):
+        name = "Indexed"
+        result = runpy.run_path(str(scripts / "indexed.py"))["program"](checked)
+    else:
+        name = "Soft" if target == "aarch64-apple-darwin" else "SoftLinux"
+        result = runpy.run_path(str(scripts / "soft.py"))["program"](checked)
+        result = result.replace("PeerKeccak.Soft", "PeerKeccak."+name)
+    if result != (PACKAGE / (name+"Program.lean")).read_text():
         raise ValueError(f"verified scalar program differs on {target}")
 
 
@@ -66,11 +71,13 @@ def main():
         for target in ARM:
             arm_source(root, manifest, target)
         locked["common"]["append"](root / "src/lib.rs", (ROOT / "scripts/peer-shake/keccak.rs").read_text())
-        for target in (*ARM, "x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu", "x86_64-unknown-none"):
+        for target in (*ARM, "x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu", "x86_64-unknown-none",
+                       "powerpc64-unknown-linux-gnu", "wasm32-unknown-unknown"):
             scalar_source(root, manifest, target)
-        audit(root, ["Peerarmkeccak.Top", "Peerarmkeccak.SoftProof", "Peerarmkeccak.SoftLinuxProof"],
+        audit(root, ["Peerarmkeccak.Top", "Peerarmkeccak.SoftProof", "Peerarmkeccak.SoftLinuxProof",
+                     "Peerarmkeccak.IndexedProof"],
               ["PeerKeccak.Arm.both", "PeerKeccak.Arm.single", "PeerKeccak.Soft.permute_fips",
-               "PeerKeccak.SoftLinux.permute_fips"])
+               "PeerKeccak.SoftLinux.permute_fips", "PeerKeccak.Indexed.permute_fips"])
 
 
 if __name__ == "__main__":
