@@ -145,15 +145,11 @@ for s in $SETS; do
            pure_rom_security api_pure_rom_security rust_pure_rom_security_bytes api_pure_rom_security_bytes; do
     echo "#print axioms ME2E.sha2_${s}.${t}" >> "$out/Ax.lean"; done
 done
-lake env lean "$out/Ax.lean" > "$out/axioms.txt" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.txt" | head; fail=1; }
+lake env lean "$out/Ax.lean" > "$out/axioms.raw" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.raw" | head; fail=1; }
+awk -f scripts/axiom-lines.awk "$out/axioms.raw" > "$out/axioms.txt"
 total=$(grep -c "depends on axioms\|does not depend" "$out/axioms.txt")
 expected=$(grep -c "^#print axioms" "$out/Ax.lean")
-# Lean wraps long theorem names and their axiom lists across lines.
-badax=$(awk '/depends on axioms/ {
-  report = $0
-  while (report !~ /]$/ && getline > 0) report = report $0
-  print report
-}' "$out/axioms.txt" | grep -v "depends on axioms: \[propext, Classical.choice, Quot.sound\]$" | grep -v "depends on axioms: \[propext, Quot.sound\]$")
+badax=$(grep "depends on axioms" "$out/axioms.txt" | grep -v "depends on axioms: \[propext, Classical.choice, Quot.sound\]$" | grep -v "depends on axioms: \[propext, Quot.sound\]$")
 echo "$total / $expected headline theorems reported"
 [ "$total" -ne "$expected" ] && { echo "FAIL: missing headline theorems"; fail=1; }
 if [ -n "$badax" ]; then echo "FAIL: unexpected axioms:"; echo "$badax"; fail=1; else echo "all within [propext, Classical.choice, Quot.sound]"; fi

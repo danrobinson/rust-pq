@@ -152,7 +152,8 @@ for s in $SETS; do
            pure_rom_security api_pure_rom_security rust_pure_rom_security_bytes api_pure_rom_security_bytes; do
     echo "#print axioms ME2E.sha2_${s}.${t}" >> "$out/Ax.lean"; done
 done
-lake env lean "$out/Ax.lean" > "$out/axioms.txt" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.txt" | head; fail=1; }
+lake env lean "$out/Ax.lean" > "$out/axioms.raw" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.raw" | head; fail=1; }
+awk -f ../security/scripts/axiom-lines.awk "$out/axioms.raw" > "$out/axioms.txt"
 # The environment these theorems live in is the hw-sha2 translation's: its chain kernel exists.
 for top in ME2E MIdeal; do
   printf 'import %s\nexample : True := by\n  have := @slhdsa.sha256.hw.chain_all\n  trivial\n' "$top" > "$out/Hw.lean"
