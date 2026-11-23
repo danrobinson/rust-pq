@@ -9,10 +9,10 @@ Read the checksummed crates.io archive rather than an editable registry tree.
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import re
 import subprocess
 import tarfile
+from pathlib import Path
 
 
 def require(ok, why):
@@ -131,8 +131,8 @@ def translate(which, source):
             tape = " ++ ".join([name(field) + " n seed", *[args[x] for x in events]])
             params = " (" + params + " : Bytes)"
         result += [
-            f"def {name(op)} (n : Nat) (seed addr : Bytes){params} : Bytes :=",
-            f"  (digest{cache[field]} ({tape})).take n",
+            f"def {name(op)} (n : Nat) (seed addr : Bytes){params} (algs : Algorithms := nativeAlgorithms) : Bytes :=",
+            f"  (algs.sha{cache[field]} ({tape})).take n",
             "",
         ]
     flat = lambda var: (
@@ -148,9 +148,9 @@ def translate(which, source):
     names = {"rand": "r", "pk_seed": "seed", "pk_root": "root"}
     prefix = " ++ ".join(names[x] for x in re.findall(r"h\.update\((\w+)\);", m[2]))
     result += [
-        f"def {name('hmsg')} (len : Nat) (r seed root : Bytes) (msg : List (List Bytes)) : Bytes :=",
-        f"  let inner := digest{m[1]} (absorb ({prefix}) msg.flatten)",
-        f"  mgf digest{m[5]} {int(m[5]) // 8} ({names[m[3]]} ++ {names[m[4]]} ++ inner) len",
+        f"def {name('hmsg')} (len : Nat) (r seed root : Bytes) (msg : List (List Bytes)) (algs : Algorithms := nativeAlgorithms) : Bytes :=",
+        f"  let inner := algs.sha{m[1]} (absorb ({prefix}) msg.flatten)",
+        f"  mgf algs.sha{m[5]} {int(m[5]) // 8} ({names[m[3]]} ++ {names[m[4]]} ++ inner) len",
         "",
     ]
     hm = match(
@@ -160,8 +160,8 @@ def translate(which, source):
         sources["prf_msg"],
     )
     result += [
-        f"def {name('prfmsg')} (n : Nat) (key rand : Bytes) (msg : List (List Bytes)) : Bytes :=",
-        f"  (mac digest{hm[1]} {64 if hm[1] == '256' else 128} key (absorb rand msg.flatten)).take n",
+        f"def {name('prfmsg')} (n : Nat) (key rand : Bytes) (msg : List (List Bytes)) (algs : Algorithms := nativeAlgorithms) : Bytes :=",
+        f"  (mac algs.sha{hm[1]} {64 if hm[1] == '256' else 128} key (absorb rand msg.flatten)).take n",
         "",
     ]
     return result
@@ -297,6 +297,55 @@ def verify_adapters(packages, lock, suite):
         .split("impl Sealed for super::Eager {")[1]
         .split("impl Sealed")[0]
     )
+    method(
+        eager,
+        "get_pos",
+        """
+        let pos=unsafe{let buf_ptr=buf.as_ptr().cast::<u8>();let last_byte_ptr=buf_ptr.add(N::USIZE-1);
+        ptr::read(last_byte_ptr)};pos as usize
+    """,
+    )
+    method(
+        eager,
+        "set_pos",
+        """
+        debug_assert!(u8::try_from(val).is_ok());unsafe{let buf_ptr=buf.as_mut_ptr().cast::<u8>();
+        let last_byte_ptr=buf_ptr.add(N::USIZE-1);ptr::write(last_byte_ptr,val as u8);}
+    """,
+    )
+    method(
+        block,
+        "default",
+        """
+        let mut buffer=MaybeUninit::uninit();let mut pos=Default::default();
+        K::set_pos(&mut buffer,&mut pos,0);Self{buffer,pos}
+    """,
+    )
+    method(block, "clone", "unsafe{ptr::read(self)}")
+    method(
+        block,
+        "set_pos_unchecked",
+        "debug_assert!(K::invariant(pos,BS::USIZE));K::set_pos(&mut self.buffer,&mut self.pos,pos);",
+    )
+    method(
+        block,
+        "set_data_unchecked",
+        """
+        unsafe{self.set_pos_unchecked(buf.len());let dst_ptr:*mut u8=self.buffer.as_mut_ptr().cast();
+        ptr::copy_nonoverlapping(buf.as_ptr(),dst_ptr,buf.len());}
+    """,
+    )
+    method(
+        block,
+        "get_pos",
+        """
+        let pos=K::get_pos(&self.buffer,&self.pos);
+        if !K::invariant(pos,BS::USIZE){debug_assert!(false);unsafe{core::hint::unreachable_unchecked();}}pos
+    """,
+    )
+    method(block, "reset", "unsafe{self.set_pos_unchecked(0);}")
+    guard = body(block, r"Drop for ResetGuard<'_, BS, K>")
+    method(guard, "drop", "self.0.reset();")
     method(eager, "invariant", "pos < block_size")
     method(eager, "split_blocks", "Array::slice_as_chunks(data)")
     method(
@@ -441,6 +490,30 @@ def main():
         "open Spec",
         "",
     ]
+    types = (
+        "WotsHash",
+        "WotsPk",
+        "HashTree",
+        "ForsTree",
+        "ForsRoots",
+        "WotsPrf",
+        "ForsPrf",
+    )
+    require(
+        set(re.findall(r"impl Address for (\w+)", address)) == set(types),
+        "address implementations",
+    )
+    for tag, name in enumerate(types):
+        impl = body(address, rf"impl Address for {name}\b")
+        require(
+            compact(impl) == f"constTYPE_CONST:u32={tag};",
+            f"compressed override in {name}",
+        )
+        view = body(address, rf"impl AsRef<\[u8\]> for {name}\b")
+        require(
+            compact(body(view, r"fn as_ref\b")) == "self.as_bytes()",
+            f"byte view in {name}",
+        )
     a = compact(body(address, r"\bfn compressed\b"))
     a = match(
         r"letbytes=self\.as_ref\(\);letmutcompressed=Array::<u8,U22>::default\(\);(.*)compressed",
@@ -465,9 +538,8 @@ def main():
     require(next_dest == 22, "compressed address size")
     lines += ["def compressed (addr : Bytes) : Bytes :=", "  " + " ++ ".join(bits), ""]
     for level in ["L1", "L35"]:
-        impl = source.split(f"HashSuite for Sha2{level}<N, M>", 1)[1].split(
-            "/// SHA2 at", 1
-        )[0]
+        impl = body(source, rf"HashSuite for Sha2{level}<N, M>")
+        require("typeN=N;typeM=M;" in compact(impl), "hash trait sizes")
         lines.extend(translate(level.lower() + "_", impl))
     for suffix, level, n, m in re.findall(
         r"pub type Sha2_(\d+[sf]) = Sha2(L1|L35)<U(\d+), U(\d+)>;", source
