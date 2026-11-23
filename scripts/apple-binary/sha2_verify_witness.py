@@ -70,6 +70,12 @@ def gate(image):
                 f"  toVerifyTrace {label}_guard _ _ _ _ (rejects {label}_guard sig fits bad)",
                 f"theorem {label}_hashCall : hashCall {name} {n} Spec.{label}.sigBytes 0x{hmsg:x} {label}_toHash = some (expectedCall {n}) := by decide",
             ]
+    lines += [
+        "theorem reversedLengthBranch : inspect {sha2_128s_path with branch := (sha2_128s_path.branch.1,sha2_128s_path.branch.2 ^^^ 1)} ≠",
+        "    inspect sha2_128s_path := by decide",
+        "theorem wrongRejection : inspect {sha2_128s_path with reject := sha2_128s_path.reject.map (fun (pc,w) => (pc,if w == 0x52800000 then 0x52800020 else w))} ≠",
+        "    inspect sha2_128s_path := by decide",
+    ]
     return "\n".join(lines + ["end LinkedAppleSha2VerifyLength", ""])
 
 
@@ -83,19 +89,6 @@ def body(image):
         "set_option maxHeartbeats 0",
         "-- Mach-O SHA-256 " + hashlib.sha256(image.data).hexdigest(),
     ]
-    pc, words = image.function(b"6slhdsa3slh19slh_verify_internalKj10_EB4_", b"6slhdsa")
-
-    def fn(stem):
-        return image.function(b"6slhdsa" + stem + b"Kj10_EB4_", b"6slhdsa")[0]
-
-    free = image.function(b"___rust_dealloc", b"___rustc")[0]
-    calls = [
-        fn(b"4hash5h_msg"),
-        0,
-        fn(b"4fors16fors_pk_from_sig"),
-        fn(b"4xmss16xmss_pk_from_sig"),
-        free,
-    ]
 
     def literals(address, count):
         for section, (va, sz, o) in image.sections.items():
@@ -107,26 +100,59 @@ def body(image):
                 )
         raise ValueError("missing constants")
 
-    lines += [
-        "def words : Array Nat := #["
-        + ",\n".join(
-            ",".join(hex(x) for x in words[j : j + 8]) for j in range(0, len(words), 8)
+    def array(name, words):
+        return (
+            "def "
+            + name
+            + " : Array Nat := #["
+            + ",\n".join(
+                ",".join(hex(x) for x in words[j : j + 8])
+                for j in range(0, len(words), 8)
+            )
+            + "]"
         )
-        + "]"
-    ]
-    for v in "sf":
-        label = f"sha2_128{v}"
-        lines += [
-            f"def {label}_image : Image := ⟨⟨Spec.{label},{label}_path,{label}_toHash,0x{pc:x},words,"
-            + ",".join(hex(a) for a in calls)
-            + f",0,#[]⟩,0x{pc + 4 * 92:x},{literals(0x1000D5F30, 8)},{literals(0x1000DC470, 64)}⟩",
-            f"theorem {label}_checked : run {label}_image = some (expected Spec.{label}) := by decide +kernel",
-            f"def {label}_trace {{msg sig pk events}} (actual : run {label}_image = some events)",
-            f"    (v : Callees Spec.{label} msg sig pk) := trace actual {label}_checked (by decide) v",
-            f"theorem {label}_eq {{msg sig pk events}} (actual : run {label}_image = some events)",
-            f"    (v : Callees Spec.{label} msg sig pk) : returned v events = Spec.slhVerifyInternal Spec.{label} msg sig pk :=",
-            f"  ({label}_trace actual v).eq_spec",
+
+    free = image.function(b"___rust_dealloc", b"___rustc")[0]
+    for n in (16, 24, 32):
+
+        def fn(stem):
+            return image.function(
+                b"6slhdsa" + stem + f"Kj{n:x}_EB4_".encode(), b"6slhdsa"
+            )
+
+        pc, ops = fn(b"3slh19slh_verify_internal")
+        wordname = f"body{n}"
+        lines.append(array(wordname, ops))
+        calls = [
+            fn(b"4hash5h_msg")[0],
+            0,
+            fn(b"4fors16fors_pk_from_sig")[0],
+            fn(b"4xmss16xmss_pk_from_sig")[0],
+            free,
         ]
+        if n == 16:
+            ht, htwords, seed = 0, "#[]", pc + 92 * 4
+            tables = f"{literals(0x1000D5F30, 8)},{literals(0x1000DC470, 64)}"
+            words = ops
+        else:
+            ht, hw = fn(b"2ht9ht_verify")
+            htwords = f"ht{n}"
+            lines.append(array(htwords, hw))
+            seed = fn(b"4hash8seed_ctx")[0]
+            tables = "[],[]"
+        for v in "sf":
+            label = f"sha2_{8 * n}{v}"
+            lines += [
+                f"def {label}_image : Image := ⟨⟨Spec.{label},{label}_path,{label}_toHash,0x{pc:x},{wordname},"
+                + ",".join(hex(x) for x in calls)
+                + f",0x{ht:x},{htwords}⟩,0x{seed:x},{tables}⟩",
+                f"theorem {label}_checked : run {label}_image = some (expected Spec.{label}) := by decide +kernel",
+                f"def {label}_trace {{msg sig pk events}} (actual : run {label}_image = some events)",
+                f"    (v : Callees Spec.{label} msg sig pk) := trace actual {label}_checked (by decide) v",
+                f"theorem {label}_eq {{msg sig pk events}} (actual : run {label}_image = some events)",
+                f"    (v : Callees Spec.{label} msg sig pk) : returned v events = Spec.slhVerifyInternal Spec.{label} msg sig pk :=",
+                f"  ({label}_trace actual v).eq_spec",
+            ]
     for name, j, mask in [
         ("wrongSeedRound", 107, 0x1000),
         ("wrongForestInput", 150, 0x400),
@@ -134,9 +160,22 @@ def body(image):
         ("wrongRoot", 195, 0x10000),
     ]:
         lines += [
-            f"theorem {name} : run {{sha2_128s_image with core := {{sha2_128s_image.core with words := words.set! {j} 0x{words[j] ^ mask:08x}}}}} ≠",
+            f"theorem {name} : run {{sha2_128s_image with core := {{sha2_128s_image.core with words := body16.set! {j} 0x{words[j] ^ mask:08x}}}}} ≠",
             "    some (expected Spec.sha2_128s) := by decide +kernel",
         ]
+    for name, label, field, arr, j, mask in [
+        ("wrongWideSeed", "sha2_192s", "words", "body24", 92, 1),
+        ("wrongWideKeyWord", "sha2_256s", "htWords", "ht32", 60, 32),
+    ]:
+        lines += [
+            f"theorem {name} : run {{{label}_image with core := {{{label}_image.core with {field} := {arr}.set! {j} (({arr}[{j}]!) ^^^ {mask})}}}} ≠",
+            f"    some (expected Spec.{label}) := by decide +kernel",
+        ]
+    lines += [
+        "#print axioms sha2_128s_eq",
+        "#print axioms sha2_192f_eq",
+        "#print axioms sha2_256s_eq",
+    ]
     return "\n".join(lines + ["end LinkedAppleSha2VerifyBody", ""])
 
 

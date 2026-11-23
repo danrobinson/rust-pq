@@ -12,7 +12,27 @@ structure Image where
   iv : List Nat
   constants : List Nat
 
-def seedCells (n : Nat) := List.replicate 16 0 ++ ArmKeygen.block 32 4 ++ ArmKeygen.block n 1
+def seedCells (n : Nat) := if n == 16 then
+  List.replicate 16 0 ++ ArmKeygen.block 32 4 ++ ArmKeygen.block n 1 else ArmKeygen.block (96+n) 4
+
+def wideWords (n : Nat) : List Nat :=
+  if n == 24 then [0xa94127e8,0xf94003ed,0xa9402daa,0xf94013ec,0xf94009ad,0xeb0a011f,0xfa4b0120,0xfa4d0180,0x1a9f17e0]
+  else [0xa94127e8,0xf94003ef,0xa9402dea,0xa94237ec,0xa9413dee,0xeb0a011f,0xfa4b0120,0xfa4e0180,0xfa4f01a0,0x1a9f17e0]
+
+theorem compareWide (n : Nat) (width : n = 24 ∨ n = 32)
+    (m : LinkedArm.RootComparison.ByteMemory) (s : LinkedArm.RootComparison.State) :
+    LinkedArm.RootComparison.verdict (wideWords n) (LinkedArm.RootComparison.load64 m) s =
+      some (if LinkedArm.RootComparison.byteSlice m (s.sp+16) n =
+        LinkedArm.RootComparison.byteSlice m (LinkedArm.RootComparison.load64 m s.sp) n then 1 else 0) := by
+  rcases width with rfl | rfl <;>
+    simp [wideWords,LinkedArm.RootComparison.verdict,LinkedArm.RootComparison.step,
+      LinkedArm.RootComparison.base,LinkedArm.RootComparison.operand,LinkedArm.RootComparison.write,
+      LinkedArm.RootComparison.load64_eq,LinkedArm.RootComparison.byteSlice,
+      List.range_succ,List.foldlM,Bool.and_assoc,Bool.and_eq_true,and_assoc,
+      BitVec.add_assoc]
+
+def certifiedWide (n : Nat) (w : n = 24 ∨ n = 32) : ArmVerifyBody.CertifiedComparison n :=
+  ⟨wideWords n,fun s => s.sp+16,fun m s => LinkedArm.RootComparison.load64 m s.sp,compareWide n w⟩
 
 /-- The SHA-256 prefix circuit has the same SHA operations and schedule as
 the checked keygen seed circuit, with a different stack offset, literal page
@@ -47,7 +67,13 @@ def tick (im : Image) (c : Control) : Option Control := do
   let n := p.n
   let a := arg s
   let pc := s.pc
-  if pc == im.seedStart then return ← seedPrefix im c
+  if pc == im.seedStart then
+    if n == 16 then return ← seedPrefix im c
+    guard ([24,32].contains n && !s.seeded && c.actions == [.hash] && cellBuffer s (← a 0) (ArmKeygen.block n 1))
+    let out ← a 8
+    guard (frame s out (96+n) && disjoint out (96+n) (← a 0) n)
+    let new := {clobber s (64+64*c.epoch) with pc := ← a 30,m := write s.m out (seedCells n),seeded := true}
+    return {c with machine := new, epoch := c.epoch+1, flags := none}
   if pc == i.hmsg || pc == i.free then return ← ArmVerifyBody.action i c
   if pc == i.fors || pc == i.xmss then
     let (actions,layers,out,result) ← if pc == i.fors then do
@@ -76,8 +102,17 @@ def tick (im : Image) (c : Control) : Option Control := do
   let w ← ArmVerifyBody.code i pc
   let d := w%32
   let next := {s with pc := pc+4}
-  if w == 0x9280000a then return {c with machine := put next d (num (2^64-1))}
-  if w == 0xd2c00069 then return {c with machine := put next d (num (3*radix))}
+  if n != 16 && w == 0xa94127e8 then
+    let seq := if n == 24 then (certifiedWide 24 (Or.inl rfl)).words else (certifiedWide 32 (Or.inr rfl)).words
+    guard ((← (List.range seq.length).mapM (fun j => ArmVerifyBody.code i (pc+4*j))) == seq &&
+      c.layers == p.d && cellBuffer s (s.sp+16) (root n c.layers))
+    let pkRoot ← natVal (← read s.m s.sp 8)
+    guard (pkRoot == base+n && has s pkRoot (ArmKeygen.block n 2))
+    let next := (List.range 8).foldl (fun t j => put t (8+j) (unknown (9100+j) 2)) next
+    return {c with machine := {put next 0 verdict with pc := pc+4*seq.length},
+                   actions := c.actions ++ [.compare], flags := none}
+  if w &&& 0xffffffe0 == 0x92800000 then return {c with machine := put next d (num (2^64-1))}
+  if w &&& 0xffffffe0 == 0xd2c00060 then return {c with machine := put next d (num (3*radix))}
   if w == 0x924016a8 then return {c with machine := put next d (num ((← a 21)%64))}
   return ← ArmVerifyBody.tick i c
 
