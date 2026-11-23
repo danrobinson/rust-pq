@@ -25,6 +25,36 @@ noncomputable section
 
 namespace slh_dsa
 
+/-- Trait implementation: [pkcs8::error::{impl core::convert::From<pkcs8::error::KeyError> for pkcs8::error::Error}]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkcs8-0.11.0/src/error.rs', lines 63:0-63:29
+    Name pattern: [core::convert::From<pkcs8::error::Error, pkcs8::error::KeyError>] -/
+@[reducible, rust_trait_impl
+  "core::convert::From<pkcs8::error::Error, pkcs8::error::KeyError>"]
+def pkcs8.error.Error.Insts.CoreConvertFromKeyError : core.convert.From
+  pkcs8.error.Error pkcs8.error.KeyError := {
+  «from» := pkcs8.error.Error.Insts.CoreConvertFromKeyError.from
+}
+
+/-- Trait implementation: [pkcs8::error::{impl core::convert::From<spki::error::Error> for pkcs8::error::Error}]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkcs8-0.11.0/src/error.rs', lines 95:0-95:32
+    Name pattern: [core::convert::From<pkcs8::error::Error, spki::error::Error>] -/
+@[reducible, rust_trait_impl
+  "core::convert::From<pkcs8::error::Error, spki::error::Error>"]
+def pkcs8.error.Error.Insts.CoreConvertFromError : core.convert.From
+  pkcs8.error.Error spki.error.Error := {
+  «from» := pkcs8.error.Error.Insts.CoreConvertFromError.from
+}
+
+/-- Trait implementation: [spki::error::{impl core::convert::From<der::error::Error> for spki::error::Error}]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spki-0.8.1/src/error.rs', lines 59:0-59:31
+    Name pattern: [core::convert::From<spki::error::Error, der::error::Error>] -/
+@[reducible, rust_trait_impl
+  "core::convert::From<spki::error::Error, der::error::Error>"]
+def spki.error.Error.Insts.CoreConvertFromError : core.convert.From
+  spki.error.Error der.error.Error := {
+  «from» := spki.error.Error.Insts.CoreConvertFromError.from
+}
+
 /-- Trait implementation: [zeroize::{impl zeroize::Zeroize for Z}]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.2/src/lib.rs', lines 278:0-280:23
     Name pattern: [zeroize::Zeroize<@Z>] -/
@@ -42,6 +72,11 @@ def U8.Insts.ZeroizeDefaultIsZeroes : zeroize.DefaultIsZeroes Std.U8 := {
   coremarkerCopyInst := core.marker.CopyU8
   coredefaultDefaultInst := core.default.DefaultU8
 }
+
+/-- [slh_dsa::same]:
+    Source: 'src/lib.rs', lines 104:0-106:1 -/
+def same (a : Slice Std.U8) (b : Slice Std.U8) : Result Bool := do
+  slhdsa.adapter.bytes_equal a b
 
 /-- [slh_dsa::multipart::append_range]:
     Source: 'src/multipart.rs', lines 8:0-17:1 -/
@@ -103,7 +138,7 @@ def ArrayU8N.Insts.Slh_dsaParamsBuffer (N : Std.Usize) : params.Buffer (Array
 }
 
 /-- [slh_dsa::params::split]:
-    Source: 'src/params.rs', lines 86:0-91:1 -/
+    Source: 'src/params.rs', lines 91:0-96:1 -/
 def params.split
   (addrnd : Option (Slice Std.U8)) : Result (Bool × (Slice Std.U8)) := do
   match addrnd with
@@ -112,17 +147,41 @@ def params.split
     ok (false, s)
   | some r => ok (true, r)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 @[global_simps, irreducible]
-def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_128_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
+@[reducible]
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L1 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_128s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -136,10 +195,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -157,20 +216,20 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_128s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
@@ -185,10 +244,10 @@ def scrub.scrub_stack : Result Unit := do
       U8.Insts.ZeroizeDefaultIsZeroes) region
   ok ()
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -196,10 +255,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -207,20 +266,20 @@ def
   let p ← slhdsa.sets.sha2_128s.params.PARAMS
   slhdsa.api.verify 16#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_128s.params.PARAMS
   slhdsa.slh.slh_verify_internal 16#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -231,9 +290,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
-def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -244,10 +304,10 @@ def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -258,10 +318,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 def
-  params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -270,87 +330,140 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 @[reducible]
-def params.Sha2_128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856 :
-  params.SignatureStorage params.Sha2_128s (Array Std.U8 7856#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU87856
+  : params.SignatureStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0)) (Array Std.U8 7856#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 7856#usize
   corecloneCloneInst := core.clone.CloneArray 7856#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 @[reducible]
-def params.Sha2_128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
-  params.VerifyingKeyStorage params.Sha2_128s (Array Std.U8 32#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  : params.VerifyingKeyStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0)) (Array Std.U8 32#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
   corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 @[reducible]
-def params.Sha2_128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
-  params.SigningKeyStorage params.Sha2_128s (Array Std.U8 64#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  : params.SigningKeyStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 222:0-222:122 -/
 @[reducible]
-def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 :
-  params.Core params.Sha2_128s (Array Std.U8 64#usize) (Array Std.U8 32#usize)
-  (Array Std.U8 7856#usize) := {
-  N := params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856
+  : params.Core (params.Sha2L1 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)) (Array
+  Std.U8 64#usize) (Array Std.U8 32#usize) (Array Std.U8 7856#usize) := {
+  N :=
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
   SigningKeyStorageInst :=
-    params.Sha2_128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
   VerifyingKeyStorageInst :=
-    params.Sha2_128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
   SignatureStorageInst :=
-    params.Sha2_128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU87856
   keygen :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
   keygen_seeds :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
   sign :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   sign_internal :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
   verify_internal :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
   verify :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
   sk_from :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
   pk_from :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
   sig_from :=
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 @[global_simps, irreducible]
-def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_128_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
+@[reducible]
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L1 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_128f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -364,10 +477,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -385,29 +498,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_128f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -415,10 +528,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -426,20 +539,20 @@ def
   let p ← slhdsa.sets.sha2_128f.params.PARAMS
   slhdsa.api.verify 16#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_128f.params.PARAMS
   slhdsa.slh.slh_verify_internal 16#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -450,9 +563,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
-def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -463,10 +577,10 @@ def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -477,10 +591,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 def
-  params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -489,87 +603,142 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 @[reducible]
-def params.Sha2_128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088 :
-  params.SignatureStorage params.Sha2_128f (Array Std.U8 17088#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU817088
+  : params.SignatureStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 17088#usize)
+  := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 17088#usize
   corecloneCloneInst := core.clone.CloneArray 17088#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 @[reducible]
-def params.Sha2_128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
-  params.VerifyingKeyStorage params.Sha2_128f (Array Std.U8 32#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  : params.VerifyingKeyStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 32#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
   corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 @[reducible]
-def params.Sha2_128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
-  params.SigningKeyStorage params.Sha2_128f (Array Std.U8 64#usize) := {
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  : params.SigningKeyStorage (params.Sha2L1 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2L1<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 223:0-223:123 -/
 @[reducible]
-def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 :
-  params.Core params.Sha2_128f (Array Std.U8 64#usize) (Array Std.U8 32#usize)
-  (Array Std.U8 17088#usize) := {
-  N := params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+def
+  params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088
+  : params.Core (params.Sha2L1 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 64#usize) (Array Std.U8
+  32#usize) (Array Std.U8 17088#usize) := {
+  N :=
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
   SigningKeyStorageInst :=
-    params.Sha2_128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
   VerifyingKeyStorageInst :=
-    params.Sha2_128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
   SignatureStorageInst :=
-    params.Sha2_128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU817088
   keygen :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
   keygen_seeds :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
   sign :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   sign_internal :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
   verify_internal :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
   verify :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
   sk_from :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
   pk_from :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
   sig_from :=
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+    params.Sha2L1UIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 @[global_simps, irreducible]
-def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_192_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
+@[reducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1)) := {
+  DER_OID :=
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_192s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -583,10 +752,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -604,29 +773,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_192s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -634,10 +803,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -645,20 +814,20 @@ def
   let p ← slhdsa.sets.sha2_192s.params.PARAMS
   slhdsa.api.verify 24#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_192s.params.PARAMS
   slhdsa.slh.slh_verify_internal 24#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -669,9 +838,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
-def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -682,10 +852,10 @@ def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -696,10 +866,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 def
-  params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -708,87 +878,142 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 @[reducible]
-def params.Sha2_192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224 :
-  params.SignatureStorage params.Sha2_192s (Array Std.U8 16224#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU816224
+  : params.SignatureStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 16224#usize)
+  := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 16224#usize
   corecloneCloneInst := core.clone.CloneArray 16224#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 @[reducible]
-def params.Sha2_192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
-  params.VerifyingKeyStorage params.Sha2_192s (Array Std.U8 48#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  : params.VerifyingKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 48#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
   corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 @[reducible]
-def params.Sha2_192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
-  params.SigningKeyStorage params.Sha2_192s (Array Std.U8 96#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  : params.SigningKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 96#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
   corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 224:0-224:124 -/
 @[reducible]
-def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 :
-  params.Core params.Sha2_192s (Array Std.U8 96#usize) (Array Std.U8 48#usize)
-  (Array Std.U8 16224#usize) := {
-  N := params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224
+  : params.Core (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 96#usize) (Array Std.U8
+  48#usize) (Array Std.U8 16224#usize) := {
+  N :=
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
   SigningKeyStorageInst :=
-    params.Sha2_192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
   VerifyingKeyStorageInst :=
-    params.Sha2_192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
   SignatureStorageInst :=
-    params.Sha2_192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU816224
   keygen :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
   keygen_seeds :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
   sign :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   sign_internal :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
   verify_internal :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
   verify :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
   sk_from :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
   pk_from :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
   sig_from :=
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 @[global_simps, irreducible]
-def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_192_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
+@[reducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_192f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -802,10 +1027,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -823,29 +1048,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_192f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -853,10 +1078,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -864,20 +1089,20 @@ def
   let p ← slhdsa.sets.sha2_192f.params.PARAMS
   slhdsa.api.verify 24#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_192f.params.PARAMS
   slhdsa.slh.slh_verify_internal 24#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -888,9 +1113,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
-def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -901,10 +1127,10 @@ def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -915,10 +1141,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 def
-  params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -927,87 +1153,142 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 @[reducible]
-def params.Sha2_192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664 :
-  params.SignatureStorage params.Sha2_192f (Array Std.U8 35664#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU835664
+  : params.SignatureStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 35664#usize)
+  := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 35664#usize
   corecloneCloneInst := core.clone.CloneArray 35664#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 @[reducible]
-def params.Sha2_192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
-  params.VerifyingKeyStorage params.Sha2_192f (Array Std.U8 48#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  : params.VerifyingKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 48#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
   corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 @[reducible]
-def params.Sha2_192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
-  params.SigningKeyStorage params.Sha2_192f (Array Std.U8 96#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  : params.SigningKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 96#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
   corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 225:0-225:124 -/
 @[reducible]
-def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 :
-  params.Core params.Sha2_192f (Array Std.U8 96#usize) (Array Std.U8 48#usize)
-  (Array Std.U8 35664#usize) := {
-  N := params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664
+  : params.Core (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 96#usize) (Array Std.U8
+  48#usize) (Array Std.U8 35664#usize) := {
+  N :=
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
   SigningKeyStorageInst :=
-    params.Sha2_192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
   VerifyingKeyStorageInst :=
-    params.Sha2_192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
   SignatureStorageInst :=
-    params.Sha2_192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU835664
   keygen :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
   keygen_seeds :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
   sign :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   sign_internal :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
   verify_internal :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
   verify :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
   sk_from :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
   pk_from :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
   sig_from :=
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+    params.Sha2L35UIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 @[global_simps, irreducible]
-def params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_256_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
+@[reducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) := {
+  DER_OID :=
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_256s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -1021,10 +1302,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -1042,29 +1323,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_256s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1072,10 +1353,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -1083,20 +1364,20 @@ def
   let p ← slhdsa.sets.sha2_256s.params.PARAMS
   slhdsa.api.verify 32#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_256s.params.PARAMS
   slhdsa.slh.slh_verify_internal 32#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -1107,10 +1388,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -1121,10 +1402,10 @@ def
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -1135,10 +1416,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 def
-  params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1147,88 +1428,144 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 @[reducible]
-def params.Sha2_256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792 :
-  params.SignatureStorage params.Sha2_256s (Array Std.U8 29792#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU829792
+  : params.SignatureStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B1)) (Array Std.U8 29792#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 29792#usize
   corecloneCloneInst := core.clone.CloneArray 29792#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 @[reducible]
-def params.Sha2_256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
-  params.VerifyingKeyStorage params.Sha2_256s (Array Std.U8 64#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  : params.VerifyingKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B1)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 @[reducible]
-def params.Sha2_256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
-  params.SigningKeyStorage params.Sha2_256s (Array Std.U8 128#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  : params.SigningKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B1)) (Array Std.U8 128#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
   corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 226:0-226:125 -/
 @[reducible]
-def params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 :
-  params.Core params.Sha2_256s (Array Std.U8 128#usize) (Array Std.U8 64#usize)
-  (Array Std.U8 29792#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792
+  : params.Core (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array
+  Std.U8 128#usize) (Array Std.U8 64#usize) (Array Std.U8 29792#usize) := {
   N :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
   SigningKeyStorageInst :=
-    params.Sha2_256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
   VerifyingKeyStorageInst :=
-    params.Sha2_256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
   SignatureStorageInst :=
-    params.Sha2_256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU829792
   keygen :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
   keygen_seeds :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
   sign :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
   sign_internal :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
   verify_internal :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
   verify :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
   sk_from :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
   pk_from :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
   sig_from :=
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 @[global_simps, irreducible]
-def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHA_2_256_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
+@[reducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)) := {
+  DER_OID :=
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
+@[global_simps, irreducible]
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_256f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -1242,10 +1579,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -1263,29 +1600,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.sha2_256f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1293,10 +1630,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -1304,20 +1641,20 @@ def
   let p ← slhdsa.sets.sha2_256f.params.PARAMS
   slhdsa.api.verify 32#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.sha2_256f.params.PARAMS
   slhdsa.slh.slh_verify_internal 32#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -1328,10 +1665,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -1342,10 +1679,10 @@ def
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -1356,10 +1693,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 def
-  params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1368,88 +1705,143 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 @[reducible]
-def params.Sha2_256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856 :
-  params.SignatureStorage params.Sha2_256f (Array Std.U8 49856#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSignatureStorageArrayU849856
+  : params.SignatureStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1)) (Array Std.U8 49856#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 49856#usize
   corecloneCloneInst := core.clone.CloneArray 49856#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 @[reducible]
-def params.Sha2_256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
-  params.VerifyingKeyStorage params.Sha2_256f (Array Std.U8 64#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  : params.VerifyingKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 @[reducible]
-def params.Sha2_256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
-  params.SigningKeyStorage params.Sha2_256f (Array Std.U8 128#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  : params.SigningKeyStorage (params.Sha2L35 (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1)) (Array Std.U8 128#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
   corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2L35<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 227:0-227:125 -/
 @[reducible]
-def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
-  params.Core params.Sha2_256f (Array Std.U8 128#usize) (Array Std.U8 64#usize)
-  (Array Std.U8 49856#usize) := {
+def
+  params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856
+  : params.Core (params.Sha2L35 (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)) (Array
+  Std.U8 128#usize) (Array Std.U8 64#usize) (Array Std.U8 49856#usize) := {
   N :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
   SigningKeyStorageInst :=
-    params.Sha2_256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
   VerifyingKeyStorageInst :=
-    params.Sha2_256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
   SignatureStorageInst :=
-    params.Sha2_256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSignatureStorageArrayU849856
   keygen :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
   keygen_seeds :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
   sign :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
   sign_internal :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
   verify_internal :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
   verify :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
   sk_from :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
   pk_from :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
   sig_from :=
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+    params.Sha2L35UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 @[global_simps, irreducible]
-def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_128_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
   : Result Std.Usize :=
   slhdsa.sets.shake_128s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -1463,10 +1855,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -1484,29 +1876,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_128s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1514,10 +1906,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -1525,20 +1917,20 @@ def
   let p ← slhdsa.sets.shake_128s.params.PARAMS
   slhdsa.shake.api.verify 16#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_128s.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 16#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -1550,9 +1942,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
-def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -1564,10 +1957,10 @@ def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -1578,10 +1971,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 def
-  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1590,87 +1983,140 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Shake128s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 @[reducible]
-def params.Shake128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856 :
-  params.SignatureStorage params.Shake128s (Array Std.U8 7856#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU87856
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)) (Array
+  Std.U8 7856#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 7856#usize
   corecloneCloneInst := core.clone.CloneArray 7856#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake128s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 @[reducible]
-def params.Shake128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
-  params.VerifyingKeyStorage params.Shake128s (Array Std.U8 32#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0)) (Array Std.U8 32#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
   corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake128s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 @[reducible]
-def params.Shake128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
-  params.SigningKeyStorage params.Shake128s (Array Std.U8 64#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 229:0-229:131 -/
 @[reducible]
-def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 :
-  params.Core params.Shake128s (Array Std.U8 64#usize) (Array Std.U8 32#usize)
-  (Array Std.U8 7856#usize) := {
-  N := params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)) (Array
+  Std.U8 64#usize) (Array Std.U8 32#usize) (Array Std.U8 7856#usize) := {
+  N :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
   SigningKeyStorageInst :=
-    params.Shake128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
   VerifyingKeyStorageInst :=
-    params.Shake128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
   SignatureStorageInst :=
-    params.Shake128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU87856
   keygen :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
   keygen_seeds :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
   sign :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   sign_internal :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
   verify_internal :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
   verify :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
   sk_from :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
   pk_from :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
   sig_from :=
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUTermB1B1B1B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 @[global_simps, irreducible]
-def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_128_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
   : Result Std.Usize :=
   slhdsa.sets.shake_128f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -1684,10 +2130,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -1705,29 +2151,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_128f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1735,10 +2181,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -1746,20 +2192,20 @@ def
   let p ← slhdsa.sets.shake_128f.params.PARAMS
   slhdsa.shake.api.verify 16#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_128f.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 16#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -1771,9 +2217,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
-def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -1785,10 +2232,10 @@ def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -1799,10 +2246,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 def
-  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1811,87 +2258,141 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Shake128f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 @[reducible]
-def params.Shake128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088 :
-  params.SignatureStorage params.Shake128f (Array Std.U8 17088#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU817088
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 17088#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 17088#usize
   corecloneCloneInst := core.clone.CloneArray 17088#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake128f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 @[reducible]
-def params.Shake128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
-  params.VerifyingKeyStorage params.Shake128f (Array Std.U8 32#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 32#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
   corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake128f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 @[reducible]
-def params.Shake128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
-  params.SigningKeyStorage params.Shake128f (Array Std.U8 64#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 230:0-230:132 -/
 @[reducible]
-def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 :
-  params.Core params.Shake128f (Array Std.U8 64#usize) (Array Std.U8 32#usize)
-  (Array Std.U8 17088#usize) := {
-  N := params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 64#usize) (Array Std.U8
+  32#usize) (Array Std.U8 17088#usize) := {
+  N :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
   SigningKeyStorageInst :=
-    params.Shake128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
   VerifyingKeyStorageInst :=
-    params.Shake128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
   SignatureStorageInst :=
-    params.Shake128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU817088
   keygen :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
   keygen_seeds :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
   sign :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   sign_internal :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
   verify_internal :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
   verify :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
   sk_from :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
   pk_from :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
   sig_from :=
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B0B1B0.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 @[global_simps, irreducible]
-def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_192_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
   : Result Std.Usize :=
   slhdsa.sets.shake_192s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -1905,10 +2406,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -1926,29 +2427,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_192s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -1956,10 +2457,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -1967,20 +2468,20 @@ def
   let p ← slhdsa.sets.shake_192s.params.PARAMS
   slhdsa.shake.api.verify 24#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_192s.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 24#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -1992,9 +2493,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
-def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -2006,10 +2508,10 @@ def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -2020,10 +2522,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 def
-  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2032,87 +2534,141 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Shake192s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 @[reducible]
-def params.Shake192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224 :
-  params.SignatureStorage params.Shake192s (Array Std.U8 16224#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU816224
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 16224#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 16224#usize
   corecloneCloneInst := core.clone.CloneArray 16224#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake192s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 @[reducible]
-def params.Shake192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
-  params.VerifyingKeyStorage params.Shake192s (Array Std.U8 48#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 48#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
   corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake192s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 @[reducible]
-def params.Shake192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
-  params.SigningKeyStorage params.Shake192s (Array Std.U8 96#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 96#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
   corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 231:0-231:132 -/
 @[reducible]
-def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 :
-  params.Core params.Shake192s (Array Std.U8 96#usize) (Array Std.U8 48#usize)
-  (Array Std.U8 16224#usize) := {
-  N := params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B1)) (Array Std.U8 96#usize) (Array Std.U8
+  48#usize) (Array Std.U8 16224#usize) := {
+  N :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
   SigningKeyStorageInst :=
-    params.Shake192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
   VerifyingKeyStorageInst :=
-    params.Shake192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
   SignatureStorageInst :=
-    params.Shake192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU816224
   keygen :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
   keygen_seeds :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
   sign :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   sign_internal :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
   verify_internal :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
   verify :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
   sk_from :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
   pk_from :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
   sig_from :=
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B0B1B1B1.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 @[global_simps, irreducible]
-def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_192_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
   : Result Std.Usize :=
   slhdsa.sets.shake_192f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -2126,10 +2682,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -2147,29 +2703,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_192f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2177,10 +2733,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -2188,20 +2744,20 @@ def
   let p ← slhdsa.sets.shake_192f.params.PARAMS
   slhdsa.shake.api.verify 24#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_192f.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 24#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -2213,9 +2769,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
-def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -2227,10 +2784,10 @@ def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -2241,10 +2798,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 def
-  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2253,87 +2810,141 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Shake192f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 @[reducible]
-def params.Shake192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664 :
-  params.SignatureStorage params.Shake192f (Array Std.U8 35664#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU835664
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 35664#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 35664#usize
   corecloneCloneInst := core.clone.CloneArray 35664#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake192f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 @[reducible]
-def params.Shake192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
-  params.VerifyingKeyStorage params.Shake192f (Array Std.U8 48#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 48#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
   corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake192f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 @[reducible]
-def params.Shake192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
-  params.SigningKeyStorage params.Shake192f (Array Std.U8 96#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 96#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
   corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B0>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 232:0-232:132 -/
 @[reducible]
-def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 :
-  params.Core params.Shake192f (Array Std.U8 96#usize) (Array Std.U8 48#usize)
-  (Array Std.U8 35664#usize) := {
-  N := params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B0)) (Array Std.U8 96#usize) (Array Std.U8
+  48#usize) (Array Std.U8 35664#usize) := {
+  N :=
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
   SigningKeyStorageInst :=
-    params.Shake192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
   VerifyingKeyStorageInst :=
-    params.Shake192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
   SignatureStorageInst :=
-    params.Shake192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsSignatureStorageArrayU835664
   keygen :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
   keygen_seeds :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
   sign :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   sign_internal :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
   verify_internal :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
   verify :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
   sk_from :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
   pk_from :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
   sig_from :=
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUTermB1B1B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B0B1B0.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 @[global_simps, irreducible]
-def params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_256_S
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
   : Result Std.Usize :=
   slhdsa.sets.shake_256s.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -2347,10 +2958,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -2368,29 +2979,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_256s.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2398,10 +3009,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -2409,20 +3020,20 @@ def
   let p ← slhdsa.sets.shake_256s.params.PARAMS
   slhdsa.shake.api.verify 32#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_256s.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 32#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -2434,10 +3045,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -2449,10 +3060,10 @@ def
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -2463,10 +3074,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 def
-  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2475,88 +3086,144 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Shake256s}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 @[reducible]
-def params.Shake256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792 :
-  params.SignatureStorage params.Shake256s (Array Std.U8 29792#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU829792
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array
+  Std.U8 29792#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 29792#usize
   corecloneCloneInst := core.clone.CloneArray 29792#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake256s}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 @[reducible]
-def params.Shake256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
-  params.VerifyingKeyStorage params.Shake256s (Array Std.U8 64#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B1)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake256s}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 @[reducible]
-def params.Shake256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
-  params.SigningKeyStorage params.Shake256s (Array Std.U8 128#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B1)) (Array Std.U8 128#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
   corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 233:0-233:133 -/
 @[reducible]
-def params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 :
-  params.Core params.Shake256s (Array Std.U8 128#usize) (Array Std.U8 64#usize)
-  (Array Std.U8 29792#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B1) typenum.bit.B1) typenum.bit.B1) typenum.bit.B1)) (Array
+  Std.U8 128#usize) (Array Std.U8 64#usize) (Array Std.U8 29792#usize) := {
   N :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
   SigningKeyStorageInst :=
-    params.Shake256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
   VerifyingKeyStorageInst :=
-    params.Shake256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
   SignatureStorageInst :=
-    params.Shake256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsSignatureStorageArrayU829792
   keygen :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
   keygen_seeds :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
   sign :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
   sign_internal :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
   verify_internal :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
   verify :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
   sk_from :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
   pk_from :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
   sig_from :=
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B0B1B1B1B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::N]
-    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::DER_OID]
+    Source: 'src/params.rs', lines 144:12-144:82; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 @[global_simps, irreducible]
-def params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+  : Result (const_oid.ObjectIdentifier 39#usize) :=
+  const_oid.db.generated.fips205.ID_SLH_DSA_SHAKE_256_F
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::DerAlgorithm for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 143:8-145:9; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
+@[reducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm
+  : params.DerAlgorithm (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)) := {
+  DER_OID :=
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsDerAlgorithm.DER_OID
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::N]
+    Source: 'src/params.rs', lines 152:12-152:51; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
+@[global_simps, irreducible]
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
   : Result Std.Usize :=
   slhdsa.sets.shake_256f.params.N
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::with_spki]:
-    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::with_spki]:
+    Source: 'src/params.rs', lines 213:12-217:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
   Result T
@@ -2570,10 +3237,10 @@ def
   let s3 ← lift (Array.to_slice der1)
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::with_pkcs8]:
+    Source: 'src/params.rs', lines 205:12-211:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
   core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
   Result T
@@ -2591,29 +3258,29 @@ def
       U8.Insts.ZeroizeDefaultIsZeroes) der1
   ok out
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sig_from]:
-    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sig_from]:
+    Source: 'src/params.rs', lines 201:12-203:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   let p ← slhdsa.sets.shake_256f.params.PARAMS
   slhdsa.adapter.signature_from p bytes sig
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::pk_from]:
-    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::pk_from]:
+    Source: 'src/params.rs', lines 197:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
   := do
   slhdsa.encoding.public_key_from bytes pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sk_from]:
-    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sk_from]:
+    Source: 'src/params.rs', lines 191:12-195:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result (Bool × (Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2621,10 +3288,10 @@ def
   scrub.scrub_stack
   ok (ok1, sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::verify]:
-    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::verify]:
+    Source: 'src/params.rs', lines 187:12-189:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
   (pk : Slice Std.U8) :
   Result Bool
@@ -2632,20 +3299,20 @@ def
   let p ← slhdsa.sets.shake_256f.params.PARAMS
   slhdsa.shake.api.verify 32#usize p m sig ctx pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::verify_internal]:
-    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::verify_internal]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
   Result Bool
   := do
   let p ← slhdsa.sets.shake_256f.params.PARAMS
   slhdsa.shake.slh.slh_verify_internal 32#usize p m sig pk
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sign_internal]:
-    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sign_internal]:
+    Source: 'src/params.rs', lines 175:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
   (sig : Slice Std.U8) :
   Result (Slice Std.U8)
@@ -2657,10 +3324,10 @@ def
   scrub.scrub_stack
   ok sig1
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sign]:
-    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::sign]:
+    Source: 'src/params.rs', lines 166:12-173:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
   Result (Bool × (Slice Std.U8))
@@ -2672,10 +3339,10 @@ def
   scrub.scrub_stack
   ok (ok1, sig1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::keygen_seeds]:
+    Source: 'src/params.rs', lines 159:12-164:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
   (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
@@ -2686,10 +3353,10 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::keygen]:
-    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}::keygen]:
+    Source: 'src/params.rs', lines 154:12-157:13; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 def
-  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
   Result ((Slice Std.U8) × (Slice Std.U8))
   := do
@@ -2698,74 +3365,105 @@ def
   scrub.scrub_stack
   ok (sk1, pk1)
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Shake256f}]
-    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 149:8-149:89; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 @[reducible]
-def params.Shake256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856 :
-  params.SignatureStorage params.Shake256f (Array Std.U8 49856#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSignatureStorageArrayU849856
+  : params.SignatureStorage (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)) (Array
+  Std.U8 49856#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 49856#usize
   corecloneCloneInst := core.clone.CloneArray 49856#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake256f}]
-    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 148:8-148:90; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 @[reducible]
-def params.Shake256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
-  params.VerifyingKeyStorage params.Shake256f (Array Std.U8 64#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  : params.VerifyingKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1)) (Array Std.U8 64#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
   corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake256f}]
-    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 147:8-147:88; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 @[reducible]
-def params.Shake256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
-  params.SigningKeyStorage params.Shake256f (Array Std.U8 128#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  : params.SigningKeyStorage (params.Shake (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1)
+  typenum.bit.B1) typenum.bit.B0) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B1)) (Array Std.U8 128#usize) := {
   BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
   corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
 }
 
-/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}]
-    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UInt<typenum::uint::UTerm, typenum::bit::B1>, typenum::bit::B1>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B0>, typenum::bit::B1>>}]
+    Source: 'src/params.rs', lines 151:8-218:9; this code is generated from a macro invocation at: 'src/params.rs', lines 234:0-234:133 -/
 @[reducible]
-def params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
-  params.Core params.Shake256f (Array Std.U8 128#usize) (Array Std.U8 64#usize)
-  (Array Std.U8 49856#usize) := {
+def
+  params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856
+  : params.Core (params.Shake (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  typenum.uint.UTerm typenum.bit.B1) typenum.bit.B0) typenum.bit.B0)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) (typenum.uint.UInt
+  (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt (typenum.uint.UInt
+  (typenum.uint.UInt typenum.uint.UTerm typenum.bit.B1) typenum.bit.B1)
+  typenum.bit.B0) typenum.bit.B0) typenum.bit.B0) typenum.bit.B1)) (Array
+  Std.U8 128#usize) (Array Std.U8 64#usize) (Array Std.U8 49856#usize) := {
   N :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
   SigningKeyStorageInst :=
-    params.Shake256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
   VerifyingKeyStorageInst :=
-    params.Shake256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
   SignatureStorageInst :=
-    params.Shake256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsSignatureStorageArrayU849856
   keygen :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
   keygen_seeds :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
   sign :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
   sign_internal :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
   verify_internal :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
   verify :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
   sk_from :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
   pk_from :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
   sig_from :=
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
   with_pkcs8 := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
   with_spki := fun {T : Type} {T1 : Type}
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T1 (Slice Std.U8) T) =>
-    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+    params.ShakeUIntUIntUIntUIntUIntUIntUTermB1B0B0B0B0B0UIntUIntUIntUIntUIntUIntUTermB1B1B0B0B0B1.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
@@ -3102,6 +3800,75 @@ def
   signing_key.SigningKey.Insts.SignatureSignerRandomizedMultipartSignerSignature.try_multipart_sign_with_rng
     paramsCoreInst rand_coreTryCryptoRngInst self rng s
 
+/-- [slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(signature::error::Error,), pkcs8::error::Error> for slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::call_once]:
+    Source: 'src/signing_key.rs', lines 329:21-329:56 -/
+def
+  signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P)
+  (c :
+  signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (tupled_args : signature.error.Error) :
+  Result pkcs8.error.Error
+  := do
+  core.convert.IntoFrom.into pkcs8.error.Error.Insts.CoreConvertFromKeyError
+    pkcs8.error.KeyError.Invalid
+
+/-- Trait implementation: [slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(signature::error::Error,), pkcs8::error::Error> for slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}]
+    Source: 'src/signing_key.rs', lines 329:21-329:56 -/
+@[reducible]
+def
+  signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P) : core.ops.function.FnOnce
+  (signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  signature.error.Error pkcs8.error.Error := {
+  call_once :=
+    signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+    paramsCoreInst paramsDerAlgorithmInst
+}
+
+/-- [slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
+    Source: 'src/signing_key.rs', lines 321:4-330:5
+    Visibility: public -/
+def
+  signing_key.SigningKey.Insts.CoreConvertTryFromPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P)
+  (private_key_info : pkcs8.private_key_info.PrivateKeyInfo der.asn1.any.AnyRef
+  der.asn1.octet_string.OctetStringRef der.asn1.bit_string.BitStringRef) :
+  Result (core.result.Result (signing_key.SigningKey P Clause0_Clause0_Sk
+    Clause0_Clause1_Vk Clause0_Clause2_Sig) pkcs8.error.Error)
+  := do
+  let s ← const_oid.ObjectIdentifier.as_bytes private_key_info.algorithm.oid
+  let oi ← paramsDerAlgorithmInst.DER_OID
+  let s1 ← const_oid.ObjectIdentifier.as_bytes oi
+  let b ← same s s1
+  if b
+  then
+    let s2 ←
+      der.asn1.octet_string.OctetStringRef.as_bytes
+        private_key_info.private_key
+    let r ←
+      signing_key.SigningKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
+        paramsCoreInst s2
+    core.result.Result.map_err
+      (signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleErrorError
+      paramsCoreInst paramsDerAlgorithmInst) r ()
+  else
+    let e ←
+      core.convert.IntoFrom.into pkcs8.error.Error.Insts.CoreConvertFromError
+        (spki.error.Error.OidUnknown private_key_info.algorithm.oid)
+    ok (core.result.Result.Err e)
+
 /-- [slh_dsa::verifying_key::{slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_verify_with_context]:
     Source: 'src/verifying_key.rs', lines 75:4-85:5 -/
 def verifying_key.VerifyingKey.raw_try_verify_with_context
@@ -3198,5 +3965,114 @@ def verifying_key.VerifyingKey.Insts.SignatureVerifierVerifierSignature.verify
   let s ← lift (Array.to_slice (Array.make 1#usize [ msg ]))
   verifying_key.VerifyingKey.Insts.SignatureVerifierMultipartVerifierSignature.multipart_verify
     paramsCoreInst self s sig
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(signature::error::Error,), spki::error::Error> for slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure#1}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::call_once]:
+    Source: 'src/verifying_key.rs', lines 171:17-171:46 -/
+def
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P)
+  (c :
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (tupled_args : signature.error.Error) :
+  Result spki.error.Error
+  := do
+  ok spki.error.Error.KeyMalformed
+
+/-- Trait implementation: [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(signature::error::Error,), spki::error::Error> for slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure#1}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}]
+    Source: 'src/verifying_key.rs', lines 171:17-171:46 -/
+@[reducible]
+def
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1.Insts.CoreOpsFunctionFnOnceTupleErrorError
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P) : core.ops.function.FnOnce
+  (verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  signature.error.Error spki.error.Error := {
+  call_once :=
+    verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1.Insts.CoreOpsFunctionFnOnceTupleErrorError.call_once
+    paramsCoreInst paramsDerAlgorithmInst
+}
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(), der::error::Error> for slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::call_once]:
+    Source: 'src/verifying_key.rs', lines 169:28-169:75 -/
+def
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleError.call_once
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P)
+  (c :
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig) (_ : Unit) :
+  Result der.error.Error
+  := do
+  let ek ← der.tag.Tag.value_error der.tag.Tag.BitString
+  der.error.ErrorKind.to_error ek
+
+/-- Trait implementation: [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{impl core::ops::function::FnOnce<(), der::error::Error> for slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}<'_0, P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}]
+    Source: 'src/verifying_key.rs', lines 169:28-169:75 -/
+@[reducible]
+def
+  verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleError
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P) : core.ops.function.FnOnce
+  (verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure
+  P Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig) Unit
+  der.error.Error := {
+  call_once :=
+    verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleError.call_once
+    paramsCoreInst paramsDerAlgorithmInst
+}
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
+    Source: 'src/verifying_key.rs', lines 159:4-172:5
+    Visibility: public -/
+def
+  verifying_key.VerifyingKey.Insts.CoreConvertTryFromSubjectPublicKeyInfoAnyRefBitStringRefError.try_from
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (paramsDerAlgorithmInst : params.DerAlgorithm P)
+  (info : spki.spki.SubjectPublicKeyInfo der.asn1.any.AnyRef
+  der.asn1.bit_string.BitStringRef) :
+  Result (core.result.Result (verifying_key.VerifyingKey P Clause0_Clause0_Sk
+    Clause0_Clause1_Vk Clause0_Clause2_Sig) spki.error.Error)
+  := do
+  let s ← const_oid.ObjectIdentifier.as_bytes info.algorithm.oid
+  let oi ← paramsDerAlgorithmInst.DER_OID
+  let s1 ← const_oid.ObjectIdentifier.as_bytes oi
+  let b ← same s s1
+  if b
+  then
+    let o ← der.asn1.bit_string.BitStringRef.as_bytes info.subject_public_key
+    let r ←
+      core.option.Option.ok_or_else
+        (verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure.Insts.CoreOpsFunctionFnOnceTupleError
+        paramsCoreInst paramsDerAlgorithmInst) o ()
+    let cf ← core.result.Result.Insts.CoreOpsTry.branch r
+    match cf with
+    | core.ops.control_flow.ControlFlow.Continue val =>
+      let r1 ←
+        verifying_key.VerifyingKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
+          paramsCoreInst val
+      core.result.Result.map_err
+        (verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1.Insts.CoreOpsFunctionFnOnceTupleErrorError
+        paramsCoreInst paramsDerAlgorithmInst) r1 ()
+    | core.ops.control_flow.ControlFlow.Break residual =>
+      core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
+        (verifying_key.VerifyingKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+        Clause0_Clause2_Sig) spki.error.Error.Insts.CoreConvertFromError
+        residual
+  else
+    ok (core.result.Result.Err (spki.error.Error.OidUnknown
+      info.algorithm.oid))
 
 end slh_dsa

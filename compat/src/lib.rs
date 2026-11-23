@@ -2,7 +2,7 @@
 //! parameter sets, backed by the formally verified `slhdsa` crate
 //! (`../rust`).
 //!
-//! Code written against `slh-dsa` 0.2 that uses only the SHA-2 sets
+//! Code written against `slh-dsa` 0.2 that uses the named SHA-2 and SHAKE sets
 //! ([`Sha2_128s`], [`Sha2_128f`], [`Sha2_192s`], [`Sha2_192f`],
 //! [`Sha2_256s`], [`Sha2_256f`]) can switch by changing the dependency:
 //!
@@ -30,11 +30,11 @@
 //!
 //! The Lean proofs in `lean/Facade` cover the actual implementations of
 //! `Signer::try_sign`, `Verifier::verify`, `try_sign_with_context`, and
-//! `try_verify_with_context` at each SHA-2 parameter set. They include
+//! `try_verify_with_context` at all twelve parameter sets. They include
 //! argument forwarding, message assembly, and the returned bytes or verdict.
 //! Public proofs also cover key generation from caller-supplied randomness,
-//! randomized signing including failure, and raw key and signature parsing.
-//! External randomness, DER parsing, allocation, and physical memory wiping
+//! randomized signing including failure, raw parsing and decoded DER key imports.
+//! External randomness, ASN.1 decoding, allocation, and physical memory wiping
 //! have separate trust assumptions, described in the adapter README.
 //!
 //! # Secrets are wiped
@@ -46,7 +46,7 @@
 //!   and signature.
 //! * `tests/wipe.rs` and `tests/heap.rs` search the stack and every freed
 //!   heap block for the seeds and values derived from them, for all six
-//!   sets, and find none.
+//!   SHA-2 sets, and find none.
 //!
 //! This is a best effort, as it is everywhere: registers are not cleared,
 //! the compiler may keep copies the source does not show, and what you copy
@@ -54,9 +54,9 @@
 //!
 //! # Differences from RustCrypto's crate
 //!
-//! * The named SHAKE sets (`Shake128s` through `Shake256f`) pass interoperability
-//!   and vector tests. Their formal refinement is in progress. The public
-//!   parameter types are concrete.
+//! * The twelve named parameter sets are aliases of `Sha2L1<N, M>`,
+//!   `Sha2L35<N, M>`, or `Shake<N, M>`, matching RustCrypto.
+//!
 //! * This crate is `no_std` like upstream, but always needs an allocator.
 //! * A [`SigningKey`] is always wiped when dropped (upstream does so only
 //!   with its `zeroize` feature), its `Debug` output does not print the
@@ -93,7 +93,7 @@ mod signature_encoding;
 mod signing_key;
 mod verifying_key;
 
-pub use params::{ParameterSet, Sha2_128f, Sha2_128s, Sha2_192f, Sha2_192s, Sha2_256f, Sha2_256s, Shake128s, Shake128f, Shake192s, Shake192f, Shake256s, Shake256f};
+pub use params::{ParameterSet, Sha2L1, Sha2L35, Shake, Sha2_128f, Sha2_128s, Sha2_192f, Sha2_192s, Sha2_256f, Sha2_256s, Shake128s, Shake128f, Shake192s, Shake192f, Shake256s, Shake256f};
 #[doc(hidden)]
 pub use scrub::SCRUB_BYTES;
 pub use signature_encoding::{Signature, SignatureLen};

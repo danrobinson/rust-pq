@@ -9,6 +9,7 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 (cd compat && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas \
   --dest-file "$scratch/facade.llbc" --opaque 'slhdsa::params::Params' \
+  --start-from '{impl crate::params::DerAlgorithm for _}' \
   --start-from '{impl crate::params::Core for _}' \
   --start-from '{impl signature::Signer for crate::signing_key::SigningKey}::try_sign' \
   --start-from '{impl signature::Verifier for crate::verifying_key::VerifyingKey}::verify' \
@@ -19,8 +20,6 @@ trap 'rm -rf "$scratch"' EXIT
   --start-from '{impl core::convert::TryFrom for crate::signature_encoding::Signature}::try_from' \
   --start-from '{impl core::convert::TryFrom for crate::verifying_key::VerifyingKey}::try_from' \
   --start-from '{impl core::convert::TryFrom for crate::signing_key::SigningKey}::try_from' \
-  --exclude '{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo> for crate::signing_key::SigningKey}::try_from' \
-  --exclude '{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo> for crate::verifying_key::VerifyingKey}::try_from' \
   -- --locked)
 "$root/.tools/aeneas/bin/aeneas" -backend lean -abort-on-error -no-progress-bar \
   -dest "$scratch" -split-files "$scratch/facade.llbc"
@@ -33,11 +32,16 @@ for f in Types Funs; do
 done
 for project in lean lean-hw; do
   (cd "$project" && lake build Facade)
-  for file in Multipart Sign Verify Keygen Randomized Parse; do
+  for file in Multipart Sign Verify Keygen Randomized Parse Der; do
     (cd "$project" && lake env lean "Facade/$file.lean") > "$scratch/axioms"
-    expected=$(grep -c '^#print axioms ' "$project/Facade/$file.lean")
+    case "$file" in
+      Multipart) expected=1 ;;
+      Sign|Verify) expected=24 ;;
+      Keygen|Randomized|Parse|Der) expected=12 ;;
+    esac
+    printed=$(grep -c '^#print axioms ' "$project/Facade/$file.lean")
     checked=$(grep -Fc 'depends on axioms: [propext, Classical.choice, Quot.sound]' "$scratch/axioms" || true)
-    [ "$expected" -gt 0 ] && [ "$checked" -eq "$expected" ] || {
+    [ "$printed" -eq "$expected" ] && [ "$checked" -eq "$expected" ] || {
       cat "$scratch/axioms" >&2
       exit 1
     }

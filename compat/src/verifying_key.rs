@@ -153,18 +153,18 @@ impl<P: ParameterSet> EncodePublicKey for VerifyingKey<P> {
     }
 }
 
-impl<P: ParameterSet> TryFrom<pkcs8::SubjectPublicKeyInfoRef<'_>> for VerifyingKey<P> {
+impl<P: Core + crate::params::DerAlgorithm> TryFrom<pkcs8::SubjectPublicKeyInfoRef<'_>> for VerifyingKey<P> {
     type Error = spki::Error;
 
-    fn try_from(spki: pkcs8::SubjectPublicKeyInfoRef<'_>) -> spki::Result<Self> {
+    fn try_from(info: pkcs8::SubjectPublicKeyInfoRef<'_>) -> spki::Result<Self> {
         // `spki`'s `assert_algorithm_oid`, with the comparison done by the verified crate.
-        let oid = spki.algorithm.oid;
-        if !same(oid.as_bytes(), P::ALGORITHM_OID.as_bytes()) {
+        let oid = info.algorithm.oid;
+        if !same(oid.as_bytes(), P::DER_OID.as_bytes()) {
             return Err(spki::Error::OidUnknown { oid });
         }
 
         Self::try_from(
-            spki.subject_public_key
+            info.subject_public_key
                 .as_bytes()
                 .ok_or_else(|| der::Tag::BitString.value_error().to_error())?,
         )

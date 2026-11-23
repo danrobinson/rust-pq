@@ -3,7 +3,7 @@ open Aeneas Aeneas.Std Result
 open slhdsa (bytes paramsS PN)
 namespace slh_dsa
 
-private def observed {α β ε : Type} (f : α → β) : Std.core.result.Result α ε → Option β
+def observed {α β ε : Type} (f : α → β) : Std.core.result.Result α ε → Option β
   | .Ok a => some (f a)
   | .Err _ => none
 
@@ -141,5 +141,71 @@ theorem sha2_256f_parsers : ParsersCorrect
   simp only [params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from, scrub_returns, bind_ok]
   exact Std.bind_pure _
 #print axioms sha2_256f_parsers
+
+theorem shake_128s_parsers : ParsersCorrect
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 Spec.shake_128s := by
+  change ParsersCorrect _ Spec.sha2_128s
+  rw [← _root_.slhdsa.shake_128s.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_128s.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_128s.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from, slhdsa.sets.shake_128s.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_128s_parsers
+
+theorem shake_128f_parsers : ParsersCorrect
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 Spec.shake_128f := by
+  change ParsersCorrect _ Spec.sha2_128f
+  rw [← _root_.slhdsa.shake_128f.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_128f.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_128f.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from, slhdsa.sets.shake_128f.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_128f_parsers
+
+theorem shake_192s_parsers : ParsersCorrect
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 Spec.shake_192s := by
+  change ParsersCorrect _ Spec.sha2_192s
+  rw [← _root_.slhdsa.shake_192s.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_192s.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_192s.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from, slhdsa.sets.shake_192s.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_192s_parsers
+
+theorem shake_192f_parsers : ParsersCorrect
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 Spec.shake_192f := by
+  change ParsersCorrect _ Spec.sha2_192f
+  rw [← _root_.slhdsa.shake_192f.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_192f.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_192f.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from, slhdsa.sets.shake_192f.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_192f_parsers
+
+theorem shake_256s_parsers : ParsersCorrect
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 Spec.shake_256s := by
+  change ParsersCorrect _ Spec.sha2_256s
+  rw [← _root_.slhdsa.shake_256s.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_256s.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_256s.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from, slhdsa.sets.shake_256s.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_256s_parsers
+
+theorem shake_256f_parsers : ParsersCorrect
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 Spec.shake_256f := by
+  change ParsersCorrect _ Spec.sha2_256f
+  rw [← _root_.slhdsa.shake_256f.shape]
+  apply parsers_spec _ _ _root_.slhdsa.shake_256f.pn (by decide) (by decide)
+    (by rw [_root_.slhdsa.shake_256f.shape]; decide) rfl rfl rfl _ rfl (by funext b s; simp [params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from, slhdsa.sets.shake_256f.params.PARAMS])
+  funext b sk pk
+  simp only [params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from, scrub_returns, bind_ok]
+  exact Std.bind_pure _
+#print axioms shake_256f_parsers
 
 end slh_dsa

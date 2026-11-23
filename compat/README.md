@@ -1,9 +1,8 @@
 # slhdsa-compat
 
 The RustCrypto `slh-dsa` 0.2.0-rc.5 interface for all twelve pure FIPS 205
-parameter sets. The SHA-2 implementation has public-method refinement proofs.
-All six SHAKE sets have interoperability and ACVP coverage. Their refinement
-proofs are in progress.
+parameter sets. All twelve sets have public-method refinement proofs, NIST ACVP coverage,
+and byte-for-byte interoperability tests against RustCrypto.
 
 Code written against `slh-dsa` that uses the named parameter sets switches by changing one line of its
 `Cargo.toml`; the source stays as it is:
@@ -146,7 +145,7 @@ primitive they use is in the leakage model); there is no relational theorem abou
 `scripts/check-compat-proof.sh` extracts the production adapter with Charon and
 Aeneas and compares its translation with the checked-in files. The `Facade`
 Lean library composes that translation with each build of the core. For each
-SHA-2 set the caller-visible signature bytes and verifier verdict agree with
+SHA-2 and SHAKE set the caller-visible signature bytes and verifier verdict agree with
 the executable specification through the deterministic `Signer`, `Verifier`,
 and the explicit-context APIs. A supplied randomizer has the set's byte length.
 The proofs include parameter dispatch, array and slice conversions on those paths,
@@ -154,7 +153,12 @@ and the result constructed by each method. `SigningKey::new` consumes the three
 n-byte RNG draws in order. Randomized signing uses the supplied bytes on success
 and returns an error on failure. Both proofs account for the resulting RNG state.
 The three `TryFrom<&[u8]>` proofs establish exact-length acceptance, byte
-preservation, and reconstruction of the embedded verifying key.
+preservation, and reconstruction of the embedded verifying key. For all twelve
+sets, the DER import theorems prove the OID check, error selection, and returned
+key bytes for parsed `PrivateKeyInfoRef` and `SubjectPublicKeyInfoRef`. They
+assume the external library supplies the decoded identifier and payload, including
+whether the BIT STRING has unused bits. ASN.1 error positions are outside the
+observation. [DER import theorems](../lean/Facade/Der.lean)
 
 The adapter uses native fixed-size arrays internally. Rust's associated-type
 equalities make each array the storage of its RustCrypto serialization type.
@@ -164,7 +168,7 @@ equalities make each array the storage of its RustCrypto serialization type.
 
 The `Facade` theorems concern functional results. The existing core theorems
 continue to cover key generation, core codecs, and source-level trace behavior.
-General serialization traits, operating-system RNG convenience methods, and DER decoding require
+General serialization traits, operating-system RNG convenience methods, and ASN.1 wire decoding require
 separate reasoning.
 
 - **The random source** (`rand_core`'s `try_fill_bytes`, `getrandom::SysRng`): randomness is
@@ -183,8 +187,6 @@ separate reasoning.
 
 ## Differences from RustCrypto's crate
 
-- The adapter exposes concrete set types. Upstream also exposes the generic types `Sha2L1<N, M>` and `Sha2L35<N, M>`, of which its SHA-2 names
-  are type aliases.
 - `no_std` like RustCrypto's crate, but always needs an allocator. (The default `getrandom`
   feature needs a target the `getrandom` crate supports; turn it off on bare metal.)
 - A `SigningKey` is always wiped; its `Debug` output leaves the secret out; comparing two

@@ -8,6 +8,31 @@ macro_rules! caller {
             use $krate::signature::{Keypair, Signer, Verifier};
             use $krate::{ParameterSet, Signature, SigningKey};
 
+            // The public family spellings must be interchangeable with each named set.
+            #[test]
+            fn family_type_aliases() {
+                use hybrid_array::sizes::{U16, U24, U30, U32, U34, U39, U42, U47, U49};
+                use $krate::*;
+                fn identity<P: ParameterSet>(key: &SigningKey<P>) -> &SigningKey<P> { key }
+                macro_rules! same_type {
+                    ($named:ty, $family:ty) => {
+                        let _: fn(&SigningKey<$named>) -> &SigningKey<$family> = identity::<$named>;
+                    };
+                }
+                same_type!(Sha2_128s, Sha2L1<U16, U30>);
+                same_type!(Sha2_128f, Sha2L1<U16, U34>);
+                same_type!(Sha2_192s, Sha2L35<U24, U39>);
+                same_type!(Sha2_192f, Sha2L35<U24, U42>);
+                same_type!(Sha2_256s, Sha2L35<U32, U47>);
+                same_type!(Sha2_256f, Sha2L35<U32, U49>);
+                same_type!(Shake128s, Shake<U16, U30>);
+                same_type!(Shake128f, Shake<U16, U34>);
+                same_type!(Shake192s, Shake<U24, U39>);
+                same_type!(Shake192f, Shake<U24, U42>);
+                same_type!(Shake256s, Shake<U32, U47>);
+                same_type!(Shake256f, Shake<U32, U49>);
+            }
+
             fn clone_set<P: ParameterSet>(set: &P) -> P {
                 set.clone()
             }

@@ -314,14 +314,14 @@ impl<P: ParameterSet> KeypairRef for SigningKey<P> {
 
 impl<P> TryFrom<pkcs8::PrivateKeyInfoRef<'_>> for SigningKey<P>
 where
-    P: ParameterSet,
+    P: Core + crate::params::DerAlgorithm,
 {
     type Error = pkcs8::Error;
 
     fn try_from(private_key_info: pkcs8::PrivateKeyInfoRef<'_>) -> pkcs8::Result<Self> {
         // `spki`'s `assert_algorithm_oid`, with the comparison done by the verified crate.
         let oid = private_key_info.algorithm.oid;
-        if !same(oid.as_bytes(), P::ALGORITHM_OID.as_bytes()) {
+        if !same(oid.as_bytes(), P::DER_OID.as_bytes()) {
             return Err(pkcs8::spki::Error::OidUnknown { oid }.into());
         }
 

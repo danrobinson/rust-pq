@@ -6,9 +6,11 @@ proofs, in Lean 4, that the Rust code computes exactly what the standard specifi
 branches and memory accesses do not depend on secrets, and that the scheme it computes is secure
 under named hash assumptions.
 
-The Rust crates also implement the six SHAKE sets. They pass NIST ACVP vectors
-and byte-for-byte comparisons with RustCrypto. SHAKE refinement is in progress.
-The proof and security claims below refer to SHA-2 unless explicitly qualified.
+All six SHAKE sets also have functional refinement proofs from the Rust
+SHAKE256 implementation through caller-visible RustCrypto signing, verification,
+key generation and key parsing. They pass NIST ACVP vectors and byte-for-byte
+comparisons with RustCrypto. The relational constant-time and unforgeability
+theorems described below cover SHA-2. [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
 Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
 lived in a subdirectory beside it. The six-set tree has replaced it; the single-set tree is git
@@ -88,7 +90,7 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
 ## What is tested
 
-- The Rust crate passes the NIST ACVP vectors for all six sets: per set 10 key generation, 28
+- The Rust crate passes the NIST ACVP vectors for all twelve sets: per set 10 key generation, 28
   signing, 28 verification (`cargo test --release`), and agrees byte for byte with RustCrypto's
   `slh-dsa` 0.2.0-rc.5 on keys, signatures (hedged and deterministic, with contexts) and
   encodings (`tests/rustcrypto.rs`).
@@ -96,8 +98,8 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
   of every set (`lake build spectest`; `scripts/check.sh full` also runs the slow key generation
   and signing cases).
 - The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for call: one piece of
-  source compiled against both must give the same 516 results; and its wiping is checked by
-  searching the stack and freed heap memory for the secrets, for every set
+  source compiled against both must give the same 1,032 results; and its wiping is checked by
+  searching the stack and freed heap memory for the secrets of the six SHA-2 sets
   (`cd compat && cargo test`).
 
 ## Performance
@@ -201,7 +203,7 @@ on the M5 only).
 ## The interface to use ([compat/](compat))
 
 The verified crate works on byte arrays. [compat/](compat) puts the interface of RustCrypto's
-`slh-dsa` 0.2 around the verified functions, for the six SHA-2 sets (`Sha2_128s` … `Sha2_256f`):
+`slh-dsa` 0.2 around the verified functions, for the twelve SHA-2 and SHAKE sets:
 the same `SigningKey`, `VerifyingKey` and `Signature` types, the `signature` crate's traits, and
 the PKCS#8 encodings. A program that uses `slh-dsa` with the SHA-2 sets switches by changing its
 dependency line:
@@ -210,10 +212,10 @@ dependency line:
 slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 ```
 
-The public SHA-2 proofs follow the production signer and verifier through message
+The public SHA-2 and SHAKE proofs follow the production signer and verifier through message
 assembly, parameter dispatch, and construction of the result. They also cover
 caller-supplied RNG key generation, randomized signing on successful and failed
-draws, and the three raw byte parsers. The portable and accelerated builds use
+draws, the three raw byte parsers, and PKCS#8/SPKI key import after ASN.1 decoding. The portable and accelerated builds use
 the same public statements. [Public API proofs](lean/Facade.lean)
 
 External DER parsing, operating-system entropy, allocation, and physical memory
@@ -230,7 +232,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 - **The processor, for `hw-sha2`.** See [above](#opt-in-hardware-sha-2-hw-sha2).
 - **Side channels, beyond the source.** The constant-time theorems are about the Rust source: the
   compiler, the processor's instruction timing, speculation, power and faults are outside them.
-- **SHAKE refinement and pre-hash variants.** The SHAKE implementation and specification are tested separately. HashSLH-DSA is outside the implemented interface. The
+- **Pre-hash variants.** HashSLH-DSA is outside the implemented interface. The
   verified crate takes seeds and `addrnd` from the caller; drawing them from the operating system
   is done in `compat/`, outside the proofs.
 - **Wiping** (FIPS 205 §3.1): done by `compat/` and tested there, not proved.
@@ -273,7 +275,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 - `bench/` — benchmarks against other libraries, with interoperability checks.
 - `ct-evidence/` — binary-level constant-time evidence (emulator traces, dudect timing,
   disassembly), recorded on the single-set crate and repointed at this one.
-- `vectors/` — the NIST vectors for the six sets, and the record of the intrinsic wrappers on a
+- `vectors/` — the NIST vectors for the twelve sets, and the record of the intrinsic wrappers on a
   processor.
 - `scripts/` — `extract.sh`, `extract-hw.sh` (regenerate the translations), `ct-gen.sh` (the
   instrumented copy for the constant-time proofs), `gen/` (generators of the per-set Lean files),

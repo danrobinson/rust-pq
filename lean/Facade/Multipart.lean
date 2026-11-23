@@ -1,4 +1,4 @@
-import Facade.Funs
+import Facade.SetNames
 import Slhdsa.Proofs.Sha256
 
 open Aeneas Aeneas.Std Result

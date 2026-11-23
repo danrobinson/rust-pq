@@ -102,4 +102,52 @@ theorem sha2_256f_randomized_sign : RandomizedSignCorrect
   · simp [params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N, slhdsa.sets.sha2_256f.params.N, _root_.slhdsa.sets.sha2_256f.params.N]
 #print axioms sha2_256f_randomized_sign
 
+theorem shake_128s_randomized_sign : RandomizedSignCorrect
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 Spec.shake_128s 409 := by
+  apply randomized_spec (N := 16#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_128s_sign_with_context sk m _ (some w) (by simpa [Spec.shake_128s, Spec.sha2_128s] using hw) hm
+  · simp [params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N, slhdsa.sets.shake_128s.params.N, _root_.slhdsa.sets.shake_128s.params.N]
+#print axioms shake_128s_randomized_sign
+
+theorem shake_128f_randomized_sign : RandomizedSignCorrect
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 Spec.shake_128f 409 := by
+  apply randomized_spec (N := 16#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_128f_sign_with_context sk m _ (some w) (by simpa [Spec.shake_128f, Spec.sha2_128f] using hw) hm
+  · simp [params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N, slhdsa.sets.shake_128f.params.N, _root_.slhdsa.sets.shake_128f.params.N]
+#print axioms shake_128f_randomized_sign
+
+theorem shake_192s_randomized_sign : RandomizedSignCorrect
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 Spec.shake_192s 561 := by
+  apply randomized_spec (N := 24#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_192s_sign_with_context sk m _ (some w) (by simpa [Spec.shake_192s, Spec.sha2_192s] using hw) hm
+  · simp [params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N, slhdsa.sets.shake_192s.params.N, _root_.slhdsa.sets.shake_192s.params.N]
+#print axioms shake_192s_randomized_sign
+
+theorem shake_192f_randomized_sign : RandomizedSignCorrect
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 Spec.shake_192f 561 := by
+  apply randomized_spec (N := 24#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_192f_sign_with_context sk m _ (some w) (by simpa [Spec.shake_192f, Spec.sha2_192f] using hw) hm
+  · simp [params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N, slhdsa.sets.shake_192f.params.N, _root_.slhdsa.sets.shake_192f.params.N]
+#print axioms shake_192f_randomized_sign
+
+theorem shake_256s_randomized_sign : RandomizedSignCorrect
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 Spec.shake_256s 561 := by
+  apply randomized_spec (N := 32#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_256s_sign_with_context sk m _ (some w) (by simpa [Spec.shake_256s, Spec.sha2_256s] using hw) hm
+  · simp [params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N, slhdsa.sets.shake_256s.params.N, _root_.slhdsa.sets.shake_256s.params.N]
+#print axioms shake_256s_randomized_sign
+
+theorem shake_256f_randomized_sign : RandomizedSignCorrect
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 Spec.shake_256f 561 := by
+  apply randomized_spec (N := 32#usize) _ _ _ _ (by decide) (by decide)
+  · intro sk m w hw hm
+    exact shake_256f_sign_with_context sk m _ (some w) (by simpa [Spec.shake_256f, Spec.sha2_256f] using hw) hm
+  · simp [params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N, slhdsa.sets.shake_256f.params.N, _root_.slhdsa.sets.shake_256f.params.N]
+#print axioms shake_256f_randomized_sign
+
 end slh_dsa

@@ -21,6 +21,136 @@ set_option maxRecDepth 2048
 
 namespace slh_dsa
 
+/-- [core::marker::PhantomData]
+    Source: '/rustc/library/core/src/marker.rs', lines 811:0-811:39
+    Name pattern: [core::marker::PhantomData]
+    Visibility: public -/
+@[reducible, rust_type "core::marker::PhantomData"]
+def core.marker.PhantomData (T : Type _) := Unit
+
+/-- [der::tag::number::TagNumber]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/der-0.8.3/src/tag/number.rs', lines 20:0-20:20
+    Name pattern: [der::tag::number::TagNumber]
+    Visibility: public -/
+@[reducible, rust_type "der::tag::number::TagNumber"]
+def der.tag.number.TagNumber := Std.U32
+
+/-- [der::tag::Tag]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/der-0.8.3/src/tag.rs', lines 169:0-169:12
+    Name pattern: [der::tag::Tag]
+    Visibility: public -/
+@[discriminant isize, rust_type "der::tag::Tag"]
+inductive der.tag.Tag where
+| Boolean : der.tag.Tag
+| Integer : der.tag.Tag
+| BitString : der.tag.Tag
+| OctetString : der.tag.Tag
+| Null : der.tag.Tag
+| ObjectIdentifier : der.tag.Tag
+| Real : der.tag.Tag
+| Enumerated : der.tag.Tag
+| Utf8String : der.tag.Tag
+| RelativeOid : der.tag.Tag
+| Sequence : der.tag.Tag
+| Set : der.tag.Tag
+| NumericString : der.tag.Tag
+| PrintableString : der.tag.Tag
+| TeletexString : der.tag.Tag
+| VideotexString : der.tag.Tag
+| Ia5String : der.tag.Tag
+| UtcTime : der.tag.Tag
+| GeneralizedTime : der.tag.Tag
+| VisibleString : der.tag.Tag
+| GeneralString : der.tag.Tag
+| BmpString : der.tag.Tag
+| Application : Bool → der.tag.number.TagNumber → der.tag.Tag
+| ContextSpecific : Bool → der.tag.number.TagNumber → der.tag.Tag
+| Private : Bool → der.tag.number.TagNumber → der.tag.Tag
+
+/-- [der::error::ErrorKind]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/der-0.8.3/src/error.rs', lines 198:0-198:18
+    Name pattern: [der::error::ErrorKind]
+    Visibility: public -/
+@[discriminant isize, rust_type "der::error::ErrorKind"]
+inductive der.error.ErrorKind where
+| DateTime : der.error.ErrorKind
+| EncodingRules : der.error.ErrorKind
+| Failed : der.error.ErrorKind
+| Incomplete : der.length.Length → der.length.Length → der.error.ErrorKind
+| IndefiniteLength : der.error.ErrorKind
+| Length : der.tag.Tag → der.error.ErrorKind
+| NestingDepth : der.error.ErrorKind
+| Noncanonical : der.tag.Tag → der.error.ErrorKind
+| OidMalformed : der.error.ErrorKind
+| OidUnknown : const_oid.ObjectIdentifier 39#usize → der.error.ErrorKind
+| SetDuplicate : der.error.ErrorKind
+| SetOrdering : der.error.ErrorKind
+| Overflow : der.error.ErrorKind
+| Overlength : der.error.ErrorKind
+| Reader : der.error.ErrorKind
+| TagModeUnknown : der.error.ErrorKind
+| TagNumberInvalid : der.error.ErrorKind
+| TagUnexpected : Option der.tag.Tag → der.tag.Tag → der.error.ErrorKind
+| TagUnknown : Std.U8 → der.error.ErrorKind
+| TrailingData :
+  der.length.Length →
+  der.length.Length →
+  der.error.ErrorKind
+| Utf8 : core.str.error.Utf8Error → der.error.ErrorKind
+| Value : der.tag.Tag → der.error.ErrorKind
+
+/-- [spki::error::Error]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spki-0.8.1/src/error.rs', lines 15:0-15:14
+    Name pattern: [spki::error::Error]
+    Visibility: public -/
+@[discriminant isize, rust_type "spki::error::Error"]
+inductive spki.error.Error where
+| AlgorithmParametersMissing : spki.error.Error
+| Asn1 : der.error.Error → spki.error.Error
+| KeyMalformed : spki.error.Error
+| OidUnknown : const_oid.ObjectIdentifier 39#usize → spki.error.Error
+
+/-- [pkcs8::error::KeyError]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkcs8-0.11.0/src/error.rs', lines 114:0-114:17
+    Name pattern: [pkcs8::error::KeyError]
+    Visibility: public -/
+@[discriminant isize, rust_type "pkcs8::error::KeyError"]
+inductive pkcs8.error.KeyError where
+| Invalid : pkcs8.error.KeyError
+| TooShort : pkcs8.error.KeyError
+| TooLong : pkcs8.error.KeyError
+
+/-- [pkcs8::error::Error]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkcs8-0.11.0/src/error.rs', lines 14:0-14:14
+    Name pattern: [pkcs8::error::Error]
+    Visibility: public -/
+@[discriminant isize, rust_type "pkcs8::error::Error"]
+inductive pkcs8.error.Error where
+| Asn1 : der.error.Error → pkcs8.error.Error
+| KeyMalformed : pkcs8.error.KeyError → pkcs8.error.Error
+| ParametersMalformed : pkcs8.error.Error
+| PublicKey : spki.error.Error → pkcs8.error.Error
+
+/-- [spki::algorithm::AlgorithmIdentifier]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spki-0.8.1/src/algorithm.rs', lines 25:0-25:38
+    Name pattern: [spki::algorithm::AlgorithmIdentifier]
+    Visibility: public -/
+@[rust_type "spki::algorithm::AlgorithmIdentifier"]
+structure spki.algorithm.AlgorithmIdentifier (Params : Type _) where
+  oid : const_oid.ObjectIdentifier 39#usize
+  parameters : Option Params
+
+/-- [pkcs8::private_key_info::PrivateKeyInfo]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkcs8-0.11.0/src/private_key_info.rs', lines 95:0-95:46
+    Name pattern: [pkcs8::private_key_info::PrivateKeyInfo]
+    Visibility: public -/
+@[rust_type "pkcs8::private_key_info::PrivateKeyInfo"]
+structure pkcs8.private_key_info.PrivateKeyInfo (Params : Type _) (Key :
+  Type _) (PubKey : Type _) where
+  algorithm : spki.algorithm.AlgorithmIdentifier Params
+  private_key : Key
+  public_key : Option PubKey
+
 /-- Trait declaration: [rand_core::TryRng]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.10.1/src/lib.rs', lines 189:0-189:16
     Name pattern: [rand_core::TryRng]
@@ -72,6 +202,36 @@ structure rand_core.CryptoRng (Self : Type _) (Self_Clause1_Clause0_Error :
     Visibility: public -/
 @[reducible, rust_type "signature::error::Error"]
 def signature.error.Error := Unit
+
+/-- [spki::spki::SubjectPublicKeyInfo]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spki-0.8.1/src/spki.rs', lines 52:0-52:44
+    Name pattern: [spki::spki::SubjectPublicKeyInfo]
+    Visibility: public -/
+@[rust_type "spki::spki::SubjectPublicKeyInfo"]
+structure spki.spki.SubjectPublicKeyInfo (Params : Type _) (Key : Type _) where
+  algorithm : spki.algorithm.AlgorithmIdentifier Params
+  subject_public_key : Key
+
+/-- [typenum::bit::B0]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1/src/bit.rs', lines 20:0-20:13
+    Name pattern: [typenum::bit::B0]
+    Visibility: public -/
+@[reducible, rust_type "typenum::bit::B0"]
+def typenum.bit.B0 := Unit
+
+/-- [typenum::bit::B1]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1/src/bit.rs', lines 33:0-33:13
+    Name pattern: [typenum::bit::B1]
+    Visibility: public -/
+@[reducible, rust_type "typenum::bit::B1"]
+def typenum.bit.B1 := Unit
+
+/-- [typenum::uint::UTerm]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1/src/uint.rs', lines 50:0-50:16
+    Name pattern: [typenum::uint::UTerm]
+    Visibility: public -/
+@[reducible, rust_type "typenum::uint::UTerm"]
+def typenum.uint.UTerm := Unit
 
 /-- Trait declaration: [zeroize::Zeroize]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.2/src/lib.rs', lines 253:0-253:17
@@ -147,77 +307,29 @@ structure params.Core (Self : Type _) (Self_Clause0_Sk : Type _)
     (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
     T2 (Slice Std.U8) T), Slice Std.U8 → T2 → Result T
 
-/-- [slh_dsa::params::Sha2_128s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103
-    Visibility: public -/
-structure params.Sha2_128s where
-  _private : Unit
+/-- Trait declaration: [slh_dsa::params::DerAlgorithm]
+    Source: 'src/params.rs', lines 70:0-72:1 -/
+structure params.DerAlgorithm (Self : Type _) where
+  DER_OID : Result (const_oid.ObjectIdentifier 39#usize)
 
-/-- [slh_dsa::params::Sha2_128f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104
+/-- [slh_dsa::params::Sha2L1]
+    Source: 'src/params.rs', lines 103:8-103:68; this code is generated from a macro invocation at: 'src/params.rs', lines 107:0-107:69
     Visibility: public -/
-structure params.Sha2_128f where
-  _private : Unit
+@[reducible]
+def params.Sha2L1 (N : Type _) (M : Type _) := core.marker.PhantomData (N × M)
 
-/-- [slh_dsa::params::Sha2_192s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104
+/-- [slh_dsa::params::Sha2L35]
+    Source: 'src/params.rs', lines 103:8-103:68; this code is generated from a macro invocation at: 'src/params.rs', lines 108:0-108:78
     Visibility: public -/
-structure params.Sha2_192s where
-  _private : Unit
+@[reducible]
+def params.Sha2L35 (N : Type _) (M : Type _) :=
+  core.marker.PhantomData (N × M)
 
-/-- [slh_dsa::params::Sha2_192f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104
+/-- [slh_dsa::params::Shake]
+    Source: 'src/params.rs', lines 103:8-103:68; this code is generated from a macro invocation at: 'src/params.rs', lines 109:0-109:48
     Visibility: public -/
-structure params.Sha2_192f where
-  _private : Unit
-
-/-- [slh_dsa::params::Sha2_256s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105
-    Visibility: public -/
-structure params.Sha2_256s where
-  _private : Unit
-
-/-- [slh_dsa::params::Sha2_256f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105
-    Visibility: public -/
-structure params.Sha2_256f where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake128s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113
-    Visibility: public -/
-structure params.Shake128s where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake128f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114
-    Visibility: public -/
-structure params.Shake128f where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake192s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114
-    Visibility: public -/
-structure params.Shake192s where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake192f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114
-    Visibility: public -/
-structure params.Shake192f where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake256s]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115
-    Visibility: public -/
-structure params.Shake256s where
-  _private : Unit
-
-/-- [slh_dsa::params::Shake256f]
-    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115
-    Visibility: public -/
-structure params.Shake256f where
-  _private : Unit
+@[reducible]
+def params.Shake (N : Type _) (M : Type _) := core.marker.PhantomData (N × M)
 
 /-- [slh_dsa::signature_encoding::Signature]
     Source: 'src/signature_encoding.rs', lines 31:0-33:1
@@ -241,5 +353,29 @@ structure signing_key.SigningKey (P : Type _) (Clause0_Clause0_Sk : Type _)
   bytes : Clause0_Clause0_Sk
   verifying_key : verifying_key.VerifyingKey P Clause0_Clause0_Sk
     Clause0_Clause1_Vk Clause0_Clause2_Sig
+
+/-- [slh_dsa::signing_key::{impl core::convert::TryFrom<pkcs8::private_key_info::PrivateKeyInfo<der::asn1::any::AnyRef<'_0>, &'_0 der::asn1::octet_string::OctetStringRef, der::asn1::bit_string::BitStringRef<'_0>>, pkcs8::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}]
+    Source: 'src/signing_key.rs', lines 329:21-329:56 -/
+@[reducible]
+def signing_key.TryFromSigningKeyPrivateKeyInfoAnyRefShared0OctetStringRefBitStringRefError.try_from.closure
+  (P : Type _) (Clause0_Clause0_Sk : Type _) (Clause0_Clause1_Vk : Type _)
+  (Clause0_Clause2_Sig : Type _) :=
+Unit
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure#1}]
+    Source: 'src/verifying_key.rs', lines 171:17-171:46 -/
+@[reducible]
+def verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure_1
+  (P : Type _) (Clause0_Clause0_Sk : Type _) (Clause0_Clause1_Vk : Type _)
+  (Clause0_Clause2_Sig : Type _) :=
+Unit
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<spki::spki::SubjectPublicKeyInfo<der::asn1::any::AnyRef<'_0>, der::asn1::bit_string::BitStringRef<'_0>>, spki::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from::{closure}]
+    Source: 'src/verifying_key.rs', lines 169:28-169:75 -/
+@[reducible]
+def verifying_key.TryFromVerifyingKeySubjectPublicKeyInfoAnyRefBitStringRefError.try_from.closure
+  (P : Type _) (Clause0_Clause0_Sk : Type _) (Clause0_Clause1_Vk : Type _)
+  (Clause0_Clause2_Sig : Type _) :=
+Unit
 
 end slh_dsa
