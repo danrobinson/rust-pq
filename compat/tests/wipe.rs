@@ -10,9 +10,13 @@
 //! the words of a SHA-256 or SHA-512 message schedule or state.
 //!
 //! A control scenario calls the verified functions directly, without the
-//! adapter's stack scrubbing. It must leave something to find; otherwise the
-//! search proves nothing. It also measures how deep the secret computations
-//! go, which [`slh_dsa::SCRUB_BYTES`] must cover.
+//! adapter's stack scrubbing, and measures how deep the secret computations
+//! go, which [`slh_dsa::SCRUB_BYTES`] must cover; what it happens to leave
+//! behind is reported (it varies with the allocator's state). Two controls
+//! must find something, otherwise the search proves nothing: the message PRF
+//! alone must leave HMAC's key blocks or states and its inner digest, and
+//! the direct scenario followed by every searched form written to the stack
+//! on purpose must show each form where it was written.
 #![cfg(unix)]
 
 use slh_dsa::{ParameterSet, SigningKey};
@@ -37,12 +41,29 @@ const FILL: u8 = 0xA5;
 /// The margin the scrub must leave beyond the deepest measured call.
 const MARGIN: usize = 8 * 1024;
 
+/// The stack a scenario runs on, as the scenario itself sees it.
+#[derive(Clone, Copy)]
+struct OwnedStack {
+    /// Lowest address of the mapping; the stack grows down towards it.
+    base: usize,
+}
+
+impl OwnedStack {
+    /// How far below the top of the stack the byte at `addr` lies, as
+    /// [`found`] counts it.
+    fn below_top(self, addr: *const u8) -> usize {
+        self.base + STACK_BYTES - addr as usize
+    }
+}
+
+type Scenario = Box<dyn FnOnce(OwnedStack) + Send>;
+
 /// Run `f` on a fresh thread whose stack is returned afterwards.
-fn on_owned_stack(f: impl FnOnce() + Send + 'static) -> Vec<u8> {
+fn on_owned_stack(f: impl FnOnce(OwnedStack) + Send + 'static) -> Vec<u8> {
     extern "C" fn start(arg: *mut c_void) -> *mut c_void {
         // SAFETY: `arg` is the box leaked below, passed to exactly one thread.
-        let f: Box<Box<dyn FnOnce() + Send>> = unsafe { Box::from_raw(arg.cast()) };
-        if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f())).is_err() {
+        let (stack, f): (OwnedStack, Scenario) = *unsafe { Box::from_raw(arg.cast::<(OwnedStack, Scenario)>()) };
+        if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(stack))).is_err() {
             std::process::abort();
         }
         std::ptr::null_mut()
@@ -63,7 +84,7 @@ fn on_owned_stack(f: impl FnOnce() + Send + 'static) -> Vec<u8> {
         let mut attr: libc::pthread_attr_t = std::mem::zeroed();
         assert_eq!(libc::pthread_attr_init(&mut attr), 0);
         assert_eq!(pthread_attr_setstack(&mut attr, stack, STACK_BYTES), 0);
-        let arg: Box<Box<dyn FnOnce() + Send>> = Box::new(Box::new(f));
+        let arg: Box<(OwnedStack, Scenario)> = Box::new((OwnedStack { base: stack as usize }, Box::new(f)));
         let mut thread: libc::pthread_t = std::mem::zeroed();
         assert_eq!(libc::pthread_create(&mut thread, &attr, start, Box::into_raw(arg).cast()), 0);
         assert_eq!(libc::pthread_join(thread, std::ptr::null_mut()), 0);
@@ -225,17 +246,39 @@ fn secrets<const N: usize>(p: &Params, case: &Case, sig: &[u8]) -> Vec<(String, 
 fn found(stack: &[u8], secrets: &[(String, Vec<u8>)]) -> Vec<String> {
     let mut out = Vec::new();
     for (name, pattern) in secrets {
-        let at: Vec<usize> = stack
-            .windows(pattern.len())
-            .enumerate()
-            .filter(|(_, w)| *w == &pattern[..])
-            .map(|(i, _)| stack.len() - i)
-            .collect();
+        let at = occurrences(stack, pattern);
         if !at.is_empty() {
             out.push(format!("{name}, {at:?} bytes below the top"));
         }
     }
     out
+}
+
+/// Where `pattern` occurs in `stack`, in bytes below the top.
+fn occurrences(stack: &[u8], pattern: &[u8]) -> Vec<usize> {
+    stack.windows(pattern.len()).enumerate().filter(|(_, w)| *w == pattern).map(|(i, _)| stack.len() - i).collect()
+}
+
+/// The frame [`leave_on_stack`] writes into, in bytes.
+const PLANT_FRAME: usize = 16 * 1024;
+
+/// A residue left on purpose: write every one of `forms`, one after another,
+/// into a local array of [`PLANT_FRAME`] bytes, starting at its deep end
+/// (where the verified functions' working storage lay a moment before), and
+/// return without wiping it. Records in `at` (which has room for them, so
+/// that nothing is allocated here) where each form starts, in bytes below the
+/// top of the stack.
+#[inline(never)]
+fn leave_on_stack(stack: OwnedStack, forms: &[(String, Vec<u8>)], at: &mut Vec<usize>) {
+    assert!(at.capacity() - at.len() >= forms.len());
+    let mut frame = [0u8; PLANT_FRAME];
+    let mut o = 0;
+    for (_, form) in forms {
+        frame[o..o + form.len()].copy_from_slice(form);
+        at.push(stack.below_top(frame[o..].as_ptr()));
+        o += form.len();
+    }
+    std::hint::black_box(&mut frame);
 }
 
 /// Pass a key by value through a call that is not inlined.
@@ -280,21 +323,21 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     (direct.keygen)(&case.seeds, &mut sk, &mut pk);
     let sk = Arc::new(sk);
     let (c, d) = (case.clone(), direct.clone());
-    let keygen_depth = depth(&on_owned_stack(move || {
+    let keygen_depth = depth(&on_owned_stack(move |_| {
         let mut sk = vec![0u8; 4 * N];
         let mut pk = vec![0u8; 2 * N];
         (d.keygen)(&c.seeds, &mut sk, &mut pk);
         std::hint::black_box((&sk, &pk));
     }));
     let (c, d, k) = (case.clone(), direct.clone(), sk.clone());
-    let sign_depth = depth(&on_owned_stack(move || {
+    let sign_depth = depth(&on_owned_stack(move |_| {
         std::hint::black_box((d.sign)(&c.msg, &c.ctx, &k, &c.addrnd));
     }));
 
     // Control: the verified functions called directly, with no scrubbing.
     let signature = Arc::new(Mutex::new(Vec::new()));
     let (c, s, d) = (case.clone(), signature.clone(), direct.clone());
-    let stack = on_owned_stack(move || {
+    let stack = on_owned_stack(move |_| {
         let mut sk = vec![0u8; 4 * N];
         let mut pk = vec![0u8; 2 * N];
         (d.keygen)(&c.seeds, &mut sk, &mut pk);
@@ -312,11 +355,23 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
          both {unscrubbed_depth} bytes (SCRUB_BYTES {})",
         slh_dsa::SCRUB_BYTES
     );
+    // What the computation happens to leave behind is reported, not relied
+    // on. In the optimised builds of 2026-11-22 it is the copies `api::keygen`
+    // makes of the seeds, in a part of the signer's frames under 1 KiB below
+    // the top that nothing wrote, and in the portable build also `SK.seed` as
+    // SHA-256 schedule words about 11 KiB down (with `hw-sha2` the schedule
+    // stays in vector registers, so the shallow copy is all there is). Next
+    // to the shallow copy lie frames of
+    // the allocator (the signature's `Vec` growing at the end of
+    // `slh_sign_internal`, the lazily allocated lock of `Mutex`) and of
+    // thread exit, whose depth depends on state that the tests running at
+    // the same time share; with `hw-sha2`, for SHA2-256f, it was gone in 5 of
+    // 84 runs of the six tests together (in none of 50 runs alone). The
+    // controls below are what show that the search can see a residue.
     println!("{name}: without scrubbing, {} of {} searched forms found", left.len(), all.len());
     for found in &left {
         println!("    {found}");
     }
-    assert!(!left.is_empty(), "{name}: the control left nothing to find: this search cannot see residues");
     // The scrub must reach as deep as the computation went.
     for (what, d) in [("keygen", keygen_depth), ("sign", sign_depth), ("both", unscrubbed_depth)] {
         assert!(d + MARGIN <= slh_dsa::SCRUB_BYTES, "{name}: {what} used {d} bytes of stack; SCRUB_BYTES is too small");
@@ -325,7 +380,7 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     // Control for the HMAC forms: the message PRF alone, stopped where HMAC's
     // key blocks and inner digest have just been on the stack.
     let c = case.clone();
-    let stack = on_owned_stack(move || {
+    let stack = on_owned_stack(move |_| {
         let sk_prf: [u8; N] = block::<N>(&c.seeds, 1);
         let addrnd: [u8; N] = block::<N>(&c.addrnd, 0);
         std::hint::black_box(slhdsa::hash::prf_msg::<N>(&sk_prf, &addrnd, &c.framed()));
@@ -340,10 +395,48 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
         "{name}: the control left no form of PRF_msg's inner digest to find: {left:?}"
     );
 
+    // Control for the search itself, which does not depend on what the
+    // compiler or the allocator happen to leave: the same calls on the same
+    // kind of stack, and then every searched form left on purpose, unwiped,
+    // in a frame below the caller's, where the verified functions' working
+    // storage lay. The copy of the stack must show each form at exactly the
+    // place it was written.
+    let planted = Arc::new(Mutex::new(Vec::new()));
+    let (c, d, f, pl) = (case.clone(), direct.clone(), Arc::new(all.clone()), planted.clone());
+    let stack = on_owned_stack(move |own| {
+        let mut at = Vec::with_capacity(f.len());
+        let mut sk = vec![0u8; 4 * N];
+        let mut pk = vec![0u8; 2 * N];
+        (d.keygen)(&c.seeds, &mut sk, &mut pk);
+        let sig = (d.sign)(&c.msg, &c.ctx, &sk, &c.addrnd).unwrap();
+        sk.fill(0);
+        std::hint::black_box(&sk);
+        leave_on_stack(own, &f, &mut at);
+        *pl.lock().unwrap() = at;
+        drop(std::hint::black_box(sig));
+    });
+    let planted = planted.lock().unwrap().clone();
+    assert_eq!(planted.len(), all.len());
+    let missed: Vec<&str> = all
+        .iter()
+        .zip(&planted)
+        .filter(|((_, pattern), at)| !occurrences(&stack, pattern).contains(at))
+        .map(|((name, _), _)| name.as_str())
+        .collect();
+    let (shallowest, deepest) = (planted.iter().min().unwrap(), planted.iter().max().unwrap());
+    println!(
+        "{name}: every form left on purpose, {shallowest} to {deepest} bytes below the top: {} of {} found there",
+        all.len() - missed.len(),
+        all.len()
+    );
+    assert!(missed.is_empty(), "{name}: forms left on the stack on purpose that the search did not find: {missed:?}");
+    // The planted forms lie inside the stack the scrub overwrites.
+    assert!(*deepest + MARGIN <= slh_dsa::SCRUB_BYTES, "{name}: the planted forms lie {deepest} bytes deep");
+
     // The adapter: the same key and signature through its interface.
     let signature = Arc::new(Mutex::new(Vec::new()));
     let (c, s) = (case.clone(), signature.clone());
-    let stack = on_owned_stack(move || {
+    let stack = on_owned_stack(move |_| {
         let key = SigningKey::<P>::slh_keygen_internal(&c.seeds[0..N], &c.seeds[N..2 * N], &c.seeds[2 * N..3 * N]);
         let sig = key.try_sign_with_context(&c.msg, &c.ctx, Some(&c.addrnd)).unwrap();
         *s.lock().unwrap() = sig.to_vec();

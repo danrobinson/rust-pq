@@ -83,7 +83,17 @@ not build there (the `getrandom` crate has no backend for it).
   revealed ones, and the WOTS+ chain starts of the bottom layer, as bytes and as SHA-256 /
   SHA-512 words. `tests/heap.rs` has an allocator that searches every freed block for
   `SK.seed`, `SK.prf`, both key blocks and the inner `PRF_msg` digests of the messages signed.
-  Both find nothing, and both find something in their controls.
+  Both find nothing, and both find something in their controls. The stack search has two
+  controls that must succeed: `PRF_msg` alone, called directly, must leave HMAC's key blocks
+  or states and its inner digest; and the verified key generation and signing, called directly,
+  followed by every searched form written on purpose to a 16 KiB frame below the caller and
+  left unwiped (from 7 to 14 KiB down to 16.8 KiB below the top, by set), must show every
+  form exactly where it was written. What the direct calls happen to leave on their own is
+  printed but no longer required (until 2026-11-22 at least one form had to be found): it is
+  a copy of the seeds under 1 KiB below the top, next to frames of the allocator and of
+  thread exit (and, in the portable build only, `SK.seed` as SHA-256 schedule words about
+  11 KiB down), and with `hw-sha2` the copy was overwritten for SHA2-256f in 5 of 84 runs of
+  the six tests together.
 - The inner `PRF_msg` digest is new in these searches (the single-set adapter's heap test
   missed it; `../rust` keeps it on the stack, the single-set crate did not). Checked against
   deliberately broken scratch copies of the backend (never `../rust` itself): with the outer HMAC hash put back through
