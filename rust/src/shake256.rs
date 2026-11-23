@@ -203,11 +203,7 @@ impl Sponge {
             }
             #[cfg(any(
                 all(target_arch = "x86_64", target_feature = "sse2"),
-                all(
-                    target_arch = "aarch64",
-                    target_endian = "little",
-                    not(target_vendor = "apple")
-                )
+                all(target_arch = "aarch64", target_endian = "little")
             ))]
             if data.len() - i >= 2 * RATE {
                 // Complete the partially absorbed block before passing consecutive
@@ -228,7 +224,12 @@ impl Sponge {
                     stream_x86::blocks(&mut self.lanes, &data[i..i + used]);
                     i += used;
                 }
-                #[cfg(target_arch = "aarch64")]
+                #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
+                if crate::sha512::hw::arm::available() {
+                    parallel::blocks(&mut self.lanes, &data[i..i + used]);
+                    i += used;
+                }
+                #[cfg(all(target_arch = "aarch64", not(target_vendor = "apple")))]
                 {
                     oriented::blocks(&mut self.lanes, &data[i..i + used]);
                     i += used;

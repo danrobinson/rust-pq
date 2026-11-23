@@ -157,6 +157,44 @@ mod sha3 {
         };
     }
     permutation!("neon,sha3");
+
+    // Keep all 25 words in SHA3 vector registers across consecutive rate blocks.
+    // The two vector lanes carry duplicates of this one sequential sponge.
+    #[target_feature(enable = "neon,sha3")]
+    pub(super) unsafe fn blocks(state: &mut [u64; 25], input: &[u8]) {
+        let mut a = state.map(|word| vdupq_n_u64(word));
+        for block in input.chunks_exact(super::super::RATE) {
+            macro_rules! absorb_word {
+                ($i:literal) => {{
+                    let word = u64::from_le_bytes(block[8 * $i..8 * ($i + 1)].try_into().unwrap());
+                    a[$i] = veorq_u64(a[$i], vdupq_n_u64(word));
+                }};
+            }
+            absorb_word!(0);
+            absorb_word!(1);
+            absorb_word!(2);
+            absorb_word!(3);
+            absorb_word!(4);
+            absorb_word!(5);
+            absorb_word!(6);
+            absorb_word!(7);
+            absorb_word!(8);
+            absorb_word!(9);
+            absorb_word!(10);
+            absorb_word!(11);
+            absorb_word!(12);
+            absorb_word!(13);
+            absorb_word!(14);
+            absorb_word!(15);
+            absorb_word!(16);
+            for &rc in &RC {
+                a = unsafe { round(a, rc) };
+            }
+        }
+        for (word, lane) in state.iter_mut().zip(a) {
+            *word = vgetq_lane_u64::<0>(lane);
+        }
+    }
 }
 
 #[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
@@ -309,4 +347,11 @@ pub(super) fn single(state: &mut [u64; 25]) {
     for i in 0..25 {
         state[i] = words[i][0];
     }
+}
+
+#[cfg(all(target_arch = "aarch64", target_vendor = "apple"))]
+pub(super) fn blocks(state: &mut [u64; 25], input: &[u8]) {
+    assert!(crate::sha512::hw::arm::available());
+    // SAFETY: available() checks FEAT_SHA3 before entering the kernel.
+    unsafe { sha3::blocks(state, input) }
 }
