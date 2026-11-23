@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kdiag|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kdiag|Kgridbulk|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1108,6 +1108,37 @@ core.core_arch.arm_shared.neon.uint64x2_t
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
 platform_arch=x86_64-unknown-linux-gnu
+# Aeneas does not yet propagate writes through raw pointers. Bind the complete
+# store helper to the masked 5-word state update in Kgridbulk.FunsExternal.
+sed -n '/^unsafe fn write_row(/,/^}/p' rust/src/shake256/stream_x86.rs > "$scratch/write-row.rs"
+cat > "$scratch/expected-write-row.rs" <<'RUST'
+unsafe fn write_row(state: &mut [u64; 25], y: usize, row: V) {
+    unsafe { _mm512_mask_storeu_epi64(state.as_mut_ptr().add(5 * y).cast(), 31, row) }
+}
+RUST
+cmp "$scratch/write-row.rs" "$scratch/expected-write-row.rs"
+extract Kgridbulk KgridbulkRust kgridbulk --start-from 'crate::shake256::stream_x86::blocks' \
+  --opaque 'crate::shake256::stream_x86::even' --opaque 'crate::shake256::stream_x86::odd' \
+  --opaque 'crate::shake256::stream_x86::write_row' --opaque 'crate::sha256::x86::avx512_available'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_maskz_loadu_epi64
+core.core_arch.x86.avx512f._mm512_xor_si512
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.x86.avx512_available
+shake256.stream_x86.even
+shake256.stream_x86.odd
+shake256.stream_x86.write_row
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kgridbulk.Restore && lake env lean --stdin > "$scratch/grid-restore" <<'LEAN'
+import Kgridbulk.Restore
+#print axioms slhdsa.Kgridbulk.restore
+LEAN
+)
+grep -Fx "'slhdsa.Kgridbulk.restore' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/grid-restore"
 extract Kdiag KdiagRust kdiag --start-from 'crate::shake256::stream_x86::even' --start-from 'crate::shake256::stream_x86::odd'
 cat > "$scratch/expected" <<'NAMES'
 core.array.Array.map

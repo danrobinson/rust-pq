@@ -251,3 +251,6 @@ name = "PeerEquality"
 
 [[lean_lib]]
 name = "Rcarmcode"
+
+[[lean_lib]]
+name = "Kgridbulk"

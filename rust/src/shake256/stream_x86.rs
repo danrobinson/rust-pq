@@ -111,6 +111,12 @@ fn odd(a: Grid, rc: u64) -> Grid {
     out
 }
 
+#[inline]
+#[target_feature(enable = "avx512f")]
+unsafe fn write_row(state: &mut [u64; 25], y: usize, row: V) {
+    unsafe { _mm512_mask_storeu_epi64(state.as_mut_ptr().add(5 * y).cast(), 31, row) }
+}
+
 #[target_feature(enable = "avx512f")]
 unsafe fn absorb(s: &mut [u64; 25], blocks: &[u8]) {
     // Each state row has five words and the rate contains 17 words. The mask
@@ -136,7 +142,7 @@ unsafe fn absorb(s: &mut [u64; 25], blocks: &[u8]) {
         }
     }
     for y in 0..5 {
-        unsafe { _mm512_mask_storeu_epi64(s.as_mut_ptr().add(5 * y).cast(), 31, a[y]) }
+        unsafe { write_row(s, y, a[y]) }
     }
 }
 
