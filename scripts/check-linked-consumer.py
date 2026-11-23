@@ -29,7 +29,7 @@ def main():
         [
             "lake",
             "build",
-            "Spec.AppleEndToEnd",
+            "Facade.EndToEnd",
             "Spec.ArmRootComparison",
             "Spec.AppleRateBlocksWitness",
             "Spec.AppleSignRejectWitness",
