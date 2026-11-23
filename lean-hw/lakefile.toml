@@ -170,3 +170,6 @@ name = "Segmentedapi"
 
 [[lean_lib]]
 name = "Portableplatform"
+
+[[lean_lib]]
+name = "Rcni"
