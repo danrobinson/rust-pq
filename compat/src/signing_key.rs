@@ -333,7 +333,7 @@ where
 #[cfg(feature = "alloc")]
 impl<P> EncodePrivateKey for SigningKey<P>
 where
-    P: ParameterSet,
+    P: Core,
 {
     fn to_pkcs8_der(&self) -> pkcs8::Result<der::SecretDocument> {
         // The encoding is the verified crate's; the `der` crate only checks
