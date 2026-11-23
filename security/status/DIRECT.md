@@ -1410,3 +1410,184 @@ Unchanged.  Proved unconditional bounds: tight8's (2^-63, 2^-59, 2^-39).  Under 
 six new files: only `#print axioms` lines.  All 22 `#print axioms` lines of the new files:
 `[propext, Classical.choice, Quot.sound]`.  `scripts/check.sh` (all default targets, generators, forbidden
 tokens, axioms, headline lists): `CHECK PASSED`, exit 0, no `FAIL` line.
+
+---------------------------------------------------------------------------------------------
+
+## 12. 2026-11-22 (sixth session): `BadSuf`/`BadEuf` proved, H3 proved, the remaining core isolated
+
+Six new files under `Ideal/Direct/` (2525 lines), six `import` lines appended to `Ideal.lean`; no
+existing Lean file changed.  `lake build Ideal`: success (7455 jobs).  No `sorry`/`axiom`/
+`native_decide`/`bv_decide` in the new files (only `#print axioms` lines); every `#print axioms`
+of the new files is `[propext, Classical.choice, Quot.sound]` except `MD.qb_labI`
+(`[propext, Quot.sound]`).  `scripts/check.sh`: `CHECK PASSED`, exit 0, no `FAIL` line.
+
+**Of the four named statements of §11.3, `BadSuf` and `BadEuf` are proved; `DeferSimSuf` and
+`DeferSimEuf` are NOT proved.  They are replaced by strictly weaker statements, and those are
+reduced (H3 proved) to two named statements `DeferCoreSuf`/`DeferCoreEuf`, which remain
+hypotheses of every composed bound.  No unconditional bound on `sufI`/`eufI`/`sufP`/`eufP` beyond
+tight8's is proved.**
+
+### 12.1 Files
+
+| file | lines | content |
+|---|---|---|
+| `Direct/MDBad.lean` | 648 | `BadSuf`, `BadEuf` (worst-case charge): bad sets, one draw, end fill, deferred game, query count |
+| `Direct/MDBadSharp.lean` | 541 | sharp charge `Σ (i+1)/2^256`: `3·Pr[Bad] ≤ epsHalf`; `DeferSimSufNB`; hop from it |
+| `Direct/RomGame.lean` | 366 | the tagged program `PprfST`, `untag_PprfST`, the ROM handler `romH`, `Yrom`; H3 and the core as `Prop`s |
+| `Direct/RomMatch.lean` | 685 | **H3 proved** (`romGameSuf`, `romGameEuf`) |
+| `Direct/RomFinal.lean` | 154 | the hop and all composed bounds under `DeferCoreSuf` / `DeferCoreEuf` |
+| `Direct/RomCore.lean` | 131 | the core as one program under two handlers (`DeferCoreSufH`), equivalent |
+
+### 12.2 Statements proved (file:line)
+
+**H4, collisions (§11.3 `BadSuf`, `BadEuf`), proved.**
+```
+theorem MD.not_bad_draw (hb : ¬ Bad st) (k) (hu : u ∉ labV st) (hIV : u ≠ IV) (hc : u ∉ cfV st) :
+    ¬ Bad (st.1, st.2.cacheQuery (.inr k) u)                                        -- MDBad.lean:182
+theorem MD.not_bad_ro (hb : ¬ Bad st) (ht : ¬∃ k vs, childVals st k = some vs ∧ pt k vs = t) u :
+    ¬ Bad (st.1.cacheQuery t u, st.2)                                               -- MDBad.lean:221
+theorem MD.prEvent_draw_bad (hb : ¬ Bad st) c :
+    Pr[Bad after drawCell c] ≤ (nV st + 1)/|St|                                     -- MDBad.lean:255
+theorem MD.qb_labI X n : IsQueryBoundP (simulateQ (cellsR IV) X) isRight n →
+    IsQueryBoundP (simulateQ (labI IV) X) isNU n                                    -- MDBad.lean:410
+theorem MD.prBad_defRun_le X Q n (hn) (hnQ : n ≤ Q) : Pr[Bad] ≤ n · Q/|St|           -- MDBad.lean:546
+theorem Rom.badSuf : BadSuf                                                         -- MDBad.lean:621
+theorem Rom.badEuf : BadEuf                                                         -- MDBad.lean:629
+```
+(`nV st` = number of drawn label values + number of chaining inputs of cached public cells; a draw
+fires `Bad` only on a value in `labV ∪ {IV} ∪ cfV`; cached public cells off the node points
+create no `Bad`.  The end fill is charged through the pending charge of the capped
+supermartingale `CollBudget.ex_hz_le_of_step_cap`.)
+
+**Sharp form.**
+```
+theorem ex_hz_le_of_step_size … : ex (run) (hz P Ψ) ≤ hz P Ψ s + Σ_{i<n} ε (size s + i)   -- MDBadSharp.lean:34
+theorem MD.prEvent_endFill_bad_sharp l st (hb) :
+    Pr[Bad after endFill (st, l)] ≤ (Σ_{j<|l|} (nV st + j + 1))/|St|                -- MDBadSharp.lean:134
+theorem MD.prBad_defRun_sharp X n (hn) : Pr[Bad] ≤ (Σ_{i<n} (i + 1))/|St|            -- MDBadSharp.lean:261
+theorem Rom.bad3Suf … : 3 * Pr{let w ← defRun (XS S oR $ᵗ)}[Gs.Bad w.2] ≤ epsHalf qf qs ℓ   -- :332
+theorem Rom.bad3Euf … (the same for XE)                                             -- :343
+```
+(pending charge `Σ_{j < #pending} (nV + j + 1)/|St|` = what the end fill costs from the current
+state; every operation, touch or draw, costs `(dSize + 1)/|St|`, `dSize = nV + #pending`.)
+
+**The remaining statement weakened (no change of `epsHop`).**
+```
+def DeferSimSufNB : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →              -- MDBadSharp.lean:356
+    Pr{let w ← defRun (XS S oR $ᵗ)}[w.1 = true ∧ ¬ Gs.Bad w.2] ≤
+      strongUnforgeableAdvantage (rom (hashSpec Cr)) (simAdv S oR $ᵗ) + epsHalf qf qs ℓ + qs/2^128
+theorem deferSimSufNB_of : DeferSimSuf → DeferSimSufNB                              -- :377
+theorem mdHopSuf_of_nb : DeferSimSufNB → MDHopSuf                                   -- :389
+theorem mdHopEuf_of_nb : DeferSimEufNB → MDHopEuf                                   -- :408
+```
+(`sufI ≤ Pr[win] + 2 Pr[Bad] ≤ Pr[win ∧ ¬Bad] + 3 Pr[Bad]`; `3 Pr[Bad] ≤ 3Q(Q+1)/2^257 ≤
+(Q+1)²/2^255 = epsHalf`.)
+
+**One typed program for both sides (RomGame.lean).**  `PprfST oR pkSeedDist S` (`:174`) is the
+realisers' SUF port program with the forger's port tagged by the public key of the run
+(`portQT pk q`); `untag_PprfST : simulateQ untagT (PprfST …) = PprfS …` (`:203`, an equality of
+programs), so `XS = walkProg (simulateQ untagT PprfST)` (`XS_eq_untag :248`).  `romH k` (`:284`):
+coins forwarded, `(pk, q) ↦ simStepR pk q` (the simulator's step on its table), PRF-game
+`(PK.seed, a) ↦ Thash oracle (PK.seed, key a, [k])`, hash and `PRF_msg` queries to the oracles.
+`Yrom S oR := k ← $; (simulateQ (romH k) (PprfST oR $ᵗ S)).run' ∅` (`:297`).
+
+**H3, proved (RomMatch.lean).**
+```
+theorem Rom.keygen_romO k pkSeed : simulateQ (romO k) (openKeygenP Rd pkSeed) =
+    keygenInternalWithSecretM Cr (oracleSecret Cr (Equiv.refl _) pkSeed k) pkSeed     -- RomMatch.lean:204
+theorem Rom.sign_romO k skPrf oR pk m : simulateQ (romO k) (openSignP (optRand₀ oR) pk skPrf m) =
+    (romS oR $ᵗ).sign pk ⟨k, skPrf, pk.pkSeed, pk.pkRoot⟩ m                             -- :215
+theorem Rom.verify_romO …                                                            -- :233
+theorem Rom.forger_phase … (the harness with the tagged port under romH = VCVio's logging signing
+    run of the simulator, the two states swapped: swap_nest :254)                     -- :409
+theorem Rom.romGameSuf : RomGameSuf                                                  -- :515
+    -- ∀ S oR, strongUnforgeableAdvantage (rom (hashSpec Cr)) (simAdv S oR $ᵗ) =
+    --          (rom (hashSpec Cr)).evalDist (Yrom S oR) {true}
+theorem Rom.romGameEuf : RomGameEuf                                                  -- :669
+```
+(ledger congruence `keygenWS_congr :152`, `signWS_congr :170`: the honest programs read secrets
+only at secret children of ledger addresses, which are in `SkDom`, where the restricted PRF game
+and `oracleSecret` agree; the sample order `PK.seed, SK.seed` vs `SK.seed, PK.seed` by
+`rom_swap :497`.)
+
+**Composition (RomFinal.lean, RomGame.lean, RomCore.lean).**
+```
+theorem deferSimSufNB_of_parts : RomGameSuf → DeferCoreSuf → DeferSimSufNB          -- RomGame.lean:350
+theorem mdHopSuf_of_core : DeferCoreSuf → MDHopSuf                                   -- RomFinal.lean:34
+theorem mdHopEuf_of_core : DeferCoreEuf → MDHopEuf                                   -- RomFinal.lean:38
+theorem suf_rom_core, euf_rom_core, sufP_rom_core, eufP_rom_core                     -- RomFinal.lean:50–105
+theorem {suf,euf,sufP,eufP}_rom_2_{20,40,64}_core                                    -- RomFinal.lean:58–135
+theorem defRun_eq_defH P s : deferred run of walkProg (untag P) = k ← $; (simulateQ (defH k) P).run s
+                                                                                     -- RomCore.lean:70
+theorem deferCoreSuf_iff_H : DeferCoreSuf ↔ DeferCoreSufH                            -- RomCore.lean:117
+```
+e.g.
+```
+theorem sufP_rom_2_64_core (S : ForgerP) oR hqf hqs hlong hout (hc : DeferCoreSuf)
+    (hf : qf ≤ 2^64) (hs : qs ≤ 2^64) (hℓ : ℓ + 257 ≤ 2^26) :
+    sufP S (optRandU oR) ($ᵗ (Bytes 16)) ≤ (2^63)⁻¹ + (2^64)⁻¹ + (2^66)⁻¹
+```
+**Every such bound takes `DeferCoreSuf` (or `DeferCoreEuf`) as a hypothesis; NOT the final theorem.**
+
+### 12.3 Exact remaining statements
+
+```
+def DeferCoreSuf : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →                -- RomGame.lean:327
+    Pr{let w ← defRun (walkProg (simulateQ untagT (PprfST oR ($ᵗ (Bytes 16)) S)))}[
+        w.1 = true ∧ ¬ Gs.Bad w.2] ≤
+      (ProbCompRuntime.rom (hashSpec Cr)).evalDist (Yrom S oR) {true} + epsHalf qf qs ℓ + qs/2^128
+def DeferCoreEuf : Prop := (the same with PprfET, YromE)                              -- RomGame.lean:339
+```
+Equivalently (`deferCoreSuf_iff_H`) `DeferCoreSufH` (`RomCore.lean:88`): ONE program `PprfST`
+under the two handlers `defH k = deferredImpl ∘ labI ∘ chainW k ∘ untagT` (deferred labels) and
+`romH k` (lazy oracles + simulator), the end fill on the deferred side, `k ← $` on both.
+Given the proved H3, `DeferCoreSuf` is equivalent to `DeferSimSufNB`, which is implied by §11's
+`DeferSimSuf`.  It contains exactly the probabilistic content of §11.3 items (i)–(iii) and the
+`Ext`/`E_root` bound; the game match (iv) is done.
+
+What its proof needs (unchanged from §11.3 except (iv)): a coupling of `defH k` with `romH k` on
+the same program — most naturally `Engine.prEvent_le_untilBad` with `h₁ = defH k` and
+`h₂ = romH k` extended by a ghost copy of the hidden label parts (tails of honest final labels:
+16 bytes for `Thash`/`PRF_msg`, 2 for `H_msg`; full inner digests), the simulator's fresh value
+replaced by the ghost value when it fills an honest node; then ghost elimination (an
+intertwining as in `LDefer`) to recover `romH k`.  Bad events beyond `Gs.Bad` (which may now be
+assumed false, monotone): 256-bit coincidences of the simulator's table values with labels
+(within `epsHalf`), and `E_root` (`qs/2^128`).
+
+### 12.4 Deviations
+
+* `BadSuf` is proved twice: worst-case (`MDBad.badSuf`, the §11 statement) and sharp
+  (`MDBadSharp.bad3Suf`, `3·Pr[Bad] ≤ epsHalf`).  The sharp form pays for the `¬Bad` conjunct in
+  the remaining statement at no cost in `epsHop`.
+* **`epsHalf`, `epsHop` are unchanged** (so `RomNumerics.lean` and its numbers are unchanged).
+  The collision part's true value is `Pr[Bad] ≤ Q(Q+1)/2^257` (Q = `QAll`), a quarter of the
+  `epsHop` allocation `(Q+1)²/2^254`; the derived split is now `3·Pr[Bad] ≤ (Q+1)²/2^255` plus
+  the core's `(Q+1)²/2^255 + qs/2^128` (still an allocation for the core, not a derived value).
+* The ROM-side simulator is unchanged (`simAdv`); the ROM-side game `Yrom` is the tagged realiser
+  program under `romH`, and H3 shows it IS VCVio's experiment (no inequality).
+* The remaining statement is now about `walkProg (untag PprfST)` (= `XS`, an equality of
+  programs) rather than `XS`, so that both sides are one program.
+
+### 12.5 Updated estimate
+
+Done this session: 2525 lines (collision bound 1189, tagged program and H3 1051, composition and
+the two-handler form 285).  Remaining: `DeferCoreSuf`, `DeferCoreEuf`: the coupling of `defH`
+with `romH` (state relation between the deferred labels and the simulator's table under dynamic
+rootedness; the ghost tails and inner digests and their elimination; the per-query step for
+the four honest query kinds and the tagged port; `E_root`; SLH-DSA block-structure facts:
+honest walks do not extend honest final nodes except `E_root`) — **≈ 2–3.5k lines**, the EUF twin
+a few hundred more by reuse (same handlers; only the final check differs).
+
+### 12.6 Bounds
+
+Unchanged.  Proved unconditional: tight8's (2^-63, 2^-59, 2^-39).  Under `DeferCoreSuf` alone:
+P20 2^-67 + 2^-107, P40 2^-63 + 2^-87, P64 2^-63 + 2^-64 + 2^-66 (≈ 2^-62.35), each below tight8
+(`rom_lt_tight8_2_20/_40/_64`, `RomNumerics.lean:332–350`).
+
+### 12.7 Verification (this session)
+
+`lake build Ideal`: success (7455 jobs).  `grep -nE "sorry|axiom |native_decide|bv_decide"` in the
+six new files: only `#print axioms` lines.  `#print axioms` of the new files: all
+`[propext, Classical.choice, Quot.sound]` (`MD.qb_labI`: `[propext, Quot.sound]`).
+`scripts/check.sh` (all default targets, generators, forbidden tokens, axioms, headline lists):
+`CHECK PASSED`, exit 0, no `FAIL` line.

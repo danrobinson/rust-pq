@@ -179,3 +179,9 @@ import Ideal.Direct.MDCore
 import Ideal.Direct.MDToy
 import Ideal.Direct.MDSha
 import Ideal.Direct.MDHop
+import Ideal.Direct.MDBad
+import Ideal.Direct.MDBadSharp
+import Ideal.Direct.RomGame
+import Ideal.Direct.RomMatch
+import Ideal.Direct.RomFinal
+import Ideal.Direct.RomCore
