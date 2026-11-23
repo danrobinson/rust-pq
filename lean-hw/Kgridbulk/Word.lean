@@ -26,5 +26,8 @@ theorem wordAt_laneBytes (input : List U8) (offset : Nat) (room : offset + 8 ≤
   generalize input[offset+5]! = f
   generalize input[offset+6]! = g
   generalize input[offset+7]! = h
-  bv_decide
+  ext i hi
+  simp only [← BitVec.getLsbD_eq_getElem,BitVec.getLsbD_append,BitVec.getLsbD_xor,
+    BitVec.getLsbD_shiftLeft,BitVec.getLsbD_setWidth]
+  interval_cases i <;> simp
 end slhdsa.Kgridbulk
