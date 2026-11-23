@@ -2,8 +2,8 @@
 
 A Rust implementation of all twelve pure **SLH-DSA** parameter sets in FIPS 205
 (the standardised SPHINCS+). Lean 4 proofs connect the Rust SHA-2 and SHAKE256
-implementations to caller-visible RustCrypto signing, verification, key generation
-and key parsing. All twelve sets pass NIST ACVP vectors and byte-for-byte
+implementations to signing, verification, key generation
+and key parsing through this library’s RustCrypto-compatible API. All twelve sets pass NIST ACVP vectors and byte-for-byte
 comparisons with RustCrypto. The six SHA-2 sets also have relational constant-time
 proofs and unforgeability theorems under named hash assumptions.
 [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
