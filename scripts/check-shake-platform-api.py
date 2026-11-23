@@ -11,6 +11,11 @@ common = facade["common"]
 LEAN = facade["LEAN"]
 SETS = tuple(s.replace("sha2_", "shake_") for s in common["SETS"])
 OPS = common["OPERATIONS"]
+PLATFORMS = {
+    "Apple": ("aarch64-apple-darwin", "KappleouterRust", "Kadisp"),
+    "Linux": ("aarch64-unknown-linux-gnu", "KspongeLRust", "Kldisp"),
+    "X86": ("x86_64-unknown-linux-gnu", "KxouterRust", "Kxdispatch"),
+}
 
 # Every crate function not listed as a cut is emitted by Charon and Aeneas.
 CUTS = ("crate::shake::batch", "crate::shake::fors_batch", "crate::shake256")
@@ -88,13 +93,13 @@ def proof(package, imports, bindings, target_namespace, raw, scratch):
             name = f"FreshSDK.sets.{s}.{op}_fips"
             if f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]" not in audit:
                 raise ValueError(f"unverified public claim {name}")
-    print(f"{target_namespace}: verified {len(SETS)*len(OPS)} fixed-size SHAKE operations", flush=True)
+    print(f"{target_namespace}: verified {len(SETS)*len(OPS)} fixed-size SHAKE operations"
+          + (" assuming the Linux mixed-round lemma" if target_namespace == "NativeShakeLinux" else ""), flush=True)
 
 
 def forest(package, platform, scratch):
-    target, sponge, machine = {
-        "Apple": ("KappleouterRust","ShakeForestApple","Kadisp"),
-        }[platform]
+    _, target, machine = PLATFORMS[platform]
+    sponge = f"ShakeForest{platform}"
     owner = f"slhdsa.ShakeBatch.{platform}"
     stream = f"{sponge}.slhdsa.ShakeBatch.scalarStream"
     types = set(common["declarations"](common["body"](LEAN/"Slhdsa/Types.lean")))
@@ -146,6 +151,29 @@ def forest(package, platform, scratch):
     print(f"{platform}: fresh FORS signer and verifier use verified native operations",flush=True)
 
 
+def linux_dispatch(scratch):
+    module = "crate::shake256::parallel::"
+    path = facade["extract"]("rust", "aarch64-unknown-linux-gnu", "LinuxDispatch", scratch,
+                             (module + "available", module + "permute"), (module + "mixed::permute",))
+    model = (LEAN / "Shakebatch/LinuxDispatch.lean").read_text()
+    actual = list(common["declarations"](common["body"](path / "Funs.lean")))
+    if len(actual) != 2 or any(definition not in model for definition in actual):
+        raise ValueError("unexpected Linux SHAKE dispatch body")
+    external = list(common["declarations"]((path / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1]))
+    if len(external) != 1:
+        raise ValueError("unexpected Linux SHAKE dispatch dependencies")
+    match = re.fullmatch(r"axiom shake256.parallel.mixed.permute\s*:\s*(.*)", external[0], re.DOTALL)
+    if not match:
+        raise ValueError("unexpected Linux SHAKE dispatch signature")
+    code = ("import Shakebatch.LinuxDispatch\nopen Aeneas Aeneas.Std Result\n"
+            f"example : {match[1]} := KmixedpermRust.shake256.parallel.mixed.permute\n"
+            "#print axioms slhdsa.Kldisp.permutation_of_round")
+    result = common["run"](["lake", "env", "lean", "--stdin"], LEAN, input=code,
+                           text=True, stdout=subprocess.PIPE)
+    if "depends on axioms: [propext, Classical.choice, Quot.sound]" not in " ".join(result.stdout.split()):
+        raise ValueError("unexpected Linux SHAKE dispatch axioms")
+
+
 def facade_adapter(target, scratch):
     operations = ("append", "sign_into", "sign_internal_into", "keygen_seeds",
                   "signing_key_from", "signature_from", "bytes_equal")
@@ -185,19 +213,28 @@ def audit_facade(platform):
         if not any(f"'{n}' depends on axioms: [propext, Classical.choice, Quot.sound]" in audit
                    for n in (name, f"{namespace}.{name}")):
             raise ValueError(f"missing native facade theorem {name}")
-    print(f"{platform}: verified {len(roots)} SHAKE facade theorem groups", flush=True)
+    print(f"{platform}: verified {len(roots)} SHAKE facade theorem groups"
+          + (" assuming the Linux mixed-round lemma" if platform == "Linux" else ""), flush=True)
+
+
+def check_platform(platform, scratch):
+    target, raw, permutation = PLATFORMS[platform]
+    if platform == "Linux":
+        linux_dispatch(scratch)
+    dispatch = facade["extract"]("rust", target, "Dispatch", scratch,
+        ("crate::shake::fors::fors_sign", "crate::shake::fors::fors_pk_from_sig"),
+        ("crate::shake::batch", "crate::shake::fors_batch", "crate::shake::hash",
+         "crate::shake::xmss", "crate::shake256"))
+    forest(dispatch, platform, scratch)
+    facade_adapter(target, scratch)
+    audit_facade(platform)
+    public = extraction(target, scratch)
+    proof(public, [f"Shakebatch.{platform}Api"], native_models(platform, raw, permutation),
+          f"NativeShake{platform}", raw, scratch)
 
 
 if __name__ == "__main__":
-    common["run"](["lake","build","Shakebatch.AppleFacade"],LEAN)
-    with tempfile.TemporaryDirectory() as folder:
-        p=Path(folder)
-        dispatch=facade["extract"]("rust","aarch64-apple-darwin","Dispatch",p,
-            ("crate::shake::fors::fors_sign","crate::shake::fors::fors_pk_from_sig"),
-            ("crate::shake::batch","crate::shake::fors_batch","crate::shake::hash","crate::shake::xmss","crate::shake256"))
-        forest(dispatch,"Apple",p)
-        facade_adapter("aarch64-apple-darwin", p)
-        audit_facade("Apple")
-        public = extraction("aarch64-apple-darwin",p)
-        proof(public,["Shakebatch.AppleApi"],native_models("Apple", "KappleouterRust", "Kadisp"),
-              "NativeShakeApple", "KappleouterRust", p)
+    common["run"](["lake", "build", *(f"Shakebatch.{p}Facade" for p in PLATFORMS)], LEAN)
+    for platform in PLATFORMS:
+        with tempfile.TemporaryDirectory() as folder:
+            check_platform(platform, Path(folder))
