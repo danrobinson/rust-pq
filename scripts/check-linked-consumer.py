@@ -88,6 +88,7 @@ def main():
             "verify",
             "sha2_hypertree",
             "sha2_tree_hash",
+            "sha2_wots",
             "sha2_fors_sign",
             "sha2_hash_helpers",
             "mgf",
