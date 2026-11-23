@@ -32,6 +32,7 @@ def main():
             "Facade.EndToEnd",
             "Spec.ArmRootComparison",
             "Spec.AppleKeygenWitness",
+            "Spec.AppleVerifyLengthWitness",
             "Spec.AppleRateBlocksWitness",
             "Spec.AppleSignRejectWitness",
         ],
