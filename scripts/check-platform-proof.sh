@@ -168,9 +168,12 @@ core.slice.Slice.as_ptr
 sha256.x86.avx512_available
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Gather512.Top && lake env lean --stdin > "$scratch/gather512-axioms.log" <<'LEAN'
-import Gather512.Top
+(cd lean-hw && lake build Gather512.Fips && lake env lean --stdin > "$scratch/gather512-axioms.log" <<'LEAN'
+import Gather512.Fips
 #print axioms slhdsa.X86.S512.Gather.key_digests_spec
+#print axioms slhdsa.X86.S512.Gather.tweakable_digest_spec
 LEAN
 )
-grep -Fx "'slhdsa.X86.S512.Gather.key_digests_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/gather512-axioms.log"
+for name in key_digests_spec tweakable_digest_spec; do
+  grep -Fx "'slhdsa.X86.S512.Gather.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/gather512-axioms.log"
+done
