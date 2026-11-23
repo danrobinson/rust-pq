@@ -1,12 +1,31 @@
 //! SHAKE256, the byte-oriented sponge of FIPS 202 §§5–6 with a 1088-bit rate.
 //! Lanes use the index x + 5*y. Within a lane, byte zero is least significant.
 
-#[cfg(all(feature = "platform-sha2", any(
-    all(target_arch = "aarch64", target_endian = "little"),
-    all(target_arch = "x86_64", target_feature = "sse2")
-)))]
+#[cfg(all(
+    feature = "platform-sha2",
+    any(
+        all(target_arch = "aarch64", target_endian = "little"),
+        all(target_arch = "x86_64", target_feature = "sse2")
+    )
+))]
 #[allow(unsafe_code)]
 pub(crate) mod parallel;
+
+#[cfg(all(
+    feature = "platform-sha2",
+    target_arch = "x86_64",
+    target_feature = "sse2"
+))]
+#[allow(unsafe_code)]
+mod stream_x86;
+
+#[cfg(all(
+    feature = "platform-sha2",
+    target_arch = "aarch64",
+    target_endian = "little",
+    not(target_vendor = "apple")
+))]
+mod oriented;
 
 const RATE: usize = 136;
 const RC: [u64; 24] = [
@@ -120,15 +139,37 @@ fn round(a: &[u64; 25], rc: u64) -> [u64; 25] {
 }
 
 fn permute(state: &mut [u64; 25]) {
-    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    #[cfg(all(
+        feature = "platform-sha2",
+        target_arch = "aarch64",
+        target_endian = "little",
+        target_vendor = "apple"
+    ))]
     if crate::sha512::hw::arm::available() {
         parallel::single(state);
         return;
     }
-    let mut i = 0;
-    while i < 24 {
-        *state = round(state, RC[i]);
-        i += 1;
+    #[cfg(all(
+        feature = "platform-sha2",
+        target_arch = "aarch64",
+        target_endian = "little",
+        not(target_vendor = "apple")
+    ))]
+    {
+        oriented::permute(state);
+    }
+    #[cfg(not(all(
+        feature = "platform-sha2",
+        target_arch = "aarch64",
+        target_endian = "little",
+        not(target_vendor = "apple")
+    )))]
+    {
+        let mut i = 0;
+        while i < 24 {
+            *state = round(state, RC[i]);
+            i += 1;
+        }
     }
 }
 
@@ -158,6 +199,39 @@ impl Sponge {
                 if self.pos == RATE {
                     permute(&mut self.lanes);
                     self.pos = 0;
+                }
+            }
+            #[cfg(any(
+                all(target_arch = "x86_64", target_feature = "sse2"),
+                all(
+                    target_arch = "aarch64",
+                    target_endian = "little",
+                    not(target_vendor = "apple")
+                )
+            ))]
+            if data.len() - i >= 2 * RATE {
+                // Complete the partially absorbed block before passing consecutive
+                // full blocks to the architecture-specific message kernel.
+                while self.pos != 0 {
+                    self.lanes[self.pos / 8] ^=
+                        u64::from_le_bytes(data[i..i + 8].try_into().unwrap());
+                    i += 8;
+                    self.pos += 8;
+                    if self.pos == RATE {
+                        permute(&mut self.lanes);
+                        self.pos = 0;
+                    }
+                }
+                let used = (data.len() - i) / RATE * RATE;
+                #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
+                if crate::sha256::x86::avx512_available() {
+                    stream_x86::blocks(&mut self.lanes, &data[i..i + used]);
+                    i += used;
+                }
+                #[cfg(target_arch = "aarch64")]
+                {
+                    oriented::blocks(&mut self.lanes, &data[i..i + used]);
+                    i += used;
                 }
             }
             while data.len() - i >= 8 {
