@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -870,4 +870,23 @@ LEAN
 )
 for name in continued256 continued512 short256 short512 fallback256 fallback512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-stream-top-axioms"
+done
+
+
+extract Wotswide WotsWideRust wotswide --start-from 'crate::wots::wide::recover' \
+  --opaque 'crate::sha256::x86::recover' --opaque 'crate::sha256::compress' --opaque 'crate::sha512::compress'
+cat > "$scratch/expected" <<'NAMES'
+sha256.compress
+sha256.x86.recover
+sha512.compress
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Wotswide.Recovery && lake env lean --stdin > "$scratch/wide-axioms" <<'LEAN'
+import Wotswide.Recovery
+#print axioms slhdsa.X86.Wots.Wide.thash_eq
+#print axioms slhdsa.X86.Wots.Wide.recover_fips
+LEAN
+)
+for name in thash_eq recover_fips; do
+  grep -Fx "'slhdsa.X86.Wots.Wide.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wide-axioms"
 done

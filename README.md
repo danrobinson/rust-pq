@@ -150,6 +150,8 @@ Lean verifies the complete extracted AVX-512 WOTS endpoint-generation kernel for
 
 Lean also verifies every output byte of the extracted AVX-512 WOTS recovery kernel for all three widths. For signature element `i` with digit `d`, the endpoint at byte 22 of row `i` equals FIPS 205 Algorithm 5 applied for `15 − d` steps starting at `d`, using chain address `i`. Every row retains its 22-byte header and unused suffix, and extra output rows are unchanged. The theorem assumes the SHA-256 public-seed state, at most 67 digits in the range 0–15, enough signature bytes and output rows, and the modeled x86 instruction and memory semantics. It covers empty inputs, digit-15 direct copies and all lane refill and retirement orders produced by the scheduler. [Recovery theorem](lean-hw/Wots/Recovery.lean) · [Loop invariant](lean-hw/Wots/RecoveryKernel.lean) · [Row accounting](lean-hw/Wots/RecoveryRows.lean)
 
+The checked AVX-512 recovery wrapper returns the FIPS tweakable hash of those endpoints in signature order. The proof follows the actual endpoint slice, WOTS public-key address, padding, and SHA-256 or SHA-512 compression for all three widths. It assumes a consistent public seed and the supplied base-16 digits. [Wrapper theorem](lean-hw/Wotswide/Recovery.lean) · [Endpoint hash equivalence](lean-hw/Wotswide/Hash.lean)
+
 The checked x86 entry points call these verified WOTS kernels when the CPU and buffer dimensions satisfy their Rust assertions. Both reject calls when the AVX-512 feature test is false. The recovery entry requires exactly `2n + 3` digits for digest width `n`. [Checked entry-point theorems](lean-hw/Wotsx86/Proof.lean)
 
 On x86-64 and AArch64 the extracted SHA-512 parent-block constructor writes the compressed address, both child nodes and the FIPS padding for a seeded 128-byte prefix. Given those padded blocks and the corresponding seed state, the x86 eight-lane and Arm two-lane routines return the FIPS 205 parent hash H and preserve the entries after the batch. [Parent-block theorem](lean-hw/Parentblock/Proof.lean) · [FIPS parent theorems](lean-hw/Parentblock/Fips.lean)
@@ -282,7 +284,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
   is done in `compat/`, outside the proofs.
 - **Wiping** (FIPS 205 §3.1): done by `compat/` and tested there, not proved.
 - **Faults.** Nothing is proved about a disturbed computation.
-- **The rest of what a user runs, outside the translations** (surveyed 2026-11-22): in
+- **Default and `hw-sha2` proof coverage** (surveyed 2026-11-22). For those two builds, in
   `rust/src`, only the intrinsic wrappers `sha256::hw::arm` (18 functions, 76 code lines) and
   `sha512::hw::arm` (10 functions, 51 code lines), defined by the instruction model, and the
   test-only module `sha256::hw::vectors` (`#[cfg(test)]`) are not translated; everything else,

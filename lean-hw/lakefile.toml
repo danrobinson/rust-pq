@@ -128,3 +128,6 @@ name = "Streamvector"
 
 [[lean_lib]]
 name = "X86stream"
+
+[[lean_lib]]
+name = "Wotswide"
