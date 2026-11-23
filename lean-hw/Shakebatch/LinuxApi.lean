@@ -1,5 +1,5 @@
 import Shakebatch.LinuxWots
 import Shakebatch.NativeApi
-open Lean Elab Command PlatformProof in
+open Lean Elab Command in
 set_option maxHeartbeats 0 in
-run_cmd liftCoreM <| shakeUnderRound `NativeShakeLinux `slhdsa.ShakeBatch.Linux `KspongeLRust `slhdsa.Kldisp.RoundCorrect shakeApiRoots
+run_cmd liftCoreM <| PlatformProof.shakeApi `NativeShakeLinux `slhdsa.ShakeBatch.Linux `KspongeLRust
