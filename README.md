@@ -93,7 +93,7 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
   of every set (`lake build spectest`; `scripts/check.sh full` also runs the slow key generation
   and signing cases).
 - The adapter crate `compat/` is compared with RustCrypto's `slh-dsa` call for call: one piece of
-  source compiled against both must give the same 1,032 results; and its wiping is checked by
+  source compiled against both must give the same 1,056 results; and its wiping is checked by
   searching the stack and freed heap memory for the secrets of the six SHA-2 sets
   (`cd compat && cargo test`).
 

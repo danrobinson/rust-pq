@@ -1288,7 +1288,7 @@ def address.Adrs.with_word2
   ok { self with word2 }
 
 /-- [slhdsa::xmss::climb]: loop body 0:
-    Source: 'src/xmss.rs', lines 66:4-77:5
+    Source: 'src/xmss.rs', lines 68:4-79:5
     Visibility: public -/
 @[rust_loop_body]
 def xmss.climb_loop.body
@@ -1316,7 +1316,7 @@ def xmss.climb_loop.body
   else ok (done node)
 
 /-- [slhdsa::xmss::climb]: loop 0:
-    Source: 'src/xmss.rs', lines 66:4-77:5
+    Source: 'src/xmss.rs', lines 68:4-79:5
     Visibility: public -/
 @[rust_loop]
 def xmss.climb_loop
@@ -1331,7 +1331,7 @@ def xmss.climb_loop
     (node, index, k)
 
 /-- [slhdsa::xmss::climb]:
-    Source: 'src/xmss.rs', lines 54:0-79:1
+    Source: 'src/xmss.rs', lines 56:0-81:1
     Visibility: public -/
 @[reducible]
 def xmss.climb
@@ -2909,7 +2909,7 @@ def wots.wots_pk_from_sig
 @[global_simps, irreducible] def address.WOTS_HASH : Std.U32 := 0#u32
 
 /-- [slhdsa::xmss::xmss_pk_from_sig]:
-    Source: 'src/xmss.rs', lines 82:0-92:1
+    Source: 'src/xmss.rs', lines 84:0-94:1
     Visibility: public -/
 def xmss.xmss_pk_from_sig
   {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
@@ -3053,7 +3053,7 @@ def wots.wots_pk_gen
   hash.thash_values seed pk_adrs s4
 
 /-- [slhdsa::xmss::xmss_node]:
-    Source: 'src/xmss.rs', lines 16:0-29:1
+    Source: 'src/xmss.rs', lines 16:0-31:1
     Visibility: public -/
 def xmss.xmss_node
   {N : Std.Usize} (sk_seed : Array Std.U8 N) (i : Std.U32) (z : Std.U32)
@@ -3139,7 +3139,7 @@ def wots.wots_sign
   wots.wots_sign_loop N len blocks1 (alloc.vec.Vec.new Std.U8) 0#usize
 
 /-- [slhdsa::xmss::xmss_sign]: loop body 0:
-    Source: 'src/xmss.rs', lines 42:4-47:5
+    Source: 'src/xmss.rs', lines 44:4-49:5
     Visibility: public -/
 @[rust_loop_body]
 def xmss.xmss_sign_loop.body
@@ -3161,7 +3161,7 @@ def xmss.xmss_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::xmss::xmss_sign]: loop 0:
-    Source: 'src/xmss.rs', lines 42:4-47:5
+    Source: 'src/xmss.rs', lines 44:4-49:5
     Visibility: public -/
 @[rust_loop]
 def xmss.xmss_sign_loop
@@ -3176,7 +3176,7 @@ def xmss.xmss_sign_loop
     (sig, j)
 
 /-- [slhdsa::xmss::xmss_sign]:
-    Source: 'src/xmss.rs', lines 32:0-49:1
+    Source: 'src/xmss.rs', lines 34:0-51:1
     Visibility: public -/
 def xmss.xmss_sign
   {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
@@ -5041,7 +5041,7 @@ def slh.slh_sign_internal
   alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s5
 
 /-- [slhdsa::adapter::sign_into]:
-    Source: 'src/adapter.rs', lines 51:0-74:1
+    Source: 'src/adapter.rs', lines 51:0-76:1
     Visibility: public -/
 def adapter.sign_into
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5062,7 +5062,7 @@ def adapter.sign_into
     ok (true, sig1)
 
 /-- [slhdsa::adapter::sign_internal_into]:
-    Source: 'src/adapter.rs', lines 78:0-89:1
+    Source: 'src/adapter.rs', lines 80:0-91:1
     Visibility: public -/
 def adapter.sign_internal_into
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
@@ -5136,7 +5136,7 @@ def slh.slh_keygen_internal
   ok (sk4, pk2)
 
 /-- [slhdsa::adapter::keygen_seeds]:
-    Source: 'src/adapter.rs', lines 94:0-107:1
+    Source: 'src/adapter.rs', lines 96:0-109:1
     Visibility: public -/
 def adapter.keygen_seeds
   (N : Std.Usize) (p : params.Params) (sk_seed : Slice Std.U8)
@@ -5185,7 +5185,7 @@ def api.public_key
   core.slice.Slice.copy_from_slice core.marker.CopyU8 pk s
 
 /-- [slhdsa::adapter::signing_key_from]:
-    Source: 'src/adapter.rs', lines 112:0-118:1
+    Source: 'src/adapter.rs', lines 114:0-120:1
     Visibility: public -/
 def adapter.signing_key_from
   (N : Std.Usize) (bytes : Slice Std.U8) (sk : Slice Std.U8)
@@ -5246,7 +5246,7 @@ def encoding.signature_len_ok
   ok (i = i1)
 
 /-- [slhdsa::adapter::signature_from]:
-    Source: 'src/adapter.rs', lines 122:0-128:1
+    Source: 'src/adapter.rs', lines 124:0-130:1
     Visibility: public -/
 def adapter.signature_from
   (p : params.Params) (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -5299,7 +5299,7 @@ def encoding.secret_keys_equal
   ok (diff = 0#u8)
 
 /-- [slhdsa::adapter::bytes_equal]:
-    Source: 'src/adapter.rs', lines 133:0-138:1
+    Source: 'src/adapter.rs', lines 135:0-140:1
     Visibility: public -/
 def adapter.bytes_equal
   (a : Slice Std.U8) (b : Slice Std.U8) : Result Bool := do
@@ -5406,7 +5406,7 @@ def api.keygen
   slh.slh_keygen_internal p sk_seed sk_prf pk_seed sk pk
 
 /-- [slhdsa::slh::slh_sign]:
-    Source: 'src/slh.rs', lines 123:0-133:1
+    Source: 'src/slh.rs', lines 123:0-135:1
     Visibility: public -/
 def slh.slh_sign
   {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5545,7 +5545,7 @@ def slh.slh_verify_internal
     ht.ht_verify p pk_fors s4 seed idx_tree idx_leaf pk_root
 
 /-- [slhdsa::slh::slh_verify]:
-    Source: 'src/slh.rs', lines 136:0-146:1
+    Source: 'src/slh.rs', lines 138:0-150:1
     Visibility: public -/
 def slh.slh_verify
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
@@ -7637,18 +7637,210 @@ def shake.hash.seed_ctx
   {N : Std.Usize} (pk_seed : Array Std.U8 N) : Result (Array Std.U8 N) := do
   ok pk_seed
 
-/-- [slhdsa::shake256::round::ROT]
-    Source: 'src/shake256.rs', lines 47:4-50:6 -/
-@[global_simps, irreducible]
-def shake256.round.ROT : Array Std.U32 25#usize :=
-  Array.make 25#usize [
-    0#u32, 1#u32, 62#u32, 28#u32, 27#u32, 36#u32, 44#u32, 6#u32, 55#u32,
-    20#u32, 3#u32, 10#u32, 43#u32, 25#u32, 39#u32, 41#u32, 45#u32, 15#u32,
-    21#u32, 8#u32, 18#u32, 2#u32, 61#u32, 56#u32, 14#u32
-    ]
+/-- [slhdsa::shake256::chi]:
+    Source: 'src/shake256.rs', lines 65:0-93:1 -/
+def shake256.chi
+  (b : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
+  let i ← Array.index_usize b 0#usize
+  let i1 ← Array.index_usize b 1#usize
+  let i2 ← lift (~~~ i1)
+  let i3 ← Array.index_usize b 2#usize
+  let i4 ← lift (i2 &&& i3)
+  let i5 ← lift (i ^^^ i4)
+  let i6 ← lift (~~~ i3)
+  let i7 ← Array.index_usize b 3#usize
+  let i8 ← lift (i6 &&& i7)
+  let i9 ← lift (i1 ^^^ i8)
+  let i10 ← lift (~~~ i7)
+  let i11 ← Array.index_usize b 4#usize
+  let i12 ← lift (i10 &&& i11)
+  let i13 ← lift (i3 ^^^ i12)
+  let i14 ← lift (~~~ i11)
+  let i15 ← lift (i14 &&& i)
+  let i16 ← lift (i7 ^^^ i15)
+  let i17 ← lift (~~~ i)
+  let i18 ← lift (i17 &&& i1)
+  let i19 ← lift (i11 ^^^ i18)
+  let i20 ← Array.index_usize b 5#usize
+  let i21 ← Array.index_usize b 6#usize
+  let i22 ← lift (~~~ i21)
+  let i23 ← Array.index_usize b 7#usize
+  let i24 ← lift (i22 &&& i23)
+  let i25 ← lift (i20 ^^^ i24)
+  let i26 ← lift (~~~ i23)
+  let i27 ← Array.index_usize b 8#usize
+  let i28 ← lift (i26 &&& i27)
+  let i29 ← lift (i21 ^^^ i28)
+  let i30 ← lift (~~~ i27)
+  let i31 ← Array.index_usize b 9#usize
+  let i32 ← lift (i30 &&& i31)
+  let i33 ← lift (i23 ^^^ i32)
+  let i34 ← lift (~~~ i31)
+  let i35 ← lift (i34 &&& i20)
+  let i36 ← lift (i27 ^^^ i35)
+  let i37 ← lift (~~~ i20)
+  let i38 ← lift (i37 &&& i21)
+  let i39 ← lift (i31 ^^^ i38)
+  let i40 ← Array.index_usize b 10#usize
+  let i41 ← Array.index_usize b 11#usize
+  let i42 ← lift (~~~ i41)
+  let i43 ← Array.index_usize b 12#usize
+  let i44 ← lift (i42 &&& i43)
+  let i45 ← lift (i40 ^^^ i44)
+  let i46 ← lift (~~~ i43)
+  let i47 ← Array.index_usize b 13#usize
+  let i48 ← lift (i46 &&& i47)
+  let i49 ← lift (i41 ^^^ i48)
+  let i50 ← lift (~~~ i47)
+  let i51 ← Array.index_usize b 14#usize
+  let i52 ← lift (i50 &&& i51)
+  let i53 ← lift (i43 ^^^ i52)
+  let i54 ← lift (~~~ i51)
+  let i55 ← lift (i54 &&& i40)
+  let i56 ← lift (i47 ^^^ i55)
+  let i57 ← lift (~~~ i40)
+  let i58 ← lift (i57 &&& i41)
+  let i59 ← lift (i51 ^^^ i58)
+  let i60 ← Array.index_usize b 15#usize
+  let i61 ← Array.index_usize b 16#usize
+  let i62 ← lift (~~~ i61)
+  let i63 ← Array.index_usize b 17#usize
+  let i64 ← lift (i62 &&& i63)
+  let i65 ← lift (i60 ^^^ i64)
+  let i66 ← lift (~~~ i63)
+  let i67 ← Array.index_usize b 18#usize
+  let i68 ← lift (i66 &&& i67)
+  let i69 ← lift (i61 ^^^ i68)
+  let i70 ← lift (~~~ i67)
+  let i71 ← Array.index_usize b 19#usize
+  let i72 ← lift (i70 &&& i71)
+  let i73 ← lift (i63 ^^^ i72)
+  let i74 ← lift (~~~ i71)
+  let i75 ← lift (i74 &&& i60)
+  let i76 ← lift (i67 ^^^ i75)
+  let i77 ← lift (~~~ i60)
+  let i78 ← lift (i77 &&& i61)
+  let i79 ← lift (i71 ^^^ i78)
+  let i80 ← Array.index_usize b 20#usize
+  let i81 ← Array.index_usize b 21#usize
+  let i82 ← lift (~~~ i81)
+  let i83 ← Array.index_usize b 22#usize
+  let i84 ← lift (i82 &&& i83)
+  let i85 ← lift (i80 ^^^ i84)
+  let i86 ← lift (~~~ i83)
+  let i87 ← Array.index_usize b 23#usize
+  let i88 ← lift (i86 &&& i87)
+  let i89 ← lift (i81 ^^^ i88)
+  let i90 ← lift (~~~ i87)
+  let i91 ← Array.index_usize b 24#usize
+  let i92 ← lift (i90 &&& i91)
+  let i93 ← lift (i83 ^^^ i92)
+  let i94 ← lift (~~~ i91)
+  let i95 ← lift (i94 &&& i80)
+  let i96 ← lift (i87 ^^^ i95)
+  let i97 ← lift (~~~ i80)
+  let i98 ← lift (i97 &&& i81)
+  let i99 ← lift (i91 ^^^ i98)
+  ok
+    (Array.make 25#usize [
+      i5, i9, i13, i16, i19, i25, i29, i33, i36, i39, i45, i49, i53, i56, i59,
+      i65, i69, i73, i76, i79, i85, i89, i93, i96, i99
+      ])
+
+/-- [slhdsa::shake256::rho_pi]:
+    Source: 'src/shake256.rs', lines 34:0-62:1 -/
+def shake256.rho_pi
+  (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize) :
+  Result (Array Std.U64 25#usize)
+  := do
+  let i ← Array.index_usize a 0#usize
+  let i1 ← Array.index_usize d 0#usize
+  let i2 ← lift (i ^^^ i1)
+  let i3 ← lift (core.num.U64.rotate_left i2 0#u32)
+  let i4 ← Array.index_usize a 6#usize
+  let i5 ← Array.index_usize d 1#usize
+  let i6 ← lift (i4 ^^^ i5)
+  let i7 ← lift (core.num.U64.rotate_left i6 44#u32)
+  let i8 ← Array.index_usize a 12#usize
+  let i9 ← Array.index_usize d 2#usize
+  let i10 ← lift (i8 ^^^ i9)
+  let i11 ← lift (core.num.U64.rotate_left i10 43#u32)
+  let i12 ← Array.index_usize a 18#usize
+  let i13 ← Array.index_usize d 3#usize
+  let i14 ← lift (i12 ^^^ i13)
+  let i15 ← lift (core.num.U64.rotate_left i14 21#u32)
+  let i16 ← Array.index_usize a 24#usize
+  let i17 ← Array.index_usize d 4#usize
+  let i18 ← lift (i16 ^^^ i17)
+  let i19 ← lift (core.num.U64.rotate_left i18 14#u32)
+  let i20 ← Array.index_usize a 3#usize
+  let i21 ← lift (i20 ^^^ i13)
+  let i22 ← lift (core.num.U64.rotate_left i21 28#u32)
+  let i23 ← Array.index_usize a 9#usize
+  let i24 ← lift (i23 ^^^ i17)
+  let i25 ← lift (core.num.U64.rotate_left i24 20#u32)
+  let i26 ← Array.index_usize a 10#usize
+  let i27 ← lift (i26 ^^^ i1)
+  let i28 ← lift (core.num.U64.rotate_left i27 3#u32)
+  let i29 ← Array.index_usize a 16#usize
+  let i30 ← lift (i29 ^^^ i5)
+  let i31 ← lift (core.num.U64.rotate_left i30 45#u32)
+  let i32 ← Array.index_usize a 22#usize
+  let i33 ← lift (i32 ^^^ i9)
+  let i34 ← lift (core.num.U64.rotate_left i33 61#u32)
+  let i35 ← Array.index_usize a 1#usize
+  let i36 ← lift (i35 ^^^ i5)
+  let i37 ← lift (core.num.U64.rotate_left i36 1#u32)
+  let i38 ← Array.index_usize a 7#usize
+  let i39 ← lift (i38 ^^^ i9)
+  let i40 ← lift (core.num.U64.rotate_left i39 6#u32)
+  let i41 ← Array.index_usize a 13#usize
+  let i42 ← lift (i41 ^^^ i13)
+  let i43 ← lift (core.num.U64.rotate_left i42 25#u32)
+  let i44 ← Array.index_usize a 19#usize
+  let i45 ← lift (i44 ^^^ i17)
+  let i46 ← lift (core.num.U64.rotate_left i45 8#u32)
+  let i47 ← Array.index_usize a 20#usize
+  let i48 ← lift (i47 ^^^ i1)
+  let i49 ← lift (core.num.U64.rotate_left i48 18#u32)
+  let i50 ← Array.index_usize a 4#usize
+  let i51 ← lift (i50 ^^^ i17)
+  let i52 ← lift (core.num.U64.rotate_left i51 27#u32)
+  let i53 ← Array.index_usize a 5#usize
+  let i54 ← lift (i53 ^^^ i1)
+  let i55 ← lift (core.num.U64.rotate_left i54 36#u32)
+  let i56 ← Array.index_usize a 11#usize
+  let i57 ← lift (i56 ^^^ i5)
+  let i58 ← lift (core.num.U64.rotate_left i57 10#u32)
+  let i59 ← Array.index_usize a 17#usize
+  let i60 ← lift (i59 ^^^ i9)
+  let i61 ← lift (core.num.U64.rotate_left i60 15#u32)
+  let i62 ← Array.index_usize a 23#usize
+  let i63 ← lift (i62 ^^^ i13)
+  let i64 ← lift (core.num.U64.rotate_left i63 56#u32)
+  let i65 ← Array.index_usize a 2#usize
+  let i66 ← lift (i65 ^^^ i9)
+  let i67 ← lift (core.num.U64.rotate_left i66 62#u32)
+  let i68 ← Array.index_usize a 8#usize
+  let i69 ← lift (i68 ^^^ i13)
+  let i70 ← lift (core.num.U64.rotate_left i69 55#u32)
+  let i71 ← Array.index_usize a 14#usize
+  let i72 ← lift (i71 ^^^ i17)
+  let i73 ← lift (core.num.U64.rotate_left i72 39#u32)
+  let i74 ← Array.index_usize a 15#usize
+  let i75 ← lift (i74 ^^^ i1)
+  let i76 ← lift (core.num.U64.rotate_left i75 41#u32)
+  let i77 ← Array.index_usize a 21#usize
+  let i78 ← lift (i77 ^^^ i5)
+  let i79 ← lift (core.num.U64.rotate_left i78 2#u32)
+  ok
+    (Array.make 25#usize [
+      i3, i7, i11, i15, i19, i22, i25, i28, i31, i34, i37, i40, i43, i46, i49,
+      i52, i55, i58, i61, i64, i67, i70, i73, i76, i79
+      ])
 
 /-- [slhdsa::shake256::round]: loop body 0:
-    Source: 'src/shake256.rs', lines 35:4-38:5 -/
+    Source: 'src/shake256.rs', lines 98:4-101:5 -/
 @[rust_loop_body]
 def shake256.round_loop0.body
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -7677,7 +7869,7 @@ def shake256.round_loop0.body
   else ok (done parity)
 
 /-- [slhdsa::shake256::round]: loop 0:
-    Source: 'src/shake256.rs', lines 35:4-38:5 -/
+    Source: 'src/shake256.rs', lines 98:4-101:5 -/
 @[rust_loop]
 def shake256.round_loop0
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -7689,7 +7881,7 @@ def shake256.round_loop0
     (parity, x)
 
 /-- [slhdsa::shake256::round]: loop body 1:
-    Source: 'src/shake256.rs', lines 41:4-44:5 -/
+    Source: 'src/shake256.rs', lines 104:4-107:5 -/
 @[rust_loop_body]
 def shake256.round_loop1.body
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -7712,7 +7904,7 @@ def shake256.round_loop1.body
   else ok (done d)
 
 /-- [slhdsa::shake256::round]: loop 1:
-    Source: 'src/shake256.rs', lines 41:4-44:5 -/
+    Source: 'src/shake256.rs', lines 104:4-107:5 -/
 @[rust_loop]
 def shake256.round_loop1
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -7723,89 +7915,8 @@ def shake256.round_loop1
     (fun (d1, x1) => shake256.round_loop1.body parity d1 x1)
     (d, x)
 
-/-- [slhdsa::shake256::round]: loop body 2:
-    Source: 'src/shake256.rs', lines 53:4-58:5 -/
-@[rust_loop_body]
-def shake256.round_loop2.body
-  (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize)
-  (b : Array Std.U64 25#usize) (i : Std.Usize) :
-  Result (ControlFlow ((Array Std.U64 25#usize) × Std.Usize) (Array Std.U64
-    25#usize))
-  := do
-  if i < 25#usize
-  then
-    let x ← i % 5#usize
-    let y ← i / 5#usize
-    let i1 ← Array.index_usize a i
-    let i2 ← Array.index_usize d x
-    let i3 ← lift (i1 ^^^ i2)
-    let i4 ← Array.index_usize shake256.round.ROT i
-    let i5 ← lift (core.num.U64.rotate_left i3 i4)
-    let i6 ← 2#usize * x
-    let i7 ← 3#usize * y
-    let i8 ← i6 + i7
-    let i9 ← i8 % 5#usize
-    let i10 ← 5#usize * i9
-    let i11 ← y + i10
-    let a1 ← Array.update b i11 i5
-    let i12 ← i + 1#usize
-    ok (cont (a1, i12))
-  else ok (done b)
-
-/-- [slhdsa::shake256::round]: loop 2:
-    Source: 'src/shake256.rs', lines 53:4-58:5 -/
-@[rust_loop]
-def shake256.round_loop2
-  (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize)
-  (b : Array Std.U64 25#usize) (i : Std.Usize) :
-  Result (Array Std.U64 25#usize)
-  := do
-  loop
-    (fun (b1, i1) => shake256.round_loop2.body a d b1 i1)
-    (b, i)
-
-/-- [slhdsa::shake256::round]: loop body 3:
-    Source: 'src/shake256.rs', lines 61:4-66:5 -/
-@[rust_loop_body]
-def shake256.round_loop3.body
-  (b : Array Std.U64 25#usize) (out : Array Std.U64 25#usize) (i : Std.Usize) :
-  Result (ControlFlow ((Array Std.U64 25#usize) × Std.Usize) (Array Std.U64
-    25#usize))
-  := do
-  if i < 25#usize
-  then
-    let x ← i % 5#usize
-    let row ← i - x
-    let i1 ← Array.index_usize b i
-    let i2 ← x + 1#usize
-    let i3 ← i2 % 5#usize
-    let i4 ← row + i3
-    let i5 ← Array.index_usize b i4
-    let i6 ← lift (~~~ i5)
-    let i7 ← x + 2#usize
-    let i8 ← i7 % 5#usize
-    let i9 ← row + i8
-    let i10 ← Array.index_usize b i9
-    let i11 ← lift (i6 &&& i10)
-    let i12 ← lift (i1 ^^^ i11)
-    let a ← Array.update out i i12
-    let i13 ← i + 1#usize
-    ok (cont (a, i13))
-  else ok (done out)
-
-/-- [slhdsa::shake256::round]: loop 3:
-    Source: 'src/shake256.rs', lines 61:4-66:5 -/
-@[rust_loop]
-def shake256.round_loop3
-  (b : Array Std.U64 25#usize) (out : Array Std.U64 25#usize) (i : Std.Usize) :
-  Result (Array Std.U64 25#usize)
-  := do
-  loop
-    (fun (out1, i1) => shake256.round_loop3.body b out1 i1)
-    (out, i)
-
 /-- [slhdsa::shake256::round]:
-    Source: 'src/shake256.rs', lines 32:0-69:1 -/
+    Source: 'src/shake256.rs', lines 95:0-113:1 -/
 def shake256.round
   (a : Array Std.U64 25#usize) (rc : Std.U64) :
   Result (Array Std.U64 25#usize)
@@ -7814,13 +7925,11 @@ def shake256.round
   let parity1 ← shake256.round_loop0 a parity 0#usize
   let d := Array.repeat 5#usize 0#u64
   let d1 ← shake256.round_loop1 parity1 d 0#usize
-  let b := Array.repeat 25#usize 0#u64
-  let b1 ← shake256.round_loop2 a d1 b 0#usize
-  let out := Array.repeat 25#usize 0#u64
-  let out1 ← shake256.round_loop3 b1 out 0#usize
-  let i ← Array.index_usize out1 0#usize
+  let b ← shake256.rho_pi a d1
+  let out ← shake256.chi b
+  let i ← Array.index_usize out 0#usize
   let i1 ← lift (i ^^^ rc)
-  Array.update out1 0#usize i1
+  Array.update out 0#usize i1
 
 /-- [slhdsa::shake256::RC]
     Source: 'src/shake256.rs', lines 5:0-30:2 -/
@@ -7837,7 +7946,7 @@ def shake256.RC : Array Std.U64 24#usize :=
     ]
 
 /-- [slhdsa::shake256::permute]: loop body 0:
-    Source: 'src/shake256.rs', lines 73:4-76:5 -/
+    Source: 'src/shake256.rs', lines 117:4-120:5 -/
 @[rust_loop_body]
 def shake256.permute_loop.body
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -7853,7 +7962,7 @@ def shake256.permute_loop.body
   else ok (done state)
 
 /-- [slhdsa::shake256::permute]: loop 0:
-    Source: 'src/shake256.rs', lines 73:4-76:5 -/
+    Source: 'src/shake256.rs', lines 117:4-120:5 -/
 @[rust_loop]
 def shake256.permute_loop
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -7864,7 +7973,7 @@ def shake256.permute_loop
     (state, i)
 
 /-- [slhdsa::shake256::permute]:
-    Source: 'src/shake256.rs', lines 71:0-77:1 -/
+    Source: 'src/shake256.rs', lines 115:0-121:1 -/
 @[reducible]
 def shake256.permute
   (state : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
@@ -7875,7 +7984,7 @@ def shake256.permute
 @[global_simps, irreducible] def shake256.RATE : Std.Usize := 136#usize
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 0:
-    Source: 'src/shake256.rs', lines 95:8-103:9 -/
+    Source: 'src/shake256.rs', lines 139:8-147:9 -/
 @[rust_loop_body]
 def shake256.Sponge.absorb_loop.body
   (data : Slice Std.U8) (self : shake256.Sponge) (i : Std.Usize) :
@@ -7908,7 +8017,7 @@ def shake256.Sponge.absorb_loop.body
   else ok (done self)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 0:
-    Source: 'src/shake256.rs', lines 95:8-103:9 -/
+    Source: 'src/shake256.rs', lines 139:8-147:9 -/
 @[rust_loop]
 def shake256.Sponge.absorb_loop
   (self : shake256.Sponge) (data : Slice Std.U8) (i : Std.Usize) :
@@ -7919,14 +8028,14 @@ def shake256.Sponge.absorb_loop
     (self, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]:
-    Source: 'src/shake256.rs', lines 93:4-104:5 -/
+    Source: 'src/shake256.rs', lines 137:4-148:5 -/
 @[reducible]
 def shake256.Sponge.absorb
   (self : shake256.Sponge) (data : Slice Std.U8) : Result shake256.Sponge := do
   shake256.Sponge.absorb_loop self data 0#usize
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop body 0:
-    Source: 'src/shake256.rs', lines 112:8-120:9 -/
+    Source: 'src/shake256.rs', lines 156:8-164:9 -/
 @[rust_loop_body]
 def shake256.Sponge.finish_loop.body
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -7956,7 +8065,7 @@ def shake256.Sponge.finish_loop.body
   else ok (done out)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop 0:
-    Source: 'src/shake256.rs', lines 112:8-120:9 -/
+    Source: 'src/shake256.rs', lines 156:8-164:9 -/
 @[rust_loop]
 def shake256.Sponge.finish_loop
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -7969,7 +8078,7 @@ def shake256.Sponge.finish_loop
     (a, out, pos, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]:
-    Source: 'src/shake256.rs', lines 106:4-121:5 -/
+    Source: 'src/shake256.rs', lines 150:4-165:5 -/
 def shake256.Sponge.finish
   (self : shake256.Sponge) (out : Slice Std.U8) : Result (Slice Std.U8) := do
   let i ← self.pos % 8#usize
@@ -7998,7 +8107,7 @@ def shake.hash.digest
   ok (to_slice_mut_back s1)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::new]:
-    Source: 'src/shake256.rs', lines 86:4-91:5 -/
+    Source: 'src/shake256.rs', lines 130:4-135:5 -/
 def shake256.Sponge.new : Result shake256.Sponge := do
   let a := Array.repeat 25#usize 0#u64
   ok { lanes := a, pos := 0#usize }
@@ -8176,7 +8285,7 @@ def shake.xmss.hash2
   shake.hash.thash_pair seed adrs left right
 
 /-- [slhdsa::shake::xmss::xmss_node]:
-    Source: 'src/shake/../xmss.rs', lines 16:0-25:1
+    Source: 'src/shake/../xmss.rs', lines 16:0-31:1
     Visibility: public -/
 def shake.xmss.xmss_node
   {N : Std.Usize} (sk_seed : Array Std.U8 N) (i : Std.U32) (z : Std.U32)
@@ -8322,7 +8431,7 @@ def shake.hash.prf_msg
   shake.hash.digest N sponge3
 
 /-- [slhdsa::shake::xmss::climb]: loop body 0:
-    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Source: 'src/shake/../xmss.rs', lines 68:4-79:5
     Visibility: public -/
 @[rust_loop_body]
 def shake.xmss.climb_loop.body
@@ -8350,7 +8459,7 @@ def shake.xmss.climb_loop.body
   else ok (done node)
 
 /-- [slhdsa::shake::xmss::climb]: loop 0:
-    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Source: 'src/shake/../xmss.rs', lines 68:4-79:5
     Visibility: public -/
 @[rust_loop]
 def shake.xmss.climb_loop
@@ -8365,7 +8474,7 @@ def shake.xmss.climb_loop
     (node, index, k)
 
 /-- [slhdsa::shake::xmss::climb]:
-    Source: 'src/shake/../xmss.rs', lines 50:0-75:1
+    Source: 'src/shake/../xmss.rs', lines 56:0-81:1
     Visibility: public -/
 @[reducible]
 def shake.xmss.climb
@@ -8692,7 +8801,7 @@ def shake.wots.wots_pk_from_sig
   shake.hash.digest N pk1
 
 /-- [slhdsa::shake::xmss::xmss_pk_from_sig]:
-    Source: 'src/shake/../xmss.rs', lines 78:0-88:1
+    Source: 'src/shake/../xmss.rs', lines 84:0-94:1
     Visibility: public -/
 def shake.xmss.xmss_pk_from_sig
   {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
@@ -8759,7 +8868,7 @@ def shake.wots.wots_sign
     0#usize
 
 /-- [slhdsa::shake::xmss::xmss_sign]: loop body 0:
-    Source: 'src/shake/../xmss.rs', lines 38:4-43:5
+    Source: 'src/shake/../xmss.rs', lines 44:4-49:5
     Visibility: public -/
 @[rust_loop_body]
 def shake.xmss.xmss_sign_loop.body
@@ -8781,7 +8890,7 @@ def shake.xmss.xmss_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::shake::xmss::xmss_sign]: loop 0:
-    Source: 'src/shake/../xmss.rs', lines 38:4-43:5
+    Source: 'src/shake/../xmss.rs', lines 44:4-49:5
     Visibility: public -/
 @[rust_loop]
 def shake.xmss.xmss_sign_loop
@@ -8796,7 +8905,7 @@ def shake.xmss.xmss_sign_loop
     (sig, j)
 
 /-- [slhdsa::shake::xmss::xmss_sign]:
-    Source: 'src/shake/../xmss.rs', lines 28:0-45:1
+    Source: 'src/shake/../xmss.rs', lines 34:0-51:1
     Visibility: public -/
 def shake.xmss.xmss_sign
   {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
@@ -8868,7 +8977,7 @@ def shake.ht.ht_sign
     idx_leaf 0#u32
 
 /-- [slhdsa::shake::slh::slh_sign_internal]:
-    Source: 'src/shake/../slh.rs', lines 56:0-76:1
+    Source: 'src/shake/../slh.rs', lines 87:0-95:1
     Visibility: public -/
 def shake.slh.slh_sign_internal
   {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
@@ -8979,7 +9088,7 @@ def shake.ht.ht_verify
   core.array.equality.PartialEqArray.eq core.cmp.PartialEqU8 node pk_root
 
 /-- [slhdsa::shake::slh::slh_verify_internal]:
-    Source: 'src/shake/../slh.rs', lines 79:0-95:1
+    Source: 'src/shake/../slh.rs', lines 98:0-109:1
     Visibility: public -/
 def shake.slh.slh_verify_internal
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
@@ -9030,7 +9139,7 @@ def sets.shake_128s.slh_verify_internal
   shake.slh.slh_verify_internal 16#usize sets.shake_128s.params.PARAMS m sig s
 
 /-- [slhdsa::shake::slh::with_context]:
-    Source: 'src/shake/../slh.rs', lines 98:0-105:1 -/
+    Source: 'src/shake/../slh.rs', lines 112:0-119:1 -/
 def shake.slh.with_context
   (m : Slice Std.U8) (ctx : Slice Std.U8) : Result (alloc.vec.Vec Std.U8) := do
   let mp ← alloc.vec.Vec.push (alloc.vec.Vec.new Std.U8) 0#u8
@@ -9041,7 +9150,7 @@ def shake.slh.with_context
   alloc.vec.Vec.extend_from_slice core.clone.CloneU8 mp2 m
 
 /-- [slhdsa::shake::slh::slh_sign]:
-    Source: 'src/shake/../slh.rs', lines 109:0-115:1
+    Source: 'src/shake/../slh.rs', lines 123:0-135:1
     Visibility: public -/
 def shake.slh.slh_sign
   {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9069,7 +9178,7 @@ def sets.shake_128s.slh_sign
   shake.slh.slh_sign sets.shake_128s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::shake::slh::slh_verify]:
-    Source: 'src/shake/../slh.rs', lines 118:0-124:1
+    Source: 'src/shake/../slh.rs', lines 138:0-150:1
     Visibility: public -/
 def shake.slh.slh_verify
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
@@ -11104,7 +11213,7 @@ def shake.adapter.randomizer
   else util.block N sk 2#usize
 
 /-- [slhdsa::shake::adapter::sign_into]:
-    Source: 'src/shake/../adapter.rs', lines 51:0-68:1
+    Source: 'src/shake/../adapter.rs', lines 51:0-76:1
     Visibility: public -/
 def shake.adapter.sign_into
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -11125,7 +11234,7 @@ def shake.adapter.sign_into
     ok (true, sig1)
 
 /-- [slhdsa::shake::adapter::sign_internal_into]:
-    Source: 'src/shake/../adapter.rs', lines 72:0-83:1
+    Source: 'src/shake/../adapter.rs', lines 80:0-91:1
     Visibility: public -/
 def shake.adapter.sign_internal_into
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
@@ -11138,7 +11247,7 @@ def shake.adapter.sign_internal_into
   core.slice.Slice.copy_from_slice core.marker.CopyU8 sig s1
 
 /-- [slhdsa::shake::adapter::keygen_seeds]:
-    Source: 'src/shake/../adapter.rs', lines 88:0-101:1
+    Source: 'src/shake/../adapter.rs', lines 96:0-109:1
     Visibility: public -/
 def shake.adapter.keygen_seeds
   (N : Std.Usize) (p : params.Params) (sk_seed : Slice Std.U8)
@@ -11158,7 +11267,7 @@ def shake.adapter.keygen_seeds
   shake.slh.slh_keygen_internal p a b c sk pk
 
 /-- [slhdsa::shake::adapter::signing_key_from]:
-    Source: 'src/shake/../adapter.rs', lines 106:0-112:1
+    Source: 'src/shake/../adapter.rs', lines 114:0-120:1
     Visibility: public -/
 def shake.adapter.signing_key_from
   (N : Std.Usize) (bytes : Slice Std.U8) (sk : Slice Std.U8)
@@ -11172,7 +11281,7 @@ def shake.adapter.signing_key_from
   else ok (false, sk1, pk)
 
 /-- [slhdsa::shake::adapter::signature_from]:
-    Source: 'src/shake/../adapter.rs', lines 116:0-122:1
+    Source: 'src/shake/../adapter.rs', lines 124:0-130:1
     Visibility: public -/
 def shake.adapter.signature_from
   (p : params.Params) (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -11186,7 +11295,7 @@ def shake.adapter.signature_from
   else ok (false, sig)
 
 /-- [slhdsa::shake::adapter::bytes_equal]:
-    Source: 'src/shake/../adapter.rs', lines 127:0-132:1
+    Source: 'src/shake/../adapter.rs', lines 135:0-140:1
     Visibility: public -/
 def shake.adapter.bytes_equal
   (a : Slice Std.U8) (b : Slice Std.U8) : Result Bool := do
@@ -11197,7 +11306,7 @@ def shake.adapter.bytes_equal
   else encoding.secret_keys_equal a b
 
 /-- [slhdsa::shake256::shake256]:
-    Source: 'src/shake256.rs', lines 125:0-129:1
+    Source: 'src/shake256.rs', lines 169:0-173:1
     Visibility: public -/
 def shake256.shake256
   (input : Slice Std.U8) (output : Slice Std.U8) : Result (Slice Std.U8) := do

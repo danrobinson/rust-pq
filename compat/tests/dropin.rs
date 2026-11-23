@@ -270,7 +270,7 @@ fn same_source_gives_the_same_bytes() {
         let ours = ours();
         let theirs = theirs();
         assert_eq!(ours.len(), theirs.len(), "{set}");
-        assert_eq!(ours.len(), 86, "number of recorded results, {set}");
+        assert_eq!(ours.len(), 88, "number of recorded results, {set}");
         for (a, b) in ours.iter().zip(theirs.iter()) {
             assert_eq!(a.0, b.0);
             assert!(a.1 == b.1, "`{}` differs between this crate and RustCrypto's, {set}", a.0);
@@ -292,5 +292,5 @@ fn same_source_gives_the_same_bytes() {
         total += ours.len();
         println!("{set}: {} results equal", ours.len());
     }
-    assert_eq!(total, 1032, "number of recorded results, all twelve sets");
+    assert_eq!(total, 1056, "number of recorded results, all twelve sets");
 }

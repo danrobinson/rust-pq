@@ -205,7 +205,7 @@ cargo test --features hw-sha2
 ```
 
 - `tests/dropin.rs`: one piece of source, written against RustCrypto's interface, is compiled
-  against both crates for each of the twelve sets. All 1,032 recorded results (86 per set: keys,
+  against both crates for each of the twelve sets. All 1,056 recorded results (88 per set: keys,
   signatures, encodings, accept/reject answers, error cases) must be equal; the count is
   pinned.
 - `tests/extras.rs` (37 tests; 39 with `hw-sha2`, which adds checks that the two hardware

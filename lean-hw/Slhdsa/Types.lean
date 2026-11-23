@@ -86,7 +86,7 @@ structure sha256.hw.First where
   e1 : core.core_arch.arm_shared.neon.uint32x4_t
 
 /-- [slhdsa::shake256::Sponge]
-    Source: 'src/shake256.rs', lines 80:0-83:1 -/
+    Source: 'src/shake256.rs', lines 124:0-127:1 -/
 structure shake256.Sponge where
   lanes : Array Std.U64 25#usize
   pos : Std.Usize
