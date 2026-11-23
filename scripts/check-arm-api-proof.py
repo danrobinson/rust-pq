@@ -9,7 +9,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 LEAN = ROOT / "lean-hw"
 SETS = tuple(f"sha2_{bits}{speed}" for bits in (128, 192, 256) for speed in ("s", "f"))
-OPERATIONS = ("keygen", "public_key", "slh_keygen_internal")
+KEY_OPERATIONS = ("keygen", "public_key", "slh_keygen_internal")
+INTERNAL = ("slh_sign_internal", "slh_verify_internal")
+OPERATIONS = KEY_OPERATIONS + INTERNAL
 TARGETS = {"aarch64-apple-darwin": "ArmApple", "aarch64-unknown-linux-gnu": "ArmLinuxTarget"}
 os.environ["PATH"] = os.pathsep.join(str(Path.home() / tool / "bin") for tool in (".elan", ".cargo")) + os.pathsep + os.environ["PATH"]
 
@@ -48,12 +50,17 @@ def checked_external_bindings(package):
             name, signature = m.groups()
             if re.search(rf"^def {re.escape(name)}\b", models, re.MULTILINE):
                 owner = "_root_" if path.name.startswith("Types") else "slhdsa"
-            elif name in ("core.slice.raw.from_ref", "sha2.sha512.compress512"):
+            elif name in ("core.slice.raw.from_ref", "core.slice.Slice.as_chunks",
+                          "sha2.sha256.compress256", "sha2.sha512.compress512"):
                 owner = "ArmStreamRust"
+            elif name in ("sha512.parents.parents", "sha512.parents.path_parents"):
+                owner = "ParentarmRust"
             else:
                 raise ValueError(f"no verified binding for {name}")
             # The only polymorphic reference in this extraction is slice::from_ref.
-            args = " T" if signature.startswith("{T :") else ""
+            binders = signature.split(":", 1)[0]
+            args = " T N" if name == "core.slice.Slice.as_chunks" else (
+                " T" if "{T" in binders else " N" if "{N" in binders else "")
             aliases.append(f"abbrev {name} {signature} := @{owner}.{name}{args}")
     return "\n".join(aliases)
 
@@ -65,7 +72,9 @@ def check_target(target, namespace, scratch):
     charon = ROOT / ".tools/aeneas/charon/bin/charon"
     run([charon, "cargo", "--preset=aeneas", *(a for r in roots for a in ("--start-from", r)),
          "--opaque", "crate::sha256::hw::arm", "--opaque", "crate::sha512::hw::arm",
-         "--opaque", "sha2::sha512::compress512", "--dest-file", scratch / "slhdsa.llbc",
+         "--opaque", "sha2::sha512::compress512", "--opaque", "sha2::sha256::compress256",
+         "--opaque", "crate::sha512::parents::parents", "--opaque", "crate::sha512::parents::path_parents",
+         "--dest-file", scratch / "slhdsa.llbc",
          "--", "--locked", "--features", "platform-sha2", "--target", target], ROOT / "rust")
     run([ROOT / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error", "-no-progress-bar",
          "-split-files", "-dest", package, scratch / "slhdsa.llbc"], ROOT)
@@ -80,6 +89,7 @@ def check_extraction(package, namespace, scratch):
         if item not in types:
             raise ValueError(f"unmatched type declaration: {item}")
     source = f"""import Armplatform.Keygen
+import Armplatform.LinuxInternal
 open Aeneas Aeneas.Std Result ControlFlow Error
 open slhdsa
 set_option maxRecDepth 65536
@@ -94,7 +104,11 @@ end {namespace}
         for op in OPERATIONS:
             fips_proof = f"slhdsa.{s}.{op}_spec"
             entry = f"slhdsa.sets.{s}.{op}"
-            if namespace == "ArmLinuxTarget":
+            if op in INTERNAL:
+                owner = "LinuxInternal.AppleInternal." if namespace == "ArmLinuxTarget" else "AppleInternal."
+                fips_proof = owner + fips_proof
+                entry = owner + entry
+            elif namespace == "ArmLinuxTarget":
                 fips_proof = "ArmLinux." + fips_proof
                 if op != "public_key":
                     entry = "ArmLinux." + entry
@@ -116,7 +130,7 @@ end {namespace}
 
 
 if __name__ == "__main__":
-    run(["lake", "build", "Armplatform.Keygen"], LEAN)
+    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxInternal"], LEAN)
     for arch, namespace in TARGETS.items():
         with tempfile.TemporaryDirectory() as temp:
             check_target(arch, namespace, Path(temp))
