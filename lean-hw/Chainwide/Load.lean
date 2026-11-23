@@ -45,6 +45,11 @@ private theorem word_at (xs : List U32) (i : Nat) (hi : i < xs.length) :
   simp (disch := decide) only [byte_at xs i _ hi,Nat.zero_add]
   rw [← Nat.add_zero (4*i),byte_at xs i 0 hi (by decide)]
 
+theorem packed_u32 (xs : List U32) :
+    (xs.flatMap MemoryElement.encode).length = 4*xs.length ∧
+      ∀ i < xs.length, little (xs.flatMap MemoryElement.encode) (4*i) = xs[i]!.bv :=
+  ⟨size xs,word_at xs⟩
+
 def loadCounters (xs : Slice U32) (off : Usize) (mask : U16) : Result Reg := do
   let base ← ChainWideRust.core.slice.Slice.as_ptr xs
   let ptr ← ChainWideRust.core.ptr.const_ptr.RawPtrConstT.add base off
