@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -39,7 +39,7 @@ extract() {
       cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
     done
   fi
-  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ]; then
+  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ] || [ "$package" = Keccakscalar ]; then
     # All operations in this extraction are implemented by Aeneas.
     for template in "$scratch/$package/"*External_Template.lean; do
       test ! -e "$template"
@@ -1009,3 +1009,14 @@ import Xmssroot.Top
 LEAN
 )
 grep -Fx "'slhdsa.X86.XmssRoot.batch_root_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmssroot-axioms"
+
+extract Keccakscalar KeccakScalarRust keccakscalar --start-from 'crate::shake256::permute'
+extract Shakeabs ShakeAbsRust shakeabs --start-from 'crate::shake256::shake256' --opaque 'crate::shake256::permute'
+echo 'shake256.permute' > "$scratch/expected"
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Shakeabs.Top && lake env lean --stdin > "$scratch/shakeabs-axioms" <<'LEAN'
+import Shakeabs.Top
+#print axioms slhdsa.PlatformShake.shake256_fips
+LEAN
+)
+grep -Fx "'slhdsa.PlatformShake.shake256_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/shakeabs-axioms"
