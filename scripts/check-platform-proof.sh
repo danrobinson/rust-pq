@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|S8driver|Kdiag|Kgridbulk|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|S8driver|Kdiag|Kgridbulk|Kxouter|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1152,6 +1152,27 @@ import Kgridbulk.Restore
 LEAN
 )
 grep -Fx "'slhdsa.Kgridbulk.restore' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/grid-restore"
+extract Kxouter KxouterRust kxouter --start-from 'crate::shake256::shake256' \
+  --opaque 'crate::shake256::round' --opaque 'crate::shake256::stream_x86::blocks' \
+  --opaque 'crate::sha256::x86::avx512_available'
+cat > "$scratch/expected" <<'NAMES'
+sha256.x86.avx512_available
+shake256.round
+shake256.stream_x86.blocks
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kxouter.Top && lake env lean --stdin > "$scratch/x86-sponge-axioms" <<'LEAN'
+import Kxouter.Top
+#print axioms slhdsa.Kdiag.even_fips
+#print axioms slhdsa.Kdiag.odd_fips
+#print axioms slhdsa.Kgridbulk.blocks_fips
+#print axioms slhdsa.PlatformShake.X86.absorb
+#print axioms slhdsa.PlatformShake.X86.shake256_fips
+LEAN
+)
+for name in Kdiag.even_fips Kdiag.odd_fips Kgridbulk.blocks_fips PlatformShake.X86.absorb PlatformShake.X86.shake256_fips; do
+  grep -Fx "'slhdsa.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-sponge-axioms"
+done
 extract Kdiag KdiagRust kdiag --start-from 'crate::shake256::stream_x86::even' --start-from 'crate::shake256::stream_x86::odd'
 cat > "$scratch/expected" <<'NAMES'
 core.array.Array.map
