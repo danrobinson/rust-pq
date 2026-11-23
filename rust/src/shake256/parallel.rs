@@ -191,8 +191,8 @@ mod sha3 {
                 a = unsafe { round(a, rc) };
             }
         }
-        for (word, lane) in state.iter_mut().zip(a) {
-            *word = vgetq_lane_u64::<0>(lane);
+        for i in 0..25 {
+            state[i] = vgetq_lane_u64::<0>(a[i]);
         }
     }
 }
