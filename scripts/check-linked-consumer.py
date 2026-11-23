@@ -20,6 +20,10 @@ def main():
         action="store_true",
         help="also run instruction mutation controls",
     )
+    parser.add_argument(
+        "--require-session-image", action="store_true",
+        help="require an exact match to the image-specific end-to-end session witnesses",
+    )
     args = parser.parse_args()
     data = args.binary.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
@@ -81,8 +85,9 @@ def main():
                 cmd = [sys.executable, script]
             subprocess.run([*cmd, artifact, *extra], env=env, cwd=ROOT, check=True)
 
+        image_flags = ["--require-session-image"] if args.require_session_image else []
+        run("apple-binary/check.py", *flags, *image_flags)
         for name in [
-            "apple-binary/check.py",
             "apple-binary/check_digest.py",
             "apple-binary/root_compare.py",
             "apple-binary/absorb.py",

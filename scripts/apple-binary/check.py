@@ -323,6 +323,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--certificate", type=Path, help="save the checked Lean certificate"
     )
+    parser.add_argument(
+        "--require-session-image", action="store_true",
+        help="require every generated session witness to match the imported Lean module",
+    )
     args = parser.parse_args()
     artifact = args.binary or release_consumer()
     require(
@@ -415,6 +419,7 @@ if __name__ == "__main__":
             if witness == (ROOT / "lean" / "Spec" / f"{name}.lean").read_text():
                 modules.append(f"Spec.{name}")
             else:
+                require(not args.require_session_image, f"{name} differs from imported session proof")
                 # Independently validate newly linked images without attributing
                 # the checked-in image's composition theorem to the new build.
                 print(f"{name} differs from checked-in image. Replaying new witness.", flush=True)

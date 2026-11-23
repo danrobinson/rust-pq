@@ -16,7 +16,7 @@ The internal Rust correspondence accepts every representable message slice with 
 
 ## Evidence from linked executables
 
-The [linked signer verification report](Linked%20signer%20verification.md) records the later checks from Apple signing entries through return, including the per-layer SHAKE data flow, and lists the remaining callee contracts.
+The [linked signer verification report](Linked%20signer%20verification.md) records the composed keygen, signing and verification proofs for the measured Apple executable and the remaining native callee and memory assumptions.
 
 The crate distributes Rust code. Downstream linking selects and can transform the final machine code. For this audit we used the ACVP test consumer and benchmark consumer, linked into three executables in release mode with `platform-sha2` from library revision `74b1b3e`. Each checker reads the final file, identifies the code and constants, checks them and reports the complete file's digest. A new deployment needs a replay against its own artifact.
 

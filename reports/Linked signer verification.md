@@ -47,7 +47,8 @@ The measured consumer was linked with Rust 1.100.0 and the crate's `platform-sha
 Run the combined replay from the repository root with Apple command-line tools, uv, Rust and the repository’s Lean dependencies available. It takes a private snapshot of the supplied binary and runs each checker against the same bytes. The individual checks remain independently runnable.
 
 ```sh
-python3 scripts/check-linked-consumer.py /path/to/acvp --self-test
+scripts/extract.sh --check
+python3 scripts/check-linked-consumer.py /path/to/acvp --self-test --require-session-image
 ```
 
 The linked-signer checks trust their Python specifications, Mach-O parsing, the AArch64 instruction lifter, symbolic executor and SMT solver. An equality check asks whether any input consistent with that path makes the expressions different. Unresolved control transfers, inaccessible memory under the region model, a missing terminal path or an exceeded execution bound fail the gate. The driver checks mutation controls for the PRF key, digest and radix shifts, hypertree index update and returned length. The XMSS check mutates the recursive height and child ordering. These are solver-based checks. The instruction-level rejection witness and the separately identified Lean theorems replay in the Lean kernel.

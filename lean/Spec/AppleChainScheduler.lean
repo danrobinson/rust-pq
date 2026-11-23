@@ -34,7 +34,7 @@ def finish (round : Nat → Nat → α → α) (j : Job α) :=
 def work (j : Job α) := j.remaining + (if j.pending then 1 else 0)
 
 inductive Change (round : Nat → Nat → α → α) : Job α → Job α → Prop
-  | admit (j : Job α) (unread : j.pending = true) : Change round j { j with pending := false }
+  | enqueue (j : Job α) (unread : j.pending = true) : Change round j { j with pending := false }
   | run (j : Job α) (live : j.pending = false) (r : Nat) (pos : 0 < r) (bound : r ≤ j.remaining) :
       Change round j { j with atRound := j.atRound + r, remaining := j.remaining - r,
                                value := advance (round j.id) j.atRound j.value r }
@@ -42,7 +42,7 @@ inductive Change (round : Nat → Nat → α → α) : Job α → Job α → Pro
 private theorem changed {r : Nat → Nat → α → α} {a b} (h : Change r a b) :
     finish r b = finish r a ∧ work b < work a := by
   cases h with
-  | admit p => simp [finish,work,p]
+  | enqueue p => simp [finish,work,p]
   | run p count pos bound =>
     constructor
     · simp only [finish,advance_append]; congr 1; omega

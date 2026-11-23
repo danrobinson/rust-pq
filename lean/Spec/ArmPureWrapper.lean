@@ -3,7 +3,7 @@ import Spec.ApplePureFrameWitness
 /-! Restricted word interpreter for SHAKE pure API wrappers on the measured Apple image.
 The shared frame builder has its own byte-construction certificate. Its successful
 call returns a live, nonempty-capacity Vec. The internal operation returns arbitrary
-opaque ABI data. Only transfers can preserve these cells to the public result. -/
+abstract ABI data. Only transfers can preserve these cells to the public result. -/
 namespace Spec.ArmPureWrapper
 open ArmKeygen
 
