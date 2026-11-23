@@ -13,6 +13,22 @@ private theorem packet_eq (A : Spec.Adrs) (m : Spec.Bytes) (t : Nat) (ht : t < 1
   rw [padFrom_blk _ _ (by omega),compress_word3 A t]
   simp only [Chain.packet,BitVec.toNat_ofNat,Nat.mod_eq_of_lt (by omega : t < 2^32),List.append_assoc]
 
+theorem packed_template_block (A : Spec.Adrs) (m : Spec.Bytes) (ws : List Word) (n k : Nat)
+    (hm : m.length = n) (hws : ws.length = 8) (shape : n=16 ∨ n=24 ∨ n=32) (hk : k < 16) :
+    Leaf.blockOf (packedWord (fun i => word (template A m) (4*i)) (fun i => ws[i]!) n (BitVec.ofNat 32 k)) =
+      padFrom 64 ({ A with word3 := k }.compress ++ (ser ws).take n) := by
+  let value := (ser ws).take n
+  have hv : value.length = n := by simp [value,ser_length,hws]; omega
+  have base : template A m = Chain.packet (A.compress.take 18) 0 m (padTail n) := by
+    rw [← hm]; exact (packet_eq A m 0 (by decide) (by omega)).symm
+  change _ = padFrom 64 ({ A with word3 := k }.compress ++ value)
+  apply Eq.trans _ (Leaf.block_words_inverse _ (padFrom_blk_length _ _ (by omega)))
+  apply Leaf.block_congr
+  intro i _
+  rw [base,packed_layout _ _ _ _ _ _ _ (by simp [adrs_compress_length]) hm hws shape (by omega)]
+  change word (Chain.packet _ _ value (padTail n)) _ = _
+  rw [← hv,packet_eq A value k hk (by omega)]
+
 private theorem chainState_length (iv : List Word) (w : Nat → Word) (initial : List Word) (n t : Nat)
     (h : initial.length = 8) : (chainState iv w initial n t).length = 8 := by
   cases t with
@@ -33,18 +49,8 @@ theorem chain_fips (P : Spec.Params) [Fact (P.family = .sha2)] (pk : Spec.Bytes)
     let value := (ser ws).take P.n
     have hws : ws.length = 8 := chainState_length _ _ _ _ _ hi
     have hv : value.length = P.n := by simp [value,ser_length,hws]; omega
-    have base : template A m = Chain.packet (A.compress.take 18) 0 m (padTail P.n) := by
-      rw [← hm]; exact (packet_eq A m 0 (by decide) (by omega)).symm
     let msg := padFrom 64 ({ A with word3 := k }.compress ++ value)
-    have msgOK : msg.length = 64 := padFrom_blk_length _ _ (by omega)
-    have correct : Leaf.blockOf (packedWord (fun i => word (template A m) (4*i))
-        (fun i => ws[i]!) P.n (BitVec.ofNat 32 k)) = msg := by
-      apply Eq.trans _ (Leaf.block_words_inverse msg msgOK)
-      apply Leaf.block_congr
-      intro i _
-      rw [base,packed_layout _ _ _ _ _ _ _ (by simp [adrs_compress_length]) hm hws shape (by omega)]
-      change word (Chain.packet _ _ value (padTail P.n)) _ = _
-      rw [← hv,packet_eq A value k (by omega) (by omega)]
+    have correct := packed_template_block A m ws P.n k hm hws shape (by omega)
     change (ser (compress (seedState P.n pk) _)).take P.n = _
     rw [correct,chain_succ,F_eq,Nat.zero_add]
     change (ser (compress (seedState P.n pk) msg)).take P.n = _

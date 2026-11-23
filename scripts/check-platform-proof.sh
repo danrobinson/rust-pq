@@ -604,7 +604,7 @@ sha256.x86.avx512.round
 sha256.x86.avx512.write_words
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips Wots.Serialize Wots.Address Wots.Driver Wots.Finish && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
+(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips Wots.Serialize Wots.Address Wots.Driver Wots.Finish Wots.RecoveryHash && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
 import Wots.Slots
 import Wots.Input
 import Wots.Fips
@@ -612,6 +612,9 @@ import Wots.Serialize
 import Wots.Address
 import Wots.Driver
 import Wots.Finish
+import Wots.RecoveryHash
+#print axioms slhdsa.X86.Wots.recovery_f_spec
+#print axioms slhdsa.X86.Wots.compress_round_spec
 #print axioms slhdsa.X86.Wots.refill_load_spec
 #print axioms slhdsa.X86.Wots.retire_spec
 #print axioms slhdsa.X86.Wots.finish_spec
@@ -649,6 +652,6 @@ import Wots.Finish
 #print axioms slhdsa.X86.Wots.recovery_words
 LEAN
 )
-for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec destination_spec key_prf_fips batch_body_eq batch_fips entry_spec endpoints_fips placed_lane batch_frame write_batch_spec store_batch_eq histogram_spec offsets_spec order_spec order_partition bypass_spec preparation_spec recover_eq refill_spec load_lanes_spec signature_words refill_load_spec retire_spec finish_spec pack_high_spec; do
+for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec destination_spec key_prf_fips batch_body_eq batch_fips entry_spec endpoints_fips placed_lane batch_frame write_batch_spec store_batch_eq histogram_spec offsets_spec order_spec order_partition bypass_spec preparation_spec recover_eq refill_spec load_lanes_spec signature_words refill_load_spec retire_spec finish_spec pack_high_spec recovery_f_spec compress_round_spec; do
   grep -Fx "'slhdsa.X86.Wots.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-axioms"
 done
