@@ -112,8 +112,8 @@ class Machine:
         self.alignments.append(align)
         return Pointer(len(self.blocks) - 1)
 
-    def region(self, p, length, align=1, write=False):
-        if not isinstance(p, Pointer) or p.block in self.dead:
+    def region(self, p, length, align=1, write=False, address_only=False):
+        if not isinstance(p, Pointer) or (p.block in self.dead and not address_only):
             raise ValueError(f"invalid memory access {p}")
         if not (0 <= p.offset <= p.offset + length <= len(self.blocks[p.block])):
             raise ValueError(f"out-of-bounds access {p} of length {length}")
@@ -139,7 +139,11 @@ class Machine:
             return value.to_bytes(size, "little")
         raise ValueError("unsupported value stored")
 
-    def execute(self, name, arguments):
+    def extended_instruction(self, ins, val, final_arg):
+        """Additional modeled operations may return (handled, register_value)."""
+        return False, None
+
+    def execute(self, name, arguments, borrowed_locals=(), capture=None):
         if name in self.aliases:
             return self.execute(self.aliases[name], arguments)
         if name not in self.functions:
@@ -149,6 +153,16 @@ class Machine:
             raise ValueError(f"unexpected function signature {name}")
         registers = dict(zip(formals, arguments))
         local_objects = []
+        lifetimes = {
+            m[1]
+            for body in blocks.values()
+            for op in body
+            if (
+                m := re.search(
+                    r"@llvm\.lifetime\.start\.p0\(ptr (?:nonnull )?(" + REG + r")\)", op
+                )
+            )
+        }
         label = next(iter(blocks))
         previous = None
 
@@ -188,24 +202,47 @@ class Machine:
                 if phis:
                     registers.update(phis)
                     phis.clear()
+                if type(self) is not Machine:
+                    handled, result = self.extended_instruction(ins, val, final_arg)
+                    if handled:
+                        if reg:
+                            registers[reg] = result
+                        continue
                 if ins.startswith("br "):
                     if m := re.fullmatch(r"br label %([-\w.$]+)", ins):
                         dest = m[1]
                     elif m := re.fullmatch(
                         rf"br i1 ({TOKEN}), label %([-\w.$]+), label %([-\w.$]+)", ins
                     ):
-                        dest = m[2] if self.number(val(m[1])) else m[3]
+                        conditional = val(m[1])
+                        if type(self) is not Machine and not isinstance(
+                            conditional, int
+                        ):
+                            previous, label, registers = self.symbolic_diamond(
+                                conditional,
+                                m[2],
+                                m[3],
+                                blocks,
+                                registers,
+                                local_objects,
+                            )
+                            break
+                        dest = m[2] if self.number(conditional) else m[3]
                     else:
                         raise ValueError(ins)
                     previous, label = label, dest
                     break
                 if ins == "ret void" or ins.startswith("ret i"):
                     value = None if ins == "ret void" else final_arg(ins)
+                    if capture is not None:
+                        capture.update(registers)
                     self.dead.update(local_objects)
                     return value
                 if m := re.fullmatch(r"alloca (.*), align (\d+)", ins):
                     result = self.allocate([None] * size_of(m[1]), int(m[2]))
                     local_objects.append(result.block)
+                    if reg in lifetimes:
+                        self.dead.add(result.block)
                 elif m := re.fullmatch(
                     r"getelementptr (?:inbounds )?(?:nuw )?(.*?), ptr ("
                     + REG
@@ -229,7 +266,7 @@ class Machine:
                         offset += idx_value * size_of(element)
                     result = Pointer(p.block, p.offset + offset)
                     if "inbounds" in ins:
-                        self.region(result, 0)
+                        self.region(result, 0, address_only=True)
                 elif m := re.fullmatch(
                     r"load (.*?), ptr (" + REG + r"), align (\d+)", ins
                 ):
@@ -331,12 +368,22 @@ class Machine:
                         raise ValueError("overlapping disjoint operands")
                     result %= limit
                 elif m := re.fullmatch(
-                    r"(trunc|zext) ((?:(?:nuw|nneg) )*)i(\d+) ("
+                    r"(trunc|zext) ((?:(?:nuw|nsw|nneg) )*)i(\d+) ("
                     + TOKEN
                     + r") to i(\d+)",
                     ins,
                 ):
                     result = self.number(val(m[4]))
+                    if "nsw" in m[2]:
+                        old, new = int(m[3]), int(m[5])
+                        small = result & ((1 << new) - 1)
+                        extended = (
+                            small | (((1 << (old - new)) - 1) << new)
+                            if small & (1 << (new - 1))
+                            else small
+                        )
+                        if extended != result:
+                            raise ValueError("signed truncation overflow")
                     if "nneg" in m[2] and result >= 1 << (int(m[3]) - 1):
                         raise ValueError("negative nneg extension")
                     if "nuw" in m[2] and result >= 1 << int(m[5]):
@@ -348,7 +395,10 @@ class Machine:
                     callee, args = m[1], parts(m[2])
                     if callee.startswith("llvm.lifetime."):
                         p = final_arg(args[0])
-                        if p.block not in local_objects or p.offset:
+                        if (
+                            p.block not in local_objects
+                            and p.block not in borrowed_locals
+                        ) or p.offset:
                             raise ValueError("nonlocal lifetime marker")
                         if ".end." in callee:
                             self.dead.add(p.block)
