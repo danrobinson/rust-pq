@@ -185,3 +185,8 @@ import Ideal.Direct.RomGame
 import Ideal.Direct.RomMatch
 import Ideal.Direct.RomFinal
 import Ideal.Direct.RomCore
+import Ideal.Direct.RomState
+import Ideal.Direct.RomGhost
+import Ideal.Direct.Couple
+import Ideal.Direct.RomCoreGhost
+import Ideal.Direct.Headline

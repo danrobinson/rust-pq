@@ -1591,3 +1591,254 @@ six new files: only `#print axioms` lines.  `#print axioms` of the new files: al
 `[propext, Classical.choice, Quot.sound]` (`MD.qb_labI`: `[propext, Quot.sound]`).
 `scripts/check.sh` (all default targets, generators, forbidden tokens, axioms, headline lists):
 `CHECK PASSED`, exit 0, no `FAIL` line.
+
+---------------------------------------------------------------------------------------------
+
+## 13. 2026-11-22 (seventh session): the coupling invariant; the ROM side as one handler, ghost values eliminated, the coupling tool; the core reduced to `DeferCoreGhostSufH`
+
+Five new files under `Ideal/Direct/` (1208 lines), five `import` lines appended to `Ideal.lean`; no
+existing Lean file changed.  `lake build Ideal`: success (7465 jobs).  No `sorry`/`axiom`/
+`native_decide`/`bv_decide` in the new files (only `#print axioms` lines); every `#print axioms`
+of the new files is `[propext, Classical.choice, Quot.sound]` (two generic lemmas:
+`[propext, Quot.sound]`).
+
+**`DeferCoreSuf` and `DeferCoreEuf` are NOT proved.**  They are reduced (exactly, by proved
+statements) to `DeferCoreGhostSufH` / `DeferCoreGhostEufH`: the same comparison with the ROM side
+replaced by the **eager ghost game** `romGE`, in which the values hidden from the forger are drawn
+at the honest query (as in the deferred game), so that both sides of the remaining statement can
+be coupled step by step.  **No unconditional bound on `sufI`/`eufI`/`sufP`/`eufP` beyond tight8's
+is proved; `MDHopSuf`, `MDHopEuf`, `suf_rom`, … and the twelve point bounds remain conditional**
+(now on `DeferCoreGhost*H`, collected in `Direct/Headline.lean`).
+
+### 13.1 The coupling invariant (written before the bulk; checked against the two awkward cases)
+
+**The two games, one program.**  `P = PprfST oR $ᵗ S` (tagged, `RomGame.lean`), the secret seed `k`
+drawn first on both sides.
+* **D** (left side of `DeferCoreGhostSufH`): `defH k` on `DS = ((C, L), P)`: `C` the public
+  compression cache (cells answered from no node), `L` the node labels (`Nd = Blk × List Blk`,
+  `(b, rev)` = block list `rev.reverse ++ [b]`), `P` the pending (touched, undrawn) nodes.  A
+  forger cell `q = (c, b)` is answered by the label of the node whose point it is (parent drawn
+  with label `c`, or `c = IV` for a root), else by `C`.  An honest walk touches its proper prefixes
+  and reads (draws) its full list.  At the end: `endFill`, then `¬ Gs.Bad`.
+* **R** (right side): `romGE k` on `(T, (CG, LG))`: `T` the simulator's table, `CG` the oracle
+  cache (`CG (.inl t) = O(t)`, never a `.inr` entry), `LG` the ghost labels, keys
+  `(t, false)` (the final tail) and `(t, true)` (the inner digest).  Honest query `t`: `O(t)`,
+  then draw `LG(t,false)` and `LG(t,true)` if undrawn.  Forger cell `q` fresh in `T`: if
+  `relQ pk T q = some t`, answer `overlay t O(t) LG(t,false)` (drawn if undrawn); else if
+  `innQ pk T q = some t`, answer `LG(t,true)`; else a fresh value.
+
+**Honest nodes.**  For an honest query `t` (with the run's `pk`): `n_t` = the node of its final
+walk (Thash: `sb128 ps :: tblocks a xs`; PRF: `[sb128 ps, blk128 a k]`; `H_msg`: `oblocksH R ps X`
+with `X = L(n_in t)`; `PRF_msg`: `[okey k, oblock s]` with `s = L(n_in t)`), `n_in t` = the node of
+its inner walk (`iblocksH R ps pr M`; `ikey k :: iblocks r M`).  `head_t v` = the first `ansLen t`
+bytes (16 or 30), `tail_t v` the rest; `overlay t (head_t v) g = v` iff `tail_t g = tail_t v`.
+
+**Invariant `Inv(D, R)`** (all items at the current states; `merge_D` = VCVio's merged cache:
+the label of the node at a point, else `C`):
+* (J1) *Cells.* `T q = some v → merge_D q = some v`, and `C q = some v → T q = some v`
+  (every public cell is a forger cell; honest walks create no public cell).
+* (J2) *Drawn nodes are accounted for.*  Every drawn node `n` (`L n = some v`) is
+  (A) *visible*: its point `q_n` exists (parent drawn or root) and `T q_n = some v`; or
+  (B) *hidden final*: `n = n_t` for an honest query `t` already made, `O(t) = head_t v`,
+  `tail_t (LG(t,false)) = tail_t v`, and `T q_n = none` (or `q_n` undefined); or
+  (C) *hidden inner*: `n = n_in t` for an honest two-stage query `t` already made,
+  `LG(t,true) = v`, and `T q_n = none` (or undefined).
+* (J3) *Oracle entries.*  `O(t) = some y` → `n_t` is drawn and `y = head_t (L n_t)`.
+* (J4) *Ghosts.*  `LG(t,false)` drawn → (`t` honestly queried) or (the canonical cell of
+  `(t,false)` is cached in `T`, `n_t` visible with `T q = overlay t O(t) LG(t,false)`);
+  `LG(t,true)` drawn for a two-stage `t` → (`t` honestly queried and `n_in t` drawn with
+  `L = LG(t,true)`) or (`n_in t` visible, `T q = LG(t,true)`).  For a Thash `t`, `(t,true)` is an
+  unused dummy (no condition).
+* (J5) *Rooted chains are visible.*  If `mdC T IV128 bs = some c` then every nonempty prefix of
+  `bs` is a drawn visible node and the label of `bs` is `c`.
+* (J6) *No coincidence* (the coupling's own bad event is its negation): `T` has distinct values,
+  none `= IV128` (`NoCollC IV128 T`), no `T` value equals a hidden label (class B/C) other than
+  through J2, and no relevant/inner parse of a `T`-rooted list is ambiguous (`relQ`/`innQ` have
+  at most one candidate: `isThL_unique`, `isHmF_unique`, parse-class disjointness S3).
+* (J7) *Pending nodes* are unconstrained (the end fill and `¬ Gs.Bad` handle them).
+
+**The joint step** (the D step is taken as is; R's randomness is read off D's draws; `h` an extra
+fresh value; "bad" = the step is not of this form or breaks `Inv`):
+
+| query | D | R | coupling |
+|---|---|---|---|
+| coin | `u` | `u` | same `u` |
+| port, `T q = some v` | `merge_D q = v` (J1) | `v` | equal |
+| port fresh, `relQ = some t` | node `n_t` at `q` (J5); `L n_t` existing (class B) or fresh `v` | `overlay t O(t) LG(t,false)`; `O(t)`, `LG(t,false)` fresh iff `n_t` fresh (J3, J4) | fresh: `O(t) := head v`, `LG(t,false) := splice(h, v)`; existing: equal by J2(B) |
+| port fresh, `innQ = some t` | node `n_in t` at `q`: existing (class C) or fresh `v` | `LG(t,true)` | `LG(t,true) := v` / equal by J2(C) |
+| port fresh, neither | public cell, or a node not honestly read (root, child of a visible node, child of a **hidden** node = guessed chaining value): undrawn by J2+S2 | fresh `u` | `u := v` (class A afterwards) |
+| honest `t` | read `n_t` (and `n_in t`) | `O(t)`, touch both ghosts | fresh: `O(t) := head v`, `LG(t,false) := splice(h,v)`, `LG(t,true) := X`; existing: equal by J2–J4 |
+
+`splice(h, v)` = head of `h`, tail of `v`: `(head v, splice(h, v))` is uniform on
+`Range t × St` when `(v, h)` is uniform, which is the domination step (VCVio's
+`DominatedUntilBad` of the joint handler by `romGE` through the `R`-projection); the D-marginal of
+the joint step is the D step itself (`Couple.map_run_eqD_of_step`).
+
+**Bad events of the coupling** (beyond `Gs.Bad` of the filled final state, which the left side
+already excludes and which is monotone):
+* (B1) 256-bit coincidences among `T` values, labels and `IV128` (J6): `≤ (Q+1)²/2^257`, `Q = QAll`
+  (each `T` value is a D label or a public value, each one fresh 256-bit draw; the ghost filler `h`
+  never reaches `T`, because `overlay t (head v) (splice(h, v)) = v`).
+* (B2) Pattern coincidences making two parse classes meet (`H_msg` inner digest `= 0^32`, PK.seed
+  and PK.root both `0^16`, …): `≤ 2^-255` in total.
+* (B3) **`E_root`**: some signer's inner digest `X_i` (hidden, class C) has
+  `X_i[0..16) = PK.root`: then `[b₁(X_i), b₂, b']` parses as a relevant `H_msg` inner chain and the
+  forger, guessing the 2 hidden bytes of the outer final, can make the simulator answer it unlike D.
+  `≤ qs/2^128` (one fresh 256-bit `X_i` per signing query, drawn after PK.root).
+
+**Structural facts the coupling uses** (deterministic; none is proved yet):
+* (S1) **Honest queries are relevant** for the run's `pk`: every Thash query of keygen, signing and
+  verification has `ps = PK.seed` and `|xs| = arityOf (adrsToKey a)`; every `H_msg` query has
+  `(ps, pr) = (PK.seed, PK.root)`; the PRF walk is the arity-1 Thash walk
+  (`(tblocks a [k]).2 = []`, `blk128 a k = (tblocks a [k]).1`).  *New in this session*: without
+  it, an honest query whose final the simulator classes as irrelevant is answered by `O` on the
+  honest side and by a fresh value on the forger's side, and the forger can compute every public
+  chain, so the coupling fails with probability 1.  VCVio's `AddressDiscipline` (`type ≤ 4`) is too
+  coarse (its hash/compress/node callbacks quantify over every list); a refined version with the
+  address type and tree height of each call is needed.
+* (S2) No proper prefix of an honest walk is an honest read node (relevant final or inner final),
+  except through `E_root`/B2; hence honest walks never pass through a hidden node, and a node
+  below a hidden node is never honestly read.
+* (S3) Parse-class disjointness by the first block: `sb128 ps` (zeros in bytes 16..63) vs
+  `okey`/`ikey` (`0x5c`/`0x36` there) vs `R ‖ ps ‖ X` / `R ‖ ps ‖ pr ‖ M₀` (meet `sb128` only on
+  B2 patterns).
+* (S4) A Thash final extended by blocks is never a relevant Thash final
+  (`tblocks a xs ++ bs = tblocks a' xs'` forces `a' = a`, `|xs'| > |xs| = arityOf a`).
+* (S5) At most `qs` honest `H_msg` inner digests are drawn, each after PK.root (for B3).
+
+**Awkward case 1 (a forger query that extends an honest final label, hidden half guessed).**
+Before: honest Thash `t` read `n_t`, `L n_t = y ‖ z`, `O(t) = y`, `tail LG(t,false) = z`, `q_{n_t}`
+not in `T` (class B).  The forger asks `q' = (y ‖ z, b')`.  D: `q'` is the point of `(b', n_t)`
+(parent drawn), undrawn by S2, drawn fresh `v'`.  R: `y ‖ z` is no `T` value (J6), so `q'` is not
+rooted: fresh `u`.  Coupled `u = v'`; afterwards `(b', n_t)` is class A with an unrooted cell
+(J5 is about rooted chains only, so nothing breaks).  If the forger later asks `q_{n_t}`: D returns
+`y ‖ z`; R: rooted and relevant (S1), `overlay t y LG(t,false) = y ‖ z`; now `q'` becomes rooted
+with list `bs(t) ++ [b']`, which is relevant for nothing (S4, S3) and never honestly read (S2), so
+no later step reads it inconsistently.  If the forger asks `q'` *before* the honest read of
+`n_t`: `y ‖ z` is not yet a label, `q'` is a public cell of D, and the later draw of `L n_t = y ‖ z`
+is a `Conflict` (`Gs.Bad`, excluded).  The one exception is an `H_msg` outer final (2 hidden
+bytes): `(b', n_t)` parses as a relevant `H_msg` inner chain iff `X[0..16) = PK.root`: **B3
+(`E_root`)**.  No charge per forger query, as §10.1 predicted.
+
+**Awkward case 2 (a forger query made before the signer reads the same cell).**  The forger
+evaluates the chain of a relevant `t` first.  R: `relQ = some t`, `O(t)` and `LG(t,false)` fresh;
+D: `n_t` fresh `v`; coupled `O(t) = head v`, `LG(t,false) = splice(h, v)` (class A).  The later
+honest query: D reads `n_t` (existing, `out16 v = O(t)`); R: `O(t)` cached, `(t,false)` drawn
+(no-op), `(t,true)` drawn fresh (an unused dummy for Thash; for a two-stage `t` it is coupled with
+`n_in t`, which the forger drew first only if it evaluated the inner chain: then `LG(t,true)` was
+read at that cell, `innQ`).  `H_msg` with deterministic re-signing (`R` known after the first
+signature): the inner digest was drawn at the first signing (class C, `LG(t,true) = X`), the
+forger's inner chain meets it through `innQ`, its outer final through `relQ` (inner digest now a
+`T` value), both consistent.  A forger cell asked *before its chaining value is rooted* needs a
+guessed 256-bit label (B1) or creates a `Conflict` (`Gs.Bad`).  Consistent.
+
+**Conclusion on the error.**  The derivation gives `≤ (Q+1)²/2^257 + 2^-255 + qs/2^128` for the
+core, inside the allocation `epsHalf + qs/2^128 = (Q+1)²/2^255 + qs/2^128` (a factor 4 of room on
+the 256-bit part).  So the allocation is not contradicted; `epsHalf`, `epsHop`, `RomNumerics` are
+unchanged.  (Not a proof: B1–B3 are not yet bounded in Lean.)
+
+### 13.2 Files and statements proved (file:line)
+
+| file | lines | content |
+|---|---|---|
+| `Direct/RomState.lean` | 88 | `fuseS` (stateful handler over a stateful base), the ROM side as one handler `romSt`, `yrom_eq` |
+| `Direct/RomGhost.lean` | 750 | canonical cells and their uniqueness; the ghost graph and program; deferred ghost game = ROM side; eager ≤ deferred; `romGE_le` |
+| `Direct/Couple.lean` | 108 | the joint-handler coupling lemma |
+| `Direct/RomCoreGhost.lean` | 97 | `DeferCoreGhostSufH`/`EufH`; `DeferCoreSuf`/`Euf` from them |
+| `Direct/Headline.lean` | 165 | all route bounds under `DeferCoreGhost*H` (conditional), comparison with tight8 |
+
+```
+theorem run_fuseS (G φ) (oa) (s c) :                                                   -- RomState.lean:38
+    (simulateQ φ ((simulateQ G oa).run s)).run c =
+      (fun z => ((z.1, z.2.1), z.2.2)) <$> (simulateQ (fuseS G φ) oa).run (s, c)
+def romSt (k) := fuseS (romH k) (hashSpec Cr).romImpl                                  -- :59
+theorem yrom_eq (P) : (rom (hashSpec Cr)).evalDist (k ← $; (simulateQ (romH k) P).run' ∅) {true} =
+    Pr{k ← $; z ← (simulateQ (romSt k) P).run (∅, ∅)}[z.1 = true]                     -- :63
+theorem cellOf_unique (h : CExt T T') (hq : CellOf T q c) (hq' : CellOf T' q' c) : q = q'   -- RomGhost.lean:157
+def gG : LGraph PubG Empty KG St (childless, pt k _ = .inr k)                          -- :186
+def simStepG, romGP, romGE := fuseS (romGP k) gG.eagerImpl, romGD := … deferredImpl    -- :222–262
+def GInv s := (no ghost point in the public cache) ∧ (a drawn ghost has its canonical cell cached)  -- :379
+theorem romGD_step k t s (hs : GInv s) :
+    (fun z => (z.1, prj z.2)) <$> (romGD k t).run s =ᵈ (romSt k t).run (prj s)        -- :644
+theorem romGD_preservesInv k : QueryImpl.PreservesInv (romGD k) GInv                   -- :587
+theorem romGD_le k P : Pr_romGD[win] ≤ Pr_romSt[win]                                   -- :660
+theorem romGE_le_romGD k P : Pr_romGE[win] ≤ Pr_romGD[win]                              -- :710
+theorem romGE_le k P : Pr{z ← (simulateQ (romGE k) P).run (∅, (∅, ∅))}[z.1 = true] ≤
+    Pr{z ← (simulateQ (romSt k) P).run (∅, ∅)}[z.1 = true]                            -- :737
+theorem map_run_eqD_of_step J h₁ π I (hI) (hm : ∀ t s, I s → (z.1, π z.2) <$> (J t).run s =ᵈ (h₁ t).run (π s)) :
+    (fun z => (z.1, π z.2)) <$> (simulateQ J oa).run s =ᵈ (simulateQ h₁ oa).run (π s)  -- Couple.lean:34
+theorem coupling_le J h₁ h₂ π₁ π₂ I bad hI hbad hm (hd : DominatedUntilBad J h₂ π₂ I bad) oa s hs F A :
+    Pr{z ← h₁-run (π₁ s); w ← F z.2}[z.1 = true ∧ A w] ≤
+      Pr{z ← h₂-run (π₂ s)}[z.1 = true] + Pr{z ← J-run s; w ← F (π₁ z.2)}[bad z.2 ∧ A w]   -- :61
+theorem rom_ge_le P : Pr{k ← $; z ← romGE-run}[z.1 = true] ≤ (rom (hashSpec Cr)).evalDist (Yrom-form) {true}
+                                                                                       -- RomCoreGhost.lean:31
+theorem deferCoreSuf_of_ghost : DeferCoreGhostSufH → DeferCoreSuf                       -- :86
+theorem deferCoreEuf_of_ghost : DeferCoreGhostEufH → DeferCoreEuf                       -- :90
+theorem {suf,euf,sufP,eufP}_rom_ghost, {suf,euf,sufP,eufP}_rom_2_{20,40,64}_ghost      -- Headline.lean
+theorem rom_points_lt_tight8                                                           -- Headline.lean
+```
+Why the deferred ghost game IS the ROM side (`romGD_step`): a ghost read happens only at a fresh
+canonical cell; a drawn ghost has its canonical cell cached (`GInv`) and a key has one canonical
+cell along a run (`cellOf_unique`: the table only grows and the cell is a function of the rooted
+block list), so every ghost read is a fresh uniform value, like the simulator's `u`; the oracle
+query and the fresh value are swapped (`EvalDistEq.bind_bind_swap`); touches are only recorded.
+Eager ≤ deferred is `LDefer.prEvent_eagerImpl_le_deferredImpl_empty` with `Bad` impossible
+(`gG_not_bad`: no node point is ever in the public cache, points are injective).
+
+### 13.3 Deviations
+
+* The remaining statement is moved from the ROM side to the **eager ghost game** (`romGE`); this is
+  an exact reduction (`romGE_le` is an inequality in the direction needed), not a weakening of any
+  game; the final theorems are about the same objects as `suf_ideal_pure_closed_tight8`.
+* The ghost game touches **both** ghost slots at every honest query (also the unused inner slot of
+  a Thash query): simpler, and harmless for the coupling (an unused draw).
+* No change of `epsHalf`, `epsHop`, `epsRom`, `RomNumerics.lean`: the derivation (13.1) stays
+  inside the allocation.  Not yet machine-checked.
+* New finding: the coupling needs S1 (honest queries relevant), not listed in §12.
+
+### 13.4 Exact remaining statements
+
+```
+def DeferCoreGhostSufH : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →           -- RomCoreGhost.lean:44
+    Pr{k ← $ᵗ (Bytes 16); z ← (simulateQ (defH k) (PprfST oR $ᵗ S)).run ((∅, ∅), []);
+       st ← RelabelState.endFill z.2}[z.1 = true ∧ ¬ Gs.Bad st] ≤
+      Pr{k ← $ᵗ (Bytes 16); z ← (simulateQ (romGE k) (PprfST oR $ᵗ S)).run (∅, (∅, ∅))}[z.1 = true]
+        + epsHalf qf qs ℓ + qs / 2^128
+def DeferCoreGhostEufH : Prop := (the same with PprfET)                                -- :59
+```
+Every bound of the route (`Headline.lean`, `RomFinal.lean`) takes one of these as a hypothesis.
+What their proof needs, in order (`Couple.coupling_le` with `h₁ = defH k`, `h₂ = romGE k`,
+`F = endFill`, `A = ¬ Gs.Bad`):
+1. the joint handler `J` of the table in 13.1 on `DS × (Tc × GS)` (with `bad` = "the step was not
+   of the tabulated form, or `Inv` fails");
+2. `hm` (the D-marginal of `J` is `defH`: immediate if `J` runs the D step first and only adds
+   draws);
+3. `hd` (domination of `J` by `romGE` through the R-projection off `bad`: per case, the
+   `splice` pushforward; the same normal forms as `RomGhost.step_port`);
+4. **the bad bound** `Pr_J[bad ∧ ¬ Gs.Bad (endFill)] ≤ epsHalf + qs/2^128`: `Inv` preserved
+   except on B1–B3 (needs S1–S5), B1 by `CollBudget.ex_hz_le_of_step_cap` as in `MDBadSharp`,
+   B3 by a union bound over the `≤ qs` signer inner digests;
+5. the EUF twin: the same `J` (the programs differ only in the final check).
+
+### 13.5 Updated estimate
+
+Done this session: 1208 lines (ROM side as one handler 88, ghost elimination 750, coupling tool
+108, reduction 97, headline 165).  Remaining for the unconditional theorems: the joint handler and
+`hm`/`hd` 1–1.5k; `Inv` and its preservation 0.8–1.2k; S1 (a refined address discipline over
+VCVio's SLH-DSA programs: type and tree height per call) 0.5–0.8k; S2–S5 0.3–0.6k; the bad bound
+(B1–B3, hazard engine) 0.6–1k; EUF twin 0.1–0.2k: **≈ 3.3–5.3k lines**.  (§12's 2–3.5k did not
+count S1 or the joint handler's per-case domination.)
+
+### 13.6 Bounds
+
+Unchanged.  Proved unconditional: tight8's (2^-63, 2^-59, 2^-39).  Under `DeferCoreGhostSufH`
+alone: P20 2^-67 + 2^-107, P40 2^-63 + 2^-87, P64 2^-63 + 2^-64 + 2^-66 (≈ 2^-62.35), each below
+tight8 (`Headline.rom_points_lt_tight8`).
+
+### 13.7 Verification (this session)
+
+`lake build Ideal`: success (7465 jobs).  `grep -nE "sorry|axiom |native_decide|bv_decide"` in the
+five new files: only `#print axioms` lines.  The 30 `#print axioms` lines of the new files: 28 ×
+`[propext, Classical.choice, Quot.sound]`, 2 × `[propext, Quot.sound]` (`run_fuseS`,
+`cellOf_unique`).  `scripts/check.sh` (all default targets, generators, forbidden tokens, axioms,
+headline lists): `CHECK PASSED`, exit 0, no `FAIL` line.
