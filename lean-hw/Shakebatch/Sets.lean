@@ -1,4 +1,5 @@
 import Facade.Suite
+import Shakebatch.MessageLength
 open Aeneas Aeneas.Std Result
 namespace slhdsa
 
@@ -23,46 +24,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 16#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 152) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) :
     sets.shake_128s.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_128s (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128s.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 152) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 32#usize) :
     sets.shake_128s.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_128s (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128s.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128s.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128s.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 409) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128s.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_128s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128s.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -93,36 +91,35 @@ theorem public_key_spec (sk : Array U8 64#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128s.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128s.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (hm : Room m.length 409) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128s.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128s (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_128s (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_128s.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 409) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128s.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_128s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128s.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -147,46 +144,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 16#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 152) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) :
     sets.shake_128f.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_128f (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128f.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 152) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 32#usize) :
     sets.shake_128f.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_128f (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128f.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128f.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128f.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 409) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128f.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_128f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128f.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -217,36 +211,35 @@ theorem public_key_spec (sk : Array U8 64#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128f.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_128f.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (hm : Room m.length 409) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128f.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_128f (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_128f (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_128f.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Room m.length 409) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_128f.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_128f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_128f.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -271,46 +264,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 24#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 304) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) :
     sets.shake_192s.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_192s (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192s.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 304) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 48#usize) :
     sets.shake_192s.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_192s (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192s.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 561) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192s.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192s.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 561) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192s.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_192s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192s.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -341,36 +331,35 @@ theorem public_key_spec (sk : Array U8 96#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 561) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192s.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192s.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (hm : Room m.length 561) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192s.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192s (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_192s (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_192s.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 561) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192s.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_192s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192s.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -395,46 +384,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 24#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 304) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) :
     sets.shake_192f.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_192f (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192f.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 304) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 48#usize) :
     sets.shake_192f.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_192f (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192f.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 561) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192f.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192f.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 561) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192f.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_192f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192f.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -465,36 +451,35 @@ theorem public_key_spec (sk : Array U8 96#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize)
-    (hm : Room m.length 561) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (addrnd : Array U8 24#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192f.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_192f.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (hm : Room m.length 561) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 96#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192f.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_192f (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_192f (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_192f.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Room m.length 561) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 48#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_192f.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_192f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_192f.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -519,46 +504,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 32#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 304) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) :
     sets.shake_256s.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_256s (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256s.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 304) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 64#usize) :
     sets.shake_256s.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_256s (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256s.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 561) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256s.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256s.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 561) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256s.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_256s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256s.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -589,36 +571,35 @@ theorem public_key_spec (sk : Array U8 128#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 561) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256s.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256s (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256s.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (hm : Room m.length 561) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256s.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256s (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_256s (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_256s.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 561) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256s.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_256s (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256s.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -643,46 +624,43 @@ theorem slh_keygen_internal_spec (sk_seed sk_prf pk_seed : Array U8 32#usize) :
   exact h1
 
 @[step]
-theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 304) :
+theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) :
     sets.shake_256f.slh_sign_internal m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal Spec.shake_256f (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256f.slh_sign_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_internal_spec _ pn m s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_sign_internal_all_lengths _ pn m s addrnd (by simp [s_post]))
   rintro r ⟨h1, -⟩
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 304) :
+theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 64#usize) :
     sets.shake_256f.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.shake_256f (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256f.slh_verify_internal
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_internal_spec _ pn m sig s (by simp [s_post])
-    (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.slh_verify_internal_all_lengths _ pn m sig s (by simp [s_post]))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 561) :
+theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256f.slh_sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256f.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 561) :
+theorem slh_verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256f.slh_verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_256f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256f.slh_verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.slh_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
@@ -713,36 +691,35 @@ theorem public_key_spec (sk : Array U8 128#usize) :
   rfl
 
 @[step]
-theorem sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize)
-    (hm : Room m.length 561) :
+theorem sign_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (addrnd : Array U8 32#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256f.sign m ctx sk addrnd ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256f (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
   unfold sets.shake_256f.sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.sign_full _ pn m ctx s addrnd (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
 @[step]
-theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (hm : Room m.length 561) :
+theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 128#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256f.sign_deterministic m ctx sk ⦃ r =>
       r.map (fun v => bytes v.val) =
         Spec.slhSign Spec.shake_256f (bytes m.val) (bytes ctx.val) (bytes sk.val)
           (Spec.block Spec.shake_256f (bytes sk.val) 2) ⦄ := by
   unfold sets.shake_256f.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.deterministic_full _ pn m ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips, shape, block_shape]
 
 @[step]
-theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Room m.length 561) :
+theorem verify_spec (m sig ctx : Slice U8) (pk : Array U8 64#usize) (hm : Shake.ContextFits m ctx) :
     sets.shake_256f.verify m sig ctx pk ⦃ b =>
       b = Spec.slhVerify Spec.shake_256f (bytes m.val) (bytes sig.val) (bytes ctx.val) (bytes pk.val) ⦄ := by
   unfold sets.shake_256f.verify
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (Shake.api_verify_spec _ pn m sig ctx s (by simp [s_post]) (by rw [slack]; exact hm))
+  apply WP.spec_mono (Shake.verify_full _ pn m sig ctx s (by simp [s_post]) hm)
   intro r h1
   rw [h1, s_post, Array.val_to_slice, fips]
 
