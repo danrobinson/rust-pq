@@ -486,8 +486,11 @@ sha256.x86.chains
 sha256.x86.sha_ni.get
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Chainwide.Step && lake env lean --stdin > "$scratch/chainwide-axioms.log" <<'LEAN'
-import Chainwide.Step
+(cd lean-hw && lake build Chainwide.Retire && lake env lean --stdin > "$scratch/chainwide-axioms.log" <<'LEAN'
+import Chainwide.Retire
+#print axioms slhdsa.X86.Chain.load_ranges_spec
+#print axioms slhdsa.X86.Chain.iteration_spec
+#print axioms slhdsa.X86.Chain.active_has_budget
 #print axioms slhdsa.X86.Chain.compression_step_spec
 #print axioms slhdsa.X86.Chain.start_mask
 #print axioms slhdsa.X86.Chain.end_mask
@@ -496,6 +499,6 @@ import Chainwide.Step
 #print axioms slhdsa.X86.Chain.prefix_spec
 LEAN
 )
-for name in input_words broadcast_spec prefix_spec compression_step_spec start_mask end_mask; do
+for name in input_words broadcast_spec prefix_spec compression_step_spec start_mask end_mask load_ranges_spec iteration_spec active_has_budget; do
   grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwide-axioms.log"
 done

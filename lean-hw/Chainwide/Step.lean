@@ -1,5 +1,5 @@
 import Chainwide.Prefix
-import Chainwide.Counters
+import Chainwide.Schedule
 import Chainvectors.Words
 open Aeneas Aeneas.Std Result ControlFlow
 namespace slhdsa.X86.Chain
@@ -7,34 +7,36 @@ open ChainWideRust
 open ChainWideRust.sha256.x86.avx512
 abbrev ChainStep := Result (ControlFlow (Reg × U16 × Array Reg 8#usize × Array Reg 16#usize) Rows)
 
-def finishStep (N : Usize) (endsSlice : Slice U32) (offset : Usize) (batch : Rows) (ends : Reg)
-    (original : U16) (half counter : Reg) (active : U16) (saved : Array Reg 8#usize) (words1 : Array Reg 16#usize)
-    (hash : Array Reg 8#usize) : ChainStep := do
-  let one ← core.core_arch.x86.avx512f._mm512_set1_epi32 1#i32
-  let next ← core.core_arch.x86.avx512f._mm512_add_epi32 counter one
-  let atEnd ← core.core_arch.x86.avx512f._mm512_cmpeq_epi32_mask next ends
-  let finished ← lift (active &&& atEnd)
+def flush (N : Usize) (ends : Slice U32) (offset : Usize) (batch : Rows) (mask : U16) (hash : Array Reg 8#usize) : ChainStep := do
+  let tail ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeFromUsizeSlice U32)
+    ends { start := offset }
+  let out ← write_finished N hash batch tail mask
+  ok (done out)
+
+def retire (N : Usize) (endsSlice : Slice U32) (offset : Usize) (batch : Rows)
+    (original : U16) (half next : Reg) (active finished : U16) (saved : Array Reg 8#usize)
+    (words1 : Array Reg 16#usize) (hash : Array Reg 8#usize) : ChainStep := do
   if finished != 0#u16 then
     if finished = original then
-      let tail ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeFromUsizeSlice U32)
-        endsSlice { start := offset }
-      let out ← write_finished N hash batch tail finished
-      ok (done out)
+      flush N endsSlice offset batch finished hash
     else
       let retained ← chain_done N saved hash finished
       let keep ← lift (~~~ finished)
       let remaining ← lift (active &&& keep)
       if remaining = 0#u16 then
-        let tail ← core.slice.index.Slice.index (core.slice.index.SliceIndexRangeFromUsizeSlice U32)
-          endsSlice { start := offset }
-        let out ← write_finished N retained batch tail original
-        ok (done out)
+        flush N endsSlice offset batch original retained
       else
         let words ← chain_value N words1 hash half
         ok (cont (next, remaining, retained, words))
   else
     let words ← chain_value N words1 hash half
     ok (cont (next, active, saved, words))
+
+def finishStep (N : Usize) (endsSlice : Slice U32) (offset : Usize) (batch : Rows) (ends : Reg)
+    (original : U16) (half counter : Reg) (active : U16) (saved : Array Reg 8#usize)
+    (words : Array Reg 16#usize) (hash : Array Reg 8#usize) : ChainStep := do
+  let (next,finished) ← advance counter ends active
+  retire N endsSlice offset batch original half next active finished saved words hash
 
 private theorem bind_congr {A B : Type} (x : Result A) {f g : A → Result B}
     (h : ∀ a, f a = g a) : Std.bind x f = Std.bind x g := by rw [funext h]
@@ -64,6 +66,7 @@ theorem step_eq (N : Usize) (e : Slice U32) (iv : Array Reg 8#usize) (off : Usiz
     apply through_bind
     intro x
   rw [bind_ok]
+  simp only [finishStep,retire,flush,advance,bind_tc_eq,core.core_arch.x86.avx512f._mm512_set1_epi32,core.core_arch.x86.avx512f._mm512_add_epi32,ChainWideRust.core.core_arch.x86.avx512f._mm512_cmpeq_epi32_mask,bind_ok,lift]
   rfl
 
 /-- The two copies introduced by extraction for the short-batch feature branch
