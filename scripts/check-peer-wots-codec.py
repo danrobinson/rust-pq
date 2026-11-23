@@ -11,7 +11,8 @@ locked=runpy.run_path(str(Path(__file__).with_name("peer-lock.py")))
 ROOT=locked["ROOT"]
 decode=runpy.run_path(str(ROOT/"scripts/peer-shake/dispatch.py"))
 SUITES=runpy.run_path(str(ROOT/"scripts/check-peer-wots.py"))["SUITES"]
-TARGETS=("aarch64-apple-darwin","aarch64-unknown-linux-gnu","x86_64-unknown-linux-gnu","wasm32-unknown-unknown")
+TARGETS=("aarch64-apple-darwin","aarch64-unknown-linux-gnu","x86_64-unknown-linux-gnu","wasm32-unknown-unknown",
+         "powerpc64-unknown-linux-gnu","i686-unknown-linux-gnu","x86_64-unknown-none")
 
 
 def prepare(path):
@@ -57,7 +58,7 @@ def main():
             subprocess.run(["cargo","rustc","--release","--lib","--locked","--target",t,"--","--emit=llvm-ir"],cwd=p,check=True)
             [file]=list((p/"target"/t/"release").rglob("slh_dsa-*.ll"))
             ir=file.read_text()
-            for name,(_,n) in SUITES.items():verify(ir,name,n,32 if t.startswith("wasm32") else 64)
+            for name,(_,n) in SUITES.items():verify(ir,name,n,32 if t.startswith(("wasm32","i686")) else 64)
             print(t+": checked all 24 WOTS typed serialization and parsing bodies",flush=True)
 
 
