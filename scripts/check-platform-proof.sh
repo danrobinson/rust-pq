@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar|X86remainder) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -788,4 +788,34 @@ LEAN
 )
 for name in scalar256 scalar512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-scalar-axioms"
+done
+
+extract X86remainder X86RemainderRust x86remainder --start-from 'crate::sha256::compress' \
+  --start-from 'crate::sha512::compress' --opaque 'crate::sha256::stream::scalar' \
+  --opaque 'crate::sha512::stream::scalar' --opaque 'crate::sha256::stream::has_bmi2::get' \
+  --opaque 'crate::sha512::stream::has_bmi2::get' --opaque 'crate::sha256::stream::dedicated::get' \
+  --opaque 'crate::sha512::stream::dedicated::get' --opaque 'sha2::sha256::compress256' \
+  --opaque 'sha2::sha512::compress512'
+cat > "$scratch/expected" <<'NAMES'
+core.slice.raw.from_ref
+sha2.sha256.compress256
+sha2.sha512.compress512
+sha256.stream.dedicated.get
+sha256.stream.has_bmi2.get
+sha256.stream.scalar
+sha512.stream.dedicated.get
+sha512.stream.has_bmi2.get
+sha512.stream.scalar
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build X86remainder.Proof && lake env lean --stdin > "$scratch/x86-rem-axioms" <<'LEAN'
+import X86remainder.Proof
+#print axioms slhdsa.X86.Stream.remainder256
+#print axioms slhdsa.X86.Stream.remainder512
+#print axioms slhdsa.X86.Stream.single256
+#print axioms slhdsa.X86.Stream.single512
+LEAN
+)
+for name in remainder256 remainder512 single256 single512; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-rem-axioms"
 done

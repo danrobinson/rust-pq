@@ -6,7 +6,7 @@ open ChainAvx2Rust (fullChunks remainder)
 namespace slhdsa.PlatformStream
 open X86.Stream
 
-private theorem bulk256 (st : Array U32 8#usize) (blocks : Slice (Array U8 64#usize)) :
+theorem bulk256 (st : Array U32 8#usize) (blocks : Slice (Array U8 64#usize)) :
     ArmStreamRust.sha2.sha256.compress256 st blocks ⦃ out =>
       slhdsa.wv out.val = fold256 (slhdsa.wv st.val) blocks.val ⦄ := by
   unfold ArmStreamRust.sha2.sha256.compress256
@@ -63,7 +63,7 @@ theorem arm256_from (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
   intro out serialized
   rw [serialized,hfinal,hinter,stream256_padding _ pre.val msg padded data]
 
-private theorem bulk512 (st : Array U64 8#usize) (blocks : Slice (Array U8 128#usize)) :
+theorem bulk512 (st : Array U64 8#usize) (blocks : Slice (Array U8 128#usize)) :
     ArmStreamRust.sha2.sha512.compress512 st blocks ⦃ out =>
       slhdsa.S512.wv out.val = fold512 (slhdsa.S512.wv st.val) blocks.val ⦄ := by
   unfold ArmStreamRust.sha2.sha512.compress512

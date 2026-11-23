@@ -119,3 +119,6 @@ name = "Streamstep"
 
 [[lean_lib]]
 name = "Streamscalar"
+
+[[lean_lib]]
+name = "X86remainder"
