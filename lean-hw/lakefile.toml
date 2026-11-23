@@ -83,3 +83,6 @@ name = "Leaf256"
 
 [[lean_lib]]
 name = "Parent256"
+
+[[lean_lib]]
+name = "Chainni"

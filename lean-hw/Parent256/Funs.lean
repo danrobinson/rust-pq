@@ -462,7 +462,7 @@ def sha256.x86.avx512.fors_parents
     «prefix» lanes children swap
 
 /-- [slhdsa::sha256::x86::fors_parents]:
-    Source: 'src/sha256/x86.rs', lines 199:0-213:1 -/
+    Source: 'src/sha256/x86.rs', lines 215:0-229:1 -/
 def sha256.x86.fors_parents
   {N : Std.Usize} (state : Array Std.U32 8#usize) (adrs : address.Adrs)
   (first : Std.U32) (values : Slice (Array Std.U8 N)) (count : Std.Usize) :

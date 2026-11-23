@@ -26,7 +26,7 @@ noncomputable section
 namespace ShaNiRust
 
 /-- [slhdsa::sha256::x86::digest_pair]:
-    Source: 'src/sha256/x86.rs', lines 172:0-185:1 -/
+    Source: 'src/sha256/x86.rs', lines 188:0-201:1 -/
 def sha256.x86.digest_pair
   (initial : Array core.core_arch.x86.__m128i 2#usize)
   (work : Array core.core_arch.x86.__m128i 2#usize) :
@@ -136,7 +136,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::x86::lane_group]:
-    Source: 'src/sha256/x86.rs', lines 141:0-158:1 -/
+    Source: 'src/sha256/x86.rs', lines 157:0-174:1 -/
 def sha256.x86.lane_group
   (R : Std.Usize) (lane : sha256.x86.ShaLane) (k : core.core_arch.x86.__m128i)
   :
@@ -175,7 +175,7 @@ def sha256.x86.lane_group
   ok { work := (Array.make 2#usize [ mi2, cdgh1 ]), words := w }
 
 /-- [slhdsa::sha256::x86::pair_group]:
-    Source: 'src/sha256/x86.rs', lines 127:0-138:1 -/
+    Source: 'src/sha256/x86.rs', lines 143:0-154:1 -/
 def sha256.x86.pair_group
   (R : Std.Usize) (a : sha256.x86.ShaLane) (b : sha256.x86.ShaLane) :
   Result (sha256.x86.ShaLane × sha256.x86.ShaLane)
@@ -198,7 +198,7 @@ def sha256.x86.pair_group
   ok (a1, b1)
 
 /-- [slhdsa::sha256::x86::load_group::word]:
-    Source: 'src/sha256/x86.rs', lines 164:4-166:5 -/
+    Source: 'src/sha256/x86.rs', lines 180:4-182:5 -/
 def sha256.x86.load_group.word
   (b : Array Std.U8 64#usize) (i : Std.Usize) : Result Std.I32 := do
   let i1 ← Array.index_usize b i
@@ -211,7 +211,7 @@ def sha256.x86.load_group.word
   ok (core.num.I32.from_be_bytes (Array.make 4#usize [ i1, i3, i5, i7 ]))
 
 /-- [slhdsa::sha256::x86::load_group]:
-    Source: 'src/sha256/x86.rs', lines 162:0-168:1 -/
+    Source: 'src/sha256/x86.rs', lines 178:0-184:1 -/
 def sha256.x86.load_group
   (b : Array Std.U8 64#usize) (i : Std.Usize) :
   Result core.core_arch.x86.__m128i
@@ -226,7 +226,7 @@ def sha256.x86.load_group
   core.core_arch.x86.sse2._mm_set_epi32 i2 i4 i6 i7
 
 /-- [slhdsa::sha256::x86::compress_pair::{impl core::ops::function::Fn<(&'_0 [u8; 64usize],), [core::core_arch::x86::__m128i; 4usize]> for slhdsa::sha256::x86::compress_pair::{closure}}::call]:
-    Source: 'src/sha256/x86.rs', lines 80:15-87:5 -/
+    Source: 'src/sha256/x86.rs', lines 96:15-103:5 -/
 def
   sha256.x86.compress_pair.closure.Insts.CoreOpsFunctionFnTupleShared0ArrayU864Array__m128i4.call
   (c : sha256.x86.compress_pair.closure) (tupled_args : Array Std.U8 64#usize)
@@ -240,7 +240,7 @@ def
   ok (Array.make 4#usize [ mi, mi1, mi2, mi3 ])
 
 /-- [slhdsa::sha256::x86::compress_pair]:
-    Source: 'src/sha256/x86.rs', lines 79:0-119:1 -/
+    Source: 'src/sha256/x86.rs', lines 95:0-135:1 -/
 def sha256.x86.compress_pair
   (initial : Array core.core_arch.x86.__m128i 2#usize)
   (left : Array Std.U8 64#usize) (right : Array Std.U8 64#usize) :

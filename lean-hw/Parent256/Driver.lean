@@ -76,6 +76,6 @@ theorem batches_spec (p : Spec.Params) (pk : Spec.Bytes) (A : Spec.Adrs)
       simp only [ho,step_simps]
       have eq : it.iter.start.val = count.val := by rw [he] at hlt; omega
       exact eq ▸ hproc
-  · simp [Processed]
+  · simp [Processed,InPlace.Processed]
 
 end slhdsa.X86.Parent

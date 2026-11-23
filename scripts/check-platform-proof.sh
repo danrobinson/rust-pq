@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -378,4 +378,27 @@ LEAN
 )
 for name in pair_block words_spec initial_spec first_four gather_pairs shuffled_pairs read_child pack_children child_word serialize_children message_layout prepare_spec hash_batch_spec children_intact advance batches_spec fors_parents_spec short_count unsupported_width; do
   grep -Fx "'slhdsa.X86.Parent.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/tree-axioms.log"
+done
+extract Chainni ChainNiRust chainni --start-from 'crate::sha256::x86::chains' \
+  --opaque 'crate::hash::chain_blocks_portable' --opaque 'crate::sha256::x86::compress_pair'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.sse2._mm_set_epi32
+core.core_arch.x86.sse2._mm_shuffle_epi32
+core.core_arch.x86.sse41._mm_blend_epi16
+core.core_arch.x86.ssse3._mm_alignr_epi8
+hash.chain_blocks_portable
+sha256.x86.compress_pair
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainni.Top && lake env lean --stdin > "$scratch/chainni-axioms.log" <<'LEAN'
+import Chainni.Top
+#print axioms slhdsa.Intel.Chain.chains_spec
+#print axioms slhdsa.Intel.Chain.pack_spec
+#print axioms slhdsa.Intel.Chain.shared_spec
+#print axioms slhdsa.Intel.Chain.group_spec
+LEAN
+)
+for name in chains_spec pack_spec shared_spec group_spec; do
+  grep -Fx "'slhdsa.Intel.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainni-axioms.log"
 done

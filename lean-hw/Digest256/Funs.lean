@@ -277,7 +277,7 @@ def sha256.x86.avx512.key_digests
   sha256.x86.avx512.write_words state1 out
 
 /-- [slhdsa::sha256::x86::key_digests]:
-    Source: 'src/sha256/x86.rs', lines 215:0-230:1 -/
+    Source: 'src/sha256/x86.rs', lines 231:0-246:1 -/
 def sha256.x86.key_digests
   {N : Std.Usize} {L : Std.Usize} (state : Array Std.U32 8#usize)
   (inputs : Slice (Array Std.U8 L)) (out : Slice (Array Std.U8 N)) :

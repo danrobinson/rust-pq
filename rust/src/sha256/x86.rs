@@ -40,37 +40,53 @@ pub fn chain_blocks<const N: usize>(
 
 #[target_feature(enable = "sha,ssse3,sse4.1")]
 fn chains<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
-    // SAFETY: the two unaligned 16-byte loads cover the 32-byte state.
-    let ptr = state.as_ptr().cast::<__m128i>();
-    let (abcd, efgh) = unsafe { (_mm_loadu_si128(ptr), _mm_loadu_si128(ptr.add(1))) };
+    let abcd = _mm_set_epi32(
+        state[3] as i32,
+        state[2] as i32,
+        state[1] as i32,
+        state[0] as i32,
+    );
+    let efgh = _mm_set_epi32(
+        state[7] as i32,
+        state[6] as i32,
+        state[5] as i32,
+        state[4] as i32,
+    );
     let cdab = _mm_shuffle_epi32::<0xb1>(abcd);
     let hgfe = _mm_shuffle_epi32::<0x1b>(efgh);
     let initial = [
         _mm_alignr_epi8::<8>(cdab, hgfe),
         _mm_blend_epi16::<0xf0>(hgfe, cdab),
     ];
-    for (i, pair) in blocks.chunks_mut(2).enumerate() {
+    let pairs = blocks.len() / 2;
+    for i in 0..pairs {
         let offset = 2 * i;
-        let starts = &start[offset..offset + pair.len()];
-        let ends = &end[offset..offset + pair.len()];
-        let [left, right] = pair else {
-            crate::hash::chain_blocks_portable::<N>(state, pair, starts, ends);
-            continue;
-        };
+        let pair = &mut blocks[offset..offset + 2];
+        let starts = &start[offset..offset + 2];
+        let ends = &end[offset..offset + 2];
         let shared = ends[0]
             .saturating_sub(starts[0])
             .min(ends[1].saturating_sub(starts[1]));
         for step in 0..shared {
-            left[18..22].copy_from_slice(&(starts[0] + step).to_be_bytes());
-            right[18..22].copy_from_slice(&(starts[1] + step).to_be_bytes());
-            let hashes = compress_pair(initial, left, right);
-            left[22..22 + N].copy_from_slice(&hashes[0][..N]);
-            right[22..22 + N].copy_from_slice(&hashes[1][..N]);
+            pair[0][18..22].copy_from_slice(&(starts[0] + step).to_be_bytes());
+            pair[1][18..22].copy_from_slice(&(starts[1] + step).to_be_bytes());
+            let hashes = compress_pair(initial, &pair[0], &pair[1]);
+            pair[0][22..22 + N].copy_from_slice(&hashes[0][..N]);
+            pair[1][22..22 + N].copy_from_slice(&hashes[1][..N]);
         }
         let next = [starts[0] + shared, starts[1] + shared];
         if next[0] < ends[0] || next[1] < ends[1] {
             crate::hash::chain_blocks_portable::<N>(state, pair, &next, ends);
         }
+    }
+    let offset = 2 * pairs;
+    if offset < blocks.len() {
+        crate::hash::chain_blocks_portable::<N>(
+            state,
+            &mut blocks[offset..],
+            &start[offset..],
+            &end[offset..],
+        );
     }
 }
 

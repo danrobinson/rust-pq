@@ -479,7 +479,7 @@ def sha256.x86.avx512.fors_leaves
     prefix_prf prefix_f lanes half
 
 /-- [slhdsa::sha256::x86::fors_leaves]:
-    Source: 'src/sha256/x86.rs', lines 187:0-197:1 -/
+    Source: 'src/sha256/x86.rs', lines 203:0-213:1 -/
 def sha256.x86.fors_leaves
   {N : Std.Usize} (state : Array Std.U32 8#usize) (sk_seed : Array Std.U8 N)
   (adrs : address.Adrs) (first : Std.U32) (out : Slice (Array Std.U8 N)) :

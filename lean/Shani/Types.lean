@@ -22,13 +22,13 @@ set_option maxRecDepth 2048
 namespace ShaNiRust
 
 /-- [slhdsa::sha256::x86::ShaLane]
-    Source: 'src/sha256/x86.rs', lines 121:0-124:1 -/
+    Source: 'src/sha256/x86.rs', lines 137:0-140:1 -/
 structure sha256.x86.ShaLane where
   work : Array core.core_arch.x86.__m128i 2#usize
   words : Array core.core_arch.x86.__m128i 4#usize
 
 /-- [slhdsa::sha256::x86::compress_pair::{closure}]
-    Source: 'src/sha256/x86.rs', lines 80:15-87:5 -/
+    Source: 'src/sha256/x86.rs', lines 96:15-103:5 -/
 @[reducible]
 def sha256.x86.compress_pair.closure := Unit
 
