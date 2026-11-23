@@ -25,6 +25,18 @@ def main():
     digest = hashlib.sha256(data).hexdigest()
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     env["PATH"] = str(Path.home() / ".elan/bin") + os.pathsep + env["PATH"]
+    subprocess.run(
+        [
+            "lake",
+            "build",
+            "Spec.AppleSha2Composition",
+            "Spec.AppleRateBlocksWitness",
+            "Spec.AppleSignRejectWitness",
+        ],
+        cwd=ROOT / "lean",
+        env=env,
+        check=True,
+    )
     with tempfile.TemporaryDirectory() as tmp:
         artifact = Path(tmp) / "consumer"
         artifact.write_bytes(data)
@@ -64,6 +76,9 @@ def main():
             "verify",
             "sha2_hypertree",
             "sha2_tree_hash",
+            "sha2_fors_sign",
+            "sha2_hash_helpers",
+            "mgf",
             "wots_digits",
             "xmss_sign",
             "xmss_recover",
@@ -71,6 +86,7 @@ def main():
             "tree_hash",
         ]:
             run(f"linked-signer/{name}.py", *flags)
+        run("linked-signer/sha_from.py", "--jobs", "4", *flags)
         run("linked-signer/fors.py")
         if args.self_test:
             run("linked-signer/fors.py", "--mutations")
