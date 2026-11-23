@@ -23,12 +23,13 @@ FACADE_ROOTS = (
     '{impl core::convert::TryFrom for crate::signing_key::SigningKey}::try_from',
 )
 
-def extract(crate, target, package, scratch, roots, cuts):
+def extract(crate, target, package, scratch, roots, cuts, includes=()):
     dest = scratch / package
     llbc = scratch / (package.lower() + ".llbc")
     run([ROOT / ".tools/aeneas/charon/bin/charon", "cargo", "--preset=aeneas",
          *(arg for item in roots for arg in ("--start-from", item)),
          *(arg for item in cuts for arg in ("--opaque", item)),
+         *(arg for item in includes for arg in ("--include", item)),
          "--dest-file", llbc, "--", "--locked", "--features", "platform-sha2", "--target", target], ROOT / crate)
     run([ROOT / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error", "-no-progress-bar",
          "-split-files", "-dest", dest, llbc], ROOT)
