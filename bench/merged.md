@@ -74,6 +74,9 @@ Fresh raw SHA uses this run’s fastest complete dedicated-instruction or bulk k
 
 The CSV includes key generation, signing and verification for both message sizes and all six SHA-2 parameter sets. Regenerate it with `python3 bench/sha-cost/summarize-parents.py`. [216 workloads](results/merged/parent-driver-summary.csv) · [API samples](results/merged/parent-driver-samples.csv.gz) · [Fresh raw SHA samples](results/merged/parent-driver-raw.csv.gz) · [Candidate source and Linux runner](results/merged/parent-driver-experiment.tar.gz) · [Compression counts and baseline methodology](headroom.md)
 
+The core and compatibility suites passed for each of the three parent-driver candidates on every EC2 host. Each build ran 188 tests on x86 or 190 on Arm across 14 test binaries and doctest groups. [Per-host test totals](results/merged/parent-driver-validation.csv)
+
+
 ## FORS leaf generation and same-host raw SHA on x86
 
 The leaf experiment checked zero, full and partial batches at all three digest widths against the portable implementation, including untouched output slots. It compared the shipping chunk iterator, an indexed loop, and an indexed loop that shares the first two SHA-256 rounds between the PRF and leaf hash. The shared-prefix build took essentially the same public API time as the original. Its focused kernel medians were slightly slower on the two Xeons. Each build passed all 15 core kernel and compression tests on each host.
