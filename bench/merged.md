@@ -23,3 +23,8 @@ Run `python3 bench/summarize-merged.py` from the checkout to regenerate the summ
 ## Eight-lane AVX2 fallback
 
 The older Xeon also ran both AVX2 implementations with AVX-512 chain and tree dispatch disabled in both benchmark executables. It has no SHA-NI. Across the same 36 SHA-2 workloads, the median paired speedup was 1.0000×, with individual medians from 0.9864× to 1.0125×. The candidate passed 14 kernel and compression tests in that configuration. Its Lean theorem includes loading the eight 64-byte blocks, transposing their words, computing the full schedule and 64 rounds, and adding back the initial state in every lane. [Raw measurements](results/merged/avx2.csv.gz) · [36 workload results](results/merged/avx2-summary.csv)
+
+
+## Paired Arm SHA-512
+
+The two-lane SHA-512 refactor ran the same 36-workload SHA-2 comparison on Apple M5 Ultra. The median paired speedup was 1.0001× and the workload medians ranged from 0.9921× to 1.0062×. Sixteen kernel and differential tests passed with platform acceleration enabled. The proof follows the production routine from input bytes through both 40-step instruction sequences to the truncated outputs. It assumes the Arm SHA-512 instructions are available and uses the same instruction model as the verified single-block path. [Proof](../lean-hw/Paired/Proof.lean) · [Raw measurements](results/merged/arm-pair.csv.gz) · [36 workload results](results/merged/arm-pair-summary.csv)

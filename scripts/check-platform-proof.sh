@@ -1,5 +1,5 @@
 #!/bin/sh
-# Re-extract the production x86 functions and kernel-check their lane specifications.
+# Re-extract the production architecture-specific functions and kernel-check their lane specifications.
 set -eu
 cd "$(dirname "$0")/.."
 root=$PWD
@@ -11,14 +11,22 @@ extract() {
   namespace=$2
   llbc=$3
   shift 3
+  arch=x86_64-unknown-linux-gnu
+  opaque=core::core_arch
+  proofdir=lean
+  if [ "$package" = Paired ]; then
+    arch=aarch64-unknown-linux-gnu
+    opaque=slhdsa::sha512::hw::arm
+    proofdir=lean-hw
+  fi
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
-    --opaque 'core::core_arch' --dest-file "$scratch/$llbc.llbc" -- \
-    --locked --features platform-sha2 --target x86_64-unknown-linux-gnu)
+    --opaque "$opaque" --dest-file "$scratch/$llbc.llbc" -- \
+    --locked --features platform-sha2 --target "$arch")
   .tools/aeneas/bin/aeneas -backend lean -abort-on-error -no-progress-bar -namespace "$namespace" \
     -split-files -dest "$scratch/$package" "$scratch/$llbc.llbc"
   for name in Types Funs; do
-    cmp "$scratch/$package/$name.lean" "lean/$package/$name.lean"
+    cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
   done
   sed -n 's/^axiom \([^ :]*\).*/\1/p' "$scratch/$package/"*External_Template.lean | LC_ALL=C sort > "$scratch/actual"
 }
@@ -68,3 +76,23 @@ done
 for name in X86 X86.S512 Avx2; do
   grep -Fx "'slhdsa.$name.compress_block_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/blocks"
 done
+extract Paired PairedRust paired --start-from 'crate::sha512::paired::compress_parents'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.arm_shared.neon.uint64x2_t
+sha512.hw.arm.add
+sha512.hw.arm.ext1
+sha512.hw.arm.load_be
+sha512.hw.arm.load_words
+sha512.hw.arm.sha512h
+sha512.hw.arm.sha512h2
+sha512.hw.arm.sha512su0
+sha512.hw.arm.sha512su1
+sha512.hw.arm.store_words
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Paired.Proof && lake env lean --stdin > "$scratch/paired-axioms.log" <<'LEAN'
+import Paired.Proof
+#print axioms slhdsa.H512.Paired.parents_spec
+LEAN
+)
+grep -Fx "'slhdsa.H512.Paired.parents_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/paired-axioms.log"
