@@ -9,6 +9,8 @@ def scalarStream : Stream where
   absorb := slhdsa.shake256.Sponge.absorb
   digest := slhdsa.shake.hash.digest
 
+local instance : Stream := scalarStream
+
 def scalarStreamCorrect : @StreamCorrect scalarStream where
   Absorbed := slhdsa.Shake.Absorbed
   start := @slhdsa.Shake.start_spec
