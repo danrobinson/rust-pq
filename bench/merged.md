@@ -119,3 +119,17 @@ On x86 machines that select the AVX2 fallback, the chain driver now checks each 
 | Newer Xeon, c8i.large | 1.014× | 1.015× | 1.020× | 94.75 ms | 1.045× |
 
 These figures isolate the fallback by disabling SHA-NI and AVX-512 dispatch for both the baseline and candidates. The raw reference times eight independent full SHA-256 compressions on pretransposed inputs and checks each output against scalar SHA. Each signing ratio uses the exact compression count for its inputs. Only workloads that use SHA-256 exclusively have a raw ratio in the data. [Paired API measurements](results/merged/avx2-chain-stores.csv) · [144 chain shapes per host](results/merged/avx2-chain-stores-kernels.csv) · [Candidate sources, CPU details, tests and raw samples](results/merged/avx2-chain-stores.tar.gz)
+
+## WOTS endpoint and recovery stores on x86
+
+Both AVX-512 routines now use the verified digest writer to serialize a batch before copying its live outputs. Endpoint generation copies consecutive chains into at most two keypair rows. Recovery selects the destination row of each finished chain. The measurements below compare this change against the previous masked scatter implementation on the same pinned vCPU, using six paired rounds after warm-up.
+
+| CPU | Endpoint generation | Recovery | Public API median | SHA2-128s signing, 32 B | Signing time / raw SHA time |
+|---|---:|---:|---:|---:|---:|
+| Older Xeon, c5.large | 1.004× | 1.018× | 1.002× | 34.48 ms | 0.974× |
+| AMD EPYC, c8a.large | 1.007× | 1.024× | 1.005× | 21.53 ms | 0.909× |
+| Newer Xeon, c8i.large | 1.002× | 1.015× | 1.001× | 28.32 ms | 0.932× |
+
+The endpoint median spans all three digest widths and eight nonempty batch sizes. Recovery spans ten digit distributions at each width. Individual shapes varied, including slowdowns. Every build compared whole output buffers with independent chain-by-chain results, including guard bytes, keypair boundaries and digits requiring zero steps. The API median covers 36 workloads per host. The raw denominator uses the exact input-specific compression counts and the same host's general 16-way SHA-256 and eight-way SHA-512 kernels. [Adopted kernel results](results/merged/wots-stores-bulk-kernels.csv) · [Public operations and raw ratios](results/merged/wots-stores-bulk.csv) · [Source, tests, and raw samples](results/merged/wots-stores-bulk.tar.gz)
+
+Direct lane stores generally helped recovery but slowed endpoint generation on EPYC. Caching a fifth SHA round offered little additional end-to-end improvement across the three hosts. [Direct-store experiment](results/merged/wots-stores-confirm.tar.gz) · [Fifth-round experiment](results/merged/wots-stores-prefix.tar.gz)

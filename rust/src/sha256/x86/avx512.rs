@@ -448,9 +448,6 @@ pub(super) fn wots_endpoints<const N: usize, const L: usize>(
     let lanes = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
     let half = _mm512_set1_epi32(0xffff);
     let change = _mm512_set1_epi32(((WOTS_HASH ^ WOTS_PRF) << 16) as i32);
-    let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
-        0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
-    ));
     let len = 2 * N + crate::params::LEN2;
     let mut first_two = initial;
     for i in 0..2 {
@@ -460,7 +457,6 @@ pub(super) fn wots_endpoints<const N: usize, const L: usize>(
     // Crossed lanes advance the keypair word and restart the chain word.
     for at in (0..len * out.len()).step_by(16) {
         let used = 16.min(len * out.len() - at);
-        let mask = u16::MAX >> (16 - used);
         let mut w = base;
         let chain = _mm512_add_epi32(lanes, _mm512_set1_epi32((at % len) as i32));
         let cross = _mm512_cmpge_epi32_mask(chain, _mm512_set1_epi32(len as i32));
@@ -497,26 +493,17 @@ pub(super) fn wots_endpoints<const N: usize, const L: usize>(
             );
             hash = compression!(initial, prefix, w);
         }
-        let offsets = _mm512_add_epi32(
-            _mm512_set1_epi32(((at / len) * L + (at % len) * N) as i32),
-            _mm512_mullo_epi32(lanes, _mm512_set1_epi32(N as i32)),
-        );
-        let offsets = _mm512_mask_add_epi32(
-            offsets,
-            cross,
-            offsets,
-            _mm512_set1_epi32((L - len * N) as i32),
-        );
-        for i in 0..N / 4 {
-            // The mask admits only live slots within the padded output rows.
-            unsafe {
-                _mm512_mask_i32scatter_epi32::<1>(
-                    out.as_mut_ptr().cast::<u8>().add(22 + 4 * i).cast(),
-                    mask,
-                    offsets,
-                    _mm512_shuffle_epi8(hash[i], swap),
-                )
-            };
+
+        let key = at / len;
+        let slot = at % len;
+        let first_width = used.min(len - slot);
+        let mut values = [[0u8; N]; 16];
+        write_words(&hash, &mut values[..used]);
+        let pos = 22 + slot * N;
+        out[key][pos..pos + first_width * N].copy_from_slice(values[..first_width].as_flattened());
+        if first_width < used {
+            out[key + 1][22..22 + (used - first_width) * N]
+                .copy_from_slice(values[first_width..used].as_flattened());
         }
     }
 }
@@ -622,17 +609,13 @@ pub(super) fn recover<const N: usize>(
         counter = _mm512_add_epi32(counter, _mm512_set1_epi32(1));
         let finished = active & _mm512_cmpeq_epi32_mask(counter, _mm512_set1_epi32(15));
         if finished != 0 {
-            let offsets = _mm512_slli_epi32::<6>(idx);
-            for j in 0..N / 4 {
-                // Each active index identifies a unique 64-byte output block.
-                unsafe {
-                    _mm512_mask_i32scatter_epi32::<1>(
-                        out.as_mut_ptr().cast::<u8>().add(22 + 4 * j).cast(),
-                        finished,
-                        offsets,
-                        _mm512_shuffle_epi8(hash[j], swap),
-                    )
-                };
+            let mut values = [[0u8; N]; 16];
+            write_words(&hash, &mut values);
+            let mut lanes = finished;
+            while lanes != 0 {
+                let lane = lanes.trailing_zeros() as usize;
+                out[indices[lane] as usize][22..22 + N].copy_from_slice(&values[lane]);
+                lanes &= lanes - 1;
             }
             active &= !finished;
         }
