@@ -170,3 +170,6 @@ import Ideal.Direct.EntryBridge
 import Ideal.Direct.DagSwap
 import Ideal.Direct.Rooted
 import Ideal.Direct.CollBudget
+import Ideal.Direct.RomSim
+import Ideal.Direct.RomCompose
+import Ideal.Direct.RomNumerics

@@ -921,3 +921,301 @@ direct one).
 No change to the predicted bounds (nothing proved bounds `sufI`): tier B′ P20 2^-67.00, P40
 2^-62.99, P64 2^-60.54 — or 2^-55.04 at P64 with the present tags (9.2); the route of 9.3 would
 give tier C (2^-67.00, 2^-63.00, 2^-62.98).  Proved bounds remain tight8's: 2^-63, 2^-59, 2^-39.
+
+---------------------------------------------------------------------------------------------
+
+## 10. 2026-11-22 (fourth session): the ROM-reduction route of §9.3
+
+Decision taken (brief): reduce the compression game to VCVio's three-oracle theorem through a
+Merkle–Damgård simulator.  Script `direct/rom_route.py` (output `direct/rom_route.out`; exact
+rationals, NOT machine-checked).
+
+### 10.1 Question 1: the true error of the simulation hop
+
+**Setting.**  `G_real` = the compression game of `sufI` (one lazy table `g` read by the forger,
+the signer and the verifier; `Entry.sufI_le_lazy`).  `G_rom` = VCVio's SUF experiment of
+`romScheme prims.core (Equiv.refl _) optRand pkSeedDist` (`Thash`, `H_msg`, `PRF_msg` lazy random
+oracles, `PRF` = `F` at secret-key addresses) against the adversary `B = Sim ∘ S`.  `Sim` keeps its
+own table `T` for the forger's compression queries; on a fresh cell `(c, b)` it answers
+`O(Q) ‖ ext` (`ext` fresh) iff the cell is the **final cell of a `T`-rooted chain of a relevant
+query** `Q`, and a fresh 256-bit value otherwise.  Rootedness is **dynamic** (with respect to the
+current `T`: `Rooted.lean`'s `mdC`, `rootOf`).  **Relevant** (this is a design decision forced by
+the analysis below):
+
+* `Thash(ps, key, xs)` with `ps = PK.seed` and `|xs| = arity(key)` (arity read from the type and
+  tree-height fields of `ADRSc`: 1 for WOTS hash/WOTS_PRF/FORS_PRF/FORS leaf, 2 for tree nodes,
+  35 for WOTS_PK, 14 for FORS_ROOTS).  The secret-key `PRF` cell is the arity-1 `Thash` cell at a
+  PRF address, exactly VCVio's `oracleSecret` (`Link.hprf_dom`).
+* `H_msg(R, ps, pr, M)` with `ps = PK.seed`, `pr = PK.root`: the outer final cell
+  `(T(IV, R‖ps‖X), cB)` with `X` the `T`-value of the final cell of the `T`-rooted inner chain
+  of `R‖ps‖pr‖M`.  Inner finals are never oracle-answered.
+* `PRF_msg(k, o, M)` for **every** key `k` (the simulator does not know `SK.prf`): the outer
+  HMAC final `(T(IV, okey k), X‖pad)` with `X` the `T`-value of the inner chain of
+  `ikey k ‖ o ‖ M`.
+
+Parse classes are disjoint by the first block (`ps‖0^48` / `okey`/`ikey` / anything else, under
+no 256-bit coincidence), and a cell is the final of at most one query of each kind
+(`isThL_unique`, `isHmF_unique`; message recovered from the block list by the MD padding).
+
+**The events, one by one** (per forger compression query unless said otherwise).
+
+(a) *Chaining input equal to an honest state the forger has not computed.*
+* Internal state (any `T_len`/`T_k`, `H_msg`-inner, HMAC-inner intermediate CV, the HMAC key
+  midstates, the `PK.seed` midstate before the forger reads it): fully hidden 256-bit value,
+  `≤ N_hon/2^256` per query, inside the collision term below.
+* Final untruncated state of an honest **Thash/PRF/PRF_msg** cell (`y ‖ z`, `y` revealed, `z` 128
+  hidden bits): the forger guesses `z` with probability `2^-128·mult(y)` per query.  **This is
+  not charged**: the forger's cell `(y‖z, b')` is fresh in both games, and the chain it extends
+  is a query of the *same* key at a *larger* arity (`Thash`), or not a query at all (HMAC outer
+  has exactly two blocks), so it is never relevant and never read by the signer or verifier.  In
+  `G_rom` the same situation is a back-link in `T` when the simulator later samples `ext = z`;
+  with dynamic rootedness and narrow relevance this back-link creates no new relevant final, so
+  `T` and `O` stay consistent on every query anyone else reads.  With a *wide* relevance (all
+  arities) it would cost `+qf/2^128` (0.58 bit at P20).  No attack: the extension values are
+  computable by the forger anyway.
+* Final untruncated state of an honest **`H_msg` outer** cell: only `2` bytes beyond the 30-byte
+  digest (the signature reveals 231 of the digest's 240 bits; the forger can in any case compute
+  the whole chain, all inputs are public).  Guessing costs `2^-16` per query, so this event must
+  not be a bad event.  It is harmless for the same reason as above **except** when the extension
+  is itself a relevant `H_msg` query: the chain `IV → R_i‖PK.seed‖X_i → cB → b' …` parses as the
+  inner chain of `H_msg(R_i, PK.seed, X_i[0..16), …)`, relevant iff **`X_i[0..16) = PK.root`**.
+  That is the only honest-on-honest extension in SLH-DSA-SHA2-128s:
+  **`E_root := ∃ signing query i, X_i[0..16) = PK.root`** (`X_i` the signer's inner digest), of
+  probability `≤ qs/2^128` (each `X_i` is a fresh 256-bit sample drawn after `PK.root`).  On
+  `E_root` the forger can (by `2^16` guesses) make the simulator answer the verifier's
+  `H_msg(R_i, PK.seed, PK.root, M*)` inconsistently.  No forgery results (the forger could
+  compute that value honestly), so `E_root` is an **artefact** of this simulator; a simulator
+  that pre-computes each signing query's `H_msg` (one oracle query per signature, `qh = qf + qs`)
+  avoids it but pays `2qs/2^128`, which is worse (P64 `2^-61.99` instead of `2^-62.41`).
+  All other honest/verifier-on-honest extensions need `PK.seed`/`PK.root` to equal fixed
+  patterns (`0^16`, `0x5c^16`, `0x36^16`) or a 256-bit match: `≤ 2^-255` in total.
+
+(b) *`PRF` and `PRF_msg` as keyed oracles.*  A forger cell `(cv, ADRSc_sk ‖ k ‖ pad)` is
+relevant (arity 1 at a PRF address) and becomes the oracle query `F(PK.seed, ADRSc_sk, [k])`;
+`k = SK.seed` is VCVio's hidden-value hit, charged inside its `2·qh/|Y|`.  An HMAC chain under a
+guessed key `k` becomes `PRF_msg(k, o, M)`; `k = SK.prf` is charged inside the same `2·qh/|Y|`
+(hypothesis `|Y| ≤ |SK.prf|`).  The `PK.seed` midstate shared by the `PRF` cells and the public
+`Thash` cells is a public cell of `T` (drawn when the forger first reads `(IV, sb PK.seed)`);
+the honest key midstates `g(IV, ikey SK.prf)`, `g(IV, okey SK.prf)` are hidden 256-bit values
+(collision term).  So the shape-marking of `Realize/{PrfMark,MsgMark}.lean` (the per-game
+`1·qf` and `2·qf` legs of tight8) has no counterpart: those queries are just oracle queries of
+`B`, each charged once, at the per-query rate 2 shared with every other class.
+
+(c) *HMAC inner/outer, two-stage `H_msg`.*  Inner finals are internal cells of the simulator
+(fresh values), outer finals are the only oracle-answered cells; one oracle query per outer
+final.  The inner message is recovered from the unique `T`-rooted block list.
+
+(d) *The §9.4 coincidence* (a 20-byte signed message with `M[16..19] = 0` has inner last block
+`cB`).  Irrelevant here: the simulator classifies by rooted parse, not by block shape.  For the
+signer's inner final cell to also be an outer final it must be rooted as `R‖PK.seed‖X` with `X`
+an inner digest: `X = PK.root ‖ M_i[0..16)`, which needs `X[0..16) = PK.root` *and* the fresh
+`R_i` equal to the `R` of a chain computed before: `≤ 2^-256` per pair, collision term.
+
+(e) *256-bit events* (collisions among all cells, a value equal to `IV`, back-links among fully
+fresh samples, a forger key equal to an unseen honest internal value, the dual parses above):
+`≤ 4·(Q+1)²/2^256` with `Q = QcAll qf qs ℓ + 2·qOPrf qs` (every cell of the real run; the
+`Counts.lean` budget).
+
+**Error formula.**
+```
+ε_hop(qf, qs, ℓ) = (Q + 1)² / 2^254 + qs / 2^128,      Q = QcAll qf qs ℓ + 2·qOPrf qs
+sufI S (optRandU oR) ($ᵗ) ≤ securityBound p 2^128 2 1 qf qs + ε_hop(qf, qs, ℓ)
+securityBound p |Y| 2 1 qh qs = (qh+1)·wTCB(63,12,14; qs, qh, qs/|Y|) + (2·qh + 2·3929)/|Y|
+```
+| | P20 | P40 | P64 |
+|---|---|---|---|
+| coverage `(qh+1)·wTCB` | 2^-151.00 | 2^-127.00 | 2^-69.73 |
+| `2(qh+V)/|Y|` | 2^-67.00 | 2^-63.00 | 2^-63.00 |
+| hop: 256-bit | 2^-134.0 | 2^-122.7 | 2^-75.8 |
+| hop: `E_root` | 2^-108 | 2^-88 | 2^-64 |
+| **total** | **2^-67.00** | **2^-63.00** | **2^-62.41** |
+| total, coverage with `surj(14,r) ≤ r^14` (the Lean form) | 2^-67.00 | 2^-63.00 | 2^-62.35 |
+| tight8 (proved) | 2^-63.00 | 2^-58.91 | 2^-38.97 |
+| generic floor (§1.3) | 2^-68.00 | 2^-64.00 | 2^-63.97 |
+
+So the honest answer is **better than tier B** (2^-67 / 2^-63 / 2^-60.5) and equal to tier C up
+to the `E_root` artefact at P64 (2^-62.41 against 2^-62.99).  The hop's error is
+"collisions plus one `qs/2^128` coincidence", not "only collisions": the brief's doubt was right
+in kind (truncation and plain MD do create 2^-128 and even 2^-16 per-query events), but with
+dynamic rootedness and narrow relevance all of them are harmless except `E_root`.
+
+### 10.2 Question 2: does the game match?
+
+Yes.  After the hop the game is VCVio's `strongUnforgeableExperiment B` for
+`romScheme core (Equiv.refl _) (fun pk => oR pk.pkSeed pk.pkRoot) ($ᵗ (Bytes 16))`, at
+`core = Link.prims.core` or, as built in 10.4, at the repository's table-independent reference
+core `core₀` (same carriers, `adrsToKey`, `yToBytes`; trivial `PRF`/`PRFmsg` fields, which
+`romScheme` never reads), which is
+literally `sufI`'s scheme with the hash functions replaced by oracles: the repository already
+proves `romScheme_map_romAnswer_128s` (`Link/Security.lean:260`: that scheme with the oracles
+answered by SHA-2 is `internalAlg vp prims`, the typed scheme under `bytesView`), and the
+compression model's `primsG (liftC g)` has the same carriers (`Bytes 16`, `AdrsKey = Bytes 22`),
+the same `adrsToKey = sha2AdrsKey`, `yToBytes = id`; only its `PRF`/`PRFmsg` fields (unused by
+`romScheme`) differ.  Every hypothesis of the VCVio theorem is already discharged in the
+repository: **`Link.security_128s`** (`Link/Security.lean:46`) is
+`strongUnforgeableAdvantage (rom (hashSpec prims.core)) adv ≤ securityBound vp.params (256^16) 2 1 qh qs`
+for every `e`, `optRand`, `pkSeedDist` (via `SLHDSA.CoverageBoundTest.strongUnforgeableAdvantage_sha2_le`
+with `fipsApprovedAddressBounds S128`: `ByteLaws` is `yToBytes = id` injective,
+`KeyDiscipline` is `keyDiscipline_sha2Primitives`, `hcard` is `2^128 ≤ 2^128`, `e = Equiv.refl`);
+`Link.security_128s_euf` is the EUF form.  At `core₀` the same four hypotheses are
+`RomSim.byteLaws₀`, `keyDiscipline₀` (the fields of `keyDiscipline_sha2Primitives`, by
+definitional unfolding of `adrsToKey`), `le_rfl`, `Equiv.refl`.  The quantum integration uses the same objects
+(`DigestTransport`).  Hedged randomness `optRandU oR = fun g pk => oR pk.pkSeed pk.pkRoot` does
+not depend on `g`, so it is one `optRand` of `romScheme`.
+
+### 10.3 Question 3: query accounting
+
+`qh(B) ≤ qf`: `B` makes a hash query only on a **fresh** forger cell that is a relevant final,
+and then exactly one; cache hits, internal cells and non-relevant finals make none.  Signing:
+`qs(B) = qs` (one typed signing query per byte signing query, `Coded.signingImpl`).  No
+message-length term enters `qh` (a long `H_msg`/`PRF_msg` costs the forger one compression query
+per block but `B` one oracle query in total); `ℓ` enters only the 256-bit term through `Q` (the
+signer's and verifier's `H_msg`/HMAC chains on messages of `≤ ℓ` bytes), which is why `hlong`
+and `hout` stay hypotheses.
+
+### 10.4 Statements proved (Lean, `lake build Ideal` passes; headline axioms `propext, Classical.choice, Quot.sound`)
+
+Three new files, imported from `Ideal.lean` (three `import` lines appended); no other existing Lean
+file changed; no `sorry`/`axiom`/`native_decide`/`bv_decide`.
+
+| file | lines | content |
+|---|---|---|
+| `Ideal/Direct/RomSim.lean` | 373 | the simulator, the ROM adversary, its budget, VCVio's bound for it |
+| `Ideal/Direct/RomCompose.lean` | 120 | `epsHop`, the hop as a named statement, conditional composition |
+| `Ideal/Direct/RomNumerics.lean` | 468 | coverage simplification, the three points, comparison with tight8 |
+
+**The ROM side (unconditional).**  `Cr := core₀` (the repository's table-independent reference
+core, `Realize/Chain.lean`; `Link.prims.core` would also do for VCVio but the realisers' open
+programs, which the hop must be compared with, live over `core₀`).
+`romS oR pkSeedDist := romScheme core₀ (Equiv.refl _) (optRandR oR) pkSeedDist` (`RomSim.lean:78`).
+`IsRel` (`:104`), `relQ` (`:115`), `simStep` (`:157`), `simImpl` (`:172`), `simAdv` (`:186`) as
+in §10.1 (dynamic rootedness through `Rooted.mdC`, narrow relevance, `arityOf` `:88`).
+```
+theorem simAdv_romQueryBound (S : ForgerI) (oR) (pkSeedDist) {qf qs : ℕ}            -- RomSim.lean:291
+    (hqf : ∀ pk, IsQueryBoundP (S.main pk) (fun i => isPortQ i = true) qf)
+    (hqs : ∀ pk, IsQueryBoundP (S.main pk) (fun i => isSignQ i = true) qs) :
+    (simAdv S oR pkSeedDist).RomQueryBound qf qs
+theorem simAdv_suf_le … :                                                            -- RomSim.lean:346
+    strongUnforgeableAdvantage (ProbCompRuntime.rom (hashSpec Cr)) (simAdv S oR pkSeedDist) ≤
+      securityBound Link.vp.params (256 ^ 16) 2 1 qf qs
+theorem simAdv_euf_le … : unforgeableAdvantage (rom (hashSpec Cr)) (simAdvE S oR pkSeedDist) ≤ (same)
+```
+(`byteLaws₀`, `keyDiscipline₀` from `Concrete.keyDiscipline_sha2Primitives`, `natCard₀`.)
+
+**Composition, conditional on the hop.**
+```
+def QAll qf qs ℓ := QcAll qf qs ℓ + 2 * Prf.qOPrf qs                                  -- RomCompose.lean:33
+def epsHop qf qs ℓ := ((QAll qf qs ℓ + 1)^2 : ℕ) / 2^254 + qs / 2^128                -- :37
+def MDHopSuf : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →                     -- :41
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤
+      strongUnforgeableAdvantage (rom (hashSpec Cr)) (simAdv S oR ($ᵗ (Bytes 16))) + epsHop qf qs ℓ
+def MDHopEuf : Prop := (the same with eufI, unforgeableAdvantage, simAdvE)            -- :52
+def epsRom qf qs ℓ := securityBound Link.vp.params (256^16) 2 1 qf qs + epsHop qf qs ℓ -- :63
+theorem suf_rom_of_hop (hop : MDHopSuf) (S : ForgerI) oR hqf hqs hlong hout :          -- :67
+    sufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤ epsRom qf qs ℓ
+theorem euf_rom_of_hop (hop : MDHopEuf) … : eufI S (optRandU oR) ($ᵗ (Bytes 16)) ≤ epsRom qf qs ℓ   -- :78
+theorem sufP_rom_of_hop (hop : MDHopSuf) (S : ForgerP) … :                             -- :90
+    sufP S (optRandU oR) ($ᵗ (Bytes 16)) ≤ epsRom qf qs (ℓ + 257)
+theorem eufP_rom_of_hop (hop : MDHopEuf) (S : ForgerP) … : eufP … ≤ epsRom qf qs (ℓ + 257)   -- :103
+```
+Same game objects and the same forger hypotheses (`hqf hqs hlong hout`) as
+`suf_ideal_closed_tight8` / `suf_ideal_pure_closed_tight8`.
+
+**Numerics (unconditional).**
+```
+theorem wTCB_le_simple (qs qw) (w) (hw : qw * w ≤ 1) :                                -- RomNumerics.lean:85
+    weightedTargetCoverBound h a k qs qw w ≤ Σ_{r ≤ k} (r^k (qs+1)^r) / r! · 2^{-hr} 2^{-ak}
+theorem epsRom_2_20 (hf : qf ≤ 2^60) (hs : qs ≤ 2^20) (hℓ : ℓ ≤ 2^26) :               -- :299
+    epsRom qf qs ℓ ≤ (2^67)⁻¹ + (2^107)⁻¹
+theorem epsRom_2_40 (hf : qf ≤ 2^64) (hs : qs ≤ 2^40) (hℓ) : epsRom … ≤ (2^63)⁻¹ + (2^87)⁻¹          -- :306
+theorem epsRom_2_64 (hf : qf ≤ 2^64) (hs : qs ≤ 2^64) (hℓ) :                           -- :313
+    epsRom … ≤ (2^63)⁻¹ + (2^64)⁻¹ + (2^66)⁻¹
+theorem rom_lt_tight8_2_20 : (2^67)⁻¹ + (2^107)⁻¹ < (2^77)⁻¹ + (2^132)⁻¹ + (2^63)⁻¹   -- :332
+theorem rom_lt_tight8_2_40 : (2^63)⁻¹ + (2^87)⁻¹ < (2^63)⁻¹ + (2^94)⁻¹ + (2^59)⁻¹     -- :341
+theorem rom_lt_tight8_2_64 : (2^63)⁻¹ + (2^64)⁻¹ + (2^66)⁻¹ < (2^45)⁻¹ + (2^46)⁻¹ + (2^39)⁻¹  -- :350
+```
+and the point bounds under the hop: `suf_rom_2_20/_2_40/_2_64` (`:373–383`),
+`euf_rom_2_*` (`:389–399`), `sufP_rom_2_*`, `eufP_rom_2_*` (`:417–448`, message parts
+`ℓ + 257 ≤ 2^26`), e.g.
+```
+theorem sufP_rom_2_64 (S : ForgerP) oR hqf hqs hlong hout (hop : MDHopSuf)
+    (hf : qf ≤ 2^64) (hs : qs ≤ 2^64) (hℓ : ℓ + 257 ≤ 2^26) :
+    sufP S (optRandU oR) ($ᵗ (Bytes 16)) ≤ (2^63)⁻¹ + (2^64)⁻¹ + (2^66)⁻¹
+```
+**Every bound on `sufI`/`eufI`/`sufP`/`eufP` here takes `hop : MDHopSuf` (or `MDHopEuf`) as a
+hypothesis.  The final theorem of the route is NOT proved.**  The proved (unconditional) bounds on
+these games remain tight8's: 2^-63, 2^-59, 2^-39.
+
+### 10.5 What remains: the hop `MDHopSuf` / `MDHopEuf`
+
+Not started beyond the simulator.  Findings that fix its shape:
+
+1. **No per-step coupling exists.**  In the real game the signer's internal chain cells are drawn
+   at signing time and read by the forger later; in the ROM game they are drawn when the forger
+   reads them.  A per-step until-bad (`Engine.prEvent_le_untilBad`, VCVio `UntilBad`) needs the
+   projected steps to agree pointwise; a cached-but-unseen value against a fresh draw never does.
+   The hop needs a **deferral** (lazy-sampling swap) argument.
+2. **VCVio has that argument, but not for Merkle–Damgård.**
+   `VCVio/OracleComp/QueryTracking/RandomOracle/Relabel.lean` (by-node relabelling of a lazy
+   oracle, `prEvent_idealImpl_le_relabelImpl`, bad event `Conflict`) and `Defer.lean` (deferred
+   touches, `prEvent_eagerImpl_le_deferredImpl`, via the commutation of lazy-oracle queries) are
+   exactly the two steps needed, with nodes = rooted block lists and labels = chaining values.
+   But `CanonicalGraph.pt_inj` requires distinct nodes to have distinct points **at all children
+   values**; for MD, `pt (bs ++ [b]) [v] = (v, b) = pt (bs' ++ [b]) [v]`, so it fails.  The
+   MD version must replace `pt_inj` by "no collision among drawn labels" and add the 256-bit events
+   to `Conflict`.  Estimate 1.5–3k lines (VCVio's two files are 1.4k lines for the injective case).
+3. **Core transport.**  The real game at table `g` is typed over `(primsG (liftC g)).core`
+   (`PublicKeyCore`, `SignatureCore` are structures indexed by the core, so these types differ
+   from `core₀`'s).  The repository already crossed this once: `Entry.sufI_le_lazy` gives the real
+   game as ONE table-independent compression program `progS = progOf (chainP (bPrfWCOpenP …))`
+   whose hash queries are those of an open program over `core₀` interpreted by
+   `Realize/Chain.lean`'s chains.  So the hop should start from `progS`, not from `sufI`.
+
+Decomposition (exact remaining statements, all over `core₀`):
+```
+H1 (exact; plumbing):  Pr[(simulateQ (hS St Blk).romImpl (progS S oR $ᵗ)).run' ∅] =
+     Pr[ X S oR  under  (coins, port ↦ lazy table, hash queries ↦ chain evaluation in the SAME
+         lazy table, PRF-oracle (pk, a) ↦ chain of thash pk (key a) [k]) ]
+   where X S oR is the open SUF program (`bPrfWCOpenP` with its PRF key k drawn first).
+H2 (the MD relabel/deferral core, generic in X):
+   Pr_real[E] ≤ Pr_ideal[E] + Pr_real[Coll ∨ Ext]
+   ideal = (coins, port ↦ simStep with T, hash queries ↦ lazy O, PRF-oracle ↦ O(thash … [k])),
+   hypotheses: every hash query of the honest part of X is relevant for the pk it returns
+   (`IsRel`: correct arity at PK.seed; `H_msg` at (PK.seed, PK.root); any `PRF_msg`), and the port
+   is used only by the forger.  `Coll`: 256-bit events among the real run's cells;
+   `Ext`: an honest/verifier relevant query whose block list extends the final cell of an earlier
+   relevant query answered to the forger.
+H3 (exact; plumbing): Pr_ideal[win] = strongUnforgeableAdvantage (rom (hashSpec core₀)) (simAdv S oR $ᵗ),
+   through VCVio's `GeneralScheme.*_natural` lemmas (the open programs are the GeneralScheme
+   programs read through a query morphism) and `romScheme_sign`/`_keygen`/`_verify`.
+H4 (probability): Pr_real[Coll] ≤ (QAll+1)²/2^254 (budgeted hazard, `CollBudget.lean`, with the
+   back-link flag of §9.1), Pr_real[Ext] ≤ qs/2^128 (`E_root`; each signer inner digest is a
+   fresh 256-bit draw after PK.root; all other extensions need PK.seed/PK.root patterns, 2^-256).
+```
+`MDHopSuf` = `sufI_le_lazy` + H1 + H2 + H3 + H4; EUF the same with `progE` / `fresh_extract`
+(no extraction is needed on this route: the win events are compared directly).
+
+### 10.6 Updated estimate
+
+Done this session: the analysis (10.1–10.3) and 961 lines of Lean (simulator, budget, VCVio
+application, conditional composition, numerics, comparison).  Remaining for the unconditional
+theorem: H1 0.4–0.8k, H2 2–3.5k (generic, reusable), H3 0.5–1k, H4 0.6–1k: **≈ 3.5–6k lines**,
+below the 7–9k of the direct route's D4–D8 (§9.2) for a better bound.  `DagSwap.lean`,
+`Extract*.lean` and `Bridge.lean` are not needed by this route; `Rooted.lean`, `CollBudget.lean`,
+`Tagged.lean` (first-reader tags for `Coll`), `Engine.lean` are.
+
+### 10.7 Bounds
+
+| | P20 | P40 | P64 |
+|---|---|---|---|
+| proved (tight8, unconditional) | 2^-63 | 2^-59 | 2^-39 |
+| proved **under `MDHopSuf`** (Lean point forms) | 2^-67 + 2^-107 | 2^-63 + 2^-87 | 2^-63 + 2^-64 + 2^-66 (= 2^-62.35) |
+| exact formula (script, true surjection counts) | 2^-67.00 | 2^-63.00 | 2^-62.41 |
+| generic floor | 2^-68.00 | 2^-64.00 | 2^-63.97 |
+
+### 10.8 Verification (this session)
+
+`lake build Ideal`: success.  `scripts/check.sh` (all default targets, generators, forbidden
+tokens, axioms): `CHECK PASSED`, exit 0, no `FAIL` line.  `grep` for `sorry|axiom |native_decide|bv_decide`
+in the three new files: only the `#print axioms` lines.  Every `#print axioms` of the new files:
+`[propext, Classical.choice, Quot.sound]`.

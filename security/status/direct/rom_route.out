@@ -1,0 +1,31 @@
+V = 3929
+P20: qf=2^60 qs=2^20
+   coverage (qh+1)wTCB   2^-151.000
+   2(qh+V)/|Y|           2^-67.000
+   hop: collisions       2^-134.000   (Q_all = 2^60.00)
+   hop: E_root qs/|Y|    2^-108.000
+   securityBound alone   2^-67.000
+   TOTAL                 2^-67.000
+   tight8 (proved)       2^-63.000   gain 4.00 bits
+   alt sim (qh=qf+qs)    2^-67.000
+   coverage, surj<=r^14  2^-151.000;  total with it 2^-67.000
+P40: qf=2^64 qs=2^40
+   coverage (qh+1)wTCB   2^-126.999
+   2(qh+V)/|Y|           2^-63.000
+   hop: collisions       2^-122.692   (Q_all = 2^65.65)
+   hop: E_root qs/|Y|    2^-88.000
+   securityBound alone   2^-63.000
+   TOTAL                 2^-63.000
+   tight8 (proved)       2^-58.913   gain 4.09 bits
+   alt sim (qh=qf+qs)    2^-63.000
+   coverage, surj<=r^14  2^-126.999;  total with it 2^-63.000
+P64: qf=2^64 qs=2^64
+   coverage (qh+1)wTCB   2^-69.729
+   2(qh+V)/|Y|           2^-63.000
+   hop: collisions       2^-75.796   (Q_all = 2^89.10)
+   hop: E_root qs/|Y|    2^-64.000
+   securityBound alone   2^-62.986
+   TOTAL                 2^-62.406
+   tight8 (proved)       2^-38.967   gain 23.44 bits
+   alt sim (qh=qf+qs)    2^-61.986
+   coverage, surj<=r^14  2^-66.853;  total with it 2^-62.350
