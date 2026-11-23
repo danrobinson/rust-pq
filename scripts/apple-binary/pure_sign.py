@@ -1,4 +1,4 @@
-"""Interpret the normal valid-context paths of the linked Apple SHAKE signing entries.
+"""Interpret the normal valid-context paths of the linked Apple SHA-2 and SHAKE signing entries.
 
 LLVM decodes instructions from a byte-checked immutable snapshot. Machine words carry
 symbolic affine values. Owned byte buffers track their initialized prefix. Allocation
@@ -93,9 +93,10 @@ def memcpy_address(image, path):
 
 
 class State:
-    def __init__(self, frame, m_empty, c_empty, width, deterministic):
-        self.frame, self.width, self.deterministic = frame, width, deterministic
-        self.m = Word(0 if m_empty else "m.length")
+    def __init__(self, role, length_class, c_empty, width, deterministic, params):
+        self.role, self.width, self.deterministic = role, width, deterministic
+        self.large = length_class == "long"
+        self.m = Word(0 if length_class == "empty" else "m.length")
         self.c = Word(0 if c_empty else "ctx.length")
         self.reg = {f"x{i}": Word(f"entry.x{i}") for i in range(31)}
         self.reg.update(
@@ -108,6 +109,17 @@ class State:
             x5=Word("rand"),
             x8=Word("out"),
         )
+        if role == "dispatch":
+            self.reg.update(
+                x0=Word(params),
+                x1=Word("m"),
+                x2=self.m,
+                x3=Word("ctx"),
+                x4=self.c,
+                x5=Word("sk"),
+                x6=Word(4 * width),
+                x7=Word("rand"),
+            )
         self.memory = {}
         self.low = 0
         self.flags = None
@@ -245,17 +257,24 @@ class State:
                 ],
                 "incorrect signer row, framed slice, or secret-key arguments",
             )
-            if self.deterministic:
-                expected = tuple(
-                    Word(f"sk.word.{2 * self.width + i}")
-                    for i in range(0, self.width, 8)
-                )
-                require(
-                    self.load(v("x5"), self.width) == expected,
-                    "incorrect PK.seed randomizer",
-                )
-            else:
-                require(v("x5") == Word("rand"), "incorrect hedging randomizer")
+            self.randomizer(v("x5"))
+            self.store(v("x8"), [Word("sig.cap"), Word("sig.ptr"), Word("sig.len")])
+            self.calls.append(kind)
+        elif kind in ("dispatch", "segmented"):
+            require(
+                [v(f"x{i}") for i in range(7)]
+                == [
+                    Word(extra),
+                    Word("m"),
+                    self.m,
+                    Word("ctx"),
+                    self.c,
+                    Word("sk"),
+                    Word(4 * self.width),
+                ],
+                "incorrect generic or segmented signer arguments",
+            )
+            self.randomizer(v("x7"))
             self.store(v("x8"), [Word("sig.cap"), Word("sig.ptr"), Word("sig.len")])
             self.calls.append(kind)
         elif kind == "free":
@@ -269,14 +288,29 @@ class State:
             raise ValueError("unrecognized reachable call")
         self.clobber()
 
-    def returned(self):
+    def randomizer(self, pointer):
+        if self.deterministic:
+            expected = tuple(
+                Word(f"sk.word.{2 * self.width + i}") for i in range(0, self.width, 8)
+            )
+            require(
+                self.load(pointer, self.width) == expected,
+                "incorrect PK.seed randomizer",
+            )
+        else:
+            require(pointer == Word("rand"), "incorrect hedging randomizer")
+
+    def restored(self):
         require(
             self.value("sp") == Word("sp")
             and all(self.value(f"x{i}") == Word(f"entry.x{i}") for i in range(19, 31)),
             "failed to restore stack or callee-saved state",
         )
+
+    def returned(self):
+        self.restored()
         descriptor = [self.memory[at("out", off)] for off in (0, 8, 16)]
-        if self.frame:
+        if self.role == "frame":
             require(
                 descriptor == [self.capacity, self.buf, self.c + self.m + 2]
                 and self.written == self.c + self.m + 2,
@@ -291,20 +325,27 @@ class State:
                 self.events == expect, "frame does not contain FIPS 205 pure message"
             )
         else:
+            expected = ["frame", "sign", "free"]
+            if self.role == "sha2_entry":
+                expected = ["dispatch"]
+            elif self.role == "dispatch" and self.large:
+                expected = ["segmented"]
             require(
                 descriptor == [Word("sig.cap"), Word("sig.ptr"), Word("sig.len")]
-                and self.calls == ["frame", "sign", "free"],
+                and self.calls == expected,
                 "incorrect signature result or cleanup",
             )
 
 
 def paths(
-    image, path, pc, words, callees, frame, width=0, deterministic=False, params=0
+    image, path, pc, words, callees, role, width=0, deterministic=False, params=0
 ):
     decoded = instructions(path, pc, words)
     pending = [
-        (0, State(frame, m, c, width, deterministic), frozenset())
-        for m in (False, True)
+        (0, State(role, m, c, width, deterministic, params), frozenset())
+        for m in (
+            ("empty", "short", "long") if role == "dispatch" else ("empty", "nonempty")
+        )
         for c in (False, True)
     ]
     returns = []
@@ -374,6 +415,17 @@ def paths(
                 s.call(callees.get(dst), params)
             elif op == "b":
                 next_i = i + sign_extend(w & 0x3FFFFFF, 26)
+                if not 0 <= next_i < len(words):
+                    kind = callees.get(pc + 4 * next_i)
+                    require(kind in ("dispatch", "segmented"), "unrecognized tail call")
+                    s.restored()
+                    s.call(kind, params)
+                    # The tail target receives the original return address; the
+                    # call summary models its normal return directly to our caller.
+                    s.reg["x30"] = Word("entry.x30")
+                    s.returned()
+                    returns.append((bool(s.m), bool(s.c), tuple(s.events)))
+                    break
             elif op in ("b.ls", "b.ne", "b.hi", "cbz"):
                 target = i + sign_extend(w >> 5 & 0x7FFFF, 19)
                 if op == "cbz":
@@ -389,14 +441,18 @@ def paths(
                     require(s.flags is not None, "condition depends on clobbered flags")
                     left, right = s.flags
                     if op == "b.ls":
-                        require(
-                            not frame and (left, right) == (s.c, Word(255)),
-                            "wrong context guard",
-                        )
-                        next_i = target  # theorem assumes 0 <= ctx.length <= 255
+                        if role == "dispatch" and (left, right) == (s.m, Word(1023)):
+                            if not s.large:
+                                next_i = target
+                        else:
+                            require(
+                                role != "frame" and (left, right) == (s.c, Word(255)),
+                                "wrong context guard",
+                            )
+                            next_i = target  # context belongs to the valid domain
                     elif op == "b.ne":
                         require(
-                            frame
+                            role == "frame"
                             and (left, right) == (s.capacity, Word(1))
                             and s.min_capacity == Word(1),
                             "invalid grow condition",
@@ -406,7 +462,7 @@ def paths(
                         pending.append((target, taken, visited))
                     else:
                         require(
-                            frame
+                            role == "frame"
                             and left in (s.c, s.m)
                             and right == s.capacity - s.written
                             and s.min_capacity == s.written,
@@ -433,54 +489,88 @@ def verify(image, path):
         symbol(image, b"5alloc7raw_vec", b"6RawVechE8grow_oneB7_"): "grow",
         symbol(image, b"7reserve21do_reserve_and_handle", b"6slhdsa"): "reserve",
     }
-    frame_paths = paths(image, path, frame_pc, words, callees, True)
+    frame_paths = paths(image, path, frame_pc, words, callees, "frame")
     free = symbol(image, b"___rustc", b"___rust_dealloc")
-    for n in (16, 24, 32):
-        mono = f"Kj{n:x}_EB6_".encode()
-        core = b"6slhdsa5shake3slh17slh_sign_internal" + mono
-        core_pc, _ = image.function(core, b"6slhdsa")
-        for variant in ("s", "f"):
-            prefix = f"6slhdsa4sets10shake_{n * 8}{variant}".encode()
-            internal = prefix + b"17slh_sign_internal"
-            verified_row = inspect(
-                image, internal, core, [None, "x0", "x1", "x2", 4 * n, "x3"]
+    checked_dispatchers = set()
+    for family in ("shake", "sha2"):
+        for n in (16, 24, 32):
+            shake = family == "shake"
+            mono = f"Kj{n:x}_EB{6 if shake else 4}_".encode()
+            core = (
+                (b"6slhdsa5shake" if shake else b"6slhdsa")
+                + b"3slh17slh_sign_internal"
+                + mono
             )
-            for op in (b"4sign", b"8slh_sign", b"18sign_deterministic"):
-                entry, code = image.function(prefix + op, b"6slhdsa4sets")
-                # Resolve the constant from the wrapper, then bind its contents to
-                # the FIPS row already checked by entries.certificate.
-                candidates = []
-                for j, w in enumerate(code[:-1]):
-                    if w & 0x9F00001F == 0x90000000:
-                        add = code[j + 1]
-                        require(
-                            add & 0xFFC003FF == 0x91000000,
-                            "unexpected parameter relocation",
-                        )
-                        delta = sign_extend((w >> 5 & 0x7FFFF) << 2 | (w >> 29 & 3), 21)
-                        candidates.append(
-                            ((entry + 4 * j) & ~4095)
-                            + delta * 4096
-                            + (add >> 10 & 4095)
-                        )
-                require(len(candidates) == 1, "wrong number of parameter loads")
-                params = candidates[0]
-                require(
-                    struct.unpack("<QQIIIII", image.read(b"__const", params, 36))
-                    == verified_row,
-                    "incorrect FIPS parameter row",
+            core_pc, _ = image.function(core, b"6slhdsa")
+            calls = {frame_pc: "frame", core_pc: "sign", free: "free"}
+            if not shake:
+                dispatcher, dispatch_words = image.function(
+                    b"6slhdsa3slh8slh_sign" + mono, b"6slhdsa"
                 )
-                paths(
+                segmented, _ = image.function(
+                    f"3slh7message4signKj{n:x}_EB6_".encode(), b"6slhdsa"
+                )
+                calls[segmented] = "segmented"
+            for variant in ("s", "f"):
+                name = f"{family}_{n * 8}{variant}"
+                prefix = f"6slhdsa4sets{len(name)}{name}".encode()
+                verified_row = inspect(
                     image,
-                    path,
-                    entry,
-                    code,
-                    {frame_pc: "frame", core_pc: "sign", free: "free"},
-                    False,
-                    n,
-                    op == b"18sign_deterministic",
-                    params,
+                    prefix + b"17slh_sign_internal",
+                    core,
+                    [None, "x0", "x1", "x2", 4 * n, "x3"],
                 )
+                for op in (b"4sign", b"8slh_sign", b"18sign_deterministic"):
+                    entry, code = image.function(prefix + op, b"6slhdsa4sets")
+                    # Resolve the constant from the wrapper, then bind its contents to
+                    # the FIPS row already checked by entries.certificate.
+                    candidates = []
+                    for j, w in enumerate(code[:-1]):
+                        if w & 0x9F00001F == 0x90000000:
+                            add = code[j + 1]
+                            require(
+                                add & 0xFFC003FF == 0x91000000,
+                                "unexpected parameter relocation",
+                            )
+                            delta = sign_extend(
+                                (w >> 5 & 0x7FFFF) << 2 | (w >> 29 & 3), 21
+                            )
+                            candidates.append(
+                                ((entry + 4 * j) & ~4095)
+                                + delta * 4096
+                                + (add >> 10 & 4095)
+                            )
+                    require(len(candidates) == 1, "wrong number of parameter loads")
+                    params = candidates[0]
+                    require(
+                        struct.unpack("<QQIIIII", image.read(b"__const", params, 36))
+                        == verified_row,
+                        "incorrect FIPS parameter row",
+                    )
+                    paths(
+                        image,
+                        path,
+                        entry,
+                        code,
+                        calls if shake else {dispatcher: "dispatch"},
+                        "shake_entry" if shake else "sha2_entry",
+                        n,
+                        op == b"18sign_deterministic",
+                        params,
+                    )
+                    if not shake and (dispatcher, params) not in checked_dispatchers:
+                        checked_dispatchers.add((dispatcher, params))
+                        paths(
+                            image,
+                            path,
+                            dispatcher,
+                            dispatch_words,
+                            calls,
+                            "dispatch",
+                            n,
+                            False,
+                            params,
+                        )
     return frame_certificate(frame_paths)
 
 
@@ -526,6 +616,9 @@ def mutation_tests(image, scratch):
         ),
         (b"18sign_deterministic", b"6slhdsa4sets10shake_128s", 6, 1 << 10, "PK.seed"),
         (b"4sign", b"6slhdsa4sets10shake_128s", 26, 1 << 10, "signature result"),
+        (b"3slh8slh_signKj10_EB4_", b"6slhdsa", 11, 1 << 10, "wrong context guard"),
+        (b"4sign", b"6slhdsa4sets9sha2_128s", 0, (5 ^ 4) << 16, "hedging randomizer"),
+        (b"3slh8slh_signKj10_EB4_", b"6slhdsa", 18, 1, "unrecognized tail call"),
     ]
     for suffix, family, index, mask, expected in mutations:
         start, words = image.function(suffix, family)
