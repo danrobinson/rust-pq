@@ -17,6 +17,9 @@ from hypertree import verify as verify_hypertree
 from image import Image, require
 from permute import decode
 from reject import certificate as rejection_certificate
+from pure_wrapper_witness import certificate as pure_wrapper_certificate
+from pure_frame_witness import certificate as pure_frame_certificate
+from sha2_verify_witness import gate as sha2_verify_length, body as sha2_verify_body
 from keygen_witness import certificate as keygen_certificate
 from signer_witness import certificate as signer_certificate
 from verify_length_witness import certificate as verify_length_certificate
@@ -390,24 +393,36 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
-        for witness in (rejection_certificate, keygen_certificate, verify_length_certificate, verify_body_certificate):
-            subprocess.run(
-                ["lake", "env", "lean", "--stdin"],
-                cwd=ROOT / "lean",
-                env=env,
-                input=witness(image),
-                text=True,
-                check=True,
-            )
-        for family in ("shake", "sha2"):
-            subprocess.run(
-                ["lake", "env", "lean", "--stdin"],
-                cwd=ROOT / "lean",
-                env=env,
-                input=signer_certificate(image, snapshot, family=family),
-                text=True,
-                check=True,
-            )
+        witnesses = {
+            "AppleSignRejectWitness": rejection_certificate(image),
+            "AppleKeygenWitness": keygen_certificate(image),
+            "AppleVerifyLengthWitness": verify_length_certificate(image),
+            "AppleVerifyBodyWitness": verify_body_certificate(image),
+            "AppleSha2VerifyLengthWitness": sha2_verify_length(image),
+            "AppleSha2VerifyWitness": sha2_verify_body(image),
+            "ApplePureFrameWitness": pure_frame_certificate(image, snapshot),
+            "ApplePureWrapperWitness": pure_wrapper_certificate(image),
+            "AppleInternalSignerWitness": signer_certificate(image, snapshot, family="shake"),
+            "AppleSha2InternalSignerWitness": signer_certificate(image, snapshot, family="sha2"),
+        }
+        # Session theorems import the checked-in words. Bind those imports to
+        # the supplied image before using Lake's compiled proof artifacts.
+        modules = []
+        for name, witness in witnesses.items():
+            if witness == (ROOT / "lean" / "Spec" / f"{name}.lean").read_text():
+                modules.append(f"Spec.{name}")
+            else:
+                # Independently validate newly linked images without attributing
+                # the checked-in image's composition theorem to the new build.
+                print(f"{name} differs from checked-in image. Replaying new witness.", flush=True)
+                subprocess.run(
+                    ["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean",
+                    env=env, input=witness, text=True, check=True,
+                )
+        if modules:
+            subprocess.run(["lake", "build", *modules], cwd=ROOT / "lean", env=env, check=True)
+        if len(modules) == len(witnesses):
+            print("All checked-in session witnesses match the supplied image.", flush=True)
         bulk_audit = subprocess.run(
             ["lake", "env", "lean", "--stdin"],
             cwd=ROOT / "lean",
