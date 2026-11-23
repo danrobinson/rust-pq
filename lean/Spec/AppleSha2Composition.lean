@@ -70,6 +70,42 @@ theorem Signature.eq_spec {p msg sk random out} (s : Signature p msg sk random o
   rw [s.output, layers_eq s.calls, fr, fs, dg, r]
   rfl
 
+/-- Construct the SHA-2 call trace from the HMAC inner/outer digests, each MGF1
+    counter, the FORS operations, and the visited hypertree layers. -/
+theorem trace_iff {p msg sk random out}
+    (row : p ∈ [sha2_128s,sha2_128f,sha2_192s,sha2_192f,sha2_256s,sha2_256f]) :
+    Nonempty (Signature p msg sk random out) ↔ out = slhSignInternal p msg sk random := by
+  have props : p.family = .sha2 ∧ p.n ≤ blockSize p := by
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at row
+    rcases row with rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+  constructor
+  · rintro ⟨s⟩; exact s.eq_spec props.1
+  · rintro rfl
+    let key := keyPad p (block p sk 1)
+    let inner := sha p (key.map (· ^^^ 0x36#8) ++ (random ++ msg))
+    let r := (sha p (key.map (· ^^^ 0x5c#8) ++ inner)).take p.n
+    let first := sha p (r ++ block p sk 2 ++ block p sk 3 ++ msg)
+    let counter := fun i => sha p ((r ++ block p sk 2 ++ first) ++ toByte i 4)
+    let digest := ((List.range ((p.m + blockSize p / 2 - 1) / (blockSize p / 2))).flatMap counter).take p.m
+    have hc : HashCalls p msg sk random r digest :=
+      { inner, first, counters := counter, keySize := by
+          exact (List.length_take_le ..).trans props.2
+        ipad := rfl, opad := rfl, firstHash := rfl, counter := fun _ _ => rfl, output := rfl }
+    let md := digest.take p.mdBytes
+    let a := forsAddress p digest
+    let sig := forsSign p md (block p sk 0) (block p sk 2) a
+    let root := forsPkFromSig p sig md (block p sk 2) a
+    let init : LayerState := ([],root,digestTree p digest,digestLeaf p digest)
+    let calls := referenceCalls p (block p sk 0) (block p sk 2) init
+    refine ⟨{ r, digest, hashes := hc, digits := base2b md p.a p.k, decode := rfl,
+              forsSig := sig, forsPk := root, forest := rfl, recovery := rfl,
+              layers := referenceLayers p (block p sk 0) (block p sk 2) init,
+              calls, output := ?_ }⟩
+    rw [layers_eq calls]
+    dsimp only [init, root, sig, a, md]
+    rw [(hc.eq_spec props.1).2, (hc.eq_spec props.1).1]
+    rfl
+
 theorem successful_roundtrip {p secret prf seed sk pk msg ctx supplied sig verdict}
     (row : p ∈ [sha2_128s,sha2_128f,sha2_192s,sha2_192f,sha2_256s,sha2_256f])
     (sizes : secret.length = p.n ∧ prf.length = p.n ∧ seed.length = p.n)
@@ -95,6 +131,7 @@ theorem successful_roundtrip {p secret prf seed sk pk msg ctx supplied sig verdi
   · simpa [slhVerify, show ¬ctx.length > 255 by omega] using verify.eq_spec
 
 #print axioms HashCalls.eq_spec
+#print axioms trace_iff
 #print axioms Signature.eq_spec
 #print axioms successful_roundtrip
 

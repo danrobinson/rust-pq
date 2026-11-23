@@ -260,7 +260,7 @@ private def referenceLayerRoot (p msg pk sig i a) :
 private def referenceState (p : Params) (sk pk : Bytes) (init : LayerState) (j : Nat) :=
   (List.range j).foldl (slhdsa.signNext p.d (slhdsa.htSignStep p sk pk)) init
 
-private def referenceLayers (p : Params) (sk pk : Bytes) (init : LayerState) : Layers where
+def referenceLayers (p : Params) (sk pk : Bytes) (init : LayerState) : Layers where
   signature j :=
     let st := referenceState p sk pk init j
     xmssSign p st.2.1 sk st.2.2.2 pk (address j st)
@@ -279,7 +279,7 @@ private theorem referenceLayers_state (p sk pk init j) :
     rw [ih]
     rfl
 
-private def referenceCalls (p sk pk init) : LayerCalls p sk pk init (referenceLayers p sk pk init) where
+def referenceCalls (p sk pk init) : LayerCalls p sk pk init (referenceLayers p sk pk init) where
   sign j _ := by
     dsimp only
     rw [referenceLayers_state]
