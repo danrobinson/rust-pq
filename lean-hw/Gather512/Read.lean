@@ -36,10 +36,10 @@ theorem gather_spec {L : Usize} (rows : Slice (Array U8 L)) (pos : Nat)
   rw [ea, Int.toNat_natCast]
   simp [active,word64,p]
 
-private theorem ofWords_even (ws : Fin 8 → BitVec 64) (j : Fin 8) :
+theorem ofWords_even (ws : Fin 8 → BitVec 64) (j : Fin 8) :
     ofWords64 ws ⟨2*j.val,by omega⟩ = (ws j).extractLsb' 0 32 := by
   fin_cases j <;> rfl
-private theorem ofWords_odd (ws : Fin 8 → BitVec 64) (j : Fin 8) :
+theorem ofWords_odd (ws : Fin 8 → BitVec 64) (j : Fin 8) :
     ofWords64 ws ⟨2*j.val+1,by omega⟩ = (ws j).extractLsb' 32 32 := by
   fin_cases j <;> rfl
 

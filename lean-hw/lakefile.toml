@@ -122,3 +122,6 @@ name = "Streamscalar"
 
 [[lean_lib]]
 name = "X86remainder"
+
+[[lean_lib]]
+name = "Streamvector"

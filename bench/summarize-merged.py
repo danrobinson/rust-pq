@@ -54,6 +54,40 @@ def leaf_sha_ratios():
             w.writerow([*key, *(round(fn(vals), 6) for fn in (median, min, max))])
 
 
+def streaming_sha_ratios():
+    rates = defaultdict(list)
+    with gzip.open(OUT / "streaming-raw.csv.gz", "rt") as f:
+        for host, kernel, width, rnd, ns in csv.reader(f):
+            if int(rnd) and not kernel.startswith("issue"):
+                rates[host, int(width), kernel].append(float(ns))
+    with (OUT.parents[1] / "sha-cost/counts.csv").open() as f:
+        counts = {(r["message_bytes"], r["set"], r["operation"], int(r["round"])):
+                  (int(r["sha256_blocks"]), int(r["sha512_blocks"])) for r in csv.DictReader(f)}
+    costs = {}
+    for host in ("c5", "c8a", "c8i"):
+        for width in (256, 512):
+            kernels = {kernel: median(samples) for (h, w, kernel), samples in rates.items()
+                       if h == host and w == width}
+            fastest = min(kernels, key=kernels.get)
+            dedicated = [k for k in kernels if k.startswith("x86")]
+            native = min([*dedicated, f"bulk{width}"], key=kernels.get) if dedicated else fastest
+            costs[host, width] = (kernels[native], kernels[fastest])
+    ratios = defaultdict(list)
+    with gzip.open(OUT / "streaming.csv.gz", "rt") as f:
+        for host, mode, length, param, op, rnd, ns in csv.reader(f):
+            if mode == "candidate" and int(rnd):
+                n256, n512 = counts[length, param.removeprefix("sha2_"), op, int(rnd)]
+                ratios[host, length, param, op].append(tuple(
+                    int(ns) / (n256 * a + n512 * b)
+                    for a, b in zip(costs[host, 256], costs[host, 512])))
+    assert len(ratios) == 108 and all(len(v) == 6 for v in ratios.values())
+    with (OUT / "streaming-sha-summary.csv").open("w", newline="") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerow("cpu bytes set operation native_time_ratio fastest_c_time_ratio".split())
+        for key, samples in ratios.items():
+            writer.writerow([*key, *(round(median(col), 6) for col in zip(*samples))])
+
+
 if __name__ == "__main__":
     summarize("shake", "before", "current", ("apple", "c5", "c8i", "c8a", "c6g", "c8g"))
     summarize("wide-refactor", "current", "refined", ("c5", "c8i", "c8a"))
@@ -64,3 +98,5 @@ if __name__ == "__main__":
     summarize("transpose-stores", "current", "transpose", ("c5", "c8a", "c8i"))
     summarize("leaves", "current", "shared", ("c5", "c8a", "c8i"))
     leaf_sha_ratios()
+    summarize("streaming", "base", "candidate", ("c5", "c8a", "c8i"))
+    streaming_sha_ratios()

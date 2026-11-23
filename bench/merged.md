@@ -141,3 +141,17 @@ The adopted version passed all 134 core tests and 54 compatibility tests with pl
 ## BMI2 streaming SHA-256 and SHA-512
 
 The const-generic round helper used for verification preserves the emitted scalar kernel on the x86-64 Linux release build. Against `df998a8`, the assembly bodies matched for both SHA-256 (2,800 lines) and SHA-512 (3,533 lines), including register allocation, instructions, and stack offsets. The comparison used `cargo rustc --locked --release --features platform-sha2 --target x86_64-unknown-linux-gnu --lib -- --emit=asm` and normalized local basic-block label numbers. This is a code-generation comparison for that build. [End-to-end kernel proofs](../lean-hw/Streamscalar/Top.lean)
+
+## x86 streaming kernel verification build
+
+The table compares the public SHA-2 APIs against `df998a8` across 36 workloads per host. Each workload ran six measured pairs on one pinned vCPU, alternating the build order after warm-up. The last two columns give elapsed signing time divided by the time to compress all counted SHA blocks for SHA2-128s signing on 32 bytes. A ratio of 0.90 means 10% less elapsed time. Signing can reuse common prefix rounds.
+
+| CPU | Median paired speedup | Range of workload medians | Signing / native SHA | Signing / fastest C kernel |
+|---|---:|---:|---:|---:|
+| Xeon 8124M | 1.0000× | 0.9953–1.0042× | 0.646× | 0.646× |
+| EPYC 9R45 | 0.9925× | 0.9839–1.0053× | 0.663× | 0.915× |
+| Xeon 6975P-C | 0.9997× | 0.9927–1.0078× | 0.441× | 0.711× |
+
+Native SHA uses the faster of the available SHA-instruction and library bulk controls, with the fastest measured C software kernel for an algorithm lacking dedicated instructions. The final column also considers the independent-block SIMD C controls. The earlier WOTS study measured separate Rust SIMD kernels. Its 0.974×, 0.909× and 0.932× results are also elapsed-time ratios. [108 workloads](results/merged/streaming-summary.csv) · [Ratios by workload](results/merged/streaming-sha-summary.csv) · [1,512 public API samples](results/merged/streaming.csv.gz) · [Raw controls](results/merged/streaming-raw.csv.gz)
+
+The candidate gave the BMI2 verifier a separate round helper and replaced the AVX-512 row store with a native-endian bit reinterpretation. After the EC2 runs started, the gather's pointer calculation moved inside the word-loading closure to expose the source allocation to the proof. Relative to the baseline, both forms produced identical release assembly for each AVX-512 streaming function on the x86-64 Linux target with Rust 1.100.0 (1,954 lines for SHA-256 and 2,384 for SHA-512, normalizing local basic-block labels).
