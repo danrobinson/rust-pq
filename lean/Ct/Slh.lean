@@ -78,7 +78,7 @@ theorem ht_sign_loop_body {N : Usize} (p : slhdsa.params.Params) (sk sk' : Array
     Rel (ht.ht_sign_loop.body p sk seed sig root tree leaf j)
       (ht.ht_sign_loop.body p sk' seed' sig' root tree leaf j)
       (CFRel (fun p q => p.1.length = q.1.length ∧ p.2.2 = q.2.2) (fun p q => p.length = q.length)) := by
-  unfold ht.ht_sign_loop.body
+  unfold ht.ht_sign_loop.body ht.next_message
   ct_steps
   all_goals (ct_facts; simp_all)
 

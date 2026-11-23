@@ -83,12 +83,12 @@ theorem sha2_sign_prefix (set : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routin
       j.val = k ∧ leaf.val < 2 ^ p.hp.val ∧
       acc.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val ∧
       (bytes acc.val,bytes root.val,tree.val,leaf.val) =
-        signPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) (bytes msg.val) (bytes sk.val) (bytes seed.pk_seed.val) t0.val l0.val j.val ⦄ := by
+        liveSignPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) (bytes msg.val) (bytes sk.val) (bytes seed.pk_seed.val) t0.val l0.val j.val ⦄ := by
   apply runLayers_spec (S := alloc.vec.Vec U8 × Array U8 N × U64 × U32 × U32) (d := p.d.val) (inv := fun k (acc,root,tree,leaf,j) =>
       j.val = k ∧ leaf.val < 2 ^ p.hp.val ∧
       acc.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val ∧
       (bytes acc.val,bytes root.val,tree.val,leaf.val) =
-        signPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) (bytes msg.val) (bytes sk.val) (bytes seed.pk_seed.val) t0.val l0.val j.val)
+        liveSignPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) (bytes msg.val) (bytes sk.val) (bytes seed.pk_seed.val) t0.val l0.val j.val)
   · exact ⟨rfl, hl, rfl, rfl⟩
   · rintro i ⟨acc,root,tree,leaf,j⟩ hi ⟨hj,hleaf,hsize,heq⟩
     apply WP.spec_mono (sha2_sign_layer set route p hp sk seed hs (bytes msg.val) acc root tree leaf j t0.val l0.val (by omega) hleaf hsize suite heq)
@@ -105,12 +105,12 @@ theorem shake_sign_prefix (impl : PeerShake.Backend.Implementation) {N : Usize}
       j.val = k ∧ leaf.val < 2 ^ p.hp.val ∧
       acc.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val ∧
       (bytes acc.val,bytes root.val,tree.val,leaf.val) =
-        signPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) (bytes msg.val) (bytes sk.val) (bytes seed.val) t0.val l0.val j.val ⦄ := by
+        liveSignPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) (bytes msg.val) (bytes sk.val) (bytes seed.val) t0.val l0.val j.val ⦄ := by
   apply runLayers_spec (S := alloc.vec.Vec U8 × Array U8 N × U64 × U32 × U32) (d := p.d.val) (inv := fun k (acc,root,tree,leaf,j) =>
       j.val = k ∧ leaf.val < 2 ^ p.hp.val ∧
       acc.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val ∧
       (bytes acc.val,bytes root.val,tree.val,leaf.val) =
-        signPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) (bytes msg.val) (bytes sk.val) (bytes seed.val) t0.val l0.val j.val)
+        liveSignPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) (bytes msg.val) (bytes sk.val) (bytes seed.val) t0.val l0.val j.val)
   · exact ⟨rfl, hl, rfl, rfl⟩
   · rintro i ⟨acc,root,tree,leaf,j⟩ hi ⟨hj,hleaf,hsize,heq⟩
     apply WP.spec_mono (shake_sign_layer impl p hp sk seed (bytes msg.val) acc root tree leaf j t0.val l0.val (by omega) hleaf hsize heq)

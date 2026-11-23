@@ -35,7 +35,7 @@ def ht (c : Xmss) (p : Params) (msg sk pk : Bytes) (tree leaf : Nat) : Bytes :=
   let root := c.recover leaf sig msg pk a
   later c p sk pk (List.range' 1 (p.d-1)) sig root tree
 
-private def step (c : Xmss) (p : Params) (sk pk : Bytes)
+def signStep (c : Xmss) (p : Params) (sk pk : Bytes)
     (st : Bytes × Bytes × Nat × Nat) (j : Nat) : Bytes × Bytes × Nat × Nat :=
   let (acc,msg,tree,leaf) := st
   let a := layer j tree
@@ -45,7 +45,7 @@ private def step (c : Xmss) (p : Params) (sk pk : Bytes)
 private theorem later_is_fold (c : Xmss) (p : Params) (sk pk : Bytes) (js : List Nat)
     (acc root : Bytes) (tree : Nat) :
     later c p sk pk js acc root tree =
-      (js.foldl (step c p sk pk) (acc,root,tree >>> p.hp,tree % 2^p.hp)).1 := by
+      (js.foldl (signStep c p sk pk) (acc,root,tree >>> p.hp,tree % 2^p.hp)).1 := by
   induction js generalizing acc root tree with
   | nil => rfl
   | cons j js ih =>
@@ -57,7 +57,7 @@ private theorem later_is_fold (c : Xmss) (p : Params) (sk pk : Bytes) (js : List
 /-- The root component after the final layer is a mathematical observation;
 the peer's signing routine only demands the accumulated signature at that point. -/
 def signPrefix (c : Xmss) (p : Params) (msg sk pk : Bytes) (tree leaf k : Nat) :=
-  (List.range k).foldl (step c p sk pk) ([],msg,tree,leaf)
+  (List.range k).foldl (signStep c p sk pk) ([],msg,tree,leaf)
 
 /-- State at a nonfinal cut of the peer's later-layer loop. Its index is
 the tree just used. The next iteration splits that index on entry. -/
@@ -90,7 +90,7 @@ private def alignSign (p : Params) (st : Bytes × Bytes × Nat) :=
 private theorem alignSign_fold (c : Xmss) (p : Params) (sk pk : Bytes) (js : List Nat)
     (st : Bytes × Bytes × Nat) :
     alignSign p (js.foldl (peerSignStep c p sk pk) st) =
-      js.foldl (step c p sk pk) (alignSign p st) := by
+      js.foldl (signStep c p sk pk) (alignSign p st) := by
   induction js generalizing st with
   | nil => rfl
   | cons j js ih => exact ih _

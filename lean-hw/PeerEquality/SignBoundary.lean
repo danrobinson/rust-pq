@@ -3,10 +3,22 @@ import PeerEquality.VerifyBoundary
 open Aeneas Aeneas.Std Result
 namespace slhdsa.PeerCall
 
+/-- Concrete root register, signature and indices including the final iteration. -/
+def liveSignPrefix (c : Xmss) (p : Spec.Params) (msg sk pk : Spec.Bytes) (tree leaf k : Nat) :=
+  (List.range k).foldl (signNext p.d (signStep c p sk pk)) ([],msg,tree,leaf)
+
+theorem liveSignPrefix_before (c : Xmss) (p : Spec.Params) (msg sk pk tree leaf k) (h : k < p.d) :
+    liveSignPrefix c p msg sk pk tree leaf k = signPrefix c p msg sk pk tree leaf k :=
+  signNext_prefix _ _ h
+
+theorem liveSignPrefix_complete (c : Xmss) (p : Spec.Params) (msg sk pk tree leaf) (h : 0 < p.d) :
+    (liveSignPrefix c p msg sk pk tree leaf p.d).1 = ht c p msg sk pk tree leaf := by
+  exact (signNext_signature _ _ _).trans (signPrefix_complete c p h msg sk pk tree leaf).symm
+
 private theorem signPrefix_eq {c : Children} {p : Spec.Params} (laws : ChildLaws c p)
     (msg sk pk : Spec.Bytes) (tree leaf k : Nat) :
-    signPrefix (c.xmss p) p msg sk pk tree leaf k =
-      (List.range k).foldl (htSignStep p sk pk) ([],msg,tree,leaf) := by
+    liveSignPrefix (c.xmss p) p msg sk pk tree leaf k =
+      (List.range k).foldl (signNext p.d (htSignStep p sk pk)) ([],msg,tree,leaf) := by
   rw [laws.xmss]
   rfl
 
@@ -17,14 +29,14 @@ theorem sha2_sign_layer (set : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routing
     (hlen : sig.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val)
     (suite : RcSlhSha2.params set = paramsS p)
     (hinv : (bytes sig.val,bytes root.val,tree.val,leaf.val) =
-      signPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) m0 (bytes sk.val) (bytes seed.pk_seed.val) t0 l0 j.val) :
+      liveSignPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) m0 (bytes sk.val) (bytes seed.pk_seed.val) t0 l0 j.val) :
     ht.ht_sign_loop.body p sk seed sig root tree leaf j ⦃ r =>
       match r with
       | .cont (sig1,root1,tree1,leaf1,j1) =>
         j1.val = j.val + 1 ∧ leaf1.val < 2 ^ p.hp.val ∧
         sig1.length = (2 * N.val + 3 + p.hp.val) * N.val * j1.val ∧
         (bytes sig1.val,bytes root1.val,tree1.val,leaf1.val) =
-          signPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) m0 (bytes sk.val) (bytes seed.pk_seed.val) t0 l0 j1.val
+          liveSignPrefix ((Providers.sha2 set RcSlhSha2.nativeAlgorithms).xmss (paramsS p)) (paramsS p) m0 (bytes sk.val) (bytes seed.pk_seed.val) t0 l0 j1.val
       | .done _ => False ⦄ := by
   have laws : ChildLaws (Providers.sha2 set RcSlhSha2.nativeAlgorithms) (paramsS p) := by
     rw [← suite]
@@ -43,8 +55,8 @@ theorem sha2_sign_layer (set : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routing
   step
   step with xmss_sign_spec p hp root sk leaf seed hs adrs hl as ⟨s1, s1_post, s1_len⟩
   rw [hX] at s1_len
-  step with xmss_pk_from_sig_spec p hp leaf (alloc.vec.Vec.deref s1) root seed hs
-    adrs (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
+  step with ht_next_message_spec p hp j leaf (alloc.vec.Vec.deref s1) root seed hs
+    adrs hj (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
   step with ht_extend_from_slice_spec sig (alloc.vec.Vec.deref s1) (by simp; scalar_tac)
     as ⟨sig1, sig1_post, sig1_len⟩
   have hlt : p.hp.val < 64 := by omega
@@ -65,7 +77,7 @@ theorem sha2_sign_layer (set : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routing
   · rw [h5]; exact Nat.mod_lt _ hpos
   · simp only [sig1_len, vec_deref_length, hlen, s1_len, j1_post]; ring
   rw [j1_post, List.range_succ, List.foldl_append, ← hinv]
-  simp only [List.foldl_cons, List.foldl_nil, htSignStep, paramsS_hp]
+  simp only [List.foldl_cons, List.foldl_nil, signNext, htSignStep, paramsS_hp, paramsS_d]
   rw [sig1_post, root1_post, bytes_append, vec_deref_val, s1_post,
     ha, h5, tree1_post]
 
@@ -75,14 +87,14 @@ theorem shake_sign_layer (impl : PeerShake.Backend.Implementation) {N : Usize} (
     (hj : j.val < p.d.val) (hl : leaf.val < 2 ^ p.hp.val)
     (hlen : sig.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val)
     (hinv : (bytes sig.val,bytes root.val,tree.val,leaf.val) =
-      signPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) m0 (bytes sk.val) (bytes seed.val) t0 l0 j.val) :
+      liveSignPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) m0 (bytes sk.val) (bytes seed.val) t0 l0 j.val) :
     shake.ht.ht_sign_loop.body p sk seed sig root tree leaf j ⦃ r =>
       match r with
       | .cont (sig1,root1,tree1,leaf1,j1) =>
         j1.val = j.val + 1 ∧ leaf1.val < 2 ^ p.hp.val ∧
         sig1.length = (2 * N.val + 3 + p.hp.val) * N.val * j1.val ∧
         (bytes sig1.val,bytes root1.val,tree1.val,leaf1.val) =
-          signPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) m0 (bytes sk.val) (bytes seed.val) t0 l0 j1.val
+          liveSignPrefix ((Providers.nativeShake impl (Shake.params p)).xmss (Shake.params p)) (Shake.params p) m0 (bytes sk.val) (bytes seed.val) t0 l0 j1.val
       | .done _ => False ⦄ := by
   have laws : ChildLaws (Providers.nativeShake impl (Shake.params p)) (Shake.params p) := by
     rw [Providers.nativeShake_eq]
@@ -101,8 +113,8 @@ theorem shake_sign_layer (impl : PeerShake.Backend.Implementation) {N : Usize} (
   step
   step with Shake.xmss_sign_spec p hp root sk leaf seed adrs hl as ⟨s1, s1_post, s1_len⟩
   rw [hX] at s1_len
-  step with Shake.xmss_pk_from_sig_spec p hp leaf (alloc.vec.Vec.deref s1) root seed
-    adrs (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
+  step with Shake.ht_next_message_spec p hp j leaf (alloc.vec.Vec.deref s1) root seed
+    adrs hj (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
   step with ht_extend_from_slice_spec sig (alloc.vec.Vec.deref s1) (by simp; scalar_tac)
     as ⟨sig1, sig1_post, sig1_len⟩
   have hlt : p.hp.val < 64 := by omega
@@ -123,7 +135,8 @@ theorem shake_sign_layer (impl : PeerShake.Backend.Implementation) {N : Usize} (
   · rw [h5]; exact Nat.mod_lt _ hpos
   · simp only [sig1_len, vec_deref_length, hlen, s1_len, j1_post]; ring
   rw [j1_post, List.range_succ, List.foldl_append, ← hinv]
-  simp only [List.foldl_cons, List.foldl_nil, htSignStep, show (Shake.params p).hp = p.hp.val from rfl]
+  simp only [List.foldl_cons, List.foldl_nil, signNext, htSignStep, show (Shake.params p).hp = p.hp.val from rfl,
+    show (Shake.params p).d = p.d.val from rfl]
   rw [sig1_post, root1_post, bytes_append, vec_deref_val, s1_post,
     ha, h5, tree1_post]
 

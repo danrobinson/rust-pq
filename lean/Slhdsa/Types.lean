@@ -52,7 +52,7 @@ structure hash.Seed (N : Std.Usize) where
   state512 : Array Std.U64 8#usize
 
 /-- [slhdsa::shake256::Sponge]
-    Source: 'src/shake256.rs', lines 124:0-127:1 -/
+    Source: 'src/shake256.rs', lines 177:0-180:1 -/
 structure shake256.Sponge where
   lanes : Array Std.U64 25#usize
   pos : Std.Usize

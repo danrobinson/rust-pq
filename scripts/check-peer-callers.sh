@@ -85,6 +85,8 @@ import PeerEquality.CallerSha2
 #print axioms slhdsa.PeerCall.shake_verify_prefix
 #print axioms slhdsa.PeerCall.later_cut
 #print axioms slhdsa.PeerCall.signPrefix_peer_state
+#print axioms slhdsa.PeerCall.liveSignPrefix_before
+#print axioms slhdsa.PeerCall.liveSignPrefix_complete
 #print axioms slhdsa.PeerCall.signPrefix_complete
 #print axioms slhdsa.PeerCall.Providers.nativeShake_eq
 LEAN
@@ -93,7 +95,7 @@ import sys
 from pathlib import Path
 import re
 lines=Path(sys.argv[1]).read_text().splitlines()
-if len(lines)!=68: raise SystemExit("missing proof audit")
+if len(lines)!=70: raise SystemExit("missing proof audit")
 for line in lines:
     if not re.fullmatch(r"'slhdsa\.PeerCall\.(?:(?:PeerXmss|PeerWots|Providers)\.)?\w+' (?:does not depend on any axioms|depends on axioms: \[(?:propext|Classical\.choice|Quot\.sound)(?:, (?:propext|Classical\.choice|Quot\.sound))*\])",line):
         raise SystemExit(line)

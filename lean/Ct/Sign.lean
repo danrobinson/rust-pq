@@ -68,7 +68,7 @@ def htBody {N : Std.Usize} (p : params.Params) (sigHt : Slice Std.U8) (seed : ha
     let adrs ← address.Adrs.with_tree a1 tree
     let s ← xmss.xmss_sign p node (zeroN N) leaf seed adrs
     let s1 := chunk sigHt acc.length s.length
-    let root1 ← xmss.xmss_pk_from_sig p leaf s1 node seed adrs
+    let root1 ← ht.next_message p j leaf s1 node seed adrs
     let s2 := alloc.vec.Vec.deref s
     let acc1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 acc s2
     let i ← 1#u64 <<< p.hp

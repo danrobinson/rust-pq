@@ -196,9 +196,47 @@ def htSignStep (p : Spec.Params) (sk pk : Spec.Bytes) (st : Spec.Bytes × Spec.B
       st.2.1 pk { Spec.Adrs.zero with layer := j, tree := st.2.2.1 },
     st.2.2.1 >>> p.hp, st.2.2.1 % 2 ^ p.hp)
 
+/-- The signer keeps the incoming message in its scratch register on the last layer. -/
+def signNext (d : Nat) (step : Spec.Bytes × Spec.Bytes × Nat × Nat → Nat →
+    Spec.Bytes × Spec.Bytes × Nat × Nat) (st : Spec.Bytes × Spec.Bytes × Nat × Nat) (j : Nat) :=
+  let q := step st j
+  (q.1, if j + 1 < d then q.2.1 else st.2.1, q.2.2)
+
+theorem signNext_prefix (step st) {k d : Nat} (h : k < d) :
+    (List.range k).foldl (signNext d step) st = (List.range k).foldl step st := by
+  induction k with
+  | zero => rfl
+  | succ k ih =>
+    simp only [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil,
+      ih (by omega), signNext, if_pos h]
+
+theorem signNext_signature (step st) (d : Nat) :
+    ((List.range d).foldl (signNext d step) st).1 = ((List.range d).foldl step st).1 := by
+  cases d with
+  | zero => rfl
+  | succ k =>
+    rw [List.range_succ, List.foldl_append, List.foldl_append, signNext_prefix step st (by omega)]
+    rfl
+
 theorem htSign_eq (p : Spec.Params) (m sk pk : Spec.Bytes) (t l : Nat) :
     Spec.htSign p m sk pk t l = ((List.range p.d).foldl (htSignStep p sk pk) ([], m, t, l)).1 := by
   rfl
+
+theorem ht_next_message_spec {N : Usize} (p : params.Params) (hp : PN p N) (j idx : U32)
+    (sig : Slice U8) (m : Array U8 N) (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs)
+    (hj : j.val < p.d.val) (h : sig.length = (2 * N.val + 3 + p.hp.val) * N.val) (hidx : idx.val < 2 ^ p.hp.val) :
+    ht.next_message p j idx sig m seed a ⦃ r =>
+      bytes r.val = if j.val + 1 < p.d.val then Spec.xmssPkFromSig (paramsS p) idx.val (bytes sig.val) (bytes m.val)
+        (bytes seed.pk_seed.val) (adrsS a) else bytes m.val ⦄ := by
+  have hd : p.d.val ≤ 22 := by simpa using hp.valid.d_le
+  unfold ht.next_message
+  step as ⟨next, hnext⟩
+  split
+  · rename_i active
+    rw [if_pos (by scalar_tac)]
+    exact xmss_pk_from_sig_spec p hp idx sig m seed hs a h hidx
+  · rename_i inactive
+    simp only [WP.spec_ok, if_neg (by scalar_tac : ¬ j.val + 1 < p.d.val)]
 
 theorem ht_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
     (seed : hash.Seed N) (hs : SeedOk seed) (m0 : Spec.Bytes)
@@ -206,11 +244,11 @@ theorem ht_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Ar
     (hj : j.val ≤ p.d.val) (hl : leaf.val < 2 ^ p.hp.val)
     (hlen : sig.length = (2 * N.val + 3 + p.hp.val) * N.val * j.val)
     (hinv : (bytes sig.val, bytes root.val, tree.val, leaf.val) =
-      (List.range j.val).foldl (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val))
+      (List.range j.val).foldl (signNext p.d.val (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val)))
         ([], m0, t0, l0)) :
     ht.ht_sign_loop p sk seed sig root tree leaf j ⦃ r =>
       r.length = p.d.val * ((2 * N.val + 3 + p.hp.val) * N.val) ∧ bytes r.val =
-        ((List.range p.d.val).foldl (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val))
+        ((List.range p.d.val).foldl (signNext p.d.val (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val)))
           ([], m0, t0, l0)).1 ⦄ := by
   have hv := hp.valid
   have hd : p.d.val ≤ 22 := by simpa using hv.d_le
@@ -224,7 +262,7 @@ theorem ht_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Ar
     (inv := fun q => q.2.2.2.2.val ≤ p.d.val ∧ q.2.2.2.1.val < 2 ^ p.hp.val ∧
       q.1.length = X * q.2.2.2.2.val ∧
       (bytes q.1.val, bytes q.2.1.val, q.2.2.1.val, q.2.2.2.1.val) =
-        (List.range q.2.2.2.2.val).foldl (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val))
+        (List.range q.2.2.2.2.val).foldl (signNext p.d.val (htSignStep (paramsS p) (bytes sk.val) (bytes seed.pk_seed.val)))
           ([], m0, t0, l0))
   · rintro ⟨sig, root, tree, leaf, j⟩ ⟨hj, hl, hlen, hinv⟩
     simp only [ht.ht_sign_loop.body]
@@ -238,8 +276,8 @@ theorem ht_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Ar
       step
       step with xmss_sign_spec p hp root sk leaf seed hs adrs hl as ⟨s1, s1_post, s1_len⟩
       rw [hX] at s1_len
-      step with xmss_pk_from_sig_spec p hp leaf (alloc.vec.Vec.deref s1) root seed hs
-        adrs (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
+      step with ht_next_message_spec p hp j leaf (alloc.vec.Vec.deref s1) root seed hs
+        adrs hjd' (by simp [s1_len, hX]) hl as ⟨root1, root1_post⟩
       step with ht_extend_from_slice_spec sig (alloc.vec.Vec.deref s1) (by simp; scalar_tac)
         as ⟨sig1, sig1_post, sig1_len⟩
       have hlt : p.hp.val < 64 := by omega
@@ -260,14 +298,14 @@ theorem ht_sign_loop_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Ar
       · rw [h5]; exact Nat.mod_lt _ hpos
       · simp only [sig1_len, vec_deref_length, hlen, s1_len, j1_post]; ring
       · rw [j1_post, List.range_succ, List.foldl_append, ← hinv]
-        simp only [List.foldl_cons, List.foldl_nil, htSignStep, paramsS_hp]
+        simp only [List.foldl_cons, List.foldl_nil, signNext, htSignStep, paramsS_hp]
         rw [sig1_post, root1_post, bytes_append, vec_deref_val, s1_post,
           ha, h5, tree1_post]
     · simp only [hjd, ite_false]
       have : j.val = p.d.val := by scalar_tac
       simp only [WP.spec_ok]
       subst hX
-      refine ⟨?_, by rw [← this]; rw [← hinv]⟩
+      refine ⟨?_, by simpa only [this] using congrArg Prod.fst hinv⟩
       rw [hlen, this, Nat.mul_comm]
   · exact ⟨hj, hl, hlen, hinv⟩
 
@@ -284,6 +322,6 @@ theorem ht_sign_spec {N : Usize} (p : params.Params) (hp : PN p N) (m sk : Array
   · exact ht_sign_loop_spec p hp sk seed hs (bytes m.val) (alloc.vec.Vec.new U8) m idx_tree idx_leaf 0#u32
       idx_tree.val idx_leaf.val (by simp) hl (by simp) (by simp)
   · intro r ⟨h1, h2⟩
-    exact ⟨by rw [htSign_eq]; exact h2, h1⟩
+    exact ⟨by rw [htSign_eq]; exact h2.trans (signNext_signature _ _ _), h1⟩
 
 end slhdsa

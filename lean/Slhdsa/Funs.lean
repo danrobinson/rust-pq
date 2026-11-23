@@ -997,12 +997,172 @@ def xmss.hash2
   := do
   hash.thash_pair seed adrs left right
 
-/-- [slhdsa::address::{slhdsa::address::Adrs}::with_word3]:
-    Source: 'src/address.rs', lines 63:4-65:5
+/-- [slhdsa::params::W]
+    Source: 'src/params.rs', lines 9:0-9:22
     Visibility: public -/
-def address.Adrs.with_word3
-  (self : address.Adrs) (word3 : Std.U32) : Result address.Adrs := do
-  ok { self with word3 }
+@[global_simps, irreducible] def params.W : Std.U32 := 16#u32
+
+/-- [slhdsa::params::LEN2]
+    Source: 'src/params.rs', lines 11:0-11:26
+    Visibility: public -/
+@[global_simps, irreducible] def params.LEN2 : Std.Usize := 3#usize
+
+/-- [slhdsa::hash::chain_blocks_portable]: loop body 1:
+    Source: 'src/hash.rs', lines 104:8-113:9
+    Visibility: public -/
+@[rust_loop_body]
+def hash.chain_blocks_portable_loop0_loop0.body
+  (N : Std.Usize) (state : Array Std.U32 8#usize) («end» : Slice Std.U32)
+  (i : Std.Usize) (blocks : Slice (Array Std.U8 64#usize)) (t : Std.U32) :
+  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.U32) (Slice
+    (Array Std.U8 64#usize)))
+  := do
+  let i1 ← Slice.index_usize «end» i
+  if t < i1
+  then
+    let i2 ← t >>> 24#i32
+    let (a, index_mut_back) ← Slice.index_mut_usize blocks i
+    let i3 ← lift (UScalar.cast .U8 i2)
+    let a1 ← Array.update a 18#usize i3
+    let i4 ← t >>> 16#i32
+    let blocks1 := index_mut_back a1
+    let (a2, index_mut_back1) ← Slice.index_mut_usize blocks1 i
+    let i5 ← lift (UScalar.cast .U8 i4)
+    let a3 ← Array.update a2 19#usize i5
+    let i6 ← t >>> 8#i32
+    let blocks2 := index_mut_back1 a3
+    let (a4, index_mut_back2) ← Slice.index_mut_usize blocks2 i
+    let i7 ← lift (UScalar.cast .U8 i6)
+    let a5 ← Array.update a4 20#usize i7
+    let blocks3 := index_mut_back2 a5
+    let (a6, index_mut_back3) ← Slice.index_mut_usize blocks3 i
+    let i8 ← lift (UScalar.cast .U8 t)
+    let a7 ← Array.update a6 21#usize i8
+    let blocks4 := index_mut_back3 a7
+    let a8 ← Slice.index_usize blocks4 i
+    let s ← lift (Array.to_slice a8)
+    let st ← sha256.compress state s 0#usize
+    let d ← hash.trunc N st
+    let (a9, index_mut_back4) ← Slice.index_mut_usize blocks4 i
+    let i9 ← 22#usize + N
+    let (s1, index_mut_back5) ←
+      core.array.Array.index_mut (core.ops.index.IndexMutSlice
+        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) a9
+        { start := 22#usize, «end» := i9 }
+    let s2 ← lift (Array.to_slice d)
+    let s3 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s1 s2
+    let t1 ← t + 1#u32
+    let a10 := index_mut_back5 s3
+    let s4 := index_mut_back4 a10
+    ok (cont (s4, t1))
+  else ok (done blocks)
+
+/-- [slhdsa::hash::chain_blocks_portable]: loop 1:
+    Source: 'src/hash.rs', lines 104:8-113:9
+    Visibility: public -/
+@[rust_loop]
+def hash.chain_blocks_portable_loop0_loop0
+  (N : Std.Usize) (state : Array Std.U32 8#usize)
+  (blocks : Slice (Array Std.U8 64#usize)) («end» : Slice Std.U32)
+  (i : Std.Usize) (t : Std.U32) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  loop
+    (fun (blocks1, t1) => hash.chain_blocks_portable_loop0_loop0.body N state
+      «end» i blocks1 t1)
+    (blocks, t)
+
+/-- [slhdsa::hash::chain_blocks_portable]: loop body 0:
+    Source: 'src/hash.rs', lines 102:4-115:5
+    Visibility: public -/
+@[rust_loop_body]
+def hash.chain_blocks_portable_loop0.body
+  (N : Std.Usize) (state : Array Std.U32 8#usize) (start : Slice Std.U32)
+  («end» : Slice Std.U32) (blocks : Slice (Array Std.U8 64#usize))
+  (i : Std.Usize) :
+  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.Usize) (Slice
+    (Array Std.U8 64#usize)))
+  := do
+  let i1 := Slice.len blocks
+  if i < i1
+  then
+    let t ← Slice.index_usize start i
+    let blocks1 ←
+      hash.chain_blocks_portable_loop0_loop0 N state blocks «end» i t
+    let i2 ← i + 1#usize
+    ok (cont (blocks1, i2))
+  else ok (done blocks)
+
+/-- [slhdsa::hash::chain_blocks_portable]: loop 0:
+    Source: 'src/hash.rs', lines 102:4-115:5
+    Visibility: public -/
+@[rust_loop]
+def hash.chain_blocks_portable_loop0
+  (N : Std.Usize) (state : Array Std.U32 8#usize)
+  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
+  («end» : Slice Std.U32) (i : Std.Usize) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  loop
+    (fun (blocks1, i1) => hash.chain_blocks_portable_loop0.body N state start
+      «end» blocks1 i1)
+    (blocks, i)
+
+/-- [slhdsa::hash::chain_blocks_portable]:
+    Source: 'src/hash.rs', lines 100:0-116:1
+    Visibility: public -/
+@[reducible]
+def hash.chain_blocks_portable
+  (N : Std.Usize) (state : Array Std.U32 8#usize)
+  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
+  («end» : Slice Std.U32) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  hash.chain_blocks_portable_loop0 N state blocks start «end» 0#usize
+
+/-- [slhdsa::hash::chain_blocks]:
+    Source: 'src/hash.rs', lines 88:0-96:1
+    Visibility: public -/
+def hash.chain_blocks
+  (N : Std.Usize) (state : Array Std.U32 8#usize)
+  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
+  («end» : Slice Std.U32) :
+  Result (Slice (Array Std.U8 64#usize))
+  := do
+  hash.chain_blocks_portable N state blocks start «end»
+
+/-- [slhdsa::hash::short_block]:
+    Source: 'src/hash.rs', lines 46:0-56:1
+    Visibility: public -/
+def hash.short_block
+  (adrs : address.Adrs) (m : Slice Std.U8) :
+  Result (Array Std.U8 64#usize)
+  := do
+  let len := Slice.len m
+  let blk := Array.repeat 64#usize 0#u8
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) blk
+      { start := 0#usize, «end» := 22#usize }
+  let a ← address.Adrs.compress adrs
+  let s1 ← lift (Array.to_slice a)
+  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
+  let blk1 := index_mut_back s2
+  let i ← 22#usize + len
+  let (s3, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) blk1
+      { start := 22#usize, «end» := i }
+  let s4 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 m
+  let blk2 := index_mut_back1 s4
+  let blk3 ← Array.update blk2 i 128#u8
+  let i1 ← 86#usize + len
+  let bits ← i1 * 8#usize
+  let i2 ← bits >>> 8#i32
+  let i3 ← lift (UScalar.cast .U8 i2)
+  let blk4 ← Array.update blk3 62#usize i3
+  let i4 ← lift (UScalar.cast .U8 bits)
+  Array.update blk4 63#usize i4
 
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_word2]:
     Source: 'src/address.rs', lines 57:4-59:5
@@ -1011,212 +1171,116 @@ def address.Adrs.with_word2
   (self : address.Adrs) (word2 : Std.U32) : Result address.Adrs := do
   ok { self with word2 }
 
-/-- [slhdsa::xmss::climb]: loop body 0:
-    Source: 'src/xmss.rs', lines 68:4-79:5
+/-- [slhdsa::address::{slhdsa::address::Adrs}::with_keypair]:
+    Source: 'src/address.rs', lines 51:4-53:5
     Visibility: public -/
-@[rust_loop_body]
-def xmss.climb_loop.body
-  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : hash.Seed N) (adrs : address.Adrs) (node : Array Std.U8 N)
-  (index : Std.U32) (k : Std.U32) :
-  Result (ControlFlow ((Array Std.U8 N) × Std.U32 × Std.U32) (Array Std.U8
-    N))
-  := do
-  if k < height
-  then
-    let i ← lift (UScalar.cast .Usize k)
-    let i1 ← first + i
-    let sibling ← util.block N auth i1
-    let parent ← index >>> 1#i32
-    let i2 ← k + 1#u32
-    let a ← address.Adrs.with_word2 adrs i2
-    let a1 ← address.Adrs.with_word3 a parent
-    let i3 ← lift (index &&& 1#u32)
-    let node1 ←
-      if i3 = 0#u32
-      then xmss.hash2 seed a1 node sibling
-      else xmss.hash2 seed a1 sibling node
-    ok (cont (node1, parent, i2))
-  else ok (done node)
+def address.Adrs.with_keypair
+  (self : address.Adrs) (keypair : Std.U32) : Result address.Adrs := do
+  ok { self with keypair }
 
-/-- [slhdsa::xmss::climb]: loop 0:
-    Source: 'src/xmss.rs', lines 68:4-79:5
+/-- [slhdsa::address::{slhdsa::address::Adrs}::with_type]:
+    Source: 'src/address.rs', lines 36:4-38:5
     Visibility: public -/
+def address.Adrs.with_type
+  (self : address.Adrs) (typ : Std.U32) : Result address.Adrs := do
+  ok { self with typ, keypair := 0#u32, word2 := 0#u32, word3 := 0#u32 }
+
+/-- [slhdsa::address::WOTS_PRF]
+    Source: 'src/address.rs', lines 9:0-9:28
+    Visibility: public -/
+@[global_simps, irreducible] def address.WOTS_PRF : Std.U32 := 5#u32
+
+/-- [slhdsa::wots::sk_blocks]: loop body 0:
+    Source: 'src/wots.rs', lines 41:4-44:5 -/
+@[rust_loop_body]
+def wots.sk_blocks_loop0.body
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (len : Std.Usize)
+  (sk_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 67#usize)
+  (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 67#usize))
+  := do
+  if i < len
+  then
+    let i1 ← lift (UScalar.cast .U32 i)
+    let a ← address.Adrs.with_word2 sk_adrs i1
+    let s ← lift (Array.to_slice sk_seed)
+    let a1 ← hash.short_block a s
+    let a2 ← Array.update blocks i a1
+    let i2 ← i + 1#usize
+    ok (cont (a2, i2))
+  else ok (done blocks)
+
+/-- [slhdsa::wots::sk_blocks]: loop 0:
+    Source: 'src/wots.rs', lines 41:4-44:5 -/
 @[rust_loop]
-def xmss.climb_loop
-  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : hash.Seed N) (adrs : address.Adrs) (node : Array Std.U8 N)
-  (index : Std.U32) (k : Std.U32) :
-  Result (Array Std.U8 N)
+def wots.sk_blocks_loop0
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (len : Std.Usize)
+  (sk_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 67#usize)
+  (i : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 67#usize)
   := do
   loop
-    (fun (node1, index1, k1) => xmss.climb_loop.body auth first height seed
-      adrs node1 index1 k1)
-    (node, index, k)
+    (fun (blocks1, i1) => wots.sk_blocks_loop0.body sk_seed len sk_adrs blocks1
+      i1)
+    (blocks, i)
 
-/-- [slhdsa::xmss::climb]:
-    Source: 'src/xmss.rs', lines 56:0-81:1
-    Visibility: public -/
-@[reducible]
-def xmss.climb
-  {N : Std.Usize} (node : Array Std.U8 N) (idx : Std.U32) (auth : Slice Std.U8)
-  (first : Std.Usize) (height : Std.U32) (seed : hash.Seed N)
+/-- [slhdsa::wots::sk_blocks]: loop body 1:
+    Source: 'src/wots.rs', lines 47:4-50:5 -/
+@[rust_loop_body]
+def wots.sk_blocks_loop1.body
+  (i : Std.U32) (len : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i1 : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 67#usize))
+  := do
+  if i1 < len
+  then
+    let (a, index_mut_back) ← Array.index_mut_usize blocks i1
+    let i2 ← lift (UScalar.cast .U8 i)
+    let a1 ← Array.update a 9#usize i2
+    let i3 ← i1 + 1#usize
+    let a2 := index_mut_back a1
+    ok (cont (a2, i3))
+  else ok (done blocks)
+
+/-- [slhdsa::wots::sk_blocks]: loop 1:
+    Source: 'src/wots.rs', lines 47:4-50:5 -/
+@[rust_loop]
+def wots.sk_blocks_loop1
+  (i : Std.U32) (len : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i1 : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 67#usize)
+  := do
+  loop
+    (fun (blocks1, i2) => wots.sk_blocks_loop1.body i len blocks1 i2)
+    (blocks, i1)
+
+/-- [slhdsa::wots::sk_blocks]:
+    Source: 'src/wots.rs', lines 36:0-52:1 -/
+def wots.sk_blocks
+  {N : Std.Usize} (sk_seed : Array Std.U8 N) (seed : hash.Seed N)
   (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
+  Result (Array (Array Std.U8 64#usize) 67#usize)
   := do
-  xmss.climb_loop auth first height seed adrs node idx 0#u32
-
-/-- [slhdsa::params::W]
-    Source: 'src/params.rs', lines 9:0-9:22
-    Visibility: public -/
-@[global_simps, irreducible] def params.W : Std.U32 := 16#u32
-
-/-- [slhdsa::util::base_2b]: loop body 1:
-    Source: 'src/util.rs', lines 34:8-38:9
-    Visibility: public -/
-@[rust_loop_body]
-def util.base_2b_loop0_loop0.body
-  (x : Slice Std.U8) (b : Std.U32) (input : Std.Usize) (bits : Std.U32)
-  (total : Std.U32) :
-  Result (ControlFlow (Std.Usize × Std.U32 × Std.U32) (Std.Usize × Std.U32
-    × Std.U32))
-  := do
-  if bits < b
-  then
-    let i ← total <<< 8#i32
-    let i1 ← Slice.index_usize x input
-    let i2 ← lift (UScalar.cast .U32 i1)
-    let total1 ← lift (i ||| i2)
-    let input1 ← input + 1#usize
-    let bits1 ← bits + 8#u32
-    ok (cont (input1, bits1, total1))
-  else ok (done (input, bits, total))
-
-/-- [slhdsa::util::base_2b]: loop 1:
-    Source: 'src/util.rs', lines 34:8-38:9
-    Visibility: public -/
-@[rust_loop]
-def util.base_2b_loop0_loop0
-  (x : Slice Std.U8) (b : Std.U32) (input : Std.Usize) (bits : Std.U32)
-  (total : Std.U32) :
-  Result (Std.Usize × Std.U32 × Std.U32)
-  := do
-  loop
-    (fun (input1, bits1, total1) => util.base_2b_loop0_loop0.body x b input1
-      bits1 total1)
-    (input, bits, total)
-
-/-- [slhdsa::util::base_2b]: loop body 0:
-    Source: 'src/util.rs', lines 33:4-42:5
-    Visibility: public -/
-@[rust_loop_body]
-def util.base_2b_loop0.body
-  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) (input : Std.Usize)
-  (bits : Std.U32) (total : Std.U32) (out : alloc.vec.Vec Std.U32)
-  (i : Std.Usize) :
-  Result (ControlFlow (Std.Usize × Std.U32 × Std.U32 × (alloc.vec.Vec
-    Std.U32) × Std.Usize) (alloc.vec.Vec Std.U32))
-  := do
-  if i < out_len
-  then
-    let (input1, bits1, total1) ←
-      util.base_2b_loop0_loop0 x b input bits total
-    let bits2 ← bits1 - b
-    let i1 ← total1 >>> bits2
-    let i2 ← 1#u32 <<< b
-    let i3 ← i2 - 1#u32
-    let i4 ← lift (i1 &&& i3)
-    let out1 ← alloc.vec.Vec.push out i4
-    let i5 ← i + 1#usize
-    ok (cont (input1, bits2, total1, out1, i5))
-  else ok (done out)
-
-/-- [slhdsa::util::base_2b]: loop 0:
-    Source: 'src/util.rs', lines 33:4-42:5
-    Visibility: public -/
-@[rust_loop]
-def util.base_2b_loop0
-  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) (input : Std.Usize)
-  (bits : Std.U32) (total : Std.U32) (out : alloc.vec.Vec Std.U32)
-  (i : Std.Usize) :
-  Result (alloc.vec.Vec Std.U32)
-  := do
-  loop
-    (fun (input1, bits1, total1, out1, i1) => util.base_2b_loop0.body x b
-      out_len input1 bits1 total1 out1 i1)
-    (input, bits, total, out, i)
-
-/-- [slhdsa::util::base_2b]:
-    Source: 'src/util.rs', lines 27:0-44:1
-    Visibility: public -/
-@[reducible]
-def util.base_2b
-  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) :
-  Result (alloc.vec.Vec Std.U32)
-  := do
-  util.base_2b_loop0 x b out_len 0#usize 0#u32 0#u32 (alloc.vec.Vec.new
-    Std.U32) 0#usize
-
-/-- [slhdsa::params::LEN2]
-    Source: 'src/params.rs', lines 11:0-11:26
-    Visibility: public -/
-@[global_simps, irreducible] def params.LEN2 : Std.Usize := 3#usize
-
-/-- [slhdsa::params::LG_W]
-    Source: 'src/params.rs', lines 7:0-7:24
-    Visibility: public -/
-@[global_simps, irreducible] def params.LG_W : Std.U32 := 4#u32
-
-/-- [slhdsa::wots::wots_digits]: loop body 0:
-    Source: 'src/wots.rs', lines 20:4-23:5
-    Visibility: public -/
-@[rust_loop_body]
-def wots.wots_digits_loop.body
-  (len1 : Std.Usize) (msg : alloc.vec.Vec Std.U32) (csum : Std.U32)
-  (i : Std.Usize) :
-  Result (ControlFlow (Std.U32 × Std.Usize) Std.U32)
-  := do
-  if i < len1
-  then
-    let i1 ← params.W - 1#u32
-    let i2 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32) msg i
-    let i3 ← i1 - i2
-    let csum1 ← csum + i3
-    let i4 ← i + 1#usize
-    ok (cont (csum1, i4))
-  else ok (done csum)
-
-/-- [slhdsa::wots::wots_digits]: loop 0:
-    Source: 'src/wots.rs', lines 20:4-23:5
-    Visibility: public -/
-@[rust_loop]
-def wots.wots_digits_loop
-  (len1 : Std.Usize) (msg : alloc.vec.Vec Std.U32) (csum : Std.U32)
-  (i : Std.Usize) :
-  Result Std.U32
-  := do
-  loop
-    (fun (csum1, i1) => wots.wots_digits_loop.body len1 msg csum1 i1)
-    (csum, i)
-
-/-- [slhdsa::wots::wots_digits]:
-    Source: 'src/wots.rs', lines 15:0-29:1
-    Visibility: public -/
-def wots.wots_digits
-  {N : Std.Usize} (m : Array Std.U8 N) : Result (alloc.vec.Vec Std.U32) := do
-  let len1 ← 2#usize * N
-  let s ← lift (Array.to_slice m)
-  let msg ← util.base_2b s params.LG_W len1
-  let csum ← wots.wots_digits_loop len1 msg 0#u32 0#usize
-  let csum1 ← csum <<< 4#i32
-  let i ← csum1 >>> 8#i32
-  let i1 ← lift (UScalar.cast .U8 i)
-  let i2 ← lift (UScalar.cast .U8 csum1)
-  let s1 ← lift (Array.to_slice (Array.make 2#usize [ i1, i2 ]))
-  let tail ← util.base_2b s1 params.LG_W params.LEN2
-  let s2 := alloc.vec.Vec.deref tail
-  alloc.vec.Vec.extend_from_slice core.clone.CloneU32 msg s2
+  let i ← 2#usize * N
+  let len ← i + params.LEN2
+  let a ← address.Adrs.with_type adrs address.WOTS_PRF
+  let sk_adrs ← address.Adrs.with_keypair a adrs.keypair
+  let a1 := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 67#usize a1
+  let blocks1 ← wots.sk_blocks_loop0 sk_seed len sk_adrs blocks 0#usize
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+      blocks1 { start := 0#usize, «end» := len }
+  let a2 := Array.repeat 67#usize 0#u32
+  let s1 ← lift (Array.to_slice a2)
+  let a3 := Array.repeat 67#usize 1#u32
+  let s2 ← lift (Array.to_slice a3)
+  let s3 ← hash.chain_blocks N seed.state s s1 s2
+  let blocks2 := index_mut_back s3
+  wots.sk_blocks_loop1 adrs.typ len blocks2 0#usize
 
 /-- [slhdsa::hash::thash_values]: loop body 0:
     Source: 'src/hash.rs', lines 156:8-159:9
@@ -1439,373 +1503,10 @@ def hash.thash_values
     let st ← hash.thash_values_loop3 a1 total seed.state512 0#usize
     hash.trunc512 N st
 
-/-- [slhdsa::hash::chain_blocks_portable]: loop body 1:
-    Source: 'src/hash.rs', lines 104:8-113:9
-    Visibility: public -/
-@[rust_loop_body]
-def hash.chain_blocks_portable_loop0_loop0.body
-  (N : Std.Usize) (state : Array Std.U32 8#usize) («end» : Slice Std.U32)
-  (i : Std.Usize) (blocks : Slice (Array Std.U8 64#usize)) (t : Std.U32) :
-  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.U32) (Slice
-    (Array Std.U8 64#usize)))
-  := do
-  let i1 ← Slice.index_usize «end» i
-  if t < i1
-  then
-    let i2 ← t >>> 24#i32
-    let (a, index_mut_back) ← Slice.index_mut_usize blocks i
-    let i3 ← lift (UScalar.cast .U8 i2)
-    let a1 ← Array.update a 18#usize i3
-    let i4 ← t >>> 16#i32
-    let blocks1 := index_mut_back a1
-    let (a2, index_mut_back1) ← Slice.index_mut_usize blocks1 i
-    let i5 ← lift (UScalar.cast .U8 i4)
-    let a3 ← Array.update a2 19#usize i5
-    let i6 ← t >>> 8#i32
-    let blocks2 := index_mut_back1 a3
-    let (a4, index_mut_back2) ← Slice.index_mut_usize blocks2 i
-    let i7 ← lift (UScalar.cast .U8 i6)
-    let a5 ← Array.update a4 20#usize i7
-    let blocks3 := index_mut_back2 a5
-    let (a6, index_mut_back3) ← Slice.index_mut_usize blocks3 i
-    let i8 ← lift (UScalar.cast .U8 t)
-    let a7 ← Array.update a6 21#usize i8
-    let blocks4 := index_mut_back3 a7
-    let a8 ← Slice.index_usize blocks4 i
-    let s ← lift (Array.to_slice a8)
-    let st ← sha256.compress state s 0#usize
-    let d ← hash.trunc N st
-    let (a9, index_mut_back4) ← Slice.index_mut_usize blocks4 i
-    let i9 ← 22#usize + N
-    let (s1, index_mut_back5) ←
-      core.array.Array.index_mut (core.ops.index.IndexMutSlice
-        (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) a9
-        { start := 22#usize, «end» := i9 }
-    let s2 ← lift (Array.to_slice d)
-    let s3 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s1 s2
-    let t1 ← t + 1#u32
-    let a10 := index_mut_back5 s3
-    let s4 := index_mut_back4 a10
-    ok (cont (s4, t1))
-  else ok (done blocks)
-
-/-- [slhdsa::hash::chain_blocks_portable]: loop 1:
-    Source: 'src/hash.rs', lines 104:8-113:9
-    Visibility: public -/
-@[rust_loop]
-def hash.chain_blocks_portable_loop0_loop0
-  (N : Std.Usize) (state : Array Std.U32 8#usize)
-  (blocks : Slice (Array Std.U8 64#usize)) («end» : Slice Std.U32)
-  (i : Std.Usize) (t : Std.U32) :
-  Result (Slice (Array Std.U8 64#usize))
-  := do
-  loop
-    (fun (blocks1, t1) => hash.chain_blocks_portable_loop0_loop0.body N state
-      «end» i blocks1 t1)
-    (blocks, t)
-
-/-- [slhdsa::hash::chain_blocks_portable]: loop body 0:
-    Source: 'src/hash.rs', lines 102:4-115:5
-    Visibility: public -/
-@[rust_loop_body]
-def hash.chain_blocks_portable_loop0.body
-  (N : Std.Usize) (state : Array Std.U32 8#usize) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (blocks : Slice (Array Std.U8 64#usize))
-  (i : Std.Usize) :
-  Result (ControlFlow ((Slice (Array Std.U8 64#usize)) × Std.Usize) (Slice
-    (Array Std.U8 64#usize)))
-  := do
-  let i1 := Slice.len blocks
-  if i < i1
-  then
-    let t ← Slice.index_usize start i
-    let blocks1 ←
-      hash.chain_blocks_portable_loop0_loop0 N state blocks «end» i t
-    let i2 ← i + 1#usize
-    ok (cont (blocks1, i2))
-  else ok (done blocks)
-
-/-- [slhdsa::hash::chain_blocks_portable]: loop 0:
-    Source: 'src/hash.rs', lines 102:4-115:5
-    Visibility: public -/
-@[rust_loop]
-def hash.chain_blocks_portable_loop0
-  (N : Std.Usize) (state : Array Std.U32 8#usize)
-  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
-  («end» : Slice Std.U32) (i : Std.Usize) :
-  Result (Slice (Array Std.U8 64#usize))
-  := do
-  loop
-    (fun (blocks1, i1) => hash.chain_blocks_portable_loop0.body N state start
-      «end» blocks1 i1)
-    (blocks, i)
-
-/-- [slhdsa::hash::chain_blocks_portable]:
-    Source: 'src/hash.rs', lines 100:0-116:1
-    Visibility: public -/
-@[reducible]
-def hash.chain_blocks_portable
-  (N : Std.Usize) (state : Array Std.U32 8#usize)
-  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
-  («end» : Slice Std.U32) :
-  Result (Slice (Array Std.U8 64#usize))
-  := do
-  hash.chain_blocks_portable_loop0 N state blocks start «end» 0#usize
-
-/-- [slhdsa::hash::chain_blocks]:
-    Source: 'src/hash.rs', lines 88:0-96:1
-    Visibility: public -/
-def hash.chain_blocks
-  (N : Std.Usize) (state : Array Std.U32 8#usize)
-  (blocks : Slice (Array Std.U8 64#usize)) (start : Slice Std.U32)
-  («end» : Slice Std.U32) :
-  Result (Slice (Array Std.U8 64#usize))
-  := do
-  hash.chain_blocks_portable N state blocks start «end»
-
-/-- [slhdsa::hash::short_block]:
-    Source: 'src/hash.rs', lines 46:0-56:1
-    Visibility: public -/
-def hash.short_block
-  (adrs : address.Adrs) (m : Slice Std.U8) :
-  Result (Array Std.U8 64#usize)
-  := do
-  let len := Slice.len m
-  let blk := Array.repeat 64#usize 0#u8
-  let (s, index_mut_back) ←
-    core.array.Array.index_mut (core.ops.index.IndexMutSlice
-      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) blk
-      { start := 0#usize, «end» := 22#usize }
-  let a ← address.Adrs.compress adrs
-  let s1 ← lift (Array.to_slice a)
-  let s2 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s s1
-  let blk1 := index_mut_back s2
-  let i ← 22#usize + len
-  let (s3, index_mut_back1) ←
-    core.array.Array.index_mut (core.ops.index.IndexMutSlice
-      (core.slice.index.SliceIndexRangeUsizeSlice Std.U8)) blk1
-      { start := 22#usize, «end» := i }
-  let s4 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 m
-  let blk2 := index_mut_back1 s4
-  let blk3 ← Array.update blk2 i 128#u8
-  let i1 ← 86#usize + len
-  let bits ← i1 * 8#usize
-  let i2 ← bits >>> 8#i32
-  let i3 ← lift (UScalar.cast .U8 i2)
-  let blk4 ← Array.update blk3 62#usize i3
-  let i4 ← lift (UScalar.cast .U8 bits)
-  Array.update blk4 63#usize i4
-
-/-- [slhdsa::address::{slhdsa::address::Adrs}::with_keypair]:
-    Source: 'src/address.rs', lines 51:4-53:5
-    Visibility: public -/
-def address.Adrs.with_keypair
-  (self : address.Adrs) (keypair : Std.U32) : Result address.Adrs := do
-  ok { self with keypair }
-
-/-- [slhdsa::address::{slhdsa::address::Adrs}::with_type]:
-    Source: 'src/address.rs', lines 36:4-38:5
-    Visibility: public -/
-def address.Adrs.with_type
-  (self : address.Adrs) (typ : Std.U32) : Result address.Adrs := do
-  ok { self with typ, keypair := 0#u32, word2 := 0#u32, word3 := 0#u32 }
-
 /-- [slhdsa::address::WOTS_PK]
     Source: 'src/address.rs', lines 5:0-5:27
     Visibility: public -/
 @[global_simps, irreducible] def address.WOTS_PK : Std.U32 := 1#u32
-
-/-- [slhdsa::wots::wots_pk_from_sig]: loop body 0:
-    Source: 'src/wots.rs', lines 88:4-91:5
-    Visibility: public -/
-@[rust_loop_body]
-def wots.wots_pk_from_sig_loop.body
-  (N : Std.Usize) (sig : Slice Std.U8) (adrs : address.Adrs) (len : Std.Usize)
-  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
-    (Array (Array Std.U8 64#usize) 67#usize))
-  := do
-  if i < len
-  then
-    let i1 ← lift (UScalar.cast .U32 i)
-    let a ← address.Adrs.with_word2 adrs i1
-    let a1 ← util.block N sig i
-    let s ← lift (Array.to_slice a1)
-    let a2 ← hash.short_block a s
-    let a3 ← Array.update blocks i a2
-    let i2 ← i + 1#usize
-    ok (cont (a3, i2))
-  else ok (done blocks)
-
-/-- [slhdsa::wots::wots_pk_from_sig]: loop 0:
-    Source: 'src/wots.rs', lines 88:4-91:5
-    Visibility: public -/
-@[rust_loop]
-def wots.wots_pk_from_sig_loop
-  (N : Std.Usize) (sig : Slice Std.U8) (adrs : address.Adrs) (len : Std.Usize)
-  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i : Std.Usize) :
-  Result (Array (Array Std.U8 64#usize) 67#usize)
-  := do
-  loop
-    (fun (blocks1, i1) => wots.wots_pk_from_sig_loop.body N sig adrs len
-      blocks1 i1)
-    (blocks, i)
-
-/-- [slhdsa::wots::wots_pk_from_sig]:
-    Source: 'src/wots.rs', lines 79:0-95:1
-    Visibility: public -/
-def wots.wots_pk_from_sig
-  {N : Std.Usize} (sig : Slice Std.U8) (m : Array Std.U8 N)
-  (seed : hash.Seed N) (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
-  := do
-  let i ← 2#usize * N
-  let len ← i + params.LEN2
-  let msg ← wots.wots_digits m
-  let a := Array.repeat 64#usize 0#u8
-  let blocks := Array.repeat 67#usize a
-  let blocks1 ← wots.wots_pk_from_sig_loop N sig adrs len blocks 0#usize
-  let (s, index_mut_back) ←
-    core.array.Array.index_mut (core.ops.index.IndexMutSlice
-      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
-      blocks1 { start := 0#usize, «end» := len }
-  let s1 := alloc.vec.Vec.deref msg
-  let _ ← params.W - 1#u32
-  let i1 ← lift (Std.U32.wrapping_sub params.W 1#u32)
-  let a1 := Array.repeat 67#usize i1
-  let s2 ← lift (Array.to_slice a1)
-  let s3 ← hash.chain_blocks N seed.state s s1 s2
-  let a2 ← address.Adrs.with_type adrs address.WOTS_PK
-  let pk_adrs ← address.Adrs.with_keypair a2 adrs.keypair
-  let blocks2 := index_mut_back s3
-  let s4 ←
-    core.array.Array.index (core.ops.index.IndexSlice
-      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
-      blocks2 { start := 0#usize, «end» := len }
-  hash.thash_values seed pk_adrs s4
-
-/-- [slhdsa::address::TREE]
-    Source: 'src/address.rs', lines 6:0-6:24
-    Visibility: public -/
-@[global_simps, irreducible] def address.TREE : Std.U32 := 2#u32
-
-/-- [slhdsa::address::WOTS_HASH]
-    Source: 'src/address.rs', lines 4:0-4:29
-    Visibility: public -/
-@[global_simps, irreducible] def address.WOTS_HASH : Std.U32 := 0#u32
-
-/-- [slhdsa::xmss::xmss_pk_from_sig]:
-    Source: 'src/xmss.rs', lines 84:0-94:1
-    Visibility: public -/
-def xmss.xmss_pk_from_sig
-  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
-  (m : Array Std.U8 N) (seed : hash.Seed N) (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
-  := do
-  let a ← address.Adrs.with_type adrs address.WOTS_HASH
-  let a1 ← address.Adrs.with_keypair a idx
-  let node ← wots.wots_pk_from_sig sig m seed a1
-  let i ← 2#usize * N
-  let i1 ← i + params.LEN2
-  let a2 ← address.Adrs.with_type adrs address.TREE
-  xmss.climb node idx sig i1 p.hp seed a2
-
-/-- [slhdsa::address::WOTS_PRF]
-    Source: 'src/address.rs', lines 9:0-9:28
-    Visibility: public -/
-@[global_simps, irreducible] def address.WOTS_PRF : Std.U32 := 5#u32
-
-/-- [slhdsa::wots::sk_blocks]: loop body 0:
-    Source: 'src/wots.rs', lines 41:4-44:5 -/
-@[rust_loop_body]
-def wots.sk_blocks_loop0.body
-  {N : Std.Usize} (sk_seed : Array Std.U8 N) (len : Std.Usize)
-  (sk_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 67#usize)
-  (i : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
-    (Array (Array Std.U8 64#usize) 67#usize))
-  := do
-  if i < len
-  then
-    let i1 ← lift (UScalar.cast .U32 i)
-    let a ← address.Adrs.with_word2 sk_adrs i1
-    let s ← lift (Array.to_slice sk_seed)
-    let a1 ← hash.short_block a s
-    let a2 ← Array.update blocks i a1
-    let i2 ← i + 1#usize
-    ok (cont (a2, i2))
-  else ok (done blocks)
-
-/-- [slhdsa::wots::sk_blocks]: loop 0:
-    Source: 'src/wots.rs', lines 41:4-44:5 -/
-@[rust_loop]
-def wots.sk_blocks_loop0
-  {N : Std.Usize} (sk_seed : Array Std.U8 N) (len : Std.Usize)
-  (sk_adrs : address.Adrs) (blocks : Array (Array Std.U8 64#usize) 67#usize)
-  (i : Std.Usize) :
-  Result (Array (Array Std.U8 64#usize) 67#usize)
-  := do
-  loop
-    (fun (blocks1, i1) => wots.sk_blocks_loop0.body sk_seed len sk_adrs blocks1
-      i1)
-    (blocks, i)
-
-/-- [slhdsa::wots::sk_blocks]: loop body 1:
-    Source: 'src/wots.rs', lines 47:4-50:5 -/
-@[rust_loop_body]
-def wots.sk_blocks_loop1.body
-  (i : Std.U32) (len : Std.Usize)
-  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i1 : Std.Usize) :
-  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
-    (Array (Array Std.U8 64#usize) 67#usize))
-  := do
-  if i1 < len
-  then
-    let (a, index_mut_back) ← Array.index_mut_usize blocks i1
-    let i2 ← lift (UScalar.cast .U8 i)
-    let a1 ← Array.update a 9#usize i2
-    let i3 ← i1 + 1#usize
-    let a2 := index_mut_back a1
-    ok (cont (a2, i3))
-  else ok (done blocks)
-
-/-- [slhdsa::wots::sk_blocks]: loop 1:
-    Source: 'src/wots.rs', lines 47:4-50:5 -/
-@[rust_loop]
-def wots.sk_blocks_loop1
-  (i : Std.U32) (len : Std.Usize)
-  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i1 : Std.Usize) :
-  Result (Array (Array Std.U8 64#usize) 67#usize)
-  := do
-  loop
-    (fun (blocks1, i2) => wots.sk_blocks_loop1.body i len blocks1 i2)
-    (blocks, i1)
-
-/-- [slhdsa::wots::sk_blocks]:
-    Source: 'src/wots.rs', lines 36:0-52:1 -/
-def wots.sk_blocks
-  {N : Std.Usize} (sk_seed : Array Std.U8 N) (seed : hash.Seed N)
-  (adrs : address.Adrs) :
-  Result (Array (Array Std.U8 64#usize) 67#usize)
-  := do
-  let i ← 2#usize * N
-  let len ← i + params.LEN2
-  let a ← address.Adrs.with_type adrs address.WOTS_PRF
-  let sk_adrs ← address.Adrs.with_keypair a adrs.keypair
-  let a1 := Array.repeat 64#usize 0#u8
-  let blocks := Array.repeat 67#usize a1
-  let blocks1 ← wots.sk_blocks_loop0 sk_seed len sk_adrs blocks 0#usize
-  let (s, index_mut_back) ←
-    core.array.Array.index_mut (core.ops.index.IndexMutSlice
-      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
-      blocks1 { start := 0#usize, «end» := len }
-  let a2 := Array.repeat 67#usize 0#u32
-  let s1 ← lift (Array.to_slice a2)
-  let a3 := Array.repeat 67#usize 1#u32
-  let s2 ← lift (Array.to_slice a3)
-  let s3 ← hash.chain_blocks N seed.state s s1 s2
-  let blocks2 := index_mut_back s3
-  wots.sk_blocks_loop1 adrs.typ len blocks2 0#usize
 
 /-- [slhdsa::wots::wots_pk_gen]:
     Source: 'src/wots.rs', lines 55:0-61:1
@@ -1838,6 +1539,23 @@ def wots.wots_pk_gen
       blocks1 { start := 0#usize, «end» := len }
   hash.thash_values seed pk_adrs s4
 
+/-- [slhdsa::address::{slhdsa::address::Adrs}::with_word3]:
+    Source: 'src/address.rs', lines 63:4-65:5
+    Visibility: public -/
+def address.Adrs.with_word3
+  (self : address.Adrs) (word3 : Std.U32) : Result address.Adrs := do
+  ok { self with word3 }
+
+/-- [slhdsa::address::TREE]
+    Source: 'src/address.rs', lines 6:0-6:24
+    Visibility: public -/
+@[global_simps, irreducible] def address.TREE : Std.U32 := 2#u32
+
+/-- [slhdsa::address::WOTS_HASH]
+    Source: 'src/address.rs', lines 4:0-4:29
+    Visibility: public -/
+@[global_simps, irreducible] def address.WOTS_HASH : Std.U32 := 0#u32
+
 /-- [slhdsa::xmss::xmss_node]:
     Source: 'src/xmss.rs', lines 16:0-31:1
     Visibility: public -/
@@ -1862,6 +1580,148 @@ def xmss.xmss_node
     let a2 ← address.Adrs.with_word3 a1 i
     xmss.hash2 seed a2 lnode rnode
 partial_fixpoint
+
+/-- [slhdsa::util::base_2b]: loop body 1:
+    Source: 'src/util.rs', lines 34:8-38:9
+    Visibility: public -/
+@[rust_loop_body]
+def util.base_2b_loop0_loop0.body
+  (x : Slice Std.U8) (b : Std.U32) (input : Std.Usize) (bits : Std.U32)
+  (total : Std.U32) :
+  Result (ControlFlow (Std.Usize × Std.U32 × Std.U32) (Std.Usize × Std.U32
+    × Std.U32))
+  := do
+  if bits < b
+  then
+    let i ← total <<< 8#i32
+    let i1 ← Slice.index_usize x input
+    let i2 ← lift (UScalar.cast .U32 i1)
+    let total1 ← lift (i ||| i2)
+    let input1 ← input + 1#usize
+    let bits1 ← bits + 8#u32
+    ok (cont (input1, bits1, total1))
+  else ok (done (input, bits, total))
+
+/-- [slhdsa::util::base_2b]: loop 1:
+    Source: 'src/util.rs', lines 34:8-38:9
+    Visibility: public -/
+@[rust_loop]
+def util.base_2b_loop0_loop0
+  (x : Slice Std.U8) (b : Std.U32) (input : Std.Usize) (bits : Std.U32)
+  (total : Std.U32) :
+  Result (Std.Usize × Std.U32 × Std.U32)
+  := do
+  loop
+    (fun (input1, bits1, total1) => util.base_2b_loop0_loop0.body x b input1
+      bits1 total1)
+    (input, bits, total)
+
+/-- [slhdsa::util::base_2b]: loop body 0:
+    Source: 'src/util.rs', lines 33:4-42:5
+    Visibility: public -/
+@[rust_loop_body]
+def util.base_2b_loop0.body
+  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) (input : Std.Usize)
+  (bits : Std.U32) (total : Std.U32) (out : alloc.vec.Vec Std.U32)
+  (i : Std.Usize) :
+  Result (ControlFlow (Std.Usize × Std.U32 × Std.U32 × (alloc.vec.Vec
+    Std.U32) × Std.Usize) (alloc.vec.Vec Std.U32))
+  := do
+  if i < out_len
+  then
+    let (input1, bits1, total1) ←
+      util.base_2b_loop0_loop0 x b input bits total
+    let bits2 ← bits1 - b
+    let i1 ← total1 >>> bits2
+    let i2 ← 1#u32 <<< b
+    let i3 ← i2 - 1#u32
+    let i4 ← lift (i1 &&& i3)
+    let out1 ← alloc.vec.Vec.push out i4
+    let i5 ← i + 1#usize
+    ok (cont (input1, bits2, total1, out1, i5))
+  else ok (done out)
+
+/-- [slhdsa::util::base_2b]: loop 0:
+    Source: 'src/util.rs', lines 33:4-42:5
+    Visibility: public -/
+@[rust_loop]
+def util.base_2b_loop0
+  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) (input : Std.Usize)
+  (bits : Std.U32) (total : Std.U32) (out : alloc.vec.Vec Std.U32)
+  (i : Std.Usize) :
+  Result (alloc.vec.Vec Std.U32)
+  := do
+  loop
+    (fun (input1, bits1, total1, out1, i1) => util.base_2b_loop0.body x b
+      out_len input1 bits1 total1 out1 i1)
+    (input, bits, total, out, i)
+
+/-- [slhdsa::util::base_2b]:
+    Source: 'src/util.rs', lines 27:0-44:1
+    Visibility: public -/
+@[reducible]
+def util.base_2b
+  (x : Slice Std.U8) (b : Std.U32) (out_len : Std.Usize) :
+  Result (alloc.vec.Vec Std.U32)
+  := do
+  util.base_2b_loop0 x b out_len 0#usize 0#u32 0#u32 (alloc.vec.Vec.new
+    Std.U32) 0#usize
+
+/-- [slhdsa::params::LG_W]
+    Source: 'src/params.rs', lines 7:0-7:24
+    Visibility: public -/
+@[global_simps, irreducible] def params.LG_W : Std.U32 := 4#u32
+
+/-- [slhdsa::wots::wots_digits]: loop body 0:
+    Source: 'src/wots.rs', lines 20:4-23:5
+    Visibility: public -/
+@[rust_loop_body]
+def wots.wots_digits_loop.body
+  (len1 : Std.Usize) (msg : alloc.vec.Vec Std.U32) (csum : Std.U32)
+  (i : Std.Usize) :
+  Result (ControlFlow (Std.U32 × Std.Usize) Std.U32)
+  := do
+  if i < len1
+  then
+    let i1 ← params.W - 1#u32
+    let i2 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32) msg i
+    let i3 ← i1 - i2
+    let csum1 ← csum + i3
+    let i4 ← i + 1#usize
+    ok (cont (csum1, i4))
+  else ok (done csum)
+
+/-- [slhdsa::wots::wots_digits]: loop 0:
+    Source: 'src/wots.rs', lines 20:4-23:5
+    Visibility: public -/
+@[rust_loop]
+def wots.wots_digits_loop
+  (len1 : Std.Usize) (msg : alloc.vec.Vec Std.U32) (csum : Std.U32)
+  (i : Std.Usize) :
+  Result Std.U32
+  := do
+  loop
+    (fun (csum1, i1) => wots.wots_digits_loop.body len1 msg csum1 i1)
+    (csum, i)
+
+/-- [slhdsa::wots::wots_digits]:
+    Source: 'src/wots.rs', lines 15:0-29:1
+    Visibility: public -/
+def wots.wots_digits
+  {N : Std.Usize} (m : Array Std.U8 N) : Result (alloc.vec.Vec Std.U32) := do
+  let len1 ← 2#usize * N
+  let s ← lift (Array.to_slice m)
+  let msg ← util.base_2b s params.LG_W len1
+  let csum ← wots.wots_digits_loop len1 msg 0#u32 0#usize
+  let csum1 ← csum <<< 4#i32
+  let i ← csum1 >>> 8#i32
+  let i1 ← lift (UScalar.cast .U8 i)
+  let i2 ← lift (UScalar.cast .U8 csum1)
+  let s1 ← lift (Array.to_slice (Array.make 2#usize [ i1, i2 ]))
+  let tail ← util.base_2b s1 params.LG_W params.LEN2
+  let s2 := alloc.vec.Vec.deref tail
+  alloc.vec.Vec.extend_from_slice core.clone.CloneU32 msg s2
 
 /-- [slhdsa::wots::wots_sign]: loop body 0:
     Source: 'src/wots.rs', lines 71:4-74:5
@@ -1975,6 +1835,159 @@ def xmss.xmss_sign
   let sig ← wots.wots_sign m sk_seed seed a1
   xmss.xmss_sign_loop p sk_seed idx seed adrs sig 0#u32
 
+/-- [slhdsa::xmss::climb]: loop body 0:
+    Source: 'src/xmss.rs', lines 68:4-79:5
+    Visibility: public -/
+@[rust_loop_body]
+def xmss.climb_loop.body
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : hash.Seed N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 N) × Std.U32 × Std.U32) (Array Std.U8
+    N))
+  := do
+  if k < height
+  then
+    let i ← lift (UScalar.cast .Usize k)
+    let i1 ← first + i
+    let sibling ← util.block N auth i1
+    let parent ← index >>> 1#i32
+    let i2 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i2
+    let a1 ← address.Adrs.with_word3 a parent
+    let i3 ← lift (index &&& 1#u32)
+    let node1 ←
+      if i3 = 0#u32
+      then xmss.hash2 seed a1 node sibling
+      else xmss.hash2 seed a1 sibling node
+    ok (cont (node1, parent, i2))
+  else ok (done node)
+
+/-- [slhdsa::xmss::climb]: loop 0:
+    Source: 'src/xmss.rs', lines 68:4-79:5
+    Visibility: public -/
+@[rust_loop]
+def xmss.climb_loop
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : hash.Seed N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
+  Result (Array Std.U8 N)
+  := do
+  loop
+    (fun (node1, index1, k1) => xmss.climb_loop.body auth first height seed
+      adrs node1 index1 k1)
+    (node, index, k)
+
+/-- [slhdsa::xmss::climb]:
+    Source: 'src/xmss.rs', lines 56:0-81:1
+    Visibility: public -/
+@[reducible]
+def xmss.climb
+  {N : Std.Usize} (node : Array Std.U8 N) (idx : Std.U32) (auth : Slice Std.U8)
+  (first : Std.Usize) (height : Std.U32) (seed : hash.Seed N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  xmss.climb_loop auth first height seed adrs node idx 0#u32
+
+/-- [slhdsa::wots::wots_pk_from_sig]: loop body 0:
+    Source: 'src/wots.rs', lines 88:4-91:5
+    Visibility: public -/
+@[rust_loop_body]
+def wots.wots_pk_from_sig_loop.body
+  (N : Std.Usize) (sig : Slice Std.U8) (adrs : address.Adrs) (len : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i : Std.Usize) :
+  Result (ControlFlow ((Array (Array Std.U8 64#usize) 67#usize) × Std.Usize)
+    (Array (Array Std.U8 64#usize) 67#usize))
+  := do
+  if i < len
+  then
+    let i1 ← lift (UScalar.cast .U32 i)
+    let a ← address.Adrs.with_word2 adrs i1
+    let a1 ← util.block N sig i
+    let s ← lift (Array.to_slice a1)
+    let a2 ← hash.short_block a s
+    let a3 ← Array.update blocks i a2
+    let i2 ← i + 1#usize
+    ok (cont (a3, i2))
+  else ok (done blocks)
+
+/-- [slhdsa::wots::wots_pk_from_sig]: loop 0:
+    Source: 'src/wots.rs', lines 88:4-91:5
+    Visibility: public -/
+@[rust_loop]
+def wots.wots_pk_from_sig_loop
+  (N : Std.Usize) (sig : Slice Std.U8) (adrs : address.Adrs) (len : Std.Usize)
+  (blocks : Array (Array Std.U8 64#usize) 67#usize) (i : Std.Usize) :
+  Result (Array (Array Std.U8 64#usize) 67#usize)
+  := do
+  loop
+    (fun (blocks1, i1) => wots.wots_pk_from_sig_loop.body N sig adrs len
+      blocks1 i1)
+    (blocks, i)
+
+/-- [slhdsa::wots::wots_pk_from_sig]:
+    Source: 'src/wots.rs', lines 79:0-95:1
+    Visibility: public -/
+def wots.wots_pk_from_sig
+  {N : Std.Usize} (sig : Slice Std.U8) (m : Array Std.U8 N)
+  (seed : hash.Seed N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let i ← 2#usize * N
+  let len ← i + params.LEN2
+  let msg ← wots.wots_digits m
+  let a := Array.repeat 64#usize 0#u8
+  let blocks := Array.repeat 67#usize a
+  let blocks1 ← wots.wots_pk_from_sig_loop N sig adrs len blocks 0#usize
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+      blocks1 { start := 0#usize, «end» := len }
+  let s1 := alloc.vec.Vec.deref msg
+  let _ ← params.W - 1#u32
+  let i1 ← lift (Std.U32.wrapping_sub params.W 1#u32)
+  let a1 := Array.repeat 67#usize i1
+  let s2 ← lift (Array.to_slice a1)
+  let s3 ← hash.chain_blocks N seed.state s s1 s2
+  let a2 ← address.Adrs.with_type adrs address.WOTS_PK
+  let pk_adrs ← address.Adrs.with_keypair a2 adrs.keypair
+  let blocks2 := index_mut_back s3
+  let s4 ←
+    core.array.Array.index (core.ops.index.IndexSlice
+      (core.slice.index.SliceIndexRangeUsizeSlice (Array Std.U8 64#usize)))
+      blocks2 { start := 0#usize, «end» := len }
+  hash.thash_values seed pk_adrs s4
+
+/-- [slhdsa::xmss::xmss_pk_from_sig]:
+    Source: 'src/xmss.rs', lines 84:0-94:1
+    Visibility: public -/
+def xmss.xmss_pk_from_sig
+  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
+  (m : Array Std.U8 N) (seed : hash.Seed N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let node ← wots.wots_pk_from_sig sig m seed a1
+  let i ← 2#usize * N
+  let i1 ← i + params.LEN2
+  let a2 ← address.Adrs.with_type adrs address.TREE
+  xmss.climb node idx sig i1 p.hp seed a2
+
+/-- [slhdsa::ht::next_message]:
+    Source: 'src/ht.rs', lines 36:0-44:1 -/
+def ht.next_message
+  {N : Std.Usize} (p : params.Params) (j : Std.U32) (leaf : Std.U32)
+  (sig : Slice Std.U8) (message : Array Std.U8 N) (seed : hash.Seed N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let i ← j + 1#u32
+  if i < p.d
+  then xmss.xmss_pk_from_sig p leaf sig message seed adrs
+  else ok message
+
 /-- [slhdsa::address::{slhdsa::address::Adrs}::with_tree]:
     Source: 'src/address.rs', lines 46:4-48:5
     Visibility: public -/
@@ -2021,7 +2034,7 @@ def ht.ht_sign_loop.body
     let adrs ← address.Adrs.with_tree a1 tree
     let s ← xmss.xmss_sign p root sk_seed leaf seed adrs
     let s1 := alloc.vec.Vec.deref s
-    let root1 ← xmss.xmss_pk_from_sig p leaf s1 root seed adrs
+    let root1 ← ht.next_message p j leaf s1 root seed adrs
     let s2 := alloc.vec.Vec.deref s
     let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s2
     let i ← 1#u64 <<< p.hp
@@ -3942,7 +3955,7 @@ def adapter.keygen_seeds
   slh.slh_keygen_internal p a b c sk pk
 
 /-- [slhdsa::encoding::secret_key_from]:
-    Source: 'src/encoding.rs', lines 19:0-25:1
+    Source: 'src/encoding.rs', lines 20:0-26:1
     Visibility: public -/
 def encoding.secret_key_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) :
@@ -3957,7 +3970,7 @@ def encoding.secret_key_from
     ok (true, sk1)
 
 /-- [slhdsa::api::public_key]:
-    Source: 'src/api.rs', lines 33:0-35:1
+    Source: 'src/api.rs', lines 34:0-36:1
     Visibility: public -/
 def api.public_key
   (N : Std.Usize) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -4023,7 +4036,7 @@ def params.Params.sig_bytes (self : params.Params) : Result Std.Usize := do
   i1 + i4
 
 /-- [slhdsa::encoding::signature_len_ok]:
-    Source: 'src/encoding.rs', lines 39:0-41:1
+    Source: 'src/encoding.rs', lines 41:0-43:1
     Visibility: public -/
 def encoding.signature_len_ok
   (p : params.Params) (bytes : Slice Std.U8) : Result Bool := do
@@ -4046,7 +4059,7 @@ def adapter.signature_from
   else ok (false, sig)
 
 /-- [slhdsa::encoding::secret_keys_equal]: loop body 0:
-    Source: 'src/encoding.rs', lines 48:4-51:5
+    Source: 'src/encoding.rs', lines 50:4-53:5
     Visibility: public -/
 @[rust_loop_body]
 def encoding.secret_keys_equal_loop.body
@@ -4065,7 +4078,7 @@ def encoding.secret_keys_equal_loop.body
   else ok (done diff)
 
 /-- [slhdsa::encoding::secret_keys_equal]: loop 0:
-    Source: 'src/encoding.rs', lines 48:4-51:5
+    Source: 'src/encoding.rs', lines 50:4-53:5
     Visibility: public -/
 @[rust_loop]
 def encoding.secret_keys_equal_loop
@@ -4077,7 +4090,7 @@ def encoding.secret_keys_equal_loop
     (diff, i)
 
 /-- [slhdsa::encoding::secret_keys_equal]:
-    Source: 'src/encoding.rs', lines 45:0-53:1
+    Source: 'src/encoding.rs', lines 47:0-55:1
     Visibility: public -/
 def encoding.secret_keys_equal
   (a : Slice Std.U8) (b : Slice Std.U8) : Result Bool := do
@@ -4209,7 +4222,7 @@ def slh.slh_sign
     ok (some v)
 
 /-- [slhdsa::api::sign]:
-    Source: 'src/api.rs', lines 39:0-41:1
+    Source: 'src/api.rs', lines 40:0-42:1
     Visibility: public -/
 def api.sign
   {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4219,7 +4232,7 @@ def api.sign
   slh.slh_sign p m ctx sk addrnd
 
 /-- [slhdsa::api::sign_deterministic]:
-    Source: 'src/api.rs', lines 45:0-48:1
+    Source: 'src/api.rs', lines 46:0-49:1
     Visibility: public -/
 def api.sign_deterministic
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4230,7 +4243,7 @@ def api.sign_deterministic
   slh.slh_sign p m ctx sk pk_seed
 
 /-- [slhdsa::ht::ht_verify]: loop body 0:
-    Source: 'src/ht.rs', lines 50:4-57:5
+    Source: 'src/ht.rs', lines 61:4-68:5
     Visibility: public -/
 @[rust_loop_body]
 def ht.ht_verify_loop.body
@@ -4262,7 +4275,7 @@ def ht.ht_verify_loop.body
   else ok (done node)
 
 /-- [slhdsa::ht::ht_verify]: loop 0:
-    Source: 'src/ht.rs', lines 50:4-57:5
+    Source: 'src/ht.rs', lines 61:4-68:5
     Visibility: public -/
 @[rust_loop]
 def ht.ht_verify_loop
@@ -4277,7 +4290,7 @@ def ht.ht_verify_loop
     (node, tree, leaf, j)
 
 /-- [slhdsa::ht::ht_verify]:
-    Source: 'src/ht.rs', lines 36:0-59:1
+    Source: 'src/ht.rs', lines 47:0-70:1
     Visibility: public -/
 def ht.ht_verify
   {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N) (sig : Slice Std.U8)
@@ -4347,7 +4360,7 @@ def slh.slh_verify
     slh.slh_verify_internal N p s sig pk
 
 /-- [slhdsa::api::verify]:
-    Source: 'src/api.rs', lines 51:0-53:1
+    Source: 'src/api.rs', lines 52:0-54:1
     Visibility: public -/
 def api.verify
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
@@ -4357,7 +4370,7 @@ def api.verify
   slh.slh_verify N p m sig ctx pk
 
 /-- [slhdsa::encoding::public_key_from]:
-    Source: 'src/encoding.rs', lines 29:0-35:1
+    Source: 'src/encoding.rs', lines 31:0-37:1
     Visibility: public -/
 def encoding.public_key_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -4372,7 +4385,7 @@ def encoding.public_key_from
     ok (true, pk1)
 
 /-- [slhdsa::encoding::der_encode]:
-    Source: 'src/encoding.rs', lines 58:0-62:1
+    Source: 'src/encoding.rs', lines 60:0-64:1
     Visibility: public -/
 def encoding.der_encode
   («prefix» : Slice Std.U8) (key : Slice Std.U8) (out : Slice Std.U8) :
@@ -4395,7 +4408,7 @@ def encoding.der_encode
   ok (index_mut_back1 s3)
 
 /-- [slhdsa::encoding::der_decode]: loop body 0:
-    Source: 'src/encoding.rs', lines 73:4-81:1
+    Source: 'src/encoding.rs', lines 75:4-83:1
     Visibility: public -/
 @[rust_loop_body]
 def encoding.der_decode_loop.body
@@ -4420,7 +4433,7 @@ def encoding.der_decode_loop.body
     ok (done (true, key1))
 
 /-- [slhdsa::encoding::der_decode]: loop 0:
-    Source: 'src/encoding.rs', lines 73:4-81:1
+    Source: 'src/encoding.rs', lines 75:4-83:1
     Visibility: public -/
 @[rust_loop]
 def encoding.der_decode_loop
@@ -4433,7 +4446,7 @@ def encoding.der_decode_loop
     i
 
 /-- [slhdsa::encoding::der_decode]:
-    Source: 'src/encoding.rs', lines 67:0-81:1
+    Source: 'src/encoding.rs', lines 69:0-83:1
     Visibility: public -/
 def encoding.der_decode
   («prefix» : Slice Std.U8) (der : Slice Std.U8) (key : Slice Std.U8) :
@@ -4581,13 +4594,13 @@ def params.Params.len1 (self : params.Params) : Result Std.Usize := do
   2#usize * self.n
 
 /-- [slhdsa::sets::sha2_128s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.PARAMS : params.Params := params.SHA2_128S
 
 /-- [slhdsa::sets::sha2_128s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.slh_keygen_internal
   (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
@@ -4606,7 +4619,7 @@ def sets.sha2_128s.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_128s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4617,7 +4630,7 @@ def sets.sha2_128s.slh_sign_internal
   slh.slh_sign_internal sets.sha2_128s.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_128s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
@@ -4627,7 +4640,7 @@ def sets.sha2_128s.slh_verify_internal
   slh.slh_verify_internal 16#usize sets.sha2_128s.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_128s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4638,7 +4651,7 @@ def sets.sha2_128s.slh_sign
   slh.slh_sign sets.sha2_128s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_128s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4649,7 +4662,7 @@ def sets.sha2_128s.slh_verify
   slh.slh_verify 16#usize sets.sha2_128s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_128s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.keygen
   (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
@@ -4665,7 +4678,7 @@ def sets.sha2_128s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_128s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.public_key
   (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
@@ -4676,7 +4689,7 @@ def sets.sha2_128s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_128s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4687,7 +4700,7 @@ def sets.sha2_128s.sign
   api.sign sets.sha2_128s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_128s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -4697,7 +4710,7 @@ def sets.sha2_128s.sign_deterministic
   api.sign_deterministic 16#usize sets.sha2_128s.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_128s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4708,7 +4721,7 @@ def sets.sha2_128s.verify
   api.verify 16#usize sets.sha2_128s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_128s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -4721,7 +4734,7 @@ def sets.sha2_128s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_128s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -4734,13 +4747,13 @@ def sets.sha2_128s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_128s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_128s.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_128s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.secret_keys_equal
   (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
@@ -4749,7 +4762,7 @@ def sets.sha2_128s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_128s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -4759,7 +4772,7 @@ def sets.sha2_128s.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_128s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.pkcs8_encode
   (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
@@ -4772,7 +4785,7 @@ def sets.sha2_128s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_128s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -4785,7 +4798,7 @@ def sets.sha2_128s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_128s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -4795,7 +4808,7 @@ def sets.sha2_128s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_128s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.spki_encode
   (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
@@ -4807,7 +4820,7 @@ def sets.sha2_128s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_128s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 def sets.sha2_128s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -4821,34 +4834,34 @@ def sets.sha2_128s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_128s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::sets::sha2_128s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_128s.params.N
 
 /-- [slhdsa::sets::sha2_128s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_128s.params.N
 
 /-- [slhdsa::sets::sha2_128s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_128s.params.N
 
 /-- [slhdsa::sets::sha2_128s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.SIG_BYTES : Result Std.Usize := do
@@ -4867,7 +4880,7 @@ def sets.sha2_128s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_128s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -4877,7 +4890,7 @@ def sets.sha2_128s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_128s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 194:0-196:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128s.params.SPKI_BYTES : Result Std.Usize := do
@@ -4887,13 +4900,13 @@ def sets.sha2_128s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_128f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.PARAMS : params.Params := params.SHA2_128F
 
 /-- [slhdsa::sets::sha2_128f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.slh_keygen_internal
   (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
@@ -4912,7 +4925,7 @@ def sets.sha2_128f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_128f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4923,7 +4936,7 @@ def sets.sha2_128f.slh_sign_internal
   slh.slh_sign_internal sets.sha2_128f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_128f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
@@ -4933,7 +4946,7 @@ def sets.sha2_128f.slh_verify_internal
   slh.slh_verify_internal 16#usize sets.sha2_128f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_128f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4944,7 +4957,7 @@ def sets.sha2_128f.slh_sign
   slh.slh_sign sets.sha2_128f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_128f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -4955,7 +4968,7 @@ def sets.sha2_128f.slh_verify
   slh.slh_verify 16#usize sets.sha2_128f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_128f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.keygen
   (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
@@ -4971,7 +4984,7 @@ def sets.sha2_128f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_128f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.public_key
   (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
@@ -4982,7 +4995,7 @@ def sets.sha2_128f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_128f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -4993,7 +5006,7 @@ def sets.sha2_128f.sign
   api.sign sets.sha2_128f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_128f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -5003,7 +5016,7 @@ def sets.sha2_128f.sign_deterministic
   api.sign_deterministic 16#usize sets.sha2_128f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_128f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5014,7 +5027,7 @@ def sets.sha2_128f.verify
   api.verify 16#usize sets.sha2_128f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_128f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -5027,7 +5040,7 @@ def sets.sha2_128f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_128f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -5040,13 +5053,13 @@ def sets.sha2_128f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_128f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_128f.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_128f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.secret_keys_equal
   (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
@@ -5055,7 +5068,7 @@ def sets.sha2_128f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_128f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -5065,7 +5078,7 @@ def sets.sha2_128f.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_128f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.pkcs8_encode
   (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
@@ -5078,7 +5091,7 @@ def sets.sha2_128f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_128f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -5091,7 +5104,7 @@ def sets.sha2_128f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_128f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -5101,7 +5114,7 @@ def sets.sha2_128f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_128f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.spki_encode
   (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
@@ -5113,7 +5126,7 @@ def sets.sha2_128f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_128f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 def sets.sha2_128f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -5127,34 +5140,34 @@ def sets.sha2_128f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_128f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::sets::sha2_128f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_128f.params.N
 
 /-- [slhdsa::sets::sha2_128f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_128f.params.N
 
 /-- [slhdsa::sets::sha2_128f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_128f.params.N
 
 /-- [slhdsa::sets::sha2_128f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.SIG_BYTES : Result Std.Usize := do
@@ -5173,7 +5186,7 @@ def sets.sha2_128f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_128f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -5183,7 +5196,7 @@ def sets.sha2_128f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_128f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 197:0-199:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_128f.params.SPKI_BYTES : Result Std.Usize := do
@@ -5193,13 +5206,13 @@ def sets.sha2_128f.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_192s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.PARAMS : params.Params := params.SHA2_192S
 
 /-- [slhdsa::sets::sha2_192s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.slh_keygen_internal
   (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
@@ -5218,7 +5231,7 @@ def sets.sha2_192s.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_192s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5229,7 +5242,7 @@ def sets.sha2_192s.slh_sign_internal
   slh.slh_sign_internal sets.sha2_192s.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_192s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
@@ -5239,7 +5252,7 @@ def sets.sha2_192s.slh_verify_internal
   slh.slh_verify_internal 24#usize sets.sha2_192s.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_192s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5250,7 +5263,7 @@ def sets.sha2_192s.slh_sign
   slh.slh_sign sets.sha2_192s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_192s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5261,7 +5274,7 @@ def sets.sha2_192s.slh_verify
   slh.slh_verify 24#usize sets.sha2_192s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_192s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.keygen
   (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
@@ -5277,7 +5290,7 @@ def sets.sha2_192s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_192s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.public_key
   (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
@@ -5288,7 +5301,7 @@ def sets.sha2_192s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_192s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5299,7 +5312,7 @@ def sets.sha2_192s.sign
   api.sign sets.sha2_192s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_192s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -5309,7 +5322,7 @@ def sets.sha2_192s.sign_deterministic
   api.sign_deterministic 24#usize sets.sha2_192s.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_192s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5320,7 +5333,7 @@ def sets.sha2_192s.verify
   api.verify 24#usize sets.sha2_192s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_192s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
@@ -5333,7 +5346,7 @@ def sets.sha2_192s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_192s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -5346,13 +5359,13 @@ def sets.sha2_192s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_192s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_192s.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_192s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.secret_keys_equal
   (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
@@ -5361,7 +5374,7 @@ def sets.sha2_192s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_192s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -5371,7 +5384,7 @@ def sets.sha2_192s.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_192s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.pkcs8_encode
   (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
@@ -5384,7 +5397,7 @@ def sets.sha2_192s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_192s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -5397,7 +5410,7 @@ def sets.sha2_192s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_192s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -5407,7 +5420,7 @@ def sets.sha2_192s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_192s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.spki_encode
   (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
@@ -5419,7 +5432,7 @@ def sets.sha2_192s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_192s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 def sets.sha2_192s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -5433,34 +5446,34 @@ def sets.sha2_192s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_192s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.N : Std.Usize := 24#usize
 
 /-- [slhdsa::sets::sha2_192s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_192s.params.N
 
 /-- [slhdsa::sets::sha2_192s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_192s.params.N
 
 /-- [slhdsa::sets::sha2_192s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_192s.params.N
 
 /-- [slhdsa::sets::sha2_192s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.SIG_BYTES : Result Std.Usize := do
@@ -5479,7 +5492,7 @@ def sets.sha2_192s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_192s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -5489,7 +5502,7 @@ def sets.sha2_192s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_192s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 200:0-202:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192s.params.SPKI_BYTES : Result Std.Usize := do
@@ -5499,13 +5512,13 @@ def sets.sha2_192s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_192f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.PARAMS : params.Params := params.SHA2_192F
 
 /-- [slhdsa::sets::sha2_192f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.slh_keygen_internal
   (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
@@ -5524,7 +5537,7 @@ def sets.sha2_192f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_192f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5535,7 +5548,7 @@ def sets.sha2_192f.slh_sign_internal
   slh.slh_sign_internal sets.sha2_192f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_192f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
@@ -5545,7 +5558,7 @@ def sets.sha2_192f.slh_verify_internal
   slh.slh_verify_internal 24#usize sets.sha2_192f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_192f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5556,7 +5569,7 @@ def sets.sha2_192f.slh_sign
   slh.slh_sign sets.sha2_192f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_192f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5567,7 +5580,7 @@ def sets.sha2_192f.slh_verify
   slh.slh_verify 24#usize sets.sha2_192f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_192f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.keygen
   (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
@@ -5583,7 +5596,7 @@ def sets.sha2_192f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_192f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.public_key
   (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
@@ -5594,7 +5607,7 @@ def sets.sha2_192f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_192f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -5605,7 +5618,7 @@ def sets.sha2_192f.sign
   api.sign sets.sha2_192f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_192f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -5615,7 +5628,7 @@ def sets.sha2_192f.sign_deterministic
   api.sign_deterministic 24#usize sets.sha2_192f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_192f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5626,7 +5639,7 @@ def sets.sha2_192f.verify
   api.verify 24#usize sets.sha2_192f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_192f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
@@ -5639,7 +5652,7 @@ def sets.sha2_192f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_192f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -5652,13 +5665,13 @@ def sets.sha2_192f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_192f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_192f.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_192f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.secret_keys_equal
   (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
@@ -5667,7 +5680,7 @@ def sets.sha2_192f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_192f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -5677,7 +5690,7 @@ def sets.sha2_192f.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_192f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.pkcs8_encode
   (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
@@ -5690,7 +5703,7 @@ def sets.sha2_192f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_192f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -5703,7 +5716,7 @@ def sets.sha2_192f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_192f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -5713,7 +5726,7 @@ def sets.sha2_192f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_192f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.spki_encode
   (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
@@ -5725,7 +5738,7 @@ def sets.sha2_192f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_192f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 def sets.sha2_192f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -5739,34 +5752,34 @@ def sets.sha2_192f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_192f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.N : Std.Usize := 24#usize
 
 /-- [slhdsa::sets::sha2_192f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_192f.params.N
 
 /-- [slhdsa::sets::sha2_192f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_192f.params.N
 
 /-- [slhdsa::sets::sha2_192f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_192f.params.N
 
 /-- [slhdsa::sets::sha2_192f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.SIG_BYTES : Result Std.Usize := do
@@ -5785,7 +5798,7 @@ def sets.sha2_192f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_192f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -5795,7 +5808,7 @@ def sets.sha2_192f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_192f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 203:0-205:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_192f.params.SPKI_BYTES : Result Std.Usize := do
@@ -5805,13 +5818,13 @@ def sets.sha2_192f.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_256s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.PARAMS : params.Params := params.SHA2_256S
 
 /-- [slhdsa::sets::sha2_256s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.slh_keygen_internal
   (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
@@ -5830,7 +5843,7 @@ def sets.sha2_256s.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_256s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -5841,7 +5854,7 @@ def sets.sha2_256s.slh_sign_internal
   slh.slh_sign_internal sets.sha2_256s.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_256s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
@@ -5851,7 +5864,7 @@ def sets.sha2_256s.slh_verify_internal
   slh.slh_verify_internal 32#usize sets.sha2_256s.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_256s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -5862,7 +5875,7 @@ def sets.sha2_256s.slh_sign
   slh.slh_sign sets.sha2_256s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_256s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5873,7 +5886,7 @@ def sets.sha2_256s.slh_verify
   slh.slh_verify 32#usize sets.sha2_256s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_256s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.keygen
   (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
@@ -5889,7 +5902,7 @@ def sets.sha2_256s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_256s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.public_key
   (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
@@ -5900,7 +5913,7 @@ def sets.sha2_256s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_256s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -5911,7 +5924,7 @@ def sets.sha2_256s.sign
   api.sign sets.sha2_256s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_256s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -5921,7 +5934,7 @@ def sets.sha2_256s.sign_deterministic
   api.sign_deterministic 32#usize sets.sha2_256s.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_256s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -5932,7 +5945,7 @@ def sets.sha2_256s.verify
   api.verify 32#usize sets.sha2_256s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_256s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
@@ -5945,7 +5958,7 @@ def sets.sha2_256s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_256s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -5958,13 +5971,13 @@ def sets.sha2_256s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_256s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_256s.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_256s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.secret_keys_equal
   (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
@@ -5973,7 +5986,7 @@ def sets.sha2_256s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_256s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.PKCS8_PREFIX : Array Std.U8 22#usize :=
@@ -5983,7 +5996,7 @@ def sets.sha2_256s.PKCS8_PREFIX : Array Std.U8 22#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_256s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.pkcs8_encode
   (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
@@ -5996,7 +6009,7 @@ def sets.sha2_256s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_256s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -6009,7 +6022,7 @@ def sets.sha2_256s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_256s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -6019,7 +6032,7 @@ def sets.sha2_256s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_256s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.spki_encode
   (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
@@ -6031,7 +6044,7 @@ def sets.sha2_256s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_256s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 def sets.sha2_256s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -6045,34 +6058,34 @@ def sets.sha2_256s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_256s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.N : Std.Usize := 32#usize
 
 /-- [slhdsa::sets::sha2_256s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_256s.params.N
 
 /-- [slhdsa::sets::sha2_256s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_256s.params.N
 
 /-- [slhdsa::sets::sha2_256s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_256s.params.N
 
 /-- [slhdsa::sets::sha2_256s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.SIG_BYTES : Result Std.Usize := do
@@ -6091,7 +6104,7 @@ def sets.sha2_256s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_256s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -6101,7 +6114,7 @@ def sets.sha2_256s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_256s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 206:0-208:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256s.params.SPKI_BYTES : Result Std.Usize := do
@@ -6111,13 +6124,13 @@ def sets.sha2_256s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_256f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.PARAMS : params.Params := params.SHA2_256F
 
 /-- [slhdsa::sets::sha2_256f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.slh_keygen_internal
   (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
@@ -6136,7 +6149,7 @@ def sets.sha2_256f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_256f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -6147,7 +6160,7 @@ def sets.sha2_256f.slh_sign_internal
   slh.slh_sign_internal sets.sha2_256f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::sha2_256f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
@@ -6157,7 +6170,7 @@ def sets.sha2_256f.slh_verify_internal
   slh.slh_verify_internal 32#usize sets.sha2_256f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::sha2_256f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -6168,7 +6181,7 @@ def sets.sha2_256f.slh_sign
   slh.slh_sign sets.sha2_256f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_256f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -6179,7 +6192,7 @@ def sets.sha2_256f.slh_verify
   slh.slh_verify 32#usize sets.sha2_256f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_256f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.keygen
   (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
@@ -6195,7 +6208,7 @@ def sets.sha2_256f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::sha2_256f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.public_key
   (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
@@ -6206,7 +6219,7 @@ def sets.sha2_256f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::sha2_256f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -6217,7 +6230,7 @@ def sets.sha2_256f.sign
   api.sign sets.sha2_256f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::sha2_256f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -6227,7 +6240,7 @@ def sets.sha2_256f.sign_deterministic
   api.sign_deterministic 32#usize sets.sha2_256f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::sha2_256f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -6238,7 +6251,7 @@ def sets.sha2_256f.verify
   api.verify 32#usize sets.sha2_256f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::sha2_256f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
@@ -6251,7 +6264,7 @@ def sets.sha2_256f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_256f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -6264,13 +6277,13 @@ def sets.sha2_256f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::sha2_256f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.sha2_256f.params.PARAMS bytes
 
 /-- [slhdsa::sets::sha2_256f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.secret_keys_equal
   (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
@@ -6279,7 +6292,7 @@ def sets.sha2_256f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::sha2_256f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.PKCS8_PREFIX : Array Std.U8 22#usize :=
@@ -6289,7 +6302,7 @@ def sets.sha2_256f.PKCS8_PREFIX : Array Std.U8 22#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_256f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.pkcs8_encode
   (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
@@ -6302,7 +6315,7 @@ def sets.sha2_256f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_256f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -6315,7 +6328,7 @@ def sets.sha2_256f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::sha2_256f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -6325,7 +6338,7 @@ def sets.sha2_256f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::sha2_256f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.spki_encode
   (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
@@ -6337,7 +6350,7 @@ def sets.sha2_256f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::sha2_256f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 def sets.sha2_256f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -6351,34 +6364,34 @@ def sets.sha2_256f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::sha2_256f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.N : Std.Usize := 32#usize
 
 /-- [slhdsa::sets::sha2_256f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.sha2_256f.params.N
 
 /-- [slhdsa::sets::sha2_256f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.sha2_256f.params.N
 
 /-- [slhdsa::sets::sha2_256f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.sha2_256f.params.N
 
 /-- [slhdsa::sets::sha2_256f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.SIG_BYTES : Result Std.Usize := do
@@ -6397,7 +6410,7 @@ def sets.sha2_256f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::sha2_256f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -6407,7 +6420,7 @@ def sets.sha2_256f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::sha2_256f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 209:0-211:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 212:0-214:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.sha2_256f.params.SPKI_BYTES : Result Std.Usize := do
@@ -6424,7 +6437,7 @@ def shake.hash.seed_ctx
   ok pk_seed
 
 /-- [slhdsa::shake256::chi]:
-    Source: 'src/shake256.rs', lines 65:0-93:1 -/
+    Source: 'src/shake256.rs', lines 91:0-119:1 -/
 def shake256.chi
   (b : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
   let i ← Array.index_usize b 0#usize
@@ -6534,7 +6547,7 @@ def shake256.chi
       ])
 
 /-- [slhdsa::shake256::rho_pi]:
-    Source: 'src/shake256.rs', lines 34:0-62:1 -/
+    Source: 'src/shake256.rs', lines 60:0-88:1 -/
 def shake256.rho_pi
   (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize) :
   Result (Array Std.U64 25#usize)
@@ -6626,7 +6639,7 @@ def shake256.rho_pi
       ])
 
 /-- [slhdsa::shake256::round]: loop body 0:
-    Source: 'src/shake256.rs', lines 98:4-101:5 -/
+    Source: 'src/shake256.rs', lines 124:4-127:5 -/
 @[rust_loop_body]
 def shake256.round_loop0.body
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -6655,7 +6668,7 @@ def shake256.round_loop0.body
   else ok (done parity)
 
 /-- [slhdsa::shake256::round]: loop 0:
-    Source: 'src/shake256.rs', lines 98:4-101:5 -/
+    Source: 'src/shake256.rs', lines 124:4-127:5 -/
 @[rust_loop]
 def shake256.round_loop0
   (a : Array Std.U64 25#usize) (parity : Array Std.U64 5#usize) (x : Std.Usize)
@@ -6667,7 +6680,7 @@ def shake256.round_loop0
     (parity, x)
 
 /-- [slhdsa::shake256::round]: loop body 1:
-    Source: 'src/shake256.rs', lines 104:4-107:5 -/
+    Source: 'src/shake256.rs', lines 130:4-133:5 -/
 @[rust_loop_body]
 def shake256.round_loop1.body
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -6690,7 +6703,7 @@ def shake256.round_loop1.body
   else ok (done d)
 
 /-- [slhdsa::shake256::round]: loop 1:
-    Source: 'src/shake256.rs', lines 104:4-107:5 -/
+    Source: 'src/shake256.rs', lines 130:4-133:5 -/
 @[rust_loop]
 def shake256.round_loop1
   (parity : Array Std.U64 5#usize) (d : Array Std.U64 5#usize) (x : Std.Usize)
@@ -6702,7 +6715,7 @@ def shake256.round_loop1
     (d, x)
 
 /-- [slhdsa::shake256::round]:
-    Source: 'src/shake256.rs', lines 95:0-113:1 -/
+    Source: 'src/shake256.rs', lines 121:0-139:1 -/
 def shake256.round
   (a : Array Std.U64 25#usize) (rc : Std.U64) :
   Result (Array Std.U64 25#usize)
@@ -6718,7 +6731,7 @@ def shake256.round
   Array.update out 0#usize i1
 
 /-- [slhdsa::shake256::RC]
-    Source: 'src/shake256.rs', lines 5:0-30:2 -/
+    Source: 'src/shake256.rs', lines 31:0-56:2 -/
 @[global_simps, irreducible]
 def shake256.RC : Array Std.U64 24#usize :=
   Array.make 24#usize [
@@ -6732,7 +6745,7 @@ def shake256.RC : Array Std.U64 24#usize :=
     ]
 
 /-- [slhdsa::shake256::permute]: loop body 0:
-    Source: 'src/shake256.rs', lines 117:4-120:5 -/
+    Source: 'src/shake256.rs', lines 169:8-172:9 -/
 @[rust_loop_body]
 def shake256.permute_loop.body
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -6748,7 +6761,7 @@ def shake256.permute_loop.body
   else ok (done state)
 
 /-- [slhdsa::shake256::permute]: loop 0:
-    Source: 'src/shake256.rs', lines 117:4-120:5 -/
+    Source: 'src/shake256.rs', lines 169:8-172:9 -/
 @[rust_loop]
 def shake256.permute_loop
   (state : Array Std.U64 25#usize) (i : Std.Usize) :
@@ -6759,18 +6772,18 @@ def shake256.permute_loop
     (state, i)
 
 /-- [slhdsa::shake256::permute]:
-    Source: 'src/shake256.rs', lines 115:0-121:1 -/
+    Source: 'src/shake256.rs', lines 141:0-174:1 -/
 @[reducible]
 def shake256.permute
   (state : Array Std.U64 25#usize) : Result (Array Std.U64 25#usize) := do
   shake256.permute_loop state 0#usize
 
 /-- [slhdsa::shake256::RATE]
-    Source: 'src/shake256.rs', lines 4:0-4:24 -/
+    Source: 'src/shake256.rs', lines 30:0-30:24 -/
 @[global_simps, irreducible] def shake256.RATE : Std.Usize := 136#usize
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop body 0:
-    Source: 'src/shake256.rs', lines 139:8-147:9 -/
+    Source: 'src/shake256.rs', lines 249:8-257:9 -/
 @[rust_loop_body]
 def shake256.Sponge.absorb_loop.body
   (data : Slice Std.U8) (self : shake256.Sponge) (i : Std.Usize) :
@@ -6803,7 +6816,7 @@ def shake256.Sponge.absorb_loop.body
   else ok (done self)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]: loop 0:
-    Source: 'src/shake256.rs', lines 139:8-147:9 -/
+    Source: 'src/shake256.rs', lines 249:8-257:9 -/
 @[rust_loop]
 def shake256.Sponge.absorb_loop
   (self : shake256.Sponge) (data : Slice Std.U8) (i : Std.Usize) :
@@ -6814,14 +6827,14 @@ def shake256.Sponge.absorb_loop
     (self, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::absorb]:
-    Source: 'src/shake256.rs', lines 137:4-148:5 -/
+    Source: 'src/shake256.rs', lines 190:4-258:5 -/
 @[reducible]
 def shake256.Sponge.absorb
   (self : shake256.Sponge) (data : Slice Std.U8) : Result shake256.Sponge := do
   shake256.Sponge.absorb_loop self data 0#usize
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop body 0:
-    Source: 'src/shake256.rs', lines 156:8-164:9 -/
+    Source: 'src/shake256.rs', lines 266:8-274:9 -/
 @[rust_loop_body]
 def shake256.Sponge.finish_loop.body
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -6851,7 +6864,7 @@ def shake256.Sponge.finish_loop.body
   else ok (done out)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]: loop 0:
-    Source: 'src/shake256.rs', lines 156:8-164:9 -/
+    Source: 'src/shake256.rs', lines 266:8-274:9 -/
 @[rust_loop]
 def shake256.Sponge.finish_loop
   (a : Array Std.U64 25#usize) (out : Slice Std.U8) (pos : Std.Usize)
@@ -6864,7 +6877,7 @@ def shake256.Sponge.finish_loop
     (a, out, pos, i)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::finish]:
-    Source: 'src/shake256.rs', lines 150:4-165:5 -/
+    Source: 'src/shake256.rs', lines 260:4-275:5 -/
 def shake256.Sponge.finish
   (self : shake256.Sponge) (out : Slice Std.U8) : Result (Slice Std.U8) := do
   let i ← self.pos % 8#usize
@@ -6893,7 +6906,7 @@ def shake.hash.digest
   ok (to_slice_mut_back s1)
 
 /-- [slhdsa::shake256::{slhdsa::shake256::Sponge}::new]:
-    Source: 'src/shake256.rs', lines 130:4-135:5 -/
+    Source: 'src/shake256.rs', lines 183:4-188:5 -/
 def shake256.Sponge.new : Result shake256.Sponge := do
   let a := Array.repeat 25#usize 0#u64
   ok { lanes := a, pos := 0#usize }
@@ -6976,7 +6989,7 @@ def shake.wots.secret
   shake.hash.thash seed a2 sk
 
 /-- [slhdsa::shake::wots::wots_pk_gen]: loop body 0:
-    Source: 'src/shake/wots.rs', lines 34:4-44:5 -/
+    Source: 'src/shake/wots.rs', lines 36:4-46:5 -/
 @[rust_loop_body]
 def shake.wots.wots_pk_gen_loop.body
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N) (i : Std.U32)
@@ -7018,7 +7031,7 @@ def shake.wots.wots_pk_gen_loop.body
   else ok (done pk)
 
 /-- [slhdsa::shake::wots::wots_pk_gen]: loop 0:
-    Source: 'src/shake/wots.rs', lines 34:4-44:5 -/
+    Source: 'src/shake/wots.rs', lines 36:4-46:5 -/
 @[rust_loop]
 def shake.wots.wots_pk_gen_loop
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N) (i : Std.U32)
@@ -7032,7 +7045,7 @@ def shake.wots.wots_pk_gen_loop
     (pk, i6)
 
 /-- [slhdsa::shake::wots::wots_pk_gen]:
-    Source: 'src/shake/wots.rs', lines 31:0-46:1 -/
+    Source: 'src/shake/wots.rs', lines 31:0-48:1 -/
 def shake.wots.wots_pk_gen
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
   (adrs : address.Adrs) :
@@ -7157,13 +7170,13 @@ def shake.slh.slh_keygen_internal
   ok (sk4, pk2)
 
 /-- [slhdsa::sets::shake_128s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.PARAMS : params.Params := params.SHA2_128S
 
 /-- [slhdsa::sets::shake_128s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.slh_keygen_internal
   (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
@@ -7272,7 +7285,7 @@ def shake.xmss.climb
   shake.xmss.climb_loop auth first height seed adrs node idx 0#u32
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]: loop body 0:
-    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
+    Source: 'src/shake/fors.rs', lines 70:4-81:5 -/
 @[rust_loop_body]
 def shake.fors.fors_pk_from_sig_loop.body
   {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
@@ -7324,7 +7337,7 @@ def shake.fors.fors_pk_from_sig_loop.body
   else ok (done roots)
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]: loop 0:
-    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
+    Source: 'src/shake/fors.rs', lines 70:4-81:5 -/
 @[rust_loop]
 def shake.fors.fors_pk_from_sig_loop
   {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
@@ -7339,7 +7352,7 @@ def shake.fors.fors_pk_from_sig_loop
     (roots, i7)
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]:
-    Source: 'src/shake/fors.rs', lines 56:0-79:1 -/
+    Source: 'src/shake/fors.rs', lines 58:0-83:1 -/
 def shake.fors.fors_pk_from_sig
   {N : Std.Usize} (p : params.Params) (sig : Slice Std.U8) (md : Slice Std.U8)
   (seed : Array Std.U8 N) (adrs : address.Adrs) :
@@ -7390,7 +7403,7 @@ def shake.fors.fors_node
 partial_fixpoint
 
 /-- [slhdsa::shake::fors::fors_sign]: loop body 1:
-    Source: 'src/shake/fors.rs', lines 45:8-50:9
+    Source: 'src/shake/fors.rs', lines 47:8-52:9
     Visibility: public -/
 @[rust_loop_body]
 def shake.fors.fors_sign_loop0_loop0.body
@@ -7415,7 +7428,7 @@ def shake.fors.fors_sign_loop0_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop 1:
-    Source: 'src/shake/fors.rs', lines 45:8-50:9
+    Source: 'src/shake/fors.rs', lines 47:8-52:9
     Visibility: public -/
 @[rust_loop]
 def shake.fors.fors_sign_loop0_loop0
@@ -7430,7 +7443,7 @@ def shake.fors.fors_sign_loop0_loop0
     (sig, j)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop body 0:
-    Source: 'src/shake/fors.rs', lines 40:4-52:5
+    Source: 'src/shake/fors.rs', lines 42:4-54:5
     Visibility: public -/
 @[rust_loop_body]
 def shake.fors.fors_sign_loop0.body
@@ -7459,7 +7472,7 @@ def shake.fors.fors_sign_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop 0:
-    Source: 'src/shake/fors.rs', lines 40:4-52:5
+    Source: 'src/shake/fors.rs', lines 42:4-54:5
     Visibility: public -/
 @[rust_loop]
 def shake.fors.fors_sign_loop0
@@ -7475,7 +7488,7 @@ def shake.fors.fors_sign_loop0
     (sig, i1)
 
 /-- [slhdsa::shake::fors::fors_sign]:
-    Source: 'src/shake/fors.rs', lines 29:0-54:1
+    Source: 'src/shake/fors.rs', lines 29:0-56:1
     Visibility: public -/
 def shake.fors.fors_sign
   {N : Std.Usize} (p : params.Params) (md : Slice Std.U8)
@@ -7521,89 +7534,8 @@ def shake.slh.digest_tree
   let i5 ← core.num.U64.MAX >>> i4
   ok (i2 &&& i5)
 
-/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop body 0:
-    Source: 'src/shake/wots.rs', lines 80:4-90:5 -/
-@[rust_loop_body]
-def shake.wots.wots_pk_from_sig_loop.body
-  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
-  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
-  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
-  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
-  := do
-  let i7 := alloc.vec.Vec.len digits
-  if i6 < i7
-  then
-    let a ← util.block N sig i6
-    let i8 ← lift (UScalar.cast .U32 i6)
-    let a1 ←
-      address.Adrs.with_word2
-        {
-          layer := i,
-          tree := i1,
-          typ := i2,
-          keypair := i3,
-          word2 := i4,
-          word3 := i5
-        } i8
-    let i9 ←
-      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
-        digits i6
-    let i10 ← params.W - 1#u32
-    let «end» ← shake.wots.chain a seed a1 i9 i10
-    let s ← lift (Array.to_slice «end»)
-    let pk1 ← shake256.Sponge.absorb pk s
-    let i11 ← i6 + 1#usize
-    ok (cont (pk1, i11))
-  else ok (done pk)
-
-/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop 0:
-    Source: 'src/shake/wots.rs', lines 80:4-90:5 -/
-@[rust_loop]
-def shake.wots.wots_pk_from_sig_loop
-  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
-  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
-  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
-  Result shake256.Sponge
-  := do
-  loop
-    (fun (pk1, i7) => shake.wots.wots_pk_from_sig_loop.body sig seed i i1 i2 i3
-      i4 i5 digits pk1 i7)
-    (pk, i6)
-
-/-- [slhdsa::shake::wots::wots_pk_from_sig]:
-    Source: 'src/shake/wots.rs', lines 71:0-92:1 -/
-def shake.wots.wots_pk_from_sig
-  {N : Std.Usize} (sig : Slice Std.U8) (msg : Array Std.U8 N)
-  (seed : Array Std.U8 N) (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
-  := do
-  let digits ← wots.wots_digits msg
-  let a ← address.Adrs.with_type adrs address.WOTS_PK
-  let a1 ← address.Adrs.with_keypair a adrs.keypair
-  let pk ← shake.hash.start seed a1
-  let pk1 ←
-    shake.wots.wots_pk_from_sig_loop sig seed adrs.layer adrs.tree adrs.typ
-      adrs.keypair adrs.word2 adrs.word3 digits pk 0#usize
-  shake.hash.digest N pk1
-
-/-- [slhdsa::shake::xmss::xmss_pk_from_sig]:
-    Source: 'src/shake/../xmss.rs', lines 84:0-94:1
-    Visibility: public -/
-def shake.xmss.xmss_pk_from_sig
-  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
-  (m : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
-  := do
-  let a ← address.Adrs.with_type adrs address.WOTS_HASH
-  let a1 ← address.Adrs.with_keypair a idx
-  let node ← shake.wots.wots_pk_from_sig sig m seed a1
-  let i ← 2#usize * N
-  let i1 ← i + params.LEN2
-  let a2 ← address.Adrs.with_type adrs address.TREE
-  shake.xmss.climb node idx sig i1 p.hp seed a2
-
 /-- [slhdsa::shake::wots::wots_sign]: loop body 0:
-    Source: 'src/shake/wots.rs', lines 57:4-67:5 -/
+    Source: 'src/shake/wots.rs', lines 61:4-71:5 -/
 @[rust_loop_body]
 def shake.wots.wots_sign_loop.body
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
@@ -7629,7 +7561,7 @@ def shake.wots.wots_sign_loop.body
   else ok (done sig)
 
 /-- [slhdsa::shake::wots::wots_sign]: loop 0:
-    Source: 'src/shake/wots.rs', lines 57:4-67:5 -/
+    Source: 'src/shake/wots.rs', lines 61:4-71:5 -/
 @[rust_loop]
 def shake.wots.wots_sign_loop
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
@@ -7643,7 +7575,7 @@ def shake.wots.wots_sign_loop
     (sig, i)
 
 /-- [slhdsa::shake::wots::wots_sign]:
-    Source: 'src/shake/wots.rs', lines 48:0-69:1 -/
+    Source: 'src/shake/wots.rs', lines 50:0-73:1 -/
 def shake.wots.wots_sign
   {N : Std.Usize} (msg : Array Std.U8 N) (sk : Array Std.U8 N)
   (seed : Array Std.U8 N) (adrs : address.Adrs) :
@@ -7704,6 +7636,100 @@ def shake.xmss.xmss_sign
   let sig ← shake.wots.wots_sign m sk_seed seed a1
   shake.xmss.xmss_sign_loop p sk_seed idx seed adrs sig 0#u32
 
+/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop body 0:
+    Source: 'src/shake/wots.rs', lines 86:4-96:5 -/
+@[rust_loop_body]
+def shake.wots.wots_pk_from_sig_loop.body
+  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result (ControlFlow (shake256.Sponge × Std.Usize) shake256.Sponge)
+  := do
+  let i7 := alloc.vec.Vec.len digits
+  if i6 < i7
+  then
+    let a ← util.block N sig i6
+    let i8 ← lift (UScalar.cast .U32 i6)
+    let a1 ←
+      address.Adrs.with_word2
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i8
+    let i9 ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice Std.U32)
+        digits i6
+    let i10 ← params.W - 1#u32
+    let «end» ← shake.wots.chain a seed a1 i9 i10
+    let s ← lift (Array.to_slice «end»)
+    let pk1 ← shake256.Sponge.absorb pk s
+    let i11 ← i6 + 1#usize
+    ok (cont (pk1, i11))
+  else ok (done pk)
+
+/-- [slhdsa::shake::wots::wots_pk_from_sig]: loop 0:
+    Source: 'src/shake/wots.rs', lines 86:4-96:5 -/
+@[rust_loop]
+def shake.wots.wots_pk_from_sig_loop
+  {N : Std.Usize} (sig : Slice Std.U8) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (digits : alloc.vec.Vec Std.U32) (pk : shake256.Sponge) (i6 : Std.Usize) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (pk1, i7) => shake.wots.wots_pk_from_sig_loop.body sig seed i i1 i2 i3
+      i4 i5 digits pk1 i7)
+    (pk, i6)
+
+/-- [slhdsa::shake::wots::wots_pk_from_sig]:
+    Source: 'src/shake/wots.rs', lines 75:0-98:1 -/
+def shake.wots.wots_pk_from_sig
+  {N : Std.Usize} (sig : Slice Std.U8) (msg : Array Std.U8 N)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let digits ← wots.wots_digits msg
+  let a ← address.Adrs.with_type adrs address.WOTS_PK
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let pk ← shake.hash.start seed a1
+  let pk1 ←
+    shake.wots.wots_pk_from_sig_loop sig seed adrs.layer adrs.tree adrs.typ
+      adrs.keypair adrs.word2 adrs.word3 digits pk 0#usize
+  shake.hash.digest N pk1
+
+/-- [slhdsa::shake::xmss::xmss_pk_from_sig]:
+    Source: 'src/shake/../xmss.rs', lines 84:0-94:1
+    Visibility: public -/
+def shake.xmss.xmss_pk_from_sig
+  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
+  (m : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let node ← shake.wots.wots_pk_from_sig sig m seed a1
+  let i ← 2#usize * N
+  let i1 ← i + params.LEN2
+  let a2 ← address.Adrs.with_type adrs address.TREE
+  shake.xmss.climb node idx sig i1 p.hp seed a2
+
+/-- [slhdsa::shake::ht::next_message]:
+    Source: 'src/shake/../ht.rs', lines 36:0-44:1 -/
+def shake.ht.next_message
+  {N : Std.Usize} (p : params.Params) (j : Std.U32) (leaf : Std.U32)
+  (sig : Slice Std.U8) (message : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let i ← j + 1#u32
+  if i < p.d
+  then shake.xmss.xmss_pk_from_sig p leaf sig message seed adrs
+  else ok message
+
 /-- [slhdsa::shake::ht::ht_sign]: loop body 0:
     Source: 'src/shake/../ht.rs', lines 23:4-31:5
     Visibility: public -/
@@ -7722,7 +7748,7 @@ def shake.ht.ht_sign_loop.body
     let adrs ← address.Adrs.with_tree a1 tree
     let s ← shake.xmss.xmss_sign p root sk_seed leaf seed adrs
     let s1 := alloc.vec.Vec.deref s
-    let root1 ← shake.xmss.xmss_pk_from_sig p leaf s1 root seed adrs
+    let root1 ← shake.ht.next_message p j leaf s1 root seed adrs
     let s2 := alloc.vec.Vec.deref s
     let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s2
     let i ← 1#u64 <<< p.hp
@@ -7803,7 +7829,7 @@ def shake.slh.slh_sign_internal
   alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s5
 
 /-- [slhdsa::sets::shake_128s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -7814,7 +7840,7 @@ def sets.shake_128s.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_128s.params.PARAMS m s addrnd
 
 /-- [slhdsa::shake::ht::ht_verify]: loop body 0:
-    Source: 'src/shake/../ht.rs', lines 50:4-57:5
+    Source: 'src/shake/../ht.rs', lines 61:4-68:5
     Visibility: public -/
 @[rust_loop_body]
 def shake.ht.ht_verify_loop.body
@@ -7846,7 +7872,7 @@ def shake.ht.ht_verify_loop.body
   else ok (done node)
 
 /-- [slhdsa::shake::ht::ht_verify]: loop 0:
-    Source: 'src/shake/../ht.rs', lines 50:4-57:5
+    Source: 'src/shake/../ht.rs', lines 61:4-68:5
     Visibility: public -/
 @[rust_loop]
 def shake.ht.ht_verify_loop
@@ -7861,7 +7887,7 @@ def shake.ht.ht_verify_loop
     (node, tree, leaf, j)
 
 /-- [slhdsa::shake::ht::ht_verify]:
-    Source: 'src/shake/../ht.rs', lines 36:0-59:1
+    Source: 'src/shake/../ht.rs', lines 47:0-70:1
     Visibility: public -/
 def shake.ht.ht_verify
   {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N) (sig : Slice Std.U8)
@@ -7915,7 +7941,7 @@ def shake.slh.slh_verify_internal
     shake.ht.ht_verify p pk_fors s4 seed idx_tree idx_leaf pk_root
 
 /-- [slhdsa::sets::shake_128s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
@@ -7953,7 +7979,7 @@ def shake.slh.slh_sign
     ok (some v)
 
 /-- [slhdsa::sets::shake_128s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -7980,7 +8006,7 @@ def shake.slh.slh_verify
     shake.slh.slh_verify_internal N p s sig pk
 
 /-- [slhdsa::sets::shake_128s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8004,7 +8030,7 @@ def shake.api.keygen
   shake.slh.slh_keygen_internal p sk_seed sk_prf pk_seed sk pk
 
 /-- [slhdsa::sets::shake_128s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.keygen
   (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
@@ -8021,7 +8047,7 @@ def sets.shake_128s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::shake::api::public_key]:
-    Source: 'src/shake/../api.rs', lines 33:0-35:1
+    Source: 'src/shake/../api.rs', lines 34:0-36:1
     Visibility: public -/
 def shake.api.public_key
   (N : Std.Usize) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -8035,7 +8061,7 @@ def shake.api.public_key
   core.slice.Slice.copy_from_slice core.marker.CopyU8 pk s
 
 /-- [slhdsa::sets::shake_128s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.public_key
   (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
@@ -8046,7 +8072,7 @@ def sets.shake_128s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::shake::api::sign]:
-    Source: 'src/shake/../api.rs', lines 39:0-41:1
+    Source: 'src/shake/../api.rs', lines 40:0-42:1
     Visibility: public -/
 def shake.api.sign
   {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8056,7 +8082,7 @@ def shake.api.sign
   shake.slh.slh_sign p m ctx sk addrnd
 
 /-- [slhdsa::sets::shake_128s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -8067,7 +8093,7 @@ def sets.shake_128s.sign
   shake.api.sign sets.shake_128s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::shake::api::sign_deterministic]:
-    Source: 'src/shake/../api.rs', lines 45:0-48:1
+    Source: 'src/shake/../api.rs', lines 46:0-49:1
     Visibility: public -/
 def shake.api.sign_deterministic
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8078,7 +8104,7 @@ def shake.api.sign_deterministic
   shake.slh.slh_sign p m ctx sk pk_seed
 
 /-- [slhdsa::sets::shake_128s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -8088,7 +8114,7 @@ def sets.shake_128s.sign_deterministic
   shake.api.sign_deterministic 16#usize sets.shake_128s.params.PARAMS m ctx s
 
 /-- [slhdsa::shake::api::verify]:
-    Source: 'src/shake/../api.rs', lines 51:0-53:1
+    Source: 'src/shake/../api.rs', lines 52:0-54:1
     Visibility: public -/
 def shake.api.verify
   (N : Std.Usize) (p : params.Params) (m : Slice Std.U8) (sig : Slice Std.U8)
@@ -8098,7 +8124,7 @@ def shake.api.verify
   shake.slh.slh_verify N p m sig ctx pk
 
 /-- [slhdsa::sets::shake_128s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8109,7 +8135,7 @@ def sets.shake_128s.verify
   shake.api.verify 16#usize sets.shake_128s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_128s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -8122,7 +8148,7 @@ def sets.shake_128s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_128s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -8135,13 +8161,13 @@ def sets.shake_128s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_128s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_128s.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_128s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.secret_keys_equal
   (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
@@ -8150,7 +8176,7 @@ def sets.shake_128s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_128s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -8160,7 +8186,7 @@ def sets.shake_128s.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::shake_128s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.pkcs8_encode
   (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
@@ -8173,7 +8199,7 @@ def sets.shake_128s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_128s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -8186,7 +8212,7 @@ def sets.shake_128s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_128s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -8196,7 +8222,7 @@ def sets.shake_128s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_128s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.spki_encode
   (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
@@ -8208,7 +8234,7 @@ def sets.shake_128s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_128s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 def sets.shake_128s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -8222,34 +8248,34 @@ def sets.shake_128s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_128s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::sets::shake_128s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_128s.params.N
 
 /-- [slhdsa::sets::shake_128s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_128s.params.N
 
 /-- [slhdsa::sets::shake_128s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_128s.params.N
 
 /-- [slhdsa::sets::shake_128s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.SIG_BYTES : Result Std.Usize := do
@@ -8268,7 +8294,7 @@ def sets.shake_128s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_128s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -8278,7 +8304,7 @@ def sets.shake_128s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_128s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 213:0-215:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128s.params.SPKI_BYTES : Result Std.Usize := do
@@ -8288,13 +8314,13 @@ def sets.shake_128s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_128f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.PARAMS : params.Params := params.SHA2_128F
 
 /-- [slhdsa::sets::shake_128f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.slh_keygen_internal
   (sk_seed : Array Std.U8 16#usize) (sk_prf : Array Std.U8 16#usize)
@@ -8313,7 +8339,7 @@ def sets.shake_128f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_128f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -8324,7 +8350,7 @@ def sets.shake_128f.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_128f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::shake_128f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 32#usize) :
@@ -8334,7 +8360,7 @@ def sets.shake_128f.slh_verify_internal
   shake.slh.slh_verify_internal 16#usize sets.shake_128f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::shake_128f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -8345,7 +8371,7 @@ def sets.shake_128f.slh_sign
   shake.slh.slh_sign sets.shake_128f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_128f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8356,7 +8382,7 @@ def sets.shake_128f.slh_verify
   shake.slh.slh_verify 16#usize sets.shake_128f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_128f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.keygen
   (seeds : Array Std.U8 48#usize) (sk : Array Std.U8 64#usize)
@@ -8373,7 +8399,7 @@ def sets.shake_128f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_128f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.public_key
   (sk : Array Std.U8 64#usize) : Result (Array Std.U8 32#usize) := do
@@ -8384,7 +8410,7 @@ def sets.shake_128f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::shake_128f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize)
@@ -8395,7 +8421,7 @@ def sets.shake_128f.sign
   shake.api.sign sets.shake_128f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_128f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -8405,7 +8431,7 @@ def sets.shake_128f.sign_deterministic
   shake.api.sign_deterministic 16#usize sets.shake_128f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::shake_128f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8416,7 +8442,7 @@ def sets.shake_128f.verify
   shake.api.verify 16#usize sets.shake_128f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_128f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -8429,7 +8455,7 @@ def sets.shake_128f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_128f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -8442,13 +8468,13 @@ def sets.shake_128f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_128f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_128f.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_128f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.secret_keys_equal
   (a : Array Std.U8 64#usize) (b : Array Std.U8 64#usize) : Result Bool := do
@@ -8457,7 +8483,7 @@ def sets.shake_128f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_128f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -8467,7 +8493,7 @@ def sets.shake_128f.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::shake_128f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.pkcs8_encode
   (sk : Array Std.U8 64#usize) (out : Array Std.U8 84#usize) :
@@ -8480,7 +8506,7 @@ def sets.shake_128f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_128f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 64#usize) :
@@ -8493,7 +8519,7 @@ def sets.shake_128f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_128f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -8503,7 +8529,7 @@ def sets.shake_128f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_128f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.spki_encode
   (pk : Array Std.U8 32#usize) : Result (Array Std.U8 50#usize) := do
@@ -8515,7 +8541,7 @@ def sets.shake_128f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_128f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 def sets.shake_128f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 32#usize)) := do
@@ -8529,34 +8555,34 @@ def sets.shake_128f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_128f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.N : Std.Usize := 16#usize
 
 /-- [slhdsa::sets::shake_128f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_128f.params.N
 
 /-- [slhdsa::sets::shake_128f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_128f.params.N
 
 /-- [slhdsa::sets::shake_128f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_128f.params.N
 
 /-- [slhdsa::sets::shake_128f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.SIG_BYTES : Result Std.Usize := do
@@ -8575,7 +8601,7 @@ def sets.shake_128f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_128f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -8585,7 +8611,7 @@ def sets.shake_128f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_128f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 216:0-218:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_128f.params.SPKI_BYTES : Result Std.Usize := do
@@ -8595,13 +8621,13 @@ def sets.shake_128f.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_192s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.PARAMS : params.Params := params.SHA2_192S
 
 /-- [slhdsa::sets::shake_192s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.slh_keygen_internal
   (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
@@ -8620,7 +8646,7 @@ def sets.shake_192s.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_192s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -8631,7 +8657,7 @@ def sets.shake_192s.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_192s.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::shake_192s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
@@ -8641,7 +8667,7 @@ def sets.shake_192s.slh_verify_internal
   shake.slh.slh_verify_internal 24#usize sets.shake_192s.params.PARAMS m sig s
 
 /-- [slhdsa::sets::shake_192s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -8652,7 +8678,7 @@ def sets.shake_192s.slh_sign
   shake.slh.slh_sign sets.shake_192s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_192s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8663,7 +8689,7 @@ def sets.shake_192s.slh_verify
   shake.slh.slh_verify 24#usize sets.shake_192s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_192s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.keygen
   (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
@@ -8680,7 +8706,7 @@ def sets.shake_192s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_192s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.public_key
   (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
@@ -8691,7 +8717,7 @@ def sets.shake_192s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::shake_192s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -8702,7 +8728,7 @@ def sets.shake_192s.sign
   shake.api.sign sets.shake_192s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_192s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -8712,7 +8738,7 @@ def sets.shake_192s.sign_deterministic
   shake.api.sign_deterministic 24#usize sets.shake_192s.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::shake_192s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8723,7 +8749,7 @@ def sets.shake_192s.verify
   shake.api.verify 24#usize sets.shake_192s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_192s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
@@ -8736,7 +8762,7 @@ def sets.shake_192s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_192s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -8749,13 +8775,13 @@ def sets.shake_192s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_192s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_192s.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_192s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.secret_keys_equal
   (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
@@ -8764,7 +8790,7 @@ def sets.shake_192s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_192s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -8774,7 +8800,7 @@ def sets.shake_192s.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::shake_192s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.pkcs8_encode
   (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
@@ -8787,7 +8813,7 @@ def sets.shake_192s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_192s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -8800,7 +8826,7 @@ def sets.shake_192s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_192s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -8810,7 +8836,7 @@ def sets.shake_192s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_192s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.spki_encode
   (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
@@ -8822,7 +8848,7 @@ def sets.shake_192s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_192s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 def sets.shake_192s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -8836,34 +8862,34 @@ def sets.shake_192s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_192s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.N : Std.Usize := 24#usize
 
 /-- [slhdsa::sets::shake_192s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_192s.params.N
 
 /-- [slhdsa::sets::shake_192s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_192s.params.N
 
 /-- [slhdsa::sets::shake_192s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_192s.params.N
 
 /-- [slhdsa::sets::shake_192s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.SIG_BYTES : Result Std.Usize := do
@@ -8882,7 +8908,7 @@ def sets.shake_192s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_192s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -8892,7 +8918,7 @@ def sets.shake_192s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_192s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 219:0-221:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192s.params.SPKI_BYTES : Result Std.Usize := do
@@ -8902,13 +8928,13 @@ def sets.shake_192s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_192f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.PARAMS : params.Params := params.SHA2_192F
 
 /-- [slhdsa::sets::shake_192f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.slh_keygen_internal
   (sk_seed : Array Std.U8 24#usize) (sk_prf : Array Std.U8 24#usize)
@@ -8927,7 +8953,7 @@ def sets.shake_192f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_192f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -8938,7 +8964,7 @@ def sets.shake_192f.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_192f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::shake_192f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 48#usize) :
@@ -8948,7 +8974,7 @@ def sets.shake_192f.slh_verify_internal
   shake.slh.slh_verify_internal 24#usize sets.shake_192f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::shake_192f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -8959,7 +8985,7 @@ def sets.shake_192f.slh_sign
   shake.slh.slh_sign sets.shake_192f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_192f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -8970,7 +8996,7 @@ def sets.shake_192f.slh_verify
   shake.slh.slh_verify 24#usize sets.shake_192f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_192f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.keygen
   (seeds : Array Std.U8 72#usize) (sk : Array Std.U8 96#usize)
@@ -8987,7 +9013,7 @@ def sets.shake_192f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_192f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.public_key
   (sk : Array Std.U8 96#usize) : Result (Array Std.U8 48#usize) := do
@@ -8998,7 +9024,7 @@ def sets.shake_192f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::shake_192f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize)
@@ -9009,7 +9035,7 @@ def sets.shake_192f.sign
   shake.api.sign sets.shake_192f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_192f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -9019,7 +9045,7 @@ def sets.shake_192f.sign_deterministic
   shake.api.sign_deterministic 24#usize sets.shake_192f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::shake_192f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9030,7 +9056,7 @@ def sets.shake_192f.verify
   shake.api.verify 24#usize sets.shake_192f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_192f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 96#usize)) := do
@@ -9043,7 +9069,7 @@ def sets.shake_192f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_192f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -9056,13 +9082,13 @@ def sets.shake_192f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_192f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_192f.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_192f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.secret_keys_equal
   (a : Array Std.U8 96#usize) (b : Array Std.U8 96#usize) : Result Bool := do
@@ -9071,7 +9097,7 @@ def sets.shake_192f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_192f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.PKCS8_PREFIX : Array Std.U8 20#usize :=
@@ -9081,7 +9107,7 @@ def sets.shake_192f.PKCS8_PREFIX : Array Std.U8 20#usize :=
     ]
 
 /-- [slhdsa::sets::shake_192f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.pkcs8_encode
   (sk : Array Std.U8 96#usize) (out : Array Std.U8 116#usize) :
@@ -9094,7 +9120,7 @@ def sets.shake_192f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_192f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 96#usize) :
@@ -9107,7 +9133,7 @@ def sets.shake_192f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_192f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -9117,7 +9143,7 @@ def sets.shake_192f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_192f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.spki_encode
   (pk : Array Std.U8 48#usize) : Result (Array Std.U8 66#usize) := do
@@ -9129,7 +9155,7 @@ def sets.shake_192f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_192f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 def sets.shake_192f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 48#usize)) := do
@@ -9143,34 +9169,34 @@ def sets.shake_192f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_192f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.N : Std.Usize := 24#usize
 
 /-- [slhdsa::sets::shake_192f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_192f.params.N
 
 /-- [slhdsa::sets::shake_192f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_192f.params.N
 
 /-- [slhdsa::sets::shake_192f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_192f.params.N
 
 /-- [slhdsa::sets::shake_192f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.SIG_BYTES : Result Std.Usize := do
@@ -9189,7 +9215,7 @@ def sets.shake_192f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_192f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -9199,7 +9225,7 @@ def sets.shake_192f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_192f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 222:0-224:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_192f.params.SPKI_BYTES : Result Std.Usize := do
@@ -9209,13 +9235,13 @@ def sets.shake_192f.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_256s::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.PARAMS : params.Params := params.SHA2_256S
 
 /-- [slhdsa::sets::shake_256s::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.slh_keygen_internal
   (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
@@ -9234,7 +9260,7 @@ def sets.shake_256s.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_256s::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9245,7 +9271,7 @@ def sets.shake_256s.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_256s.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::shake_256s::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
@@ -9255,7 +9281,7 @@ def sets.shake_256s.slh_verify_internal
   shake.slh.slh_verify_internal 32#usize sets.shake_256s.params.PARAMS m sig s
 
 /-- [slhdsa::sets::shake_256s::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9266,7 +9292,7 @@ def sets.shake_256s.slh_sign
   shake.slh.slh_sign sets.shake_256s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_256s::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9277,7 +9303,7 @@ def sets.shake_256s.slh_verify
   shake.slh.slh_verify 32#usize sets.shake_256s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_256s::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.keygen
   (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
@@ -9294,7 +9320,7 @@ def sets.shake_256s.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_256s::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.public_key
   (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
@@ -9305,7 +9331,7 @@ def sets.shake_256s.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::shake_256s::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9316,7 +9342,7 @@ def sets.shake_256s.sign
   shake.api.sign sets.shake_256s.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_256s::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -9326,7 +9352,7 @@ def sets.shake_256s.sign_deterministic
   shake.api.sign_deterministic 32#usize sets.shake_256s.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::shake_256s::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9337,7 +9363,7 @@ def sets.shake_256s.verify
   shake.api.verify 32#usize sets.shake_256s.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_256s::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
@@ -9350,7 +9376,7 @@ def sets.shake_256s.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_256s::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -9363,13 +9389,13 @@ def sets.shake_256s.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_256s::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_256s.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_256s::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.secret_keys_equal
   (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
@@ -9378,7 +9404,7 @@ def sets.shake_256s.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_256s::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.PKCS8_PREFIX : Array Std.U8 22#usize :=
@@ -9388,7 +9414,7 @@ def sets.shake_256s.PKCS8_PREFIX : Array Std.U8 22#usize :=
     ]
 
 /-- [slhdsa::sets::shake_256s::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.pkcs8_encode
   (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
@@ -9401,7 +9427,7 @@ def sets.shake_256s.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_256s::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -9414,7 +9440,7 @@ def sets.shake_256s.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_256s::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -9424,7 +9450,7 @@ def sets.shake_256s.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_256s::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.spki_encode
   (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
@@ -9436,7 +9462,7 @@ def sets.shake_256s.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_256s::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 def sets.shake_256s.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -9450,34 +9476,34 @@ def sets.shake_256s.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_256s::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.N : Std.Usize := 32#usize
 
 /-- [slhdsa::sets::shake_256s::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_256s.params.N
 
 /-- [slhdsa::sets::shake_256s::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_256s.params.N
 
 /-- [slhdsa::sets::shake_256s::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_256s.params.N
 
 /-- [slhdsa::sets::shake_256s::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.SIG_BYTES : Result Std.Usize := do
@@ -9496,7 +9522,7 @@ def sets.shake_256s.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_256s::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.PKCS8_BYTES : Result Std.Usize := do
@@ -9506,7 +9532,7 @@ def sets.shake_256s.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_256s::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 225:0-227:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256s.params.SPKI_BYTES : Result Std.Usize := do
@@ -9516,13 +9542,13 @@ def sets.shake_256s.params.SPKI_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_256f::params::PARAMS]
-    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 20:16-20:81; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.PARAMS : params.Params := params.SHA2_256F
 
 /-- [slhdsa::sets::shake_256f::slh_keygen_internal]:
-    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 40:12-49:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.slh_keygen_internal
   (sk_seed : Array Std.U8 32#usize) (sk_prf : Array Std.U8 32#usize)
@@ -9541,7 +9567,7 @@ def sets.shake_256f.slh_keygen_internal
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_256f::slh_sign_internal]:
-    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 54:12-56:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.slh_sign_internal
   (m : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9552,7 +9578,7 @@ def sets.shake_256f.slh_sign_internal
   shake.slh.slh_sign_internal sets.shake_256f.params.PARAMS m s addrnd
 
 /-- [slhdsa::sets::shake_256f::slh_verify_internal]:
-    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 59:12-61:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.slh_verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Array Std.U8 64#usize) :
@@ -9562,7 +9588,7 @@ def sets.shake_256f.slh_verify_internal
   shake.slh.slh_verify_internal 32#usize sets.shake_256f.params.PARAMS m sig s
 
 /-- [slhdsa::sets::shake_256f::slh_sign]:
-    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 65:12-67:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.slh_sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9573,7 +9599,7 @@ def sets.shake_256f.slh_sign
   shake.slh.slh_sign sets.shake_256f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_256f::slh_verify]:
-    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 70:12-72:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.slh_verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9584,7 +9610,7 @@ def sets.shake_256f.slh_verify
   shake.slh.slh_verify 32#usize sets.shake_256f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_256f::keygen]:
-    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 85:12-87:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.keygen
   (seeds : Array Std.U8 96#usize) (sk : Array Std.U8 128#usize)
@@ -9601,7 +9627,7 @@ def sets.shake_256f.keygen
   ok (sk1, pk1)
 
 /-- [slhdsa::sets::shake_256f::public_key]:
-    Source: 'src/sets.rs', lines 90:12-94:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 91:12-95:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.public_key
   (sk : Array Std.U8 128#usize) : Result (Array Std.U8 64#usize) := do
@@ -9612,7 +9638,7 @@ def sets.shake_256f.public_key
   ok (to_slice_mut_back s2)
 
 /-- [slhdsa::sets::shake_256f::sign]:
-    Source: 'src/sets.rs', lines 97:12-99:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 98:12-100:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize)
@@ -9623,7 +9649,7 @@ def sets.shake_256f.sign
   shake.api.sign sets.shake_256f.params.PARAMS m ctx s addrnd
 
 /-- [slhdsa::sets::shake_256f::sign_deterministic]:
-    Source: 'src/sets.rs', lines 102:12-104:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 103:12-105:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.sign_deterministic
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -9633,7 +9659,7 @@ def sets.shake_256f.sign_deterministic
   shake.api.sign_deterministic 32#usize sets.shake_256f.params.PARAMS m ctx s
 
 /-- [slhdsa::sets::shake_256f::verify]:
-    Source: 'src/sets.rs', lines 107:12-109:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 108:12-110:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -9644,7 +9670,7 @@ def sets.shake_256f.verify
   shake.api.verify 32#usize sets.shake_256f.params.PARAMS m sig ctx s
 
 /-- [slhdsa::sets::shake_256f::secret_key_from]:
-    Source: 'src/sets.rs', lines 119:12-126:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 121:12-128:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.secret_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 128#usize)) := do
@@ -9657,7 +9683,7 @@ def sets.shake_256f.secret_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_256f::public_key_from]:
-    Source: 'src/sets.rs', lines 129:12-136:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 132:12-139:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.public_key_from
   (bytes : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -9670,13 +9696,13 @@ def sets.shake_256f.public_key_from
   else ok none
 
 /-- [slhdsa::sets::shake_256f::signature_len_ok]:
-    Source: 'src/sets.rs', lines 139:12-141:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 142:12-144:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.signature_len_ok (bytes : Slice Std.U8) : Result Bool := do
   encoding.signature_len_ok sets.shake_256f.params.PARAMS bytes
 
 /-- [slhdsa::sets::shake_256f::secret_keys_equal]:
-    Source: 'src/sets.rs', lines 144:12-146:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 147:12-149:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.secret_keys_equal
   (a : Array Std.U8 128#usize) (b : Array Std.U8 128#usize) : Result Bool := do
@@ -9685,7 +9711,7 @@ def sets.shake_256f.secret_keys_equal
   encoding.secret_keys_equal s s1
 
 /-- [slhdsa::sets::shake_256f::PKCS8_PREFIX]
-    Source: 'src/sets.rs', lines 112:12-112:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 113:12-113:74; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.PKCS8_PREFIX : Array Std.U8 22#usize :=
@@ -9695,7 +9721,7 @@ def sets.shake_256f.PKCS8_PREFIX : Array Std.U8 22#usize :=
     ]
 
 /-- [slhdsa::sets::shake_256f::pkcs8_encode]:
-    Source: 'src/sets.rs', lines 149:12-151:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 152:12-154:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.pkcs8_encode
   (sk : Array Std.U8 128#usize) (out : Array Std.U8 150#usize) :
@@ -9708,7 +9734,7 @@ def sets.shake_256f.pkcs8_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_256f::pkcs8_decode]:
-    Source: 'src/sets.rs', lines 156:12-158:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 159:12-161:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.pkcs8_decode
   (der : Slice Std.U8) (sk : Array Std.U8 128#usize) :
@@ -9721,7 +9747,7 @@ def sets.shake_256f.pkcs8_decode
   ok (b, sk1)
 
 /-- [slhdsa::sets::shake_256f::SPKI_PREFIX]
-    Source: 'src/sets.rs', lines 114:12-114:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 115:12-115:75; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.SPKI_PREFIX : Array Std.U8 18#usize :=
@@ -9731,7 +9757,7 @@ def sets.shake_256f.SPKI_PREFIX : Array Std.U8 18#usize :=
     ]
 
 /-- [slhdsa::sets::shake_256f::spki_encode]:
-    Source: 'src/sets.rs', lines 161:12-165:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 164:12-168:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.spki_encode
   (pk : Array Std.U8 64#usize) : Result (Array Std.U8 82#usize) := do
@@ -9743,7 +9769,7 @@ def sets.shake_256f.spki_encode
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::sets::shake_256f::spki_decode]:
-    Source: 'src/sets.rs', lines 169:12-176:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 172:12-179:13; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 def sets.shake_256f.spki_decode
   (der : Slice Std.U8) : Result (Option (Array Std.U8 64#usize)) := do
@@ -9757,34 +9783,34 @@ def sets.shake_256f.spki_decode
   else ok none
 
 /-- [slhdsa::sets::shake_256f::params::N]
-    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 22:16-22:40; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.N : Std.Usize := 32#usize
 
 /-- [slhdsa::sets::shake_256f::params::SK_BYTES]
-    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 24:16-24:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.SK_BYTES : Result Std.Usize :=
   4#usize * sets.shake_256f.params.N
 
 /-- [slhdsa::sets::shake_256f::params::PK_BYTES]
-    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 23:16-23:50; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.PK_BYTES : Result Std.Usize :=
   2#usize * sets.shake_256f.params.N
 
 /-- [slhdsa::sets::shake_256f::params::SEED_BYTES]
-    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 26:16-26:52; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.SEED_BYTES : Result Std.Usize :=
   3#usize * sets.shake_256f.params.N
 
 /-- [slhdsa::sets::shake_256f::params::SIG_BYTES]
-    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 27:16-29:111; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.SIG_BYTES : Result Std.Usize := do
@@ -9803,7 +9829,7 @@ def sets.shake_256f.params.SIG_BYTES : Result Std.Usize := do
   i4 + i11
 
 /-- [slhdsa::sets::shake_256f::params::PKCS8_BYTES]
-    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 32:16-32:84; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.PKCS8_BYTES : Result Std.Usize := do
@@ -9813,7 +9839,7 @@ def sets.shake_256f.params.PKCS8_BYTES : Result Std.Usize := do
   i + i1
 
 /-- [slhdsa::sets::shake_256f::params::SPKI_BYTES]
-    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 228:0-230:119
+    Source: 'src/sets.rs', lines 33:16-33:82; this code is generated from a macro invocation at: 'src/sets.rs', lines 231:0-233:119
     Visibility: public -/
 @[global_simps, irreducible]
 def sets.shake_256f.params.SPKI_BYTES : Result Std.Usize := do
@@ -10050,7 +10076,7 @@ def shake.adapter.bytes_equal
   else encoding.secret_keys_equal a b
 
 /-- [slhdsa::shake256::shake256]:
-    Source: 'src/shake256.rs', lines 169:0-173:1
+    Source: 'src/shake256.rs', lines 279:0-283:1
     Visibility: public -/
 def shake256.shake256
   (input : Slice Std.U8) (output : Slice Std.U8) : Result (Slice Std.U8) := do
