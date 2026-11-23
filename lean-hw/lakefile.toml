@@ -167,3 +167,6 @@ name = "Segmented"
 
 [[lean_lib]]
 name = "Segmentedapi"
+
+[[lean_lib]]
+name = "Portableplatform"
