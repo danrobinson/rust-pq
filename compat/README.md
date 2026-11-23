@@ -44,6 +44,7 @@ one with the caller's random source.
 | `getrandom` | yes | `generate`, `try_sign_hedged` (needs a target `getrandom` supports) |
 | `zeroize` | no | accepted for upstream compatibility; keys are always wiped |
 | `hw-sha2` | no | passed to `../rust`: SHA-256 on the ARMv8 SHA-256 instructions and SHA-512 on the ARMv8.2 SHA-512 instructions, each where the CPU has them (proved relative to the instruction model of `../lean-hw`) |
+| `platform-sha2` | no | enables the multi-platform backend, including the tested Arm and x86-64 optimizations outside the existing Lean proofs |
 
 `no_std`, always needs an allocator. Built for `aarch64-unknown-none` with
 `--no-default-features` and each of: nothing, `alloc`, `alloc,zeroize`, `hw-sha2`,

@@ -14,6 +14,10 @@ pub fn hash2<const N: usize>(seed: &Seed<N>, adrs: &Adrs, left: &[u8; N], right:
 
 /// Algorithm 9, `xmss_node`: the node at height `z`, index `i`.
 pub fn xmss_node<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+    if matches!(N, 16 | 24 | 32) && (2..=4).contains(&z) && crate::sha256::x86::avx512_available() {
+        return wide::batch_root(sk_seed, i, z, seed, adrs);
+    }
     if z == 0 {
         wots_pk_gen::<N>(sk_seed, seed, adrs.with_type(WOTS_HASH).with_keypair(i))
     } else {
@@ -86,3 +90,6 @@ pub fn xmss_pk_from_sig<const N: usize>(
     let node = wots_pk_from_sig::<N>(sig, m, seed, adrs.with_type(WOTS_HASH).with_keypair(idx));
     climb::<N>(node, idx, sig, 2 * N + LEN2, p.hp, seed, adrs.with_type(TREE))
 }
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+mod wide;

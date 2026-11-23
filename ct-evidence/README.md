@@ -293,3 +293,17 @@ their own and are attributed by `dladdr` to the nearest preceding symbol.
 * `out/default/`, `out/hw-sha2/` -- raw outputs of the recorded runs
   (`build.txt` records the toolchain and the SHA-256 of every source file of
   the crate under test at build time).
+
+### Linux timing of the x86-64 platform backend
+
+Build `dudect` with `cargo build --release --locked --features platform-sha2 --bin dudect`.
+Linux uses a monotonic `Instant` clock. The measurement pins one logical CPU, keeps public chain ranges fixed and
+includes the harness's positive control. [Platform report](../bench/platforms.md)
+
+```sh
+taskset -c 0 target/release/dudect components --same-prep --seed 11 \
+  --filter 'chain_blocks/n=35|chain_blocks/n=128|CONTROL leaky_loop'
+```
+
+These cases exercise SHA2-128s chain kernels. The existing instruction-trace
+harness and the Lean constant-time proofs have separate coverage.

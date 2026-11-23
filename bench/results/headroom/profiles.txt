@@ -1,0 +1,272 @@
+c5
+sha2_128s sign 32
+    67.34%  [.] slhdsa::sha256::x86::avx512::compress            -      -            
+    25.00%  [.] sha2::sha256::soft::unroll::compress             -      -            
+     3.59%  [.] slhdsa::sha256::x86::avx512::chains::<16>        -      -            
+     1.79%  [.] slhdsa::xmss::wide::batch_root::<16>             -      -            
+sha2_128s verify 32
+    43.84%  [.] slhdsa::sha256::x86::avx512::compress                                                     -      -            
+    38.42%  [.] sha2::sha256::soft::unroll::compress                                                      -      -            
+     6.90%  [.] slhdsa::sha256::x86::avx512::chains::<16>                                                 -      -            
+     2.96%  [.] slhdsa::wots::wide::recover::<16>                                                         -      -            
+     1.35%  [.] slhdsa::fors::fors_pk_from_sig::<16>                                                      -      -            
+sha2_128s verify 1048576
+    92.41%  [.] sha2::sha256::soft::unroll::compress        -      -            
+     5.16%  [.] slhdsa::sha256::x86::avx512::compress       -      -            
+     1.52%  [.] __memmove_evex_unaligned_erms               -      -            
+sha2_128s keygen 32
+    66.38%  [.] slhdsa::sha256::x86::avx512::compress            -      -            
+    25.21%  [.] sha2::sha256::soft::unroll::compress             -      -            
+     5.12%  [.] slhdsa::sha256::x86::avx512::chains::<16>        -      -            
+     1.83%  [.] slhdsa::xmss::wide::batch_root::<16>             -      -            
+sha2_256f sign 32
+    55.18%  [.] slhdsa::sha256::x86::avx512::compress           -      -            
+    24.61%  [.] sha2::sha512::x86_avx2::compress                -      -            
+     7.38%  [.] slhdsa::sha512::x86::compress_parents::<32>     -      -            
+     6.22%  [.] slhdsa::sha256::x86::avx512::chains::<32>       -      -            
+     2.46%  [.] sha2::sha256::soft::unroll::compress            -      -            
+sha2_256f verify 32
+    42.28%  [.] slhdsa::sha256::x86::avx512::compress        -      -            
+    36.84%  [.] sha2::sha512::x86_avx2::compress             -      -            
+     4.93%  [.] slhdsa::sha256::x86::avx512::chains::<32>    -      -            
+     4.80%  [.] slhdsa::sha512::x86::compress_parents::<32>  -      -            
+     4.15%  [.] slhdsa::wots::wide::recover::<32>            -      -            
+sha2_256f verify 1048576
+    87.79%  [.] sha2::sha512::x86_avx2::compress                -      -            
+     5.65%  [.] slhdsa::sha256::x86::avx512::compress           -      -            
+     2.88%  [.] __memmove_evex_unaligned_erms                   -      -            
+     1.61%  [.] slhdsa::sha512::x86::compress_parents::<32>     -      -            
+     1.04%  [.] slhdsa::sha256::x86::avx512::chains::<32>       -      -            
+sha2_256f keygen 32
+    65.28%  [.] slhdsa::sha256::x86::avx512::compress      -      -            
+    25.78%  [.] sha2::sha512::x86_avx2::compress           -      -            
+     6.74%  [.] slhdsa::sha256::x86::avx512::chains::<32>  -      -            
+     1.68%  [.] slhdsa::xmss::wide::batch_root::<32>       -      -            
+
+c8a
+sha2_128s sign 32
+    81.61%  [.] slhdsa::sha256::x86::avx512::compress            -      -            
+     8.31%  [.] slhdsa::sha256::x86::avx512::chains::<16>        -      -            
+     5.67%  [.] sha2::sha256::x86_sha::compress                  -      -            
+     1.89%  [.] slhdsa::xmss::wide::batch_root::<16>             -      -            
+     1.01%  [.] slhdsa::sha256::x86::avx512::fors_parents::<16>  -      -            
+sha2_128s verify 32
+    66.37%  [.] slhdsa::sha256::x86::avx512::compress                                                     -      -            
+    11.55%  [.] sha2::sha256::x86_sha::compress                                                           -      -            
+    11.17%  [.] slhdsa::sha256::x86::avx512::chains::<16>                                                 -      -            
+     2.82%  [.] slhdsa::wots::wide::recover::<16>                                                         -      -            
+     1.54%  [.] slhdsa::fors::fors_pk_from_sig::<16>                                                      -      -            
+     1.03%  [.] slhdsa::hash::thash_pair::<16>                                                            -      -            
+sha2_128s verify 1048576
+    86.81%  [.] sha2::sha256::x86_sha::compress                  -      -            
+     8.17%  [.] slhdsa::sha256::x86::avx512::compress            -      -            
+     2.89%  [.] __memmove_avx512_unaligned_erms                  -      -            
+     1.13%  [.] slhdsa::sha256::x86::avx512::chains::<16>        -      -            
+sha2_128s keygen 32
+    84.89%  [.] slhdsa::sha256::x86::avx512::compress      -      -            
+     6.91%  [.] slhdsa::sha256::x86::avx512::chains::<16>  -      -            
+     6.15%  [.] sha2::sha256::x86_sha::compress            -      -            
+     1.28%  [.] slhdsa::xmss::wide::batch_root::<16>       -      -            
+sha2_256f sign 32
+    62.78%  [.] slhdsa::sha256::x86::avx512::compress           -      -            
+    14.68%  [.] sha2::sha512::x86_avx2::compress                -      -            
+     9.96%  [.] slhdsa::sha512::x86::compress_parents::<32>     -      -            
+     5.90%  [.] slhdsa::sha256::x86::avx512::chains::<32>       -      -            
+sha2_256f verify 32
+    53.35%  [.] slhdsa::sha256::x86::avx512::compress                                                     -      -            
+    25.89%  [.] sha2::sha512::x86_avx2::compress                                                          -      -            
+     8.15%  [.] slhdsa::sha256::x86::avx512::chains::<32>                                                 -      -            
+     3.94%  [.] slhdsa::sha512::x86::compress_parents::<32>                                               -      -            
+     3.15%  [.] slhdsa::wots::wide::recover::<32>                                                         -      -            
+     1.18%  [.] slhdsa::hash::thash_values::<32>                                                          -      -            
+sha2_256f verify 1048576
+    87.52%  [.] sha2::sha512::x86_avx2::compress             -      -            
+     7.49%  [.] slhdsa::sha256::x86::avx512::compress        -      -            
+     1.50%  [.] __memmove_avx512_unaligned_erms              -      -            
+     1.25%  [.] slhdsa::sha256::x86::avx512::chains::<32>    -      -            
+sha2_256f keygen 32
+    73.72%  [.] slhdsa::sha256::x86::avx512::compress      -      -            
+    16.03%  [.] sha2::sha512::x86_avx2::compress           -      -            
+     8.28%  [.] slhdsa::sha256::x86::avx512::chains::<32>  -      -            
+     1.05%  [.] slhdsa::xmss::wide::batch_root::<32>       -      -            
+
+c8i
+sha2_128s sign 32
+    87.70%  [.] slhdsa::sha256::x86::avx512::compress            -      -            
+     5.90%  [.] sha2::sha256::x86_sha::compress                  -      -            
+     4.14%  [.] slhdsa::sha256::x86::avx512::chains::<16>        -      -            
+sha2_128s verify 32
+    70.05%  [.] slhdsa::sha256::x86::avx512::compress                                                     -      -            
+    10.41%  [.] sha2::sha256::x86_sha::compress                                                           -      -            
+     7.87%  [.] slhdsa::sha256::x86::avx512::chains::<16>                                                 -      -            
+     2.41%  [.] slhdsa::wots::wide::recover::<16>                                                         -      -            
+     1.40%  [.] slhdsa::fors::fors_pk_from_sig::<16>                                                      -      -            
+     1.14%  [.] slhdsa::hash::thash_pair::<16>                                                            -      -            
+     1.02%  [.] slhdsa::xmss::xmss_pk_from_sig::<16>                                                      -      -            
+sha2_128s verify 1048576
+    84.18%  [.] sha2::sha256::x86_sha::compress            -      -            
+     9.77%  [.] slhdsa::sha256::x86::avx512::compress      -      -            
+     3.83%  [.] __memmove_avx512_unaligned_erms            -      -            
+     1.11%  [.] slhdsa::sha256::x86::avx512::chains::<16>  -      -            
+sha2_128s keygen 32
+    88.13%  [.] slhdsa::sha256::x86::avx512::compress      -      -            
+     5.05%  [.] sha2::sha256::x86_sha::compress            -      -            
+     4.04%  [.] slhdsa::sha256::x86::avx512::chains::<16>  -      -            
+     1.77%  [.] slhdsa::xmss::wide::batch_root::<16>       -      -            
+sha2_256f sign 32
+    59.87%  [.] slhdsa::sha256::x86::avx512::compress           -      -            
+    20.78%  [.] sha2::sha512::x86_avx2::compress                -      -            
+     8.89%  [.] slhdsa::sha512::x86::compress_parents::<32>     -      -            
+     4.31%  [.] slhdsa::sha256::x86::avx512::chains::<32>       -      -            
+     1.31%  [.] slhdsa::sha512::parents::parents::<32>          -      -            
+     1.18%  [.] slhdsa::sha256::x86::chains::<32>               -      -            
+     1.05%  [.] slhdsa::xmss::wide::batch_root::<32>            -      -            
+sha2_256f verify 32
+    51.24%  [.] slhdsa::sha256::x86::avx512::compress         -      -            
+    30.20%  [.] sha2::sha512::x86_avx2::compress              -      -            
+     6.01%  [.] slhdsa::sha256::x86::avx512::chains::<32>     -      -            
+     4.18%  [.] slhdsa::sha512::x86::compress_parents::<32>   -      -            
+     2.88%  [.] slhdsa::wots::wide::recover::<32>             -      -            
+     1.05%  [.] slhdsa::util::base_2b                         -      -            
+sha2_256f verify 1048576
+    90.27%  [.] sha2::sha512::x86_avx2::compress             -      -            
+     6.08%  [.] slhdsa::sha256::x86::avx512::compress        -      -            
+sha2_256f keygen 32
+    73.04%  [.] slhdsa::sha256::x86::avx512::compress        -      -            
+    17.93%  [.] sha2::sha512::x86_avx2::compress             -      -            
+     6.02%  [.] slhdsa::sha256::x86::avx512::chains::<32>    -      -            
+     1.70%  [.] slhdsa::xmss::wide::batch_root::<32>         -      -            
+
+c6g
+sha2_128s sign 32
+    92.29%  [.] slhdsa::sha256::hw::chain_all::<16>  -      -            
+     2.10%  [.] slhdsa::hash::thash_values::<16>     -      -            
+     2.10%  [.] slhdsa::sha256::hw::compress_block   -      -            
+     1.17%  [.] slhdsa::fors::fors_batch::<16>       -      -            
+sha2_128s verify 32
+    77.18%  [.] slhdsa::sha256::hw::chain_all::<16>         -      -            
+     7.89%  [.] slhdsa::sha256::hw::compress_block          -      -            
+     2.55%  [.] slhdsa::hash::thash_values::<16>            -      -            
+     1.82%  [.] slhdsa::wots::wots_pk_from_sig::<16>        -      -            
+     1.70%  [.] slhdsa::hash::thash_pair::<16>              -      -            
+     1.58%  [.] slhdsa::fors::fors_pk_from_sig::<16>        -      -            
+     1.46%  [.] slhdsa::util::base_2b                       -      -            
+sha2_128s verify 1048576
+    77.52%  [.] sha2::sha256::aarch64_sha2::compress     -      -            
+    14.05%  [.] slhdsa::sha256::hw::chain_all::<16>      -      -            
+     5.50%  [.] __GI___memcpy_simd                       -      -            
+     1.05%  [.] slhdsa::sha256::hw::compress_block       -      -            
+sha2_128s keygen 32
+    92.68%  [.] slhdsa::sha256::hw::chain_all::<16>  -      -            
+     2.88%  [.] slhdsa::sha256::hw::compress_block   -      -            
+     1.32%  [.] slhdsa::hash::thash_values::<16>     -      -            
+sha2_256f sign 32
+    52.96%  [.] slhdsa::sha256::hw::chain_all::<32>   -      -            
+    40.73%  [.] sha2::sha512::soft::unroll::compress  -      -            
+     2.40%  [.] slhdsa::hash::thash_pair::<32>        -      -            
+     1.89%  [.] slhdsa::fors::fors_batch::<32>        -      -            
+sha2_256f verify 32
+    51.53%  [.] slhdsa::sha256::hw::chain_all::<32>         -      -            
+    40.69%  [.] sha2::sha512::soft::unroll::compress        -      -            
+     1.79%  [.] slhdsa::hash::thash_pair::<32>              -      -            
+     1.02%  [.] slhdsa::util::base_2b                       -      -            
+sha2_256f verify 1048576
+    87.17%  [.] sha2::sha512::soft::unroll::compress  -      -            
+     9.74%  [.] slhdsa::sha256::hw::chain_all::<32>   -      -            
+     1.72%  [.] __GI___memcpy_simd                    -      -            
+sha2_256f keygen 32
+    79.59%  [.] slhdsa::sha256::hw::chain_all::<32>   -      -            
+    17.35%  [.] sha2::sha512::soft::unroll::compress  -      -            
+
+c8g
+sha2_128s sign 32
+    91.92%  [.] slhdsa::sha256::hw::chain_all::<16>  -      -            
+     2.58%  [.] slhdsa::hash::thash_values::<16>     -      -            
+     1.99%  [.] slhdsa::fors::fors_batch::<16>       -      -            
+     1.87%  [.] slhdsa::sha256::hw::compress_block   -      -            
+sha2_128s verify 32
+    75.09%  [.] slhdsa::sha256::hw::chain_all::<16>                                                       -      -            
+     9.29%  [.] slhdsa::sha256::hw::compress_block                                                        -      -            
+     6.32%  [.] slhdsa::hash::thash_values::<16>                                                          -      -            
+     2.85%  [.] slhdsa::hash::thash_pair::<16>                                                            -      -            
+     1.36%  [.] slhdsa::fors::fors_pk_from_sig::<16>                                                      -      -            
+sha2_128s verify 1048576
+    81.75%  [.] sha2::sha256::aarch64_sha2::compress    -      -            
+    12.36%  [.] slhdsa::sha256::hw::chain_all::<16>     -      -            
+     3.48%  [.] __GI___memcpy_sve                       -      -            
+sha2_128s keygen 32
+    91.36%  [.] slhdsa::sha256::hw::chain_all::<16>  -      -            
+     3.58%  [.] slhdsa::hash::thash_values::<16>     -      -            
+     2.84%  [.] slhdsa::sha256::hw::compress_block   -      -            
+sha2_256f sign 32
+    67.96%  [.] slhdsa::sha256::hw::chain_all::<32>             -      -            
+    17.64%  [.] slhdsa::sha512::paired::compress_parents::<32>  -      -            
+     6.23%  [.] sha2::sha512::aarch64_sha3::compress            -      -            
+     3.11%  [.] slhdsa::sha512::parents::parents::<32>          -      -            
+     1.82%  [.] slhdsa::hash::thash_values::<32>                -      -            
+sha2_256f verify 32
+    63.72%  [.] slhdsa::sha256::hw::chain_all::<32>                                                       -      -            
+    11.31%  [.] slhdsa::sha512::paired::compress_parents::<32>                                            -      -            
+    10.79%  [.] sha2::sha512::aarch64_sha3::compress                                                      -      -            
+     4.55%  [.] slhdsa::hash::thash_values::<32>                                                          -      -            
+     2.21%  [.] slhdsa::sha512::parents::path_parents::<32>                                               -      -            
+     1.43%  [.] slhdsa::wots::wots_pk_from_sig::<32>                                                      -      -            
+sha2_256f verify 1048576
+    76.27%  [.] sha2::sha512::aarch64_sha3::compress            -      -            
+    15.90%  [.] slhdsa::sha256::hw::chain_all::<32>             -      -            
+     3.11%  [.] slhdsa::sha512::paired::compress_parents::<32>  -      -            
+     1.99%  [.] __GI___memcpy_sve                               -      -            
+sha2_256f keygen 32
+    86.22%  [.] slhdsa::sha256::hw::chain_all::<32>             -      -            
+     7.28%  [.] sha2::sha512::aarch64_sha3::compress            -      -            
+     3.25%  [.] slhdsa::hash::thash_values::<32>                -      -            
+     1.43%  [.] slhdsa::wots::sk_blocks::<32>                   -      -            
+
+c5 final
+sha2_128s sign 32
+    82.98%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<16, 640>  -      -            
+     9.94%  [.] slhdsa::sha256::x86::avx512::compress                   -      -            
+     2.98%  [.] slhdsa::sha256::stream::scalar                          -      -            
+     1.12%  [.] slhdsa::sha256::x86::avx512::chains::<16>               -      -            
+sha2_128s verify 32
+    41.41%  [.] slhdsa::sha256::x86::avx512::recover::<16>                                                -      -            
+    40.66%  [.] slhdsa::sha256::stream::scalar                                                            -      -            
+     6.06%  [.] slhdsa::sha256::x86::avx512::chains::<16>                                                 -      -            
+     4.17%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<16, 640>                                    -      -            
+     1.26%  [.] slhdsa::fors::fors_pk_from_sig::<16>                                                      -      -            
+sha2_128s verify 1048576
+    90.87%  [.] slhdsa::sha256::stream::prescheduled                    -      -            
+     3.72%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<16, 640>  -      -            
+     1.92%  [.] __memset_evex_unaligned_erms                            -      -            
+     1.58%  [.] slhdsa::sha256::stream::scalar                          -      -            
+sha2_128s keygen 32
+    93.45%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<16, 640>  -      -            
+     3.02%  [.] slhdsa::sha256::stream::scalar                          -      -            
+     2.77%  [.] slhdsa::sha256::x86::avx512::compress                   -      -            
+sha2_256f sign 32
+    47.33%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<32, 2304>  -      -            
+    13.43%  [.] slhdsa::sha256::x86::avx512::chains::<32>                -      -            
+    13.30%  [.] slhdsa::sha512::stream::scalar                           -      -            
+    11.34%  [.] slhdsa::sha512::x86::compress                            -      -            
+     6.52%  [.] slhdsa::sha256::x86::avx512::compress                    -      -            
+     1.69%  [.] slhdsa::sha256::stream::scalar                           -      -            
+     1.69%  [.] slhdsa::sha256::x86::avx512::recover::<32>               -      -            
+     1.30%  [.] slhdsa::sha512::x86::compress_parents::<32>              -      -            
+     1.04%  [.] slhdsa::sha512::parents::parents_active::<32>            -      -            
+sha2_256f verify 32
+    49.02%  [.] slhdsa::sha256::x86::avx512::recover::<32>               -      -            
+    38.33%  [.] slhdsa::sha512::stream::scalar                           -      -            
+     3.26%  [.] slhdsa::sha512::x86::compress                            -      -            
+     1.56%  [.] slhdsa::sha256::x86::avx512::chains::<32>                -      -            
+     1.30%  [.] slhdsa::util::base_2b                                    -      -            
+     1.04%  [.] slhdsa::hash::thash_values::<32>                         -      -            
+sha2_256f verify 1048576
+    82.45%  [.] slhdsa::sha512::stream::prescheduled                     -      -            
+     7.21%  [.] slhdsa::sha256::x86::avx512::recover::<32>               -      -            
+     6.61%  [.] slhdsa::sha512::stream::scalar                           -      -            
+     1.56%  [.] __memset_evex_unaligned_erms                             -      -            
+sha2_256f keygen 32
+    92.32%  [.] slhdsa::sha256::x86::avx512::wots_endpoints::<32, 2304>  -      -            
+     4.04%  [.] slhdsa::sha512::x86::compress                            -      -            
+     2.08%  [.] slhdsa::sha512::stream::scalar                           -      -            
+

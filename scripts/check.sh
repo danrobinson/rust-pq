@@ -22,6 +22,13 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 
 (cd rust && cargo test --release)
 (cd rust && cargo test --release --features hw-sha2)
+# Runtime-dispatched SHA kernels and the adapter on each supported architecture.
+case "$(uname -m)" in
+  x86_64|aarch64|arm64)
+    (cd rust && cargo test --locked --release --features platform-sha2)
+    (cd compat && cargo test --locked --release --features platform-sha2)
+    ;;
+esac
 
 # The default build: no opaque function, no axiom.
 ./scripts/extract.sh > /dev/null 2>&1 || { echo "extraction FAILED"; exit 1; }

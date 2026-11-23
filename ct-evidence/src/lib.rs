@@ -70,7 +70,9 @@ pub const OFF_OUT_FLAG: usize = 8000;
 /// Whether the crate under test was built with its `hw-sha2` feature.
 pub const HW_SHA2: bool = cfg!(feature = "hw-sha2");
 pub fn variant() -> &'static str {
-    if HW_SHA2 {
+    if cfg!(feature = "platform-sha2") {
+        "platform-sha2"
+    } else if HW_SHA2 {
         "hw-sha2"
     } else {
         "default"

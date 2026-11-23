@@ -38,7 +38,7 @@ fi
 rustc --version
 
 echo "== The recorded calls against this processor's instructions"
-(cd rust && cargo test --release --features hw-sha2 --lib arm_wrappers_match_the_record -- --exact --nocapture \
+(cd rust && ARM_VECTORS_REQUIRE_ALL=1 cargo test --release --features hw-sha2 --lib arm_wrappers_match_the_record -- --exact --nocapture \
     sha256::hw::vectors::arm_wrappers_match_the_record)
 
 echo "== All tests of the crate on the hardware backend"

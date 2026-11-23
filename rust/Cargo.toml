@@ -11,8 +11,17 @@ name = "slhdsa"
 # Opt-in, off by default: compute SHA-256 with the ARMv8 SHA-256 instructions
 # and SHA-512 with the ARMv8.2 SHA-512 instructions, each when the CPU has
 # them (tested separately at run time; AArch64; a no-op elsewhere). Adds the
-# crate's only `unsafe` code (modules `sha256::hw` and `sha512::hw`).
+# Arm `unsafe` code (modules `sha256::hw` and `sha512::hw`).
 hw-sha2 = []
+# Multi-platform tree and message kernels. The Lean proofs cover the default and hw-sha2 configurations.
+platform-sha2 = ["hw-sha2", "dep:sha2-platform", "dep:cpufeatures"]
+
+[target.'cfg(all(target_arch = "x86_64", target_feature = "sse2"))'.dependencies]
+cpufeatures = { version = "0.3", optional = true }
+sha2-platform = { package = "sha2", version = "0.11", default-features = false, optional = true }
+
+[target.'cfg(all(target_arch = "aarch64", target_endian = "little"))'.dependencies]
+sha2-platform = { package = "sha2", version = "0.11", default-features = false, optional = true }
 
 [dev-dependencies]
 serde_json = "1"
@@ -24,3 +33,7 @@ hmac = "0.12"
 upstream = { package = "slh-dsa", version = "=0.2.0-rc.5" }
 signature = "3"
 pkcs8 = { version = "0.11", features = ["alloc"] }
+
+[[bench]]
+name = "platforms"
+harness = false

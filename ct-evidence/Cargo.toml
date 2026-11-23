@@ -17,6 +17,7 @@ rustc-demangle = "0.1"
 # instructions, four hash chains at a time). `./run.sh` builds both variants,
 # the default one into target/ and this one into target-hw/.
 hw-sha2 = ["slhdsa/hw-sha2"]
+platform-sha2 = ["hw-sha2", "slhdsa/platform-sha2"]
 
 # Deliberately NO [profile.release] overrides: slhdsa is compiled with exactly
 # the default cargo release profile (opt-level=3, no LTO, codegen-units=16,

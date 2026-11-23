@@ -1,0 +1,14 @@
+c5: core 88 passed, adapter 51 passed (including doctests).
+  AddressSanitizer: 11 compression and chain tests passed.
+  target-cpu=native: 88 core and 51 adapter tests passed.
+c8i: core 88 passed, adapter 51 passed (including doctests).
+  AddressSanitizer: 11 compression and chain tests passed.
+c8a: core 88 passed, adapter 51 passed (including doctests).
+  AddressSanitizer: 11 compression and chain tests passed.
+c6g: core 91 passed, adapter 51 passed (including doctests).
+c8g: core 91 passed, adapter 51 passed (including doctests).
+apple: core 91 passed, adapter 51 passed (including doctests).
+QEMU Nehalem on c8a (no SHA-NI or AVX2): 11 kernel tests passed.
+Arm instruction record: c6g SHA-256 subset (1745), c8g and apple both subsets (2961).
+Aeneas: portable and hw-sha2 translations compared byte-for-byte equal to be142b7.
+cargo check --release --locked: aarch64-unknown-none, x86_64-unknown-none, wasm32-unknown-unknown; core and no-default-features adapter with platform-sha2.

@@ -70,8 +70,7 @@ generation reveal nothing, and that those of signing reveal only what can be com
 public key, the message and the signature, for every set
 ([lean/CT_STATUS.md](lean/CT_STATUS.md)).
 
-All of this is proved for both ways of building the crate: the default build ([lean](lean)), and
-the build with the opt-in `hw-sha2` feature ([lean-hw](lean-hw)), which runs SHA-256 and
+These proofs cover the default build ([lean](lean)) and the build with the opt-in `hw-sha2` feature ([lean-hw](lean-hw)), which runs SHA-256 and
 SHA-512 on the processor's SHA-256 and SHA-512 instructions. The second proof rests on one thing
 the first does not, a model of those instructions; see [below](#opt-in-hardware-sha-2-hw-sha2).
 
@@ -124,6 +123,21 @@ The comparisons with OpenSSL 4.1, `fips205`, slhdsa-c and PQClean in [bench/RESU
 were measured on the single-set crate (SLH-DSA-SHA2-128s; for 128s the six-set crate is within
 2.5% of it). `bench/run.sh` now benchmarks the six-set crate's 128s functions under the same
 names, and `cargo bench --bench sets` in `bench/` the six sets against RustCrypto.
+
+### Multi-platform acceleration (`platform-sha2`)
+
+Enable `platform-sha2` on either the core crate or the compatibility crate.
+On x86-64 with SSE2 it dispatches to 16-way AVX-512 SHA-256 chains, SHA-NI pairs,
+eight-way AVX2, or the portable chain loop. AVX-512 also batches independent FORS
+parents and WOTS public-key hashes. On little-endian AArch64 it uses the hardware
+chain kernel, pairs independent parents where SHA-512 instructions are available,
+and uses RustCrypto compression for streaming messages. Long messages can be signed
+and verified without copying the entire message to prepend its context.
+
+**Proof coverage.** The existing Lean refinement and constant-time proofs cover the
+default and `hw-sha2` configurations. The additional `platform-sha2` paths have
+hardware, differential and interoperability tests. [Latest measurements](bench/headroom.md)
+· [Wide x86 benchmarks](bench/wide-x86.md) · [Original cross-platform comparison](bench/platforms.md)
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)
 

@@ -50,6 +50,37 @@ fn digest_leaf(p: &Params, digest: &[u8]) -> u32 {
     (to_int(&digest[lo..lo + p.leaf_bytes()]) & ((1u64 << p.hp) - 1)) as u32
 }
 
+// These bodies also expand in the segmented-message entry points. Keeping
+// the expansion here preserves the MIR translated by the existing proofs.
+macro_rules! sign_digest {
+    ($N:ident, $p:ident, $sk_seed:ident, $pk_seed:ident, $r:ident, $digest:ident) => {{
+        let idx_tree = digest_tree($p, &$digest);
+        let idx_leaf = digest_leaf($p, &$digest);
+        let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
+        let seed = seed_ctx::<$N>(&$pk_seed);
+        let md = &$digest[0..$p.md_bytes()];
+        let sig_fors = fors_sign::<$N>($p, md, &$sk_seed, &seed, adrs);
+        let pk_fors = fors_pk_from_sig::<$N>($p, &sig_fors, md, &seed, adrs);
+        let sig_ht = ht_sign::<$N>($p, &pk_fors, &$sk_seed, &seed, idx_tree, idx_leaf);
+        let mut sig: Vec<u8> = Vec::new();
+        sig.extend_from_slice(&$r);
+        sig.extend_from_slice(&sig_fors);
+        sig.extend_from_slice(&sig_ht);
+        sig
+    }};
+}
+
+macro_rules! verify_digest {
+    ($N:ident, $p:ident, $pk_seed:ident, $pk_root:ident, $sig:ident, $sig_bytes:ident, $fors_end:ident, $digest:ident) => {{
+        let idx_tree = digest_tree($p, &$digest);
+        let idx_leaf = digest_leaf($p, &$digest);
+        let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
+        let seed = seed_ctx::<$N>(&$pk_seed);
+        let pk_fors = fors_pk_from_sig::<$N>($p, &$sig[$N..$fors_end], &$digest[0..$p.md_bytes()], &seed, adrs);
+        ht_verify::<$N>($p, &pk_fors, &$sig[$fors_end..$sig_bytes], &seed, idx_tree, idx_leaf, &$pk_root)
+    }};
+}
+
 /// Algorithm 19, `slh_sign_internal`. `addrnd` is the per-signature
 /// randomness; pass `PK.seed` for the deterministic variant.
 #[inline(never)]
@@ -60,19 +91,7 @@ pub fn slh_sign_internal<const N: usize>(p: &Params, m: &[u8], sk: &[u8], addrnd
     let pk_root = block::<N>(sk, 3);
     let r = prf_msg::<N>(&sk_prf, addrnd, m);
     let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, m);
-    let idx_tree = digest_tree(p, &digest);
-    let idx_leaf = digest_leaf(p, &digest);
-    let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
-    let seed = seed_ctx::<N>(&pk_seed);
-    let md = &digest[0..p.md_bytes()];
-    let sig_fors = fors_sign::<N>(p, md, &sk_seed, &seed, adrs);
-    let pk_fors = fors_pk_from_sig::<N>(p, &sig_fors, md, &seed, adrs);
-    let sig_ht = ht_sign::<N>(p, &pk_fors, &sk_seed, &seed, idx_tree, idx_leaf);
-    let mut sig: Vec<u8> = Vec::new();
-    sig.extend_from_slice(&r);
-    sig.extend_from_slice(&sig_fors);
-    sig.extend_from_slice(&sig_ht);
-    sig
+    sign_digest!(N, p, sk_seed, pk_seed, r, digest)
 }
 
 /// Algorithm 20, `slh_verify_internal`.
@@ -86,12 +105,7 @@ pub fn slh_verify_internal<const N: usize>(p: &Params, m: &[u8], sig: &[u8], pk:
     let pk_root = block::<N>(pk, 1);
     let r = block::<N>(sig, 0);
     let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, m);
-    let idx_tree = digest_tree(p, &digest);
-    let idx_leaf = digest_leaf(p, &digest);
-    let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
-    let seed = seed_ctx::<N>(&pk_seed);
-    let pk_fors = fors_pk_from_sig::<N>(p, &sig[N..fors_end], &digest[0..p.md_bytes()], &seed, adrs);
-    ht_verify::<N>(p, &pk_fors, &sig[fors_end..sig_bytes], &seed, idx_tree, idx_leaf, &pk_root)
+    verify_digest!(N, p, pk_seed, pk_root, sig, sig_bytes, fors_end, digest)
 }
 
 /// `M' = toByte(0, 1) ‖ toByte(|ctx|, 1) ‖ ctx ‖ M` (Algorithms 22 and 24).
@@ -110,6 +124,10 @@ pub fn slh_sign<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8], add
     if ctx.len() > 255 {
         return None;
     }
+    #[cfg(feature = "platform-sha2")]
+    if m.len() >= 1024 {
+        return Some(message::sign(p, m, ctx, sk, addrnd));
+    }
     let mp = with_context(m, ctx);
     Some(slh_sign_internal::<N>(p, &mp, sk, addrnd))
 }
@@ -119,6 +137,13 @@ pub fn slh_verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], 
     if ctx.len() > 255 {
         return false;
     }
+    #[cfg(feature = "platform-sha2")]
+    if m.len() >= 1024 {
+        return message::verify::<N>(p, m, ctx, sig, pk);
+    }
     let mp = with_context(m, ctx);
     slh_verify_internal::<N>(p, &mp, sig, pk)
 }
+
+#[cfg(feature = "platform-sha2")]
+mod message;

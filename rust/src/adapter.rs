@@ -61,6 +61,12 @@ pub fn sign_into<const N: usize>(
         return false;
     }
     let rand = randomizer::<N>(sk, has_addrnd, addrnd);
+    #[cfg(feature = "platform-sha2")]
+    if m.len() >= 1024 {
+        let s = crate::slh::slh_sign(p, m, ctx, sk, &rand).unwrap();
+        sig.copy_from_slice(&s);
+        return true;
+    }
     let mp = with_context(m, ctx);
     let s = slh_sign_internal::<N>(p, &mp, sk, &rand);
     sig.copy_from_slice(&s);

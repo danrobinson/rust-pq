@@ -24,6 +24,10 @@
 //! [`sha256`]'s `hw` and [`sha512`]'s `hw`, written in the Aeneas subset like
 //! the rest except for small functions that wrap the intrinsics. SHA-512 is
 //! used by the sets with n = 24 and 32.
+//!
+//! `platform-sha2` adds runtime-selected x86 and Arm compression and batched
+//! tree kernels, as well as segmented hashing of long messages. These paths
+//! are differentially tested. The proofs cover the default and `hw-sha2` builds.
 #![cfg_attr(not(feature = "hw-sha2"), forbid(unsafe_code))]
 #![cfg_attr(feature = "hw-sha2", deny(unsafe_code))]
 #![no_std]

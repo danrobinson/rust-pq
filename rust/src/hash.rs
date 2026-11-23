@@ -82,9 +82,9 @@ pub fn trunc512<const N: usize>(st: &[u64; 8]) -> [u8; N] {
 /// block from `state`. With the seed state that is `F` (or `PRF`) at that
 /// address, so a run of steps is Algorithm 5, `chain`. For `n = 16` it is
 /// also `H` on a [`pair_block`].
-///
 /// The blocks do not depend on each other, which is what the opt-in
 /// `hw-sha2` backend uses: it works on four of them at once.
+#[cfg(not(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2")))]
 pub fn chain_blocks<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u32], end: &[u32]) {
     #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
     {
@@ -402,3 +402,7 @@ pub fn h_msg<const N: usize>(p: &Params, r: &[u8; N], pk_seed: &[u8; N], pk_root
         mgf1_sha512(&seed, p.m)
     }
 }
+
+/// Iterated single-block hashing using the x86-64 platform backend.
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+pub use crate::sha256::x86::chain_blocks;

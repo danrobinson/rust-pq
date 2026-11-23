@@ -1,0 +1,27 @@
+Release validation for platform-sha2
+
+EC2 us-east-1, rustc 1.100.0, GCC 11.5.0, OpenSSL 3.5.8.
+Regular release core and compatibility suites, target-cpu=native core suite, and AddressSanitizer core --lib --test compress.
+
+host   core  adapter  native-core  ASan
+c5       91       51           91    14
+c8a      91       51           91    14
+c8i      91       51           91    14
+c6g      93       51           93    16
+c8g      93       51           93    16
+
+Apple M5 Ultra: release platform core 93, adapter 51, portable core 88, hw-sha2 core 91. All passed.
+Arm hardware wrapper replay on Apple matched 2,961 recorded calls.
+
+QEMU user-mode fallback tests on C8a, --test compress, release platform-sha2:
+  Haswell: 11 passed
+  Nehalem: 11 passed
+  max,-avx512f,-avx512bw: 11 passed
+
+The final release suites include the NIST ACVP, interoperability, boundary and adapter cases.
+The aggregate counts include version- and CPU-conditional tests. A runtime-dispatch test may return early if its ISA is absent.
+Apple and Graviton exercise Arm dispatch. C5 and both C8 x86 processors exercise AVX-512. QEMU covers reduced feature sets.
+The final default and hw-sha2 translations reproduced the checked-in function definitions, with differences confined to source-location comments.
+Both generated Funs.lean files also passed Lean elaboration against the corresponding cached project dependencies.
+The additional platform-sha2 kernels have no Lean refinement or constant-time proof.
+Timing measurements and positive controls are recorded in timing.txt.
