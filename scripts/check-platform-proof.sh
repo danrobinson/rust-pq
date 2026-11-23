@@ -1020,3 +1020,5 @@ import Shakeabs.Top
 LEAN
 )
 grep -Fx "'slhdsa.PlatformShake.shake256_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/shakeabs-axioms"
+
+python3 "$root/scripts/check-arm-api-proof.py"

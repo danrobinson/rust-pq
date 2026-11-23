@@ -152,3 +152,6 @@ name = "Keccakscalar"
 
 [[lean_lib]]
 name = "X86key"
+
+[[lean_lib]]
+name = "Armplatform"
