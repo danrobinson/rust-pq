@@ -89,20 +89,29 @@ def signExt (v bits : Nat) : Int :=
 def addr (a : Nat) (off : Int) := (((a : Int)+off) % 2^64).toNat
 def baseVal (s : State) (r : Nat) := if r == 31 then some s.sp else natVal (g s r)
 
-def transfer (c : Config) (s : State) (ld vec : Bool) (r a k : Nat) : Option State := do
+abbrev Regions := List (Nat × Nat) × List (Nat × Nat)
+
+def permitted (c : Config) (s : State) (ld : Bool) (a k : Nat) (regions : Option Regions) :=
+  match regions with
+  | none => if ld then readable c s a k else writable c s a k
+  | some (reads,writes) => region a k s.sp (stack-s.sp) ||
+      (if ld then reads ++ writes else writes).any (fun (p,len) => region a k p len)
+
+def transfer (c : Config) (s : State) (ld vec : Bool) (r a k : Nat)
+    (regions : Option Regions := none) : Option State := do
   guard (a%4 == 0)
   if ld then
-    guard (readable c s a k && r != 31)
+    guard (permitted c s true a k regions && r != 31)
     let v ← read s.m a k
     return if vec then {s with q := s.q.insert r v}
            else put s r (if k == 4 then v ++ [0] else v)
   else
-    guard (writable c s a k)
+    guard (permitted c s false a k regions)
     let v := if vec then q s r else if r == 31 then num 0 else g s r
     guard (v.length*4 ≥ k)
     return {s with m := write s.m a (v.take (k/4))}
 
-def step (c : Config) (s : State) (w : Nat) : Option State := do
+def step (c : Config) (s : State) (w : Nat) (regions : Option Regions := none) : Option State := do
   guard (w < 2^32)
   let pc := s.pc
   let s := {s with pc := pc+4}
@@ -154,8 +163,8 @@ def step (c : Config) (s : State) (w : Nat) : Option State := do
       let a := addr a (k * signExt (w/2^15%128) 7)
       let r := w/1024%32
       guard (!ld || d != r)
-      let s ← transfer c s ld (k==16) d a k
-      transfer c s ld (k==16) r (a+k) k
+      let s ← transfer c s ld (k==16) d a k regions
+      transfer c s ld (k==16) r (a+k) k regions
     else
       let mode := mask 0xff800c00
       let kind := mask 0xff800000
@@ -163,7 +172,7 @@ def step (c : Config) (s : State) (w : Nat) : Option State := do
       guard (scaled || mode == 0x3c800000 || mode == 0xf8000000 || mode == 0xb8000000)
       let k : Nat := if w/2^24%256 < 128 then 16 else if w/2^24%256 < 192 then 4 else 8
       let off := if scaled then (imm*k : Int) else signExt (w/4096%512) 9
-      transfer c s ld (k==16) d (addr a off) k
+      transfer c s ld (k==16) d (addr a off) k regions
 
 def seedContext (c : Config) := match c.seed with
   | .shake => block c.n 2

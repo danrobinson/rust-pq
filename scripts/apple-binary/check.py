@@ -18,6 +18,7 @@ from image import Image, require
 from permute import decode
 from reject import certificate as rejection_certificate
 from keygen_witness import certificate as keygen_certificate
+from signer_witness import certificate as signer_certificate
 from verify_length_witness import certificate as verify_length_certificate
 from pure_sign import (
     verify as pure_sign_certificate,
@@ -337,6 +338,7 @@ if __name__ == "__main__":
             "Spec.ArmSha3Binary",
             "Spec.ArmSignReject",
             "Spec.ArmKeygen",
+            "Spec.ArmInternalSigner",
             "Spec.ArmVerifyLength",
             "Spec.ArmRateBlocks",
             "Spec.SlhDsa",
@@ -385,7 +387,7 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
-        for witness in (rejection_certificate, keygen_certificate, verify_length_certificate):
+        for witness in (rejection_certificate, keygen_certificate, signer_certificate, verify_length_certificate):
             subprocess.run(
                 ["lake", "env", "lean", "--stdin"],
                 cwd=ROOT / "lean",
