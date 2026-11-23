@@ -136,6 +136,18 @@ def main():
           HypertreeSig(sig.iter().cloned().map(Option::unwrap).collect())
         """,
         )
+        exact(
+            "hypertree", "ht_verify",
+            """
+          let mut adrs=WotsHash::default(); adrs.tree_adrs_low.set(idx_tree);
+          let mut root=self.xmss_pk_from_sig(idx_leaf,&sig.0[0],m,&adrs);
+          for j in 1..Self::D::U32{
+            idx_leaf=(idx_tree&((1<<Self::HPrime::U32)-1)).try_into().expect("H' is less than 32");
+            idx_tree>>=Self::HPrime::U64; adrs.layer_adrs.set(j); adrs.tree_adrs_low.set(idx_tree);
+            root=self.xmss_pk_from_sig(idx_leaf,&sig.0[j as usize],&root,&adrs);}
+          &root==pk_root
+        """,
+        )
         exact("signing_key", "try_sign", "self.try_multipart_sign(&[msg])")
         exact(
             "signing_key",
