@@ -58,6 +58,10 @@ macro_rules! bytes {
         let raw: [u8; $n] = kani::any();
         let a = hybrid_array::Array::<u8, Size>(raw);
         assert_eq!(a.as_slice(), &raw);
+        assert_eq!(
+            <hybrid_array::Array<u8, Size> as AsRef<[u8]>>::as_ref(&a),
+            &raw
+        );
         let p = PkSeed(a);
         let s = SkSeed(a);
         let k = SkPrf(a);
@@ -65,7 +69,7 @@ macro_rules! bytes {
         assert_eq!(s.as_ref(), &raw);
         assert_eq!(k.as_ref(), &raw);
         let mut output = hybrid_array::Array::<u8, Size>::default();
-        output.as_mut_slice().copy_from_slice(&raw);
+        core::ops::DerefMut::deref_mut(&mut output).copy_from_slice(&raw);
         assert_eq!(output.0, raw);
     }};
 }
