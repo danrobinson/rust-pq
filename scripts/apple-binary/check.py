@@ -17,6 +17,7 @@ from hypertree import verify as verify_hypertree
 from image import Image, require
 from permute import decode
 from reject import certificate as rejection_certificate
+from keygen_witness import certificate as keygen_certificate
 from pure_sign import (
     verify as pure_sign_certificate,
     mutation_tests as pure_sign_mutations,
@@ -334,6 +335,7 @@ if __name__ == "__main__":
             "Spec.ShakeWords",
             "Spec.ArmSha3Binary",
             "Spec.ArmSignReject",
+            "Spec.ArmKeygen",
             "Spec.ArmRateBlocks",
             "Spec.SlhDsa",
         ],
@@ -389,6 +391,14 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
+        subprocess.run(
+            ["lake", "env", "lean", "--stdin"],
+            cwd=ROOT / "lean",
+            env=env,
+            input=keygen_certificate(image),
+            text=True,
+            check=True,
+        )
         bulk_audit = subprocess.run(
             ["lake", "env", "lean", "--stdin"],
             cwd=ROOT / "lean",
@@ -414,6 +424,7 @@ if __name__ == "__main__":
             bulk_mutation_tests(image)
     if args.self_test:
         print("Rejected seventeen mutations in the linked image")
+    print("Verified 12 SHAKE keygen replays and four negative keygen controls")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
     print(
         "Verified valid pure-sign framing, randomness and result forwarding for all twelve sets, including SHA-2 segmented dispatch"
