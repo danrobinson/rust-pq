@@ -353,16 +353,23 @@ sha256.x86.avx512.write_words
 sha256.x86.avx512_available
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Parent256.Gather && lake env lean --stdin > "$scratch/tree-axioms.log" <<'LEAN'
-import Parent256.Gather
+(cd lean-hw && lake build Parent256.Batch && lake env lean --stdin > "$scratch/tree-axioms.log" <<'LEAN'
+import Parent256.Batch
 #print axioms slhdsa.X86.Parent.pair_block
 #print axioms slhdsa.X86.Parent.words_spec
 #print axioms slhdsa.X86.Parent.initial_spec
 #print axioms slhdsa.X86.Parent.first_four
 #print axioms slhdsa.X86.Parent.gather_pairs
 #print axioms slhdsa.X86.Parent.shuffled_pairs
+#print axioms slhdsa.X86.Parent.read_child
+#print axioms slhdsa.X86.Parent.pack_children
+#print axioms slhdsa.X86.Parent.child_word
+#print axioms slhdsa.X86.Parent.serialize_children
+#print axioms slhdsa.X86.Parent.message_layout
+#print axioms slhdsa.X86.Parent.prepare_spec
+#print axioms slhdsa.X86.Parent.hash_batch_spec
 LEAN
 )
-for name in pair_block words_spec initial_spec first_four gather_pairs shuffled_pairs; do
+for name in pair_block words_spec initial_spec first_four gather_pairs shuffled_pairs read_child pack_children child_word serialize_children message_layout prepare_spec hash_batch_spec; do
   grep -Fx "'slhdsa.X86.Parent.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/tree-axioms.log"
 done

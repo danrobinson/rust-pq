@@ -38,7 +38,7 @@ def leafAddress (a : Spec.Adrs) (i : Nat) : Spec.Adrs := { a with word2 := 0, wo
 theorem template_eq (a : LeafRust.address.Adrs) (sk : Spec.Bytes) :
     template a sk = padFrom 64 ((prfAddress (adrsS (addressOf a)) 0).compress ++ sk) := rfl
 
-private theorem index_word (head tail : Spec.Bytes) (hlen : head.length = 18) (idx : Word) (k : Nat) :
+theorem index_word (head tail : Spec.Bytes) (hlen : head.length = 18) (idx : Word) (k : Nat) :
     prfWords (fun t => word (head ++ (Spec.toByte 0 4 ++ tail)) (4*t)) idx k =
       word (head ++ (Spec.toByte idx.toNat 4 ++ tail)) (4*k) := by
   have hzero : (Spec.toByte 0 4).length = 4 := by simp [Spec.toByte]
