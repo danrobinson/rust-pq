@@ -1,11 +1,16 @@
 #[allow(dead_code)]
 pub(crate) fn ROOT(
-    pk: &crate::PkSeed<typenum::U<PARAM_N>>, sk: &crate::SkSeed<typenum::U<PARAM_N>>,
-    prf: &crate::SkPrf<typenum::U<PARAM_N>>, rand: &hybrid_array::Array<u8,typenum::U<PARAM_N>>,
-    data: &hybrid_array::Array<u8,typenum::U<PARAM_N>>, wots: &crate::address::WotsHash,
-    tree: &crate::address::HashTree, fors: &crate::address::ForsTree, roots: &crate::address::ForsRoots,
-    ends: &hybrid_array::Array<hybrid_array::Array<u8,typenum::U<PARAM_N>>,typenum::U<PARAM_LEN>>,
-    nodes: &hybrid_array::Array<hybrid_array::Array<u8,typenum::U<PARAM_N>>,typenum::U<PARAM_K>>,
+    pk: &crate::PkSeed<typenum::U<PARAM_N>>,
+    sk: &crate::SkSeed<typenum::U<PARAM_N>>,
+    prf: &crate::SkPrf<typenum::U<PARAM_N>>,
+    rand: &hybrid_array::Array<u8, typenum::U<PARAM_N>>,
+    data: &hybrid_array::Array<u8, typenum::U<PARAM_N>>,
+    wots: &crate::address::WotsHash,
+    tree: &crate::address::HashTree,
+    fors: &crate::address::ForsTree,
+    roots: &crate::address::ForsRoots,
+    ends: &hybrid_array::Array<hybrid_array::Array<u8, typenum::U<PARAM_N>>, typenum::U<PARAM_LEN>>,
+    nodes: &hybrid_array::Array<hybrid_array::Array<u8, typenum::U<PARAM_N>>, typenum::U<PARAM_K>>,
     parts: &[&[&[u8]]],
 ) {
     use crate::hashes::HashSuite;
