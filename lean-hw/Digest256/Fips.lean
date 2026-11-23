@@ -3,7 +3,7 @@ import Slhdsa.Proofs.Hash
 open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Digest
 
-private theorem ser_byte (words : List (BitVec 32)) (k : Nat) (hk : k < 4*words.length) :
+theorem ser_byte (words : List (BitVec 32)) (k : Nat) (hk : k < 4*words.length) :
     (ser words)[k]! = words[k/4]!.extractLsb' (8*(3-k%4)) 8 := by
   induction words generalizing k with
   | nil => simp at hk
