@@ -202,6 +202,9 @@ name = "Kneonperm"
 name = "Kxdispatch"
 
 [[lean_lib]]
+name = "Kappleone"
+
+[[lean_lib]]
 name = "Kadisp"
 
 [[lean_lib]]
