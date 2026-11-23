@@ -19,7 +19,7 @@ extract() {
     opaque=slhdsa::sha512::hw::arm
     proofdir=lean-hw
   fi
-  if [ "$package" = Parent512 ]; then
+  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ]; then
     proofdir=lean-hw
   fi
   mkdir "$scratch/$package"
@@ -140,3 +140,37 @@ import Parent512.Proof
 LEAN
 )
 grep -Fx "'slhdsa.X86.S512.Parents.parents_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parent512-axioms.log"
+
+extract Gather512 GatherRust gather512 --start-from 'crate::sha512::x86::key_digests' \
+  --opaque 'crate::sha256::x86::avx512_available'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m256i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx._mm256_set1_epi32
+core.core_arch.x86.avx._mm256_set_epi32
+core.core_arch.x86.avx2._mm256_mullo_epi32
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_add_epi64
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_mask_i32gather_epi64
+core.core_arch.x86.avx512f._mm512_ror_epi64
+core.core_arch.x86.avx512f._mm512_set1_epi64
+core.core_arch.x86.avx512f._mm512_setzero_si512
+core.core_arch.x86.avx512f._mm512_srli_epi64
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+core.core_arch.x86.sse2._mm_set_epi32
+core.intrinsics.transmute
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.x86.avx512_available
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Gather512.Top && lake env lean --stdin > "$scratch/gather512-axioms.log" <<'LEAN'
+import Gather512.Top
+#print axioms slhdsa.X86.S512.Gather.key_digests_spec
+LEAN
+)
+grep -Fx "'slhdsa.X86.S512.Gather.key_digests_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/gather512-axioms.log"

@@ -6,7 +6,7 @@ open ParentsRust.sha512.x86
 def encoded (words : List (BitVec 64)) := words.flatMap fun w => be (⟨w⟩ : U64)
 def digestWords (d : Array Reg 8#usize) (j : Fin 8) := d.val.map (word64 · j)
 
-private theorem prefix_write (x s : List U8) (i : Nat) (h : i+s.length ≤ x.length) :
+theorem prefix_write (x s : List U8) (i : Nat) (h : i+s.length ≤ x.length) :
     (x.setSlice! i s).take (i+s.length) = x.take i ++ s := by
   simp only [List.setSlice!, min_eq_left (by omega : s.length ≤ x.length-i), List.take_length]
   have he : i+s.length = (x.take i ++ s).length := by simp [List.length_take, min_eq_left (by omega : i ≤ x.length)]
@@ -80,7 +80,7 @@ private theorem store_spec (N : Usize) (orig : Slice (Array U8 N)) (d : Array Re
       simpa [eqn] using hw
   · simp [Written,encoded]
 
-private theorem digest_words (d : Array Reg 8#usize) (j : Fin 8) :
+theorem digest_words (d : Array Reg 8#usize) (j : Fin 8) :
     digestWords d j = stateWords (laneState d j) := by
   unfold digestWords laneState stateWords
   apply List.ext_getElem
