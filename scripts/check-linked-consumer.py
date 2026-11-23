@@ -91,6 +91,7 @@ def main():
             "sha2_tree_hash",
             "sha2_wots",
             "sha2_fors_sign",
+            "sha2_fors_hash",
             "sha2_hash_helpers",
             "mgf",
             "wots_digits",

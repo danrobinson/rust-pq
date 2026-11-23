@@ -46,4 +46,38 @@ def verdict (ops : List Nat) (mem : Memory) (s : State) : Option Word := do
 def root (mem : Memory) (addr : Word) (lanes : Nat) :=
   (List.range lanes).map fun i => mem (addr + BitVec.ofNat 64 (8*i))
 
+abbrev ByteMemory := Word → BitVec 8
+
+private def bits : Nat → Nat
+  | 0 => 0
+  | n+1 => 8 + bits n
+
+private def readLE (m : ByteMemory) (a : Word) : (n : Nat) → BitVec (bits n)
+  | 0 => 0#0
+  | n+1 => m (a + BitVec.ofNat 64 n) ++ readLE m a n
+
+def load64 (m : ByteMemory) (a : Word) : Word := readLE m a 8
+
+def byteSlice (m : ByteMemory) (a : Word) (n : Nat) :=
+  (List.range n).map (fun i => m (a + BitVec.ofNat 64 i))
+
+private theorem join_inj {a b : BitVec u} {x y : BitVec v} :
+    (a ++ x) = (b ++ y) ↔ a = b ∧ x = y := by
+  constructor
+  · intro h
+    exact ⟨by simpa only [BitVec.extractLsb'_append_eq_left] using congrArg (fun t => BitVec.extractLsb' v u t) h,
+           by simpa only [BitVec.extractLsb'_append_eq_right] using congrArg (fun t => BitVec.extractLsb' 0 v t) h⟩
+  · rintro ⟨rfl,rfl⟩; rfl
+
+theorem load64_eq (m : ByteMemory) (a b : Word) :
+    load64 m a = load64 m b ↔ byteSlice m a 8 = byteSlice m b 8 := by
+  suffices allN : ∀ n, readLE m a n = readLE m b n ↔ byteSlice m a n = byteSlice m b n from allN 8
+  intro n
+  induction n with
+  | zero => exact ⟨fun _ => rfl, fun _ => rfl⟩
+  | succ n ih =>
+    change (m (a + BitVec.ofNat 64 n) ++ readLE m a n = m (b + BitVec.ofNat 64 n) ++ readLE m b n) ↔ _
+    rw [@join_inj 8 (bits n) _ _ _ _, ih]
+    simp [byteSlice, List.range_succ, and_comm]
+
 end LinkedArm.RootComparison

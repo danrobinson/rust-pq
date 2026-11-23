@@ -39,6 +39,7 @@ def certificate(image):
                 require(start >= 0, "missing root comparison")
                 ops = ", ".join(hex(w) for w in words[start : end + 1])
                 name = f"{'shake' if shake else 'sha2'}_{width}_{'seg' if segmented else 'ordinary'}"
+                byte_rhs = rhs.replace("(m ", "(load64 m ")
                 lines.extend([
                     f"-- Linked entry {pc:#x}, comparison starts at {pc + 4*start:#x}.",
                     f"theorem {name} (m : Memory) (s : State) :",
@@ -46,6 +47,11 @@ def certificate(image):
                     f"    some (if root m {lhs} {width//8} = root m {rhs} {width//8} then 1 else 0) := by",
                     "  simp [verdict, step, root, base, operand, write, List.range_succ, List.foldlM,",
                     "    Bool.and_assoc, Bool.and_eq_true, and_assoc, BitVec.sub_eq_add_neg, BitVec.add_assoc]",
+                    f"theorem {name}_bytes (m : ByteMemory) (s : State) :",
+                    f"    verdict [{ops}] (load64 m) s =",
+                    f"    some (if byteSlice m {lhs} {width} = byteSlice m {byte_rhs} {width} then 1 else 0) := by",
+                    f"  rw [{name}]",
+                    "  simp [root, List.range_succ, load64_eq, byteSlice, and_assoc, BitVec.add_assoc]",
                 ])
     lines.append("end LinkedRootWitness")
     return "\n".join(lines) + "\n"
