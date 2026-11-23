@@ -173,3 +173,6 @@ name = "Keccakasm"
 
 [[lean_lib]]
 name = "Koriented"
+
+[[lean_lib]]
+name = "Portableplatform"
