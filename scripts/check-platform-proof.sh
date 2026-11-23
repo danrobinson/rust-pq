@@ -19,7 +19,7 @@ extract() {
     opaque=slhdsa::sha512::hw::arm
     proofdir=lean-hw
   fi
-  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ]; then
+  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ] || [ "$package" = Keypadding ]; then
     proofdir=lean-hw
   fi
   mkdir "$scratch/$package"
@@ -31,6 +31,13 @@ extract() {
   for name in Types Funs; do
     cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
   done
+  if [ "$package" = Keypadding ]; then
+    # All operations in this extraction are implemented by Aeneas.
+    for template in "$scratch/$package/"*External_Template.lean; do
+      test ! -e "$template"
+    done
+    return
+  fi
   sed -n 's/^axiom \([^ :]*\).*/\1/p' "$scratch/$package/"*External_Template.lean | LC_ALL=C sort > "$scratch/actual"
 }
 extract Platform PlatformRust platform --start-from 'crate::sha256::x86::avx512::compress' \
@@ -176,4 +183,15 @@ LEAN
 )
 for name in key_digests_spec tweakable_digest_spec; do
   grep -Fx "'slhdsa.X86.S512.Gather.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/gather512-axioms.log"
+done
+
+extract Keypadding PadRust keypadding --start-from 'crate::xmss::wide::prepare_message'
+(cd lean-hw && lake build Keypadding.Proof && lake env lean --stdin > "$scratch/keypadding-axioms.log" <<'LEAN'
+import Keypadding.Proof
+#print axioms slhdsa.X86.Keypadding.prepare_message_spec
+#print axioms slhdsa.X86.Keypadding.padded_endpoints
+LEAN
+)
+for name in prepare_message_spec padded_endpoints; do
+  grep -Fx "'slhdsa.X86.Keypadding.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/keypadding-axioms.log"
 done

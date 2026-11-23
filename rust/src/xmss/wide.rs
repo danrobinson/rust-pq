@@ -38,7 +38,6 @@ fn keys<const N: usize, const G: usize, const L: usize>(
     first: u32,
     roots: &mut [[u8; N]],
 ) {
-    use crate::address::WOTS_PK;
     let len = 2 * N + LEN2;
     for (group, keys) in roots.chunks_mut(G).enumerate() {
         let first = first + (group * G) as u32;
@@ -46,14 +45,7 @@ fn keys<const N: usize, const G: usize, const L: usize>(
         let size = 22 + len * N;
         let block = if N == 16 { 64 } else { 128 };
         for (i, m) in messages.iter_mut().enumerate() {
-            m[..22].copy_from_slice(
-                &adrs
-                    .with_type(WOTS_PK)
-                    .with_keypair(first + i as u32)
-                    .compress(),
-            );
-            m[size] = 0x80;
-            m[L - 2..].copy_from_slice(&(((block + size) * 8) as u16).to_be_bytes());
+            prepare_message(m, adrs, first + i as u32, size, block);
         }
         crate::sha256::x86::wots_endpoints(
             &seed.state,
@@ -68,4 +60,18 @@ fn keys<const N: usize, const G: usize, const L: usize>(
             crate::sha512::x86::key_digests(&seed.state512, &messages[..keys.len()], keys);
         }
     }
+}
+
+#[inline(always)]
+fn prepare_message<const L: usize>(
+    m: &mut [u8; L],
+    adrs: Adrs,
+    keypair: u32,
+    size: usize,
+    block: usize,
+) {
+    use crate::address::WOTS_PK;
+    m[..22].copy_from_slice(&adrs.with_type(WOTS_PK).with_keypair(keypair).compress());
+    m[size] = 0x80;
+    m[L - 2..].copy_from_slice(&(((block + size) * 8) as u16).to_be_bytes());
 }
