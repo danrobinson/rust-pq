@@ -72,25 +72,33 @@ def vector_operations():
 
     check("ZeroHI64ofV128", c.Concat(c.BVV(0, 64), value[63:0]))
     check("Reverse8sIn32_x4", c.Concat(*(value.get_byte(i ^ 3) for i in range(16))))
-    for count in range(256):
-        counts = [(count + 67 * j) % 256 for j in range(4)]
-        # Upper 24 count bits are arbitrary. Every lane receives all low bytes.
-        control = c.Concat(
-            *(c.Concat(c.BVS("ignored", 24), c.BVV(n, 8)) for n in counts)
-        )
-        expected = []
-        for lane, n in enumerate(counts):
-            delta = n if n < 128 else n - 256
-            for bit in range(31, -1, -1):
-                source = bit - delta
-                pos = 32 * (3 - lane) + source
-                expected.append(value[pos:pos] if 0 <= source < 32 else c.BVV(0, 1))
-        check("Sh32Ux4", c.Concat(*expected), control)
+    for width in (16, 32, 64):
+        # Enumerate bits in the *result* and index the original 128-bit input.
+        half = width // 2
+        bits = [(j // half) * width + j % half for j in reversed(range(64))]
+        check(f"NarrowUn{width}to{half}x{128 // width}", c.Concat(*(value[j:j] for j in bits)))
+
+    for width in (32, 64):
+        lanes = 128 // width
+        for count in range(256):
+            counts = [(count + 67 * j) % 256 for j in range(lanes)]
+            # Every low byte occurs in every lane, with arbitrary upper bits.
+            control = c.Concat(
+                *(c.Concat(c.BVS("ignored", width - 8), c.BVV(n, 8)) for n in counts)
+            )
+            expected = []
+            for lane, n in enumerate(counts):
+                delta = n if n < 128 else n - 256
+                for bit in reversed(range(width)):
+                    source = bit - delta
+                    pos = width * (lanes - 1 - lane) + source
+                    expected.append(value[pos:pos] if 0 <= source < width else c.BVV(0, 1))
+            check(f"Sh{width}Ux{lanes}", c.Concat(*expected), control)
 
 
 if __name__ == "__main__":
     memory_regions()
     vector_operations()
     print(
-        "Passed memory-region controls and symbolic checks for all three supplemental VEX operations"
+        "Passed memory-region controls and symbolic checks for all seven supplemental VEX operations"
     )
