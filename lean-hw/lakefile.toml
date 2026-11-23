@@ -182,3 +182,6 @@ name = "Portableplatform"
 
 [[lean_lib]]
 name = "Platformadapter"
+
+[[lean_lib]]
+name = "Rcni"
