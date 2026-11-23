@@ -1,8 +1,7 @@
 //! The drop-in claim, tested: one piece of source, written against the
 //! interface of RustCrypto's `slh-dsa`, is compiled twice, once against that
 //! crate and once against this one, and must produce the same bytes and the
-//! same accept/reject answers at every step, for each of the six SHA-2
-//! parameter sets.
+//! same accept/reject answers at every step, for all twelve pure SLH-DSA sets.
 
 mod common;
 

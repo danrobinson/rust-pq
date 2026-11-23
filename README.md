@@ -1,16 +1,12 @@
 # formal-sig
 
-A Rust implementation of **SLH-DSA with SHA-2** (FIPS 205, the standardised SPHINCS+), all six
-SHA-2 parameter sets (SLH-DSA-SHA2-128s, 128f, 192s, 192f, 256s, 256f), with machine-checked
-proofs, in Lean 4, that the Rust code computes exactly what the standard specifies, that its
-branches and memory accesses do not depend on secrets, and that the scheme it computes is secure
-under named hash assumptions.
-
-All six SHAKE sets also have functional refinement proofs from the Rust
-SHAKE256 implementation through caller-visible RustCrypto signing, verification,
-key generation and key parsing. They pass NIST ACVP vectors and byte-for-byte
-comparisons with RustCrypto. The relational constant-time and unforgeability
-theorems described below cover SHA-2. [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
+A Rust implementation of all twelve pure **SLH-DSA** parameter sets in FIPS 205
+(the standardised SPHINCS+). Lean 4 proofs connect the Rust SHA-2 and SHAKE256
+implementations to caller-visible RustCrypto signing, verification, key generation
+and key parsing. All twelve sets pass NIST ACVP vectors and byte-for-byte
+comparisons with RustCrypto. The six SHA-2 sets also have relational constant-time
+proofs and unforgeability theorems under named hash assumptions.
+[SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
 Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
 lived in a subdirectory beside it. The six-set tree has replaced it; the single-set tree is git
@@ -19,7 +15,7 @@ commit `26aa3d8`. What the single-set tree had and this one does not is listed i
 
 ## What is proven
 
-The crate ([rust](rust)) has one implementation with the hash length `n` as a const generic and
+The SHA-2 core ([rust](rust)) has one implementation with the hash length `n` as a const generic and
 the rest of the parameter set passed at run time, and a module per set (`slhdsa::sha2_128s`, …,
 `slhdsa::sha2_256f`) with fixed-size key types. For each set's functions, as translated to Lean by
 [Aeneas](https://github.com/AeneasVerif/aeneas), [lean/Slhdsa/Theorems.lean](lean/Slhdsa/Theorems.lean)
@@ -73,7 +69,7 @@ well-formed keys), for every valid parameter set.
 
 **Constant time.** [lean/Ct](lean/Ct) proves that the branches and memory accesses of key
 generation reveal nothing, and that those of signing reveal only what can be computed from the
-public key, the message and the signature, for every set
+public key, the message and the signature, for every SHA-2 set
 ([lean/CT_STATUS.md](lean/CT_STATUS.md)).
 
 All of this is proved for both ways of building the crate: the default build ([lean](lean)), and
@@ -81,10 +77,10 @@ the build with the opt-in `hw-sha2` feature ([lean-hw](lean-hw)), which runs SHA
 SHA-512 on the processor's SHA-256 and SHA-512 instructions. The second proof rests on one thing
 the first does not, a model of those instructions; see [below](#opt-in-hardware-sha-2-hw-sha2).
 
-"What the standard specifies" means the Lean transcription in [lean/Spec](lean/Spec): about 700
-lines over lists of bytes (SHA-256, SHA-512, the scheme for any parameter record, the six SHA-2
-rows of FIPS 205 Table 2), depending only on core Lean. The SHA-256, SHA-512 and HMAC inside the
-Rust crate are verified too, so no hash function is assumed correct.
+The proofs use the independent FIPS transcriptions in [lean/Spec](lean/Spec).
+These define SHA-256, SHA-512, SHAKE256 and the SLH-DSA algorithms over lists of
+bytes. The functional proofs cover the hash code inside the Rust crate, including
+the Keccak permutation, SHAKE256 padding and multi-block output.
 
 Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
