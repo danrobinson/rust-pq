@@ -155,10 +155,6 @@ fn check<P: ParameterSet>(name: &str, n: usize) {
         let sig = key.try_sign_with_context(&message, b"", None).unwrap();
         assert_eq!(&sig.to_bytes()[..n], &det_r[..n], "{name}: R is not the HMAC computed here");
         std::hint::black_box(&sig);
-        let sig = key.try_sign_checked(&message, b"", None).unwrap();
-        std::hint::black_box(&sig);
-        let sig = key.try_sign_checked(&message, b"context", Some(&rand)).unwrap();
-        std::hint::black_box(&sig);
         let copy = key.clone();
         let parsed = SigningKey::<P>::try_from(&key.to_bytes()[..]).unwrap();
         drop(key);

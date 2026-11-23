@@ -3,13 +3,14 @@ import Spec
 /-!
 # The SLH-DSA-SHA2-128s specification of the single-set tree
 
-A verbatim copy of the single-set tree's `lean/Spec/SlhDsa.lean` and `lean/Spec/Checked.lean`
-(git `26aa3d8`; the specification that tree's proofs are stated against), in the
-namespace `Spec128` so that it can sit beside the generic `Spec`. Only the
+A verbatim copy of the single-set tree's specification (git `26aa3d8`: `lean/Spec/SlhDsa.lean`,
+and the two key definitions `KeyOk` and `skPk`; the specification that tree's proofs are stated
+against), in the namespace `Spec128` so that it can sit beside the generic `Spec`. Only the
 definitions that do not depend on the parameter set are not copied: `toInt`,
 `base2b` and its loops, the address type and its functions, and SHA-256 /
 HMAC-SHA-256, which are taken from `Spec` (where they are character-for-character
-the same definitions). `Slhdsa/Compat128.lean` proves that the generic
+the same definitions). Definitions of that tree for functions this crate no longer has are
+left out (since 2026-11-22; see `HANDOFF.md`). `Spec/Compat128.lean` proves that the generic
 specification at `Spec.sha2_128s` is this one.
 -/
 
@@ -262,61 +263,7 @@ def slhVerify (msg sig ctx pk : Bytes) : Bool :=
   if ctx.length > 255 then false else slhVerifyInternal (withContext msg ctx) sig pk
 
 
-/-! ## The checked signer (`../lean/Spec/Checked.lean`) -/
-
-
-/-- The FORS public key from the secret seed alone: the roots of the `k`
-trees (`forsNode … i a …`), compressed as in Algorithm 17, line 21. -/
-def forsPkGen (skSeed pkSeed : Bytes) (adrs : Adrs) : Bytes :=
-  let roots := (List.range k).flatMap fun i => forsNode skSeed i a pkSeed adrs
-  T pkSeed { adrs.setTypeAndClear FORS_ROOTS with keypair := adrs.keypair } roots
-
-/-- One layer of the checked hypertree signer. The state is
-`(sig, msgA, msgB, ok, tree, leaf)`: the layer signs `msgA`, recomputes the
-root from that signature with `msgB` as the message (`rootA`), computes the
-root again from the secret seed (`rootB`; on the top layer, `PK.root`), and
-clears `ok` if the two differ. -/
-def htCheckedStep (skSeed pkSeed pkRoot : Bytes)
-    (st : Bytes × Bytes × Bytes × Bool × Nat × Nat) (j : Nat) :
-    Bytes × Bytes × Bytes × Bool × Nat × Nat :=
-  let (sig, msgA, msgB, ok, tree, leaf) := st
-  let adrs := { Spec.Adrs.zero with layer := j, tree := tree }
-  let s := xmssSign msgA skSeed leaf pkSeed adrs
-  let rootA := xmssPkFromSig leaf s msgB pkSeed adrs
-  let rootB := if j + 1 < d then xmssNode skSeed 0 hp pkSeed adrs else pkRoot
-  (sig ++ s, rootA, rootB, ok && rootA == rootB, tree >>> hp, tree % 2 ^ hp)
-
-/-- The checked hypertree signer (`ht_sign_checked`): the signature, and
-whether `mA = mB` and every pair of roots agreed. -/
-def htSignChecked (mA mB skSeed pkSeed : Bytes) (idxTree idxLeaf : Nat) (pkRoot : Bytes) :
-    Bytes × Bool :=
-  let (sig, _, _, ok, _, _) := (List.range d).foldl (htCheckedStep skSeed pkSeed pkRoot)
-    ([], mA, mB, mA == mB, idxTree, idxLeaf)
-  (sig, ok)
-
-/-- The checked signer (`slh_sign_internal_checked`): Algorithm 19, with the
-FORS public key computed both from the FORS signature and from the secret
-seed, and the hypertree signed by `htSignChecked`. -/
-def slhSignInternalChecked (msg sk addrnd : Bytes) : Option Bytes :=
-  let skSeed := block sk 0
-  let skPrf := block sk 1
-  let pkSeed := block sk 2
-  let pkRoot := block sk 3
-  let r := PRFmsg skPrf addrnd msg
-  let digest := Hmsg r pkSeed pkRoot msg
-  let md := digest.take mdBytes
-  let idxTree := digestTree digest
-  let idxLeaf := digestLeaf digest
-  let adrs := { { Spec.Adrs.zero with tree := idxTree }.setTypeAndClear FORS_TREE with keypair := idxLeaf }
-  let sigFors := forsSign md skSeed pkSeed adrs
-  let pkForsA := forsPkFromSig sigFors md pkSeed adrs
-  let pkForsB := forsPkGen skSeed pkSeed adrs
-  let (sigHt, ok) := htSignChecked pkForsA pkForsB skSeed pkSeed idxTree idxLeaf pkRoot
-  if ok then some (r ++ sigFors ++ sigHt) else none
-
-/-- Algorithm 22 on the checked signer (`slh_sign_checked`). -/
-def slhSignChecked (msg ctx sk addrnd : Bytes) : Option Bytes :=
-  if ctx.length > 255 then none else slhSignInternalChecked (withContext msg ctx) sk addrnd
+/-! ## Keys -/
 
 /-- A private key is well formed when its last block is the root that key
 generation (Algorithm 18) derives from its first and third blocks. -/

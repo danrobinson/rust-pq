@@ -1,4 +1,4 @@
-import Spec.Checked
+import Spec.Keys
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Tactic.Ring
 
@@ -7,8 +7,8 @@ import Mathlib.Tactic.Ring
 
 For every valid parameter set (`Params.Valid`, which holds for the six sets of
 Table 2): signatures made with a key verify under it (WOTS+, XMSS, FORS,
-hypertree and SLH-DSA), and the properties of the checked signer of
-`Spec/Checked.lean`.
+hypertree and SLH-DSA), and key generation produces well-formed keys
+(`Spec/Keys.lean`).
 -/
 
 namespace Spec
@@ -359,10 +359,13 @@ theorem fors_tree_correct (p : Params) (hv : p.Valid) (sk pk : Bytes) (adrs : Ad
     split <;> split <;> omega
 
 /-- FORS is correct: the public key recomputed from a signature of `md` is
-the public key computed from the secret seed. -/
+the public key computed from the secret seed (the roots of the `k` trees,
+compressed as in Algorithm 17, line 21). -/
 theorem fors_correct (p : Params) (hv : p.Valid) (md sk pk : Bytes) (adrs : Adrs) :
-    forsPkFromSig p (forsSign p md sk pk adrs) md pk adrs = forsPkGen p sk pk adrs := by
-  unfold forsPkFromSig forsPkGen forsSign
+    forsPkFromSig p (forsSign p md sk pk adrs) md pk adrs =
+      T p pk { adrs.setTypeAndClear FORS_ROOTS with keypair := adrs.keypair }
+        ((List.range p.k).flatMap fun i => forsNode p sk i p.a pk adrs) := by
+  unfold forsPkFromSig forsSign
   refine congrArg (T p pk _) ?_
   apply flatMap_congr'
   intro i hi
@@ -469,72 +472,16 @@ theorem htVerify_htSign (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t l : Nat
         List.take_left' (xmssSign_length p hv _ _ _ _ _)]
     rw [hs]
 
-/-! The checked hypertree signer, against `htSign`. -/
-
-/-- The checked state agrees with `htSign`'s state while `ok` holds. -/
-def HtRel (C : Bytes × Bytes × Bytes × Bool × Nat × Nat) (S : Bytes × Bytes × Nat × Nat) : Prop :=
-  C.2.2.2.2.1 = S.2.2.1 ∧ C.2.2.2.2.2 = S.2.2.2 ∧
-    (C.2.2.2.1 = true → C.1 = S.1 ∧ C.2.1 = S.2.1 ∧ C.2.2.1 = S.2.1)
-
-theorem htRel_foldl (p : Params) (sk pk root : Bytes) :
-    ∀ (l : List Nat) C S, HtRel C S →
-      HtRel (l.foldl (htCheckedStep p sk pk root) C) (l.foldl (htLayer p sk pk) S) := by
-  intro l
-  induction l with
-  | nil => intro C S h; exact h
-  | cons j js ih =>
-    intro C S h
-    apply ih
-    obtain ⟨sig, mA, mB, ok, tree, leaf⟩ := C
-    obtain ⟨sig', root', tree', leaf'⟩ := S
-    obtain ⟨h1, h2, h3⟩ := h
-    simp only at h1 h2 h3
-    subst h1 h2
-    refine ⟨rfl, rfl, ?_⟩
-    intro hok
-    simp only [htCheckedStep, Bool.and_eq_true, beq_iff_eq] at hok
-    obtain ⟨e1, e2, e3⟩ := h3 hok.1
-    subst e1 e2 e3
-    simp only [htCheckedStep, htLayer]
-    simp [hok.2]
-
-theorem htChecked_last (p : Params) (hv : p.Valid) (sk pk root : Bytes)
-    (C : Bytes × Bytes × Bytes × Bool × Nat × Nat) :
-    ((List.range p.d).foldl (htCheckedStep p sk pk root) C).2.2.1 = root := by
-  have hd := hv.d_ge
-  rw [show p.d = (p.d - 1) + 1 by omega, List.range_succ, List.foldl_append]
-  generalize List.foldl (htCheckedStep p sk pk root) C (List.range (p.d - 1)) = st
-  obtain ⟨_, _, _, _, _, _⟩ := st
-  simp [htCheckedStep]
-  omega
-
-/-- When the checked hypertree signer reports agreement, its signature is
-`htSign`'s, and the root `htSign` reaches is the given `PK.root`. -/
-theorem htSignChecked_sound (p : Params) (hv : p.Valid) (mA mB sk pk : Bytes) (t l : Nat) (root : Bytes)
-    (h : (htSignChecked p mA mB sk pk t l root).2 = true) :
-    (htSignChecked p mA mB sk pk t l root).1 = htSign p mA sk pk t l ∧ htRoot p mA sk pk t l = root := by
-  have hrel := htRel_foldl p sk pk root (List.range p.d) ([], mA, mB, mA == mB, t, l) ([], mA, t, l)
-    (by unfold HtRel; simp; exact fun h => h.symm)
-  have hlast := htChecked_last p hv sk pk root ([], mA, mB, mA == mB, t, l)
-  unfold htSignChecked at h ⊢
-  rw [htSign_eq, htRoot]
-  revert h hrel hlast
-  generalize List.foldl (htCheckedStep p sk pk root) ([], mA, mB, mA == mB, t, l) (List.range p.d) = C
-  obtain ⟨_, _, _, _, _, _⟩ := C
-  intro h hrel hlast
-  simp only at h hlast ⊢
-  obtain ⟨_, _, h3⟩ := hrel
-  obtain ⟨e1, _, e3⟩ := h3 h
-  exact ⟨e1, e3.symm.trans hlast⟩
-
 theorem h_div_d (p : Params) (hv : p.Valid) : p.h / p.d = p.hp := by
   rw [hv.h_eq]; exact Nat.mul_div_cancel_left _ (by have := hv.d_ge; omega)
 
-/-- For a well-formed key the checked hypertree signer reports agreement. -/
-theorem htSignChecked_complete (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t l : Nat) (root : Bytes)
+/-- For a well-formed key, the root that `htSign` reaches is `PK.root`: each
+layer's root is the root of the XMSS tree it signs with, and the top tree is
+tree 0 of layer `d − 1`. -/
+theorem htRoot_keyOk (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t l : Nat) (root : Bytes)
     (ht : t < 2 ^ (p.h - p.h / p.d)) (hl : l < 2 ^ p.hp)
     (hroot : root = xmssNode p sk 0 p.hp pk { Adrs.zero with layer := p.d - 1 }) :
-    (htSignChecked p m m sk pk t l root).2 = true := by
+    htRoot p m sk pk t l = root := by
   have hd := hv.d_ge
   have ht' : t < 2 ^ (p.hp * (p.d - 1)) := by
     rw [h_div_d p hv, hv.h_eq] at ht
@@ -544,18 +491,13 @@ theorem htSignChecked_complete (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t 
   have h0 : t >>> (p.hp * (p.d - 1)) = 0 := by
     rw [Nat.shiftRight_eq_div_pow]; exact Nat.div_eq_of_lt ht'
   suffices H : ∀ c, c ≤ p.d →
-      ((List.range c).foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l)).2.2.2.1 = true ∧
-      ((List.range c).foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l)).2.1 =
-        ((List.range c).foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l)).2.2.1 ∧
-      ((List.range c).foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l)).2.2.2.2.1 =
-        t >>> (p.hp * c) ∧
-      ((List.range c).foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l)).2.2.2.2.2 < 2 ^ p.hp by
-    have := (H p.d (le_refl _)).1
-    unfold htSignChecked
-    revert this
-    generalize List.foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l) (List.range p.d) = C
-    obtain ⟨_, _, _, _, _, _⟩ := C
-    exact id
+      ((List.range c).foldl (htLayer p sk pk) ([], m, t, l)).2.2.1 = t >>> (p.hp * c) ∧
+      ((List.range c).foldl (htLayer p sk pk) ([], m, t, l)).2.2.2 < 2 ^ p.hp ∧
+      (0 < c → ((List.range c).foldl (htLayer p sk pk) ([], m, t, l)).2.1 =
+        xmssNode p sk 0 p.hp pk { Adrs.zero with layer := c - 1, tree := t >>> (p.hp * (c - 1)) }) by
+    unfold htRoot
+    rw [(H p.d (le_refl _)).2.2 (by omega), h0, hroot]
+    simp [Adrs.zero]
   intro c
   induction c with
   | zero => intro _; simp [hl]
@@ -564,27 +506,16 @@ theorem htSignChecked_complete (p : Params) (hv : p.Valid) (m sk pk : Bytes) (t 
     rw [List.range_succ, List.foldl_append]
     have ih := ih (by omega)
     revert ih
-    generalize List.foldl (htCheckedStep p sk pk root) ([], m, m, m == m, t, l) (List.range c) = C
-    obtain ⟨sig, mA, mB, ok, tree, leaf⟩ := C
-    rintro ⟨h1, h2, h3, h4⟩
-    simp only at h1 h2 h3 h4
-    subst h1 h2 h3
-    simp only [List.foldl_cons, List.foldl_nil, htCheckedStep]
-    rw [xmss_correct p hv _ _ _ _ _ h4]
-    refine ⟨?_, ?_, ?_, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
-    · split
-      · simp
-      · have hcd : c = p.d - 1 := by omega
-        subst hcd
-        rw [h0, hroot]
-        simp [Adrs.zero]
-    · split
-      · rfl
-      · have hcd : c = p.d - 1 := by omega
-        subst hcd
-        rw [h0, hroot]
-        simp [Adrs.zero]
+    generalize List.foldl (htLayer p sk pk) ([], m, t, l) (List.range c) = S
+    obtain ⟨sig, r, tree, leaf⟩ := S
+    rintro ⟨h1, h2, -⟩
+    simp only at h1 h2
+    subst h1
+    simp only [List.foldl_cons, List.foldl_nil, htLayer]
+    rw [xmss_correct p hv _ _ _ _ _ h2]
+    refine ⟨?_, Nat.mod_lt _ (Nat.two_pow_pos _), fun _ => ?_⟩
     · rw [Nat.mul_succ, Nat.shiftRight_add]
+    · simp
 
 /-! ## SLH-DSA -/
 
@@ -659,84 +590,37 @@ theorem slhVerify_parts (p : Params) (hv : p.Valid) (msg sk r : Bytes) (hr : r.l
   simp only [show (0 + 2 : Nat) = 2 from rfl, show (1 + 2 : Nat) = 3 from rfl, e1, e2, e3, hD]
   rw [← hS, htVerify_htSign p hv]
 
-/-- Whenever the checked signer returns a signature, it is the signature of
-Algorithm 19, and it verifies under the public key held in `sk`. For every
-`sk`, well formed or not. -/
-theorem slhSignInternalChecked_sound (p : Params) (hv : p.Valid) (msg sk addrnd sig : Bytes)
-    (h : slhSignInternalChecked p msg sk addrnd = some sig) :
-    sig = slhSignInternal p msg sk addrnd ∧ slhVerifyInternal p msg sig (skPk p sk) = true := by
-  unfold slhSignInternalChecked at h
-  simp only [] at h
-  generalize hc : htSignChecked p _ _ _ _ _ _ _ = c at h
-  obtain ⟨sigHt, ok⟩ := c
-  cases ok
-  · simp at h
-  · simp only [ite_true, Option.some.injEq] at h
-    have hs := htSignChecked_sound p hv _ _ _ _ _ _ _ (by rw [hc])
-    rw [hc] at hs
-    obtain ⟨e1, e2⟩ := hs
-    subst h
-    simp only at e1
-    rw [e1]
-    refine ⟨rfl, ?_⟩
-    rw [slhVerify_parts p hv _ _ _ (PRFmsg_length p hv _ _ _), e2]
-    simp
-
 theorem digestTree_lt (p : Params) (D : Bytes) : digestTree p D < 2 ^ (p.h - p.h / p.d) :=
   Nat.mod_lt _ (Nat.two_pow_pos _)
 
 theorem digestLeaf_lt (p : Params) (hv : p.Valid) (D : Bytes) : digestLeaf p D < 2 ^ p.hp := by
   rw [← h_div_d p hv]; exact Nat.mod_lt _ (Nat.two_pow_pos _)
 
-/-- For a well-formed key the checked signer always returns a signature. -/
-theorem slhSignInternalChecked_complete (p : Params) (hv : p.Valid) (msg sk addrnd : Bytes)
-    (hk : KeyOk p sk) : ∃ sig, slhSignInternalChecked p msg sk addrnd = some sig := by
-  unfold slhSignInternalChecked
-  simp only []
-  rw [fors_correct p hv]
-  have hcomp : ∀ m D, htSignChecked p m m (block p sk 0) (block p sk 2) (digestTree p D) (digestLeaf p D)
-      (block p sk 3) =
-      ((htSignChecked p m m (block p sk 0) (block p sk 2) (digestTree p D) (digestLeaf p D) (block p sk 3)).1,
-        true) := by
-    intro m D
-    rw [← htSignChecked_complete p hv m _ _ _ _ _ (digestTree_lt p D) (digestLeaf_lt p hv D) hk]
-  rw [hcomp]
-  exact ⟨_, rfl⟩
+/-- A signature of Algorithm 19 has the length of Table 2, for every key and message. -/
+theorem slhSignInternal_length (p : Params) (hv : p.Valid) (msg sk addrnd : Bytes) :
+    (slhSignInternal p msg sk addrnd).length = p.sigBytes := by
+  unfold slhSignInternal
+  simp only [List.length_append, PRFmsg_length p hv, forsSign_length p hv, htSign_length p hv]
+  exact sigBytes_parts p hv
 
 /-- Completeness of Algorithms 19 and 20: under a well-formed key, a
 signature verifies under the public key held in the key. -/
 theorem slh_complete_internal (p : Params) (hv : p.Valid) (msg sk addrnd : Bytes) (hk : KeyOk p sk) :
     slhVerifyInternal p msg (slhSignInternal p msg sk addrnd) (skPk p sk) = true := by
-  obtain ⟨sig, h⟩ := slhSignInternalChecked_complete p hv msg sk addrnd hk
-  obtain ⟨e, v⟩ := slhSignInternalChecked_sound p hv msg sk addrnd sig h
-  rw [← e]; exact v
-
-/-- The checked signer with a context string, as `slhSignInternalChecked_sound`. -/
-theorem slhSignChecked_sound (p : Params) (hv : p.Valid) (msg ctx sk addrnd sig : Bytes)
-    (h : slhSignChecked p msg ctx sk addrnd = some sig) :
-    slhSign p msg ctx sk addrnd = some sig ∧ slhVerify p msg sig ctx (skPk p sk) = true := by
-  unfold slhSignChecked at h
-  split at h
-  · simp at h
-  · rename_i hc
-    obtain ⟨e, v⟩ := slhSignInternalChecked_sound p hv _ _ _ _ h
-    refine ⟨?_, ?_⟩
-    · simp [slhSign, hc, e]
-    · simp [slhVerify, hc, v]
-
-theorem slhSignChecked_complete (p : Params) (hv : p.Valid) (msg ctx sk addrnd : Bytes)
-    (hc : ctx.length ≤ 255) (hk : KeyOk p sk) :
-    ∃ sig, slhSignChecked p msg ctx sk addrnd = some sig := by
-  unfold slhSignChecked
-  simp only [show ¬ ctx.length > 255 by omega, ↓reduceIte]
-  exact slhSignInternalChecked_complete p hv _ _ _ hk
+  unfold slhSignInternal
+  simp only []
+  rw [slhVerify_parts p hv _ _ _ (PRFmsg_length p hv _ _ _),
+    htRoot_keyOk p hv _ _ _ _ _ _ (digestTree_lt p _) (digestLeaf_lt p hv _) hk]
+  simp
 
 /-- Completeness of Algorithms 22 and 24. -/
 theorem slh_complete (p : Params) (hv : p.Valid) (msg ctx sk addrnd : Bytes) (hc : ctx.length ≤ 255)
     (hk : KeyOk p sk) :
     ∃ sig, slhSign p msg ctx sk addrnd = some sig ∧ slhVerify p msg sig ctx (skPk p sk) = true := by
-  obtain ⟨sig, h⟩ := slhSignChecked_complete p hv msg ctx sk addrnd hc hk
-  exact ⟨sig, slhSignChecked_sound p hv _ _ _ _ _ h⟩
+  refine ⟨slhSignInternal p (withContext msg ctx) sk addrnd, ?_, ?_⟩
+  · simp [slhSign, show ¬ ctx.length > 255 by omega]
+  · simp only [slhVerify, show ¬ ctx.length > 255 by omega, ↓reduceIte]
+    exact slh_complete_internal p hv _ _ _ hk
 
 /-- Key generation (Algorithm 18) produces well-formed keys, and the public
 key is the one the private key holds. -/

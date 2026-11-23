@@ -51,7 +51,6 @@ slhdsa build: default; clock: mach_absolute_time, 41.667 ns/tick, observed granu
 | fors_node/z=8 | SK.seed | 1 | 2467 | 2533 | 106708.3 | 106708.3 | -143.698 | -0.1313% | -0.77 | 1.92 (crop 2) | 2.06 | 1.52 | no leak detected | 241.021 |
 | fors_node/z=12 | SK.seed | 1 | 1013 | 987 | 1724625.0 | 1725541.7 | -8222.146 | -0.4632% | -1.45 | 2.80 (crop 22) | 1.56 | 1.68 | no leak detected | 6161.799 |
 | fors_sign | SK.seed (md public, fixed) | 1 | 151 | 149 | 25295708.3 | 24973166.7 | +78881.581 | +0.3147% | -0.24 | 1.84 (crop 5) | 2.33 | 2.14 | no leak detected | 145836.026 |
-| fors_pk_gen | SK.seed | 1 | 147 | 153 | 25376291.7 | 24890208.3 | +264971.301 | +1.0559% | +0.63 | 2.36 (crop 16) | 2.51 | 2.75 | no leak detected | 150919.226 |
 | slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 1 | 506 | 494 | 40535708.3 | 40523041.7 | +28323.817 | +0.0693% | +1.58 | 1.83 (crop 89) | 2.48 | 1.47 | no leak detected | 87675.045 |
 | CONTROL leaky_cmp (early-exit compare of secret) | secret (leaky by construction) | 16384 | 9933 | 10067 | 0.9 | 1.0 | -92.011 | -196.5025% | -70.51 | 75.68 (crop 58) | 2.54 | 1.50 | leak detected (expected: control) | 3.006 |
 | CONTROL leaky_loop (secret-dependent iteration count) | secret byte (leaky by construction) | 32 | 10079 | 9921 | 692.7 | 692.7 | +83.356 | +12.6668% | +1.44 | 118.63 (crop 2) | 1.36 | 2.06 | leak detected (expected: control) | 2.550 |

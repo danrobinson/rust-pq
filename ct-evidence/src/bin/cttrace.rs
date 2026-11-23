@@ -142,18 +142,15 @@ struct Ev {
 /// call of a function of the crate.
 const PT_R: u8 = 0;
 const PT_PK_FORS_SIG: u8 = 1;
-const PT_PK_FORS_SEED: u8 = 2;
-const PT_ROOT_SIG: u8 = 3;
-const PT_ROOT_SEED: u8 = 4;
-const PT_NAMES: [&str; 5] = ["R = prf_msg(..)", "PK_FORS = fors_pk_from_sig(..)", "PK_FORS = fors_pk_gen(..)", "root = xmss_pk_from_sig(..)", "root = xmss_node(.., i = 0, z = 9, ..)"];
+const PT_ROOT_SIG: u8 = 2;
+const PT_NAMES: [&str; 3] = ["R = prf_msg(..)", "PK_FORS = fors_pk_from_sig(..)", "root = xmss_pk_from_sig(..)"];
 
 /// Declassification: the results of the hooked calls are recorded (run A) or
 /// overwritten with recorded values (run B) when the call returns.
 #[derive(Clone, Default)]
 struct Declass {
-    /// (entry address of the function, point, value the third integer
-    /// argument must have for the call to count)
-    hooks: Vec<(u64, u8, Option<u32>)>,
+    /// (entry address of the function, point)
+    hooks: Vec<(u64, u8)>,
     /// record (true) or replay (false)
     record: bool,
     /// recorded / to-be-replayed values, in order of occurrence
@@ -403,16 +400,14 @@ fn declass_hook(st: &mut State, addr: u64) {
         }
     }
     let mut hit = None;
-    for &(a, pt, arg2) in &st.dc.hooks {
+    for &(a, pt) in &st.dc.hooks {
         if a == addr {
-            hit = Some((pt, arg2));
+            hit = Some(pt);
             break;
         }
     }
-    if let Some((pt, arg2)) = hit {
-        if arg2.map_or(true, |z| st.reg(REG_X0 + 2) as u32 == z) {
-            st.dc.pending.push((st.reg(REG_X30), st.reg(REG_SP), st.reg(REG_X0 + 8), pt));
-        }
+    if let Some(pt) = hit {
+        st.dc.pending.push((st.reg(REG_X30), st.reg(REG_SP), st.reg(REG_X0 + 8), pt));
     }
 }
 
@@ -919,7 +914,7 @@ fn run_hwcheck(seed: u64) -> bool {
         cases.push((t.name.clone(), t.f, b));
     }
     for e in sign_entries() {
-        if e.key == "internal" || e.key == "internal-checked" {
+        if e.key == "internal" {
             let mut a = sign_input(&mut Rng::new(seed ^ 0x4858), 32, 0);
             set_honest_root(&mut a);
             cases.push((e.name.to_string(), e.f, a));
@@ -1061,14 +1056,8 @@ fn expected_points(e: &SignEntry, input: &[u8], out: &[u8]) -> Result<Vec<(u8, [
         return Err("the verifier's top root is not PK.root".into());
     }
     let mut pts = vec![(PT_R, v[0]), (PT_PK_FORS_SIG, v[1])];
-    if e.checked {
-        pts.push((PT_PK_FORS_SEED, v[1]));
-    }
     for j in 0..7 {
         pts.push((PT_ROOT_SIG, v[2 + j]));
-        if e.checked && j < 6 {
-            pts.push((PT_ROOT_SEED, v[2 + j]));
-        }
     }
     Ok(pts)
 }
@@ -1094,10 +1083,7 @@ struct SignRes {
 /// one call of a function of the crate:
 ///   R        = prf_msg(SK.prf, addrnd, M),
 ///   PK_FORS  = fors_pk_from_sig(SIG_FORS, md, ..),
-///   root_j   = xmss_pk_from_sig(leaf_j, SIG_XMSS_j, ..), j = 0..6,
-/// and, in the checked signer, the same values reached from the secret seed:
-///   PK_FORS  = fors_pk_gen(SK.seed, ..),
-///   root_j   = xmss_node(SK.seed, 0, 9, ..), j = 0..5.
+///   root_j   = xmss_pk_from_sig(leaf_j, SIG_XMSS_j, ..), j = 0..6.
 /// The harness checks natively that these are exactly the values a verifier
 /// computes from (M, PK, signature of run A).
 /// Run B: same public inputs (M, ctx, PK.seed, PK.root), *different* SK.seed,
@@ -1110,18 +1096,16 @@ struct SignRes {
 fn run_sign(e: &'static SignEntry, pubs: usize, secrets: usize, mem_hooks: bool, threads: usize, seed: u64) -> bool {
     println!("### `{}`: declassification-pinned trace comparison ({})\n", e.name, if mem_hooks { "control flow + memory addresses" } else { "control flow only" });
     println!("{}; seed {seed}\n", build_line());
-    let want: [(&str, u8, Option<u32>); 5] = [
-        ("slhdsa::hash::prf_msg", PT_R, None),
-        ("slhdsa::fors::fors_pk_from_sig", PT_PK_FORS_SIG, None),
-        ("slhdsa::fors::fors_pk_gen", PT_PK_FORS_SEED, None),
-        ("slhdsa::xmss::xmss_pk_from_sig", PT_ROOT_SIG, None),
-        ("slhdsa::xmss::xmss_node", PT_ROOT_SEED, Some(9)),
+    let want: [(&str, u8); 3] = [
+        ("slhdsa::hash::prf_msg", PT_R),
+        ("slhdsa::fors::fors_pk_from_sig", PT_PK_FORS_SIG),
+        ("slhdsa::xmss::xmss_pk_from_sig", PT_ROOT_SIG),
     ];
     let mut hooks = Vec::new();
     let mut missing = Vec::new();
-    for (name, pt, arg) in want {
+    for (name, pt) in want {
         match find_fn(name) {
-            Some(a) => hooks.push((a, pt, arg)),
+            Some(a) => hooks.push((a, pt)),
             None => missing.push(name),
         }
     }
@@ -1129,7 +1113,7 @@ fn run_sign(e: &'static SignEntry, pubs: usize, secrets: usize, mem_hooks: bool,
         println!("INCONCLUSIVE: no out-of-line symbol for {missing:?} in this build (inlined or stripped); experiment not run.");
         return false;
     }
-    println!("hook points (results of calls of these out-of-line functions of the crate): {}\n", want.iter().map(|w| format!("`{}`{}", w.0, if w.2.is_some() { " (calls with z = 9)" } else { "" })).collect::<Vec<_>>().join(", "));
+    println!("hook points (results of calls of these out-of-line functions of the crate): {}\n", want.iter().map(|w| format!("`{}`", w.0)).collect::<Vec<_>>().join(", "));
     let results = Arc::new(Mutex::new(Vec::new()));
     let jobs = Arc::new(Mutex::new((0..pubs).rev().collect::<Vec<_>>()));
     let mut hs = Vec::new();

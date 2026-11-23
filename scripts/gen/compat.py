@@ -1,6 +1,6 @@
 import re, sys
 root = sys.argv[1]
-FUNS = ['slhKeygenInternal','slhSignInternalChecked','slhSignChecked','slhSignInternal',
+FUNS = ['slhKeygenInternal','slhSignInternal',
         'slhVerifyInternal','slhSign','slhVerify','block','skPk','KeyOk']
 SKIP = {'bytes_lengthN','verify_eq','blockSeed_length','ok_inj'}
 

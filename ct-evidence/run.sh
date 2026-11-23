@@ -8,7 +8,7 @@
 #                toolchain and the hashes of the crate's sources, check the emulator
 #                against native output and count the SHA-256 instructions it executes
 #   trace        component trace comparison under Unicorn
-#   sign         whole-signature declassification-pinned trace comparison, 8 entry points
+#   sign         whole-signature declassification-pinned trace comparison, 4 entry points
 #   profile      whole-signature unconditioned profile
 #   disasm       static disassembly facts + object-code comparison with the main crate's build
 #   dudect-null  quick look at the timing noise floor: random-vs-random classes on every row,
@@ -76,16 +76,14 @@ sign() {
   if [ "$v" = hw-sha2 ]; then
     # about 3e8 instructions per signature: everything with memory addresses
     $c sign --entry internal --pubs 16 --secrets 6 --threads "$THREADS" | tee "out/$v/trace_sign_internal.md"
-    $c sign --entry internal-checked --pubs 16 --secrets 6 --threads "$THREADS" | tee "out/$v/trace_sign_internal-checked.md"
-    for e in slh slh-checked api api-checked api-det api-det-checked; do
+    for e in slh api api-det; do
       $c sign --entry $e --pubs 4 --secrets 3 --threads "$THREADS" | tee "out/$v/trace_sign_$e.md"
     done
   else
-    # about 6.5e9 (1.2e10 checked) instructions per signature
+    # about 6.5e9 instructions per signature
     $c sign --entry internal --pubs 8 --secrets 4 --threads "$THREADS" | tee "out/$v/trace_sign_internal.md"
-    $c sign --entry internal-checked --pubs 8 --secrets 4 --threads "$THREADS" | tee "out/$v/trace_sign_internal-checked.md"
-    # the wrappers around them, control flow only
-    for e in slh slh-checked api api-checked api-det api-det-checked; do
+    # the wrappers around it, control flow only
+    for e in slh api api-det; do
       $c sign --entry $e --no-mem --pubs 4 --secrets 3 --threads "$THREADS" | tee "out/$v/trace_sign_$e.md"
     done
   fi
@@ -93,7 +91,6 @@ sign() {
 profile() {
   local v=$1 c; c="./$(tdir "$v")/release/cttrace"; need_build "$v"
   $c sign-profile --entry internal --pubs 24 --threads "$THREADS" | tee "out/$v/trace_sign_profile_internal.md"
-  $c sign-profile --entry internal-checked --pubs 24 --threads "$THREADS" | tee "out/$v/trace_sign_profile_internal-checked.md"
 }
 disasm() {
   local v=$1 t ours theirs; t=$(tdir "$v"); need_build "$v"
@@ -130,10 +127,8 @@ dudect_diag() {
 }
 dudect_sign() {
   local v=$1 d; d="./$(tdir "$v")/release/dudect"; need_build "$v"
-  for e in internal internal-checked; do
-    { uptime; $d sign-key --entry $e --n 300; uptime; } | tee "out/$v/dudect_sign_key_$e.md"
-    { uptime; $d sign-addrnd --entry $e --n 300; uptime; } | tee "out/$v/dudect_sign_addrnd_$e.md"
-  done
+  { uptime; $d sign-key --entry internal --n 300; uptime; } | tee "out/$v/dudect_sign_key_internal.md"
+  { uptime; $d sign-addrnd --entry internal --n 300; uptime; } | tee "out/$v/dudect_sign_addrnd_internal.md"
 }
 
 case "${2:-both}" in

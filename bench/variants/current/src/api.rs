@@ -2,11 +2,7 @@
 //! §10 defines them, with the random bytes supplied by the caller.
 //!
 //! [`sign`] and [`sign_deterministic`] are the signer of the standard and do
-//! exactly its work. [`sign_checked`] and [`sign_deterministic_checked`]
-//! return the same signature after computing every value a one-time key
-//! signs a second time by another route and comparing
-//! ([`crate::slh::slh_sign_checked`]); that guards against a fault during
-//! signing and costs a little under twice the time.
+//! exactly its work.
 //!
 //! Nothing here returns a secret by value: key generation writes the private
 //! key into the caller's buffer. The functions that work with the secret seed
@@ -15,7 +11,7 @@
 
 use alloc::vec::Vec;
 use crate::params::{N, PK_BYTES, SEED_BYTES, SK_BYTES};
-use crate::slh::{slh_keygen_internal, slh_sign, slh_sign_checked, slh_verify};
+use crate::slh::{slh_keygen_internal, slh_sign, slh_verify};
 use crate::util::block;
 
 /// Algorithm 21, `slh_keygen`, given its random bytes: `seeds` is
@@ -51,19 +47,6 @@ pub fn sign(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Opti
 pub fn sign_deterministic(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
     let pk_seed = block(sk, 2);
     slh_sign(m, ctx, sk, &pk_seed)
-}
-
-/// [`sign`] with recomputation: the same signature, or `None` if `ctx` is
-/// longer than 255 bytes or a recomputation disagreed (the key is not one
-/// that key generation produces, or the computation was disturbed).
-pub fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-    slh_sign_checked(m, ctx, sk, addrnd)
-}
-
-/// [`sign_deterministic`] with recomputation; see [`sign_checked`].
-pub fn sign_deterministic_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
-    let pk_seed = block(sk, 2);
-    slh_sign_checked(m, ctx, sk, &pk_seed)
 }
 
 /// Algorithm 24, `slh_verify`.

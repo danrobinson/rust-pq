@@ -2,8 +2,9 @@
 # Regenerate the Lean translation of the crate as built with the `hw-sha2`
 # feature (lean-hw/Slhdsa/{Types,Funs}.lean).
 #
-# Everything is translated except `sha256::hw::arm`, the module of one-line
-# wrappers around the NEON and SHA-256 intrinsics (eighteen). Aeneas lists what it left out in two template files; their
+# Everything is translated except `sha256::hw::arm` and `sha512::hw::arm`, the
+# modules of one-line wrappers around the NEON, SHA-256 and SHA-512 intrinsics
+# (eighteen and ten). Aeneas lists what it left out in two template files; their
 # hand-written counterparts are lean-hw/Slhdsa/TypesExternal.lean and
 # FunsExternal.lean (with lean-hw/Arm.lean, the trusted model). This script fails if a wrapper has
 # no definition there, and prints how many declarations were left out.
@@ -11,7 +12,8 @@ set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$PATH"
 (cd rust && ../.tools/aeneas/charon/bin/charon cargo --preset=aeneas \
-   --opaque 'slhdsa::sha256::hw::arm' --dest hw-sha2 -- --features hw-sha2)
+   --opaque 'slhdsa::sha256::hw::arm' --opaque 'slhdsa::sha512::hw::arm' \
+   --dest hw-sha2 -- --features hw-sha2)
 .tools/aeneas/bin/aeneas -backend lean -dest lean-hw/Slhdsa -split-files rust/hw-sha2/slhdsa.llbc
 cd lean-hw/Slhdsa
 missing=0

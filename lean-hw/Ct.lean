@@ -16,6 +16,8 @@ import Ct.Tactic
 import Ct.Sha256Core
 import Ct.CompressTop
 import Ct.Sha256
+import Ct.Sha512Core
+import Ct.Compress512Top
 import Ct.Sha512
 import Ct.Heads
 import Ct.Hash

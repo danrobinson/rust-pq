@@ -56,90 +56,15 @@ theorem verify_correct :
 #print axioms slhdsa.compat128.verify_correct
 
 /-! ### From `Slhdsa/ApiTheorems.lean` -/
-theorem sign_internal_checked_correct :
-    ∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 152), ∃ r, sets.sha2_128s.slh_sign_internal_checked m sk addrnd = ok r ∧
-      ∀ sig, r = some sig →
-        bytes sig.val = Spec128.slhSignInternal (bytes m.val) (bytes sk.val) (bytes addrnd.val) := by
-  rw [← Spec128.slhSignInternal_eq]; exact slhdsa.sha2_128s.sign_internal_checked_correct
-#print axioms slhdsa.compat128.sign_internal_checked_correct
-theorem sign_checked_correct :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409), ∃ r, sets.sha2_128s.slh_sign_checked m ctx sk addrnd = ok r ∧
-      ∀ sig, r = some sig →
-        Spec128.slhSign (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) = some (bytes sig.val) := by
-  rw [← Spec128.slhSign_eq]; exact slhdsa.sha2_128s.sign_checked_correct
-#print axioms slhdsa.compat128.sign_checked_correct
-theorem api_sign_checked_correct :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409), ∃ r, sets.sha2_128s.sign_checked m ctx sk addrnd = ok r ∧
-      ∀ sig, r = some sig →
-        Spec128.slhSign (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) = some (bytes sig.val) := by
-  rw [← Spec128.slhSign_eq]; exact slhdsa.sha2_128s.api_sign_checked_correct
-#print axioms slhdsa.compat128.api_sign_checked_correct
-theorem api_sign_deterministic_checked_correct :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (hm : Room m.length 409), ∃ r, sets.sha2_128s.sign_deterministic_checked m ctx sk = ok r ∧
-      ∀ sig, r = some sig →
-        Spec128.slhSign (bytes m.val) (bytes ctx.val) (bytes sk.val) (Spec128.block (bytes sk.val) 2) =
-          some (bytes sig.val) := by
-  rw [← Spec128.slhSign_eq, ← Spec128.block_eq]; exact slhdsa.sha2_128s.api_sign_deterministic_checked_correct
-#print axioms slhdsa.compat128.api_sign_deterministic_checked_correct
-theorem spec_sign_internal_checked_verifies :
-    ∀ (msg sk addrnd sig : Spec.Bytes)
-    (h : Spec128.slhSignInternalChecked msg sk addrnd = some sig), Spec128.slhVerifyInternal msg sig (Spec128.skPk sk) = true := by
-  rw [← Spec128.slhSignInternalChecked_eq, ← Spec128.slhVerifyInternal_eq, ← Spec128.skPk_eq]; exact slhdsa.sha2_128s.spec_sign_internal_checked_verifies
-#print axioms slhdsa.compat128.spec_sign_internal_checked_verifies
-theorem spec_sign_checked_verifies :
-    ∀ (msg ctx sk addrnd sig : Spec.Bytes)
-    (h : Spec128.slhSignChecked msg ctx sk addrnd = some sig), Spec128.slhVerify msg sig ctx (Spec128.skPk sk) = true := by
-  rw [← Spec128.slhSignChecked_eq, ← Spec128.slhVerify_eq, ← Spec128.skPk_eq]; exact slhdsa.sha2_128s.spec_sign_checked_verifies
-#print axioms slhdsa.compat128.spec_sign_checked_verifies
-theorem sign_internal_checked_verifies :
-    ∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (pk : Array U8 32#usize) (sig : alloc.vec.Vec U8)
-    (hm : Room m.length 152) (hpk : bytes pk.val = Spec128.skPk (bytes sk.val))
-    (h : sets.sha2_128s.slh_sign_internal_checked m sk addrnd = ok (some sig)), sets.sha2_128s.slh_verify_internal m sig.deref pk = ok true := by
-  rw [← Spec128.skPk_eq]; exact slhdsa.sha2_128s.sign_internal_checked_verifies
-#print axioms slhdsa.compat128.sign_internal_checked_verifies
-theorem sign_checked_verifies :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (pk : Array U8 32#usize) (sig : alloc.vec.Vec U8)
-    (hm : Room m.length 409) (hpk : bytes pk.val = Spec128.skPk (bytes sk.val))
-    (h : sets.sha2_128s.slh_sign_checked m ctx sk addrnd = ok (some sig)), sets.sha2_128s.slh_verify m sig.deref ctx pk = ok true := by
-  rw [← Spec128.skPk_eq]; exact slhdsa.sha2_128s.sign_checked_verifies
-#print axioms slhdsa.compat128.sign_checked_verifies
 theorem api_public_key_correct :
     ∀ (sk : Array U8 64#usize), ∃ pk, sets.sha2_128s.public_key sk = ok pk ∧ bytes pk.val = Spec128.skPk (bytes sk.val) := by
   rw [← Spec128.skPk_eq]; exact slhdsa.sha2_128s.api_public_key_correct
 #print axioms slhdsa.compat128.api_public_key_correct
--- `api_sign_checked_verifies` mentions no function of the specification.
--- `api_sign_deterministic_checked_verifies` mentions no function of the specification.
 theorem keygen_keyOk :
     ∀ (sk_seed sk_prf pk_seed : Array U8 16#usize) (sk : Array U8 64#usize)
     (pk : Array U8 32#usize) (h : sets.sha2_128s.slh_keygen_internal sk_seed sk_prf pk_seed = ok (sk, pk)), Spec128.KeyOk (bytes sk.val) ∧ bytes pk.val = Spec128.skPk (bytes sk.val) := by
   rw [← Spec128.skPk_eq, ← Spec128.KeyOk_eq]; exact slhdsa.sha2_128s.keygen_keyOk
 #print axioms slhdsa.compat128.keygen_keyOk
-theorem sign_internal_checked_complete :
-    ∀ (m : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 152) (hk : Spec128.KeyOk (bytes sk.val)), ∃ sig, sets.sha2_128s.slh_sign_internal_checked m sk addrnd = ok (some sig) := by
-  rw [← Spec128.KeyOk_eq]; exact slhdsa.sha2_128s.sign_internal_checked_complete
-#print axioms slhdsa.compat128.sign_internal_checked_complete
-theorem sign_checked_complete :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) (hc : ctx.length ≤ 255) (hk : Spec128.KeyOk (bytes sk.val)), ∃ sig, sets.sha2_128s.slh_sign_checked m ctx sk addrnd = ok (some sig) := by
-  rw [← Spec128.KeyOk_eq]; exact slhdsa.sha2_128s.sign_checked_complete
-#print axioms slhdsa.compat128.sign_checked_complete
-theorem api_sign_checked_complete :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize) (addrnd : Array U8 16#usize)
-    (hm : Room m.length 409) (hc : ctx.length ≤ 255) (hk : Spec128.KeyOk (bytes sk.val)), ∃ sig, sets.sha2_128s.sign_checked m ctx sk addrnd = ok (some sig) := by
-  rw [← Spec128.KeyOk_eq]; exact slhdsa.sha2_128s.api_sign_checked_complete
-#print axioms slhdsa.compat128.api_sign_checked_complete
-theorem api_sign_deterministic_checked_complete :
-    ∀ (m ctx : Slice U8) (sk : Array U8 64#usize)
-    (hm : Room m.length 409) (hc : ctx.length ≤ 255) (hk : Spec128.KeyOk (bytes sk.val)), ∃ sig, sets.sha2_128s.sign_deterministic_checked m ctx sk = ok (some sig) := by
-  rw [← Spec128.KeyOk_eq]; exact slhdsa.sha2_128s.api_sign_deterministic_checked_complete
-#print axioms slhdsa.compat128.api_sign_deterministic_checked_complete
 theorem api_keygen_correct :
     ∀ (seeds : Array U8 48#usize) (sk : Array U8 64#usize) (pk : Array U8 32#usize), ∃ sk' pk', sets.sha2_128s.keygen seeds sk pk = ok (sk', pk') ∧
       (bytes sk'.val, bytes pk'.val) =
@@ -173,12 +98,8 @@ theorem api_sign_deterministic_correct :
   rw [← Spec128.slhSign_eq, ← Spec128.block_eq]; exact slhdsa.sha2_128s.api_sign_deterministic_correct
 #print axioms slhdsa.compat128.api_sign_deterministic_correct
 -- `complete_internal` mentions no function of the specification.
--- `complete_internal_checked` mentions no function of the specification.
 -- `complete` mentions no function of the specification.
--- `complete_checked` mentions no function of the specification.
 -- `api_complete_sign` mentions no function of the specification.
 -- `api_complete_sign_deterministic` mentions no function of the specification.
--- `api_complete_sign_checked` mentions no function of the specification.
--- `api_complete_sign_deterministic_checked` mentions no function of the specification.
 
 end slhdsa.compat128

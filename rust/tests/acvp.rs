@@ -198,13 +198,10 @@ macro_rules! acvp {
                         let msg = h(&t["message"]);
                         let want = h(&t["signature"]);
                         let sig = if internal {
-                            let sig = s::slh_sign_internal(&msg, &sk, &rnd);
-                            assert!(s::slh_sign_internal_checked(&msg, &sk, &rnd).as_ref() == Some(&sig));
-                            sig
+                            s::slh_sign_internal(&msg, &sk, &rnd)
                         } else {
                             let ctx = h(&t["context"]);
                             let sig = s::slh_sign(&msg, &ctx, &sk, &rnd).unwrap();
-                            assert!(s::slh_sign_checked(&msg, &ctx, &sk, &rnd).as_ref() == Some(&sig));
                             if det {
                                 assert!(s::api::sign_deterministic(&msg, &ctx, &sk).as_ref() == Some(&sig));
                             } else {

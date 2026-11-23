@@ -17,26 +17,20 @@
 //! # The `hw-sha2` feature
 //!
 //! Off by default. With it on, SHA-256 runs on the ARMv8 SHA-256 instructions
-//! where the CPU has them (AArch64 only so far; elsewhere the feature changes
-//! nothing), and the hash chains that make up nearly all of SLH-DSA are
-//! computed four at a time. That is one module, [`sha256`]'s `hw`. It is
-//! written in the Aeneas subset like the rest, except for small functions
-//! that wrap the intrinsics. SHA-512 is portable in this build.
-//!
-//! # The `hw-sha512` feature (experimental, unverified)
-//!
-//! Off by default and independent of `hw-sha2`. With it on, the SHA-512
-//! compression function runs on the ARMv8.2 SHA-512 instructions where the
-//! CPU has them. It exists to measure what hardware SHA-512 buys the sets
-//! with n = 24 and 32; nothing about it is proved, and no Lean model of its
-//! instructions exists. See [`sha512`]'s `hw`.
-#![cfg_attr(not(any(feature = "hw-sha2", feature = "hw-sha512")), forbid(unsafe_code))]
-#![cfg_attr(any(feature = "hw-sha2", feature = "hw-sha512"), deny(unsafe_code))]
+//! and the SHA-512 compression function on the ARMv8.2 SHA-512 instructions,
+//! each where the CPU has them (tested separately; AArch64 only so far;
+//! elsewhere the feature changes nothing), and the hash chains that make up
+//! nearly all of SLH-DSA are computed four at a time. That is two modules,
+//! [`sha256`]'s `hw` and [`sha512`]'s `hw`, written in the Aeneas subset like
+//! the rest except for small functions that wrap the intrinsics. SHA-512 is
+//! used by the sets with n = 24 and 32.
+#![cfg_attr(not(feature = "hw-sha2"), forbid(unsafe_code))]
+#![cfg_attr(feature = "hw-sha2", deny(unsafe_code))]
 #![no_std]
 
 extern crate alloc;
-// Where the target does not guarantee the SHA-256 instructions, the feature
-// test of the `hw-sha2` backend asks the operating system, through `std`.
+// Where the target does not guarantee the SHA-256 or the SHA-512 instructions,
+// the feature tests of the `hw-sha2` backends ask the operating system, through `std`.
 #[cfg(any(
     test,
     all(
@@ -46,7 +40,7 @@ extern crate alloc;
         not(all(target_feature = "neon", target_feature = "sha2"))
     ),
     all(
-        feature = "hw-sha512",
+        feature = "hw-sha2",
         target_arch = "aarch64",
         not(target_os = "none"),
         not(all(target_feature = "neon", target_feature = "sha3"))
@@ -54,6 +48,7 @@ extern crate alloc;
 ))]
 extern crate std;
 
+pub mod adapter;
 pub mod address;
 pub mod api;
 pub mod encoding;

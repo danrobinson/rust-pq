@@ -7,13 +7,10 @@
 | `<instantiation in slhdsa> raw_vec::Raw::grow_one` | 25 | 1 | 0 | 0 | 0 | 0 | 1 |
 | `slhdsa::api::keygen` | 24 | 0 | 0 | 0 | 0 | 8 | 0 |
 | `slhdsa::api::sign` | 47 | 3 | 0 | 0 | 0 | 2 | 0 |
-| `slhdsa::api::sign_checked` | 43 | 3 | 0 | 0 | 0 | 0 | 0 |
 | `slhdsa::api::sign_deterministic` | 46 | 3 | 0 | 0 | 0 | 2 | 0 |
-| `slhdsa::api::sign_deterministic_checked` | 42 | 3 | 0 | 0 | 0 | 0 | 0 |
 | `slhdsa::fors::fors_batch` | 335 | 10 | 0 | 0 | 0 | 107 | 0 |
 | `slhdsa::fors::fors_node` | 64 | 1 | 0 | 0 | 0 | 2 | 0 |
 | `slhdsa::fors::fors_pk_from_sig` | 608 | 24 | 0 | 0 | 0 | 128 | 0 |
-| `slhdsa::fors::fors_pk_gen` | 85 | 4 | 0 | 0 | 0 | 2 | 0 |
 | `slhdsa::fors::fors_sign` | 151 | 9 | 0 | 0 | 0 | 13 | 0 |
 | `slhdsa::fors::fors_sk_gen` | 21 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `slhdsa::hash::chain_blocks` | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -25,7 +22,6 @@
 | `slhdsa::hash::thash_short` | 173 | 3 | 0 | 0 | 0 | 20 | 0 |
 | `slhdsa::hash::thash_values` | 297 | 2 | 0 | 0 | 0 | 85 | 0 |
 | `slhdsa::ht::ht_sign` | 100 | 6 | 0 | 0 | 0 | 6 | 0 |
-| `slhdsa::ht::ht_sign_checked` | 129 | 7 | 0 | 0 | 0 | 9 | 3 |
 | `slhdsa::ht::ht_verify` | 201 | 7 | 0 | 0 | 0 | 14 | 2 |
 | `slhdsa::sha256::hmac_sha256` | 142 | 13 | 0 | 0 | 0 | 2 | 0 |
 | `slhdsa::sha256::schedule` | 144 | 8 | 0 | 0 | 0 | 33 | 9 |
@@ -33,9 +29,7 @@
 | `slhdsa::sha256::sha256_from` | 402 | 23 | 0 | 0 | 0 | 0 | 0 |
 | `slhdsa::slh::slh_keygen_internal` | 135 | 1 | 0 | 0 | 0 | 16 | 0 |
 | `slhdsa::slh::slh_sign` | 47 | 3 | 0 | 0 | 0 | 2 | 0 |
-| `slhdsa::slh::slh_sign_checked` | 43 | 3 | 0 | 0 | 0 | 0 | 0 |
 | `slhdsa::slh::slh_sign_internal` | 267 | 13 | 0 | 0 | 0 | 12 | 0 |
-| `slhdsa::slh::slh_sign_internal_checked` | 280 | 15 | 0 | 0 | 0 | 12 | 0 |
 | `slhdsa::slh::slh_verify_internal` | 163 | 2 | 0 | 0 | 0 | 6 | 0 |
 | `slhdsa::slh::with_context` | 86 | 6 | 0 | 0 | 0 | 2 | 0 |
 | `slhdsa::util::base_2b` | 87 | 8 | 0 | 0 | 0 | 2 | 1 |

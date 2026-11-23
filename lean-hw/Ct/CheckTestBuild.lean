@@ -45,6 +45,20 @@ namespace sha256
 #ct_resolves sha256.hw.arm.available
 end sha256
 
+-- the SHA-512 wrappers (2026-11-22)
+namespace sha512.hw
+#ct_resolves sha512.hw.arm.available
+#ct_resolves sha512.hw.arm.add
+#ct_resolves sha512.hw.arm.ext1
+#ct_resolves sha512.hw.arm.sha512h
+#ct_resolves sha512.hw.arm.sha512h2
+#ct_resolves sha512.hw.arm.sha512su0
+#ct_resolves sha512.hw.arm.sha512su1
+#ct_resolves sha512.hw.arm.store_words
+#ct_resolves sha512.hw.arm.load_words
+#ct_resolves sha512.hw.arm.load_be
+end sha512.hw
+
 -- this tree's portable build
 
 #ct_resolves core.slice.index.Slice.index_mut
@@ -88,6 +102,21 @@ def badAvailable : Ct.Leak Bool := do
   let b ← slhdsa.sha256.hw.arm.available
   Ct.Leak.pure b
 #ct_expect_reject badAvailable slhdsa.sha256.hw.arm.available
+
+def badLoad512 (s : Aeneas.Std.Slice Std.U64) : Ct.Leak core.core_arch.arm_shared.neon.uint64x2_t := do
+  let v ← slhdsa.sha512.hw.arm.load_words s 0#usize
+  Ct.Leak.pure v
+#ct_expect_reject badLoad512 slhdsa.sha512.hw.arm.load_words
+
+def badLoadBe512 (s : Aeneas.Std.Slice Std.U8) : Ct.Leak core.core_arch.arm_shared.neon.uint64x2_t := do
+  let v ← slhdsa.sha512.hw.arm.load_be s 0#usize
+  Ct.Leak.pure v
+#ct_expect_reject badLoadBe512 slhdsa.sha512.hw.arm.load_be
+
+def badAvailable512 : Ct.Leak Bool := do
+  let b ← slhdsa.sha512.hw.arm.available
+  Ct.Leak.pure b
+#ct_expect_reject badAvailable512 slhdsa.sha512.hw.arm.available
 
 def badAssert (b : Bool) : Ct.Leak Unit := do
   Aeneas.Std.massert (b = true)

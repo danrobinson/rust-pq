@@ -248,7 +248,6 @@ fn carry<P: ParameterSet>(key: SigningKey<P>) -> SigningKey<P> {
 struct Direct {
     keygen: fn(&[u8], &mut [u8], &mut [u8]),
     sign: fn(&[u8], &[u8], &[u8], &[u8]) -> Option<Vec<u8>>,
-    sign_checked: fn(&[u8], &[u8], &[u8], &[u8]) -> Option<Vec<u8>>,
 }
 
 macro_rules! direct {
@@ -258,9 +257,6 @@ macro_rules! direct {
                 slhdsa::$m::keygen(seeds.try_into().unwrap(), sk.try_into().unwrap(), pk.try_into().unwrap())
             },
             sign: |m, ctx, sk, addrnd| slhdsa::$m::sign(m, ctx, sk.try_into().unwrap(), addrnd.try_into().unwrap()),
-            sign_checked: |m, ctx, sk, addrnd| {
-                slhdsa::$m::sign_checked(m, ctx, sk.try_into().unwrap(), addrnd.try_into().unwrap())
-            },
         }
     };
 }
@@ -294,10 +290,6 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     let sign_depth = depth(&on_owned_stack(move || {
         std::hint::black_box((d.sign)(&c.msg, &c.ctx, &k, &c.addrnd));
     }));
-    let (c, d, k) = (case.clone(), direct.clone(), sk.clone());
-    let checked_depth = depth(&on_owned_stack(move || {
-        std::hint::black_box((d.sign_checked)(&c.msg, &c.ctx, &k, &c.addrnd));
-    }));
 
     // Control: the verified functions called directly, with no scrubbing.
     let signature = Arc::new(Mutex::new(Vec::new()));
@@ -307,8 +299,6 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
         let mut pk = vec![0u8; 2 * N];
         (d.keygen)(&c.seeds, &mut sk, &mut pk);
         *s.lock().unwrap() = (d.sign)(&c.msg, &c.ctx, &sk, &c.addrnd).unwrap();
-        // The checked signer too: it is the deepest computation.
-        std::hint::black_box((d.sign_checked)(&c.msg, &c.ctx, &sk, &c.addrnd));
         sk.fill(0);
         std::hint::black_box(&sk);
     });
@@ -318,8 +308,8 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     let unscrubbed_depth = depth(&stack);
 
     println!(
-        "{name}: stack used: keygen {keygen_depth}, sign {sign_depth}, sign_checked {checked_depth}, \
-         all three {unscrubbed_depth} bytes (SCRUB_BYTES {})",
+        "{name}: stack used: keygen {keygen_depth}, sign {sign_depth}, \
+         both {unscrubbed_depth} bytes (SCRUB_BYTES {})",
         slh_dsa::SCRUB_BYTES
     );
     println!("{name}: without scrubbing, {} of {} searched forms found", left.len(), all.len());
@@ -328,7 +318,7 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
     }
     assert!(!left.is_empty(), "{name}: the control left nothing to find: this search cannot see residues");
     // The scrub must reach as deep as the computation went.
-    for (what, d) in [("keygen", keygen_depth), ("sign", sign_depth), ("sign_checked", checked_depth), ("all", unscrubbed_depth)] {
+    for (what, d) in [("keygen", keygen_depth), ("sign", sign_depth), ("both", unscrubbed_depth)] {
         assert!(d + MARGIN <= slh_dsa::SCRUB_BYTES, "{name}: {what} used {d} bytes of stack; SCRUB_BYTES is too small");
     }
 
@@ -357,7 +347,7 @@ fn check<P: ParameterSet, const N: usize>(name: &str, p: &'static Params, direct
         let key = SigningKey::<P>::slh_keygen_internal(&c.seeds[0..N], &c.seeds[N..2 * N], &c.seeds[2 * N..3 * N]);
         let sig = key.try_sign_with_context(&c.msg, &c.ctx, Some(&c.addrnd)).unwrap();
         *s.lock().unwrap() = sig.to_vec();
-        std::hint::black_box(key.try_sign_checked(&c.msg, &c.ctx, Some(&c.addrnd)).unwrap());
+        std::hint::black_box(key.try_sign_with_context(&c.msg, &c.ctx, None).unwrap());
         // Move the key about before it is dropped. A moved value leaves its
         // bytes where it was, and nothing can wipe them there; the key
         // holds its secret in an allocation of its own so that a move

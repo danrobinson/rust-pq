@@ -166,20 +166,3 @@ pub fn fors_pk_from_sig(sig: &[u8], md: &[u8], seed: &Seed, adrs: Adrs) -> [u8; 
     let pk_adrs = adrs.with_type(FORS_ROOTS).with_keypair(adrs.keypair);
     thash(seed, &pk_adrs, &roots)
 }
-
-/// The FORS public key of the key pair at `adrs`, computed from the secret
-/// seed alone: the roots of the `K` trees, compressed. It is what
-/// [`fors_pk_from_sig`] returns for every signature [`fors_sign`] makes with
-/// this key pair, reached by a different computation; the checked signer
-/// compares the two.
-pub fn fors_pk_gen(sk_seed: &[u8; N], seed: &Seed, adrs: Adrs) -> [u8; N] {
-    let mut roots: Vec<u8> = Vec::new();
-    let mut i: u32 = 0;
-    while i < K {
-        let root = fors_node(sk_seed, i, A, seed, adrs);
-        roots.extend_from_slice(&root);
-        i += 1;
-    }
-    let pk_adrs = adrs.with_type(FORS_ROOTS).with_keypair(adrs.keypair);
-    thash(seed, &pk_adrs, &roots)
-}

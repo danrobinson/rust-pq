@@ -3,7 +3,7 @@
 //! Each module wraps the generic functions of `slh`, `api` and `encoding` at
 //! one parameter set, so that key and seed lengths are fixed by the types,
 //! and offers them under the names and signatures of the single-set crate
-//! (git commit 26aa3d8): `sha2_128s::api::keygen`, `sha2_128s::slh_sign_internal_checked`,
+//! (git commit 26aa3d8): `sha2_128s::api::keygen`, `sha2_128s::slh_sign_internal`,
 //! `sha2_128s::encoding::pkcs8_encode`, `sha2_128s::params::SK_BYTES`, ….
 
 macro_rules! parameter_set {
@@ -55,12 +55,6 @@ macro_rules! parameter_set {
                 slh::slh_sign_internal::<N>(&PARAMS, m, sk, addrnd)
             }
 
-            /// Algorithm 19 with recomputation (see [`crate::slh::slh_sign_internal_checked`]).
-            #[inline(never)]
-            pub fn slh_sign_internal_checked(m: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-                slh::slh_sign_internal_checked::<N>(&PARAMS, m, sk, addrnd)
-            }
-
             /// Algorithm 20, `slh_verify_internal`.
             pub fn slh_verify_internal(m: &[u8], sig: &[u8], pk: &[u8; PK_BYTES]) -> bool {
                 slh::slh_verify_internal::<N>(&PARAMS, m, sig, pk)
@@ -70,12 +64,6 @@ macro_rules! parameter_set {
             /// randomness. `None` if the context is longer than 255 bytes.
             pub fn slh_sign(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
                 slh::slh_sign::<N>(&PARAMS, m, ctx, sk, addrnd)
-            }
-
-            /// Algorithm 22 with recomputation. `None` if the context is
-            /// longer than 255 bytes or a recomputation disagreed.
-            pub fn slh_sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-                slh::slh_sign_checked::<N>(&PARAMS, m, ctx, sk, addrnd)
             }
 
             /// Algorithm 24, `slh_verify` (pure verification).
@@ -113,16 +101,6 @@ macro_rules! parameter_set {
             /// Algorithm 22, `slh_sign`, deterministic variant.
             pub fn sign_deterministic(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
                 crate::api::sign_deterministic::<N>(&PARAMS, m, ctx, sk)
-            }
-
-            /// [`sign`] with recomputation.
-            pub fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES], addrnd: &[u8; N]) -> Option<Vec<u8>> {
-                crate::api::sign_checked::<N>(&PARAMS, m, ctx, sk, addrnd)
-            }
-
-            /// [`sign_deterministic`] with recomputation.
-            pub fn sign_deterministic_checked(m: &[u8], ctx: &[u8], sk: &[u8; SK_BYTES]) -> Option<Vec<u8>> {
-                crate::api::sign_deterministic_checked::<N>(&PARAMS, m, ctx, sk)
             }
 
             /// Algorithm 24, `slh_verify`.
@@ -199,7 +177,7 @@ macro_rules! parameter_set {
 
             /// The interface to use (see [`crate::api`]), at this parameter set.
             pub mod api {
-                pub use super::{keygen, public_key, sign, sign_checked, sign_deterministic, sign_deterministic_checked, verify};
+                pub use super::{keygen, public_key, sign, sign_deterministic, verify};
             }
 
             /// Byte encodings at this parameter set (see [`crate::encoding`]).

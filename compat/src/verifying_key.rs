@@ -1,6 +1,6 @@
 //! The public key type.
 
-use crate::{joined, ParameterSet, Signature};
+use crate::{join, same, ParameterSet, Signature};
 use ::signature::{Error, MultipartVerifier, Verifier};
 use hybrid_array::{Array, ArraySize};
 use alloc::vec::Vec;
@@ -33,7 +33,7 @@ impl<P: ParameterSet> core::fmt::Debug for VerifyingKey<P> {
 
 impl<P: ParameterSet> PartialEq for VerifyingKey<P> {
     fn eq(&self, other: &Self) -> bool {
-        self.bytes == other.bytes
+        same(&self.bytes, &other.bytes)
     }
 }
 
@@ -49,9 +49,8 @@ impl<P: ParameterSet> VerifyingKey<P> {
         msg: &[&[u8]],
         signature: &Signature<P>,
     ) -> Result<(), Error> {
-        let mut buf = Vec::new();
-        let m = joined(msg, &mut buf);
-        P::verify_internal(m, &signature.bytes, &self.bytes)
+        let m = join(msg);
+        P::verify_internal(&m, &signature.bytes, &self.bytes)
             .then_some(())
             .ok_or(Error::new())
     }
@@ -75,9 +74,8 @@ impl<P: ParameterSet> VerifyingKey<P> {
         ctx: &[u8],
         signature: &Signature<P>,
     ) -> Result<(), Error> {
-        let mut buf = Vec::new();
-        let m = joined(msg, &mut buf);
-        P::verify(m, &signature.bytes, ctx, &self.bytes)
+        let m = join(msg);
+        P::verify(&m, &signature.bytes, ctx, &self.bytes)
             .then_some(())
             .ok_or(Error::new())
     }
@@ -152,7 +150,11 @@ impl<P: ParameterSet> TryFrom<pkcs8::SubjectPublicKeyInfoRef<'_>> for VerifyingK
     type Error = spki::Error;
 
     fn try_from(spki: pkcs8::SubjectPublicKeyInfoRef<'_>) -> spki::Result<Self> {
-        spki.algorithm.assert_algorithm_oid(P::ALGORITHM_OID)?;
+        // `spki`'s `assert_algorithm_oid`, with the comparison done by the verified crate.
+        let oid = spki.algorithm.oid;
+        if !same(oid.as_bytes(), P::ALGORITHM_OID.as_bytes()) {
+            return Err(spki::Error::OidUnknown { oid });
+        }
 
         Self::try_from(
             spki.subject_public_key

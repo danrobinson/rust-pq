@@ -1,6 +1,6 @@
 //! The signature type and its encodings.
 
-use crate::ParameterSet;
+use crate::{same, ParameterSet};
 use ::signature::{Error, SignatureEncoding};
 use hybrid_array::typenum::Unsigned;
 use hybrid_array::{Array, ArraySize};
@@ -48,7 +48,7 @@ impl<P: ParameterSet> core::fmt::Debug for Signature<P> {
 
 impl<P: ParameterSet> PartialEq for Signature<P> {
     fn eq(&self, other: &Self) -> bool {
-        self.bytes == other.bytes
+        same(&self.bytes, &other.bytes)
     }
 }
 
@@ -71,11 +71,10 @@ impl<P: ParameterSet> TryFrom<&[u8]> for Signature<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if !P::sig_len_ok(bytes) {
+        let mut sig = Array::<u8, P::SigLen>::default();
+        if !P::sig_from(bytes, &mut sig) {
             return Err(Error::new());
         }
-        let mut sig = Array::<u8, P::SigLen>::default();
-        sig.copy_from_slice(bytes);
         Ok(Signature { bytes: sig })
     }
 }

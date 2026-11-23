@@ -90,17 +90,13 @@ API_THMS = [('Api', 'api_sign_eq'), ('Api', 'api_verify_eq'), ('Api', 'api_keyge
             ('Api', 'api_sign_deterministic_bytes'), ('Api', 'api_verify_bytes'), ('Api', 'api_pure_cores')]
 TYPED_THMS = [('Main', 'rust_keygen'), ('Main', 'rust_sign'), ('Main', 'rust_verify')]
 SEC_THMS = [('Api', 'api_pure_security'), ('Api', 'api_pure_security_linear')]
-CHK_THMS = [('Api', 'api_sign_checked_eq_sign'), ('Api', 'api_sign_deterministic_checked_eq'),
-            ('Api', 'api_keygen_checked_eq'), ('Api', 'keygen_internal_checked_eq'),
-            ('Api', 'api_sign_checked_bytes'), ('Api', 'api_sign_deterministic_checked_bytes'),
-            ('Api', 'api_checked_pure_cores')]
 ROM_THMS = [('PureRom', 'pure_rom_security'), ('PureRom', 'api_pure_rom_security'),
             ('PureRomBytes', 'rust_pure_rom_security_bytes'), ('PureRomBytes', 'api_pure_rom_security_bytes')]
 STRUCTS = [('Api', 'ApiPureBytesEndToEnd'), ('External', 'PureEndToEnd'), ('Api', 'ApiPureEndToEnd')]
 
 
 def check128s():
-    for f, nm in API_THMS + TYPED_THMS + SEC_THMS + CHK_THMS + ROM_THMS:
+    for f, nm in API_THMS + TYPED_THMS + SEC_THMS + ROM_THMS:
         g = tr(stmt(f, nm), '128s', 's128s', 16, 14)
         assert untr128(g) == re.sub(r'\bS\b', 'F', stmt(f, nm)), nm
     for f, nm in STRUCTS:
@@ -165,45 +161,6 @@ def proofs(P):
     rfl''' % dict(L=L, se=se, sp=sp),
         'api_pure_security': ' :=\n  ⟨api_pure_cores, (rust_pure_security optRand pkSeedDist).2⟩',
         'api_pure_security_linear': ' :=\n  ⟨api_pure_cores, (rust_pure_security_linear optRand pkSeedDist).2⟩',
-        'api_sign_checked_eq_sign': ''' := by
-  obtain ⟨r1, h1, e1⟩ := slhdsa.spec_imp_exists (%(L)ssign_checked_spec m ctx sk addrnd hm)
-  obtain ⟨r2, h2, e2⟩ := %(L)sapi_sign_correct m ctx sk addrnd hm
-  rw [spec_slhSignChecked_eq %(sp)s %(sp)s_valid _ _ _ _ hk, ← e2] at e1
-  have heq : %(R)ssign_checked m ctx sk addrnd = %(R)ssign m ctx sk addrnd := by
-    rw [h1, h2, optVec_eq e1]
-  refine ⟨heq, fun hc => ?_, fun hc => ?_⟩
-  · rw [← heq]
-    exact %(L)sapi_sign_checked_complete m ctx sk addrnd hm hc hk
-  · rw [slhSign_tooLong %(sp)s _ ctx _ _ hc, Option.map_eq_none_iff] at e2
-    rw [h2, e2]''' % dict(L=L, R=R, sp=sp),
-        'api_sign_deterministic_checked_eq': ''' := by
-  obtain ⟨r1, h1, e1⟩ :=
-    slhdsa.spec_imp_exists (%(L)ssign_deterministic_checked_spec m ctx sk hm)
-  obtain ⟨r2, h2, e2, -⟩ := %(L)sapi_sign_deterministic_correct m ctx sk hm
-  rw [spec_slhSignChecked_eq %(sp)s %(sp)s_valid _ _ _ _ hk, ← e2] at e1
-  have heq : %(R)ssign_deterministic_checked m ctx sk =
-      %(R)ssign_deterministic m ctx sk := by
-    rw [h1, h2, optVec_eq e1]
-  refine ⟨heq, fun hc => ?_, fun hc => ?_⟩
-  · rw [← heq]
-    exact %(L)sapi_sign_deterministic_checked_complete m ctx sk hm hc hk
-  · rw [slhSign_tooLong %(sp)s _ ctx _ _ hc, Option.map_eq_none_iff] at e2
-    rw [h2, e2]''' % dict(L=L, R=R, sp=sp),
-        'api_keygen_checked_eq': ''' := by
-  have hk := (%(L)sapi_keygen_keyOk seeds sk0 pk0 sk pk hkg).1
-  exact fun m ctx addrnd hm =>
-    ⟨api_sign_checked_eq_sign m ctx sk addrnd hm hk, api_sign_deterministic_checked_eq m ctx sk hm hk⟩''' % dict(L=L),
-        'keygen_internal_checked_eq': ''' := by
-  have hk := (%(L)skeygen_keyOk sk_seed sk_prf pk_seed sk pk hkg).1
-  exact fun m ctx addrnd hm =>
-    ⟨api_sign_checked_eq_sign m ctx sk addrnd hm hk, api_sign_deterministic_checked_eq m ctx sk hm hk⟩''' % dict(L=L),
-        'api_sign_checked_bytes': ''' := by
-  rw [(api_sign_checked_eq_sign m ctx sk addrnd hm hk).1]
-  exact api_sign_bytes m ctx sk addrnd hm''',
-        'api_sign_deterministic_checked_bytes': ''' := by
-  rw [(api_sign_deterministic_checked_eq m ctx sk hm hk).1]
-  exact api_sign_deterministic_bytes m ctx sk sk_seed sk_prf pk_seed pk_root hsk hm''',
-        'api_checked_pure_cores': ' :=\n  ⟨api_sign_checked_bytes, api_sign_deterministic_checked_bytes⟩',
         'pure_rom_security': ''' :=
   ⟨pure_end_to_end optRand pkSeedDist, pureRomScheme_instantiation %(se)s optRand pkSeedDist,
     fun F _ _ hF => pure_security_sha2 %(se)s optRand pkSeedDist F hF,
@@ -295,13 +252,6 @@ DOC = {
 
 `rust_pure_security` with part (a) about the interface functions: `keygen` (on the three %(n)d-byte blocks `SK.seed ‖ SK.prf ‖ PK.seed` of its %(n3)d-byte argument), `sign`, `sign_deterministic` (with `addrnd` the `PK.seed` block of the key) and `verify` never panic and are pointwise equal to `byteKeygen`, `byteSignPure`, `byteVerifyPure` under `Room m.length %(rp)d`.  Parts (b), (c) are those of `rust_pure_security`, unchanged, and so is the list (i)–(vi) of what lies between the scheme and the Rust code, with these additions: (i) `keygen` takes the three seeds as one %(n3)d-byte string (the caller samples it); a signing oracle served by `sign_deterministic` is the scheme at `optRand pk = pure pk.pkSeed` (`rust_pure_security_deterministic` for the uniform-`PK.seed` bound), using the `PK.seed` held in the *secret* key, which in the games is the one in the public key.''',
     'api_pure_security_linear': '**`api_pure_security` in linear (signed-pair) form** (legend: `rust_security_linear`).',
-    'api_sign_checked_eq_sign': '**On a well-formed private key the checked hedged signer is the plain one**: `sign_checked` returns exactly what `sign` returns — `ok (some sig)` with the same `sig` for a context of at most 255 bytes, `ok none` for a longer one.  So a signing oracle served by `sign_checked` with a key satisfying `Spec.KeyOk` is the signing oracle served by `sign`.',
-    'api_sign_deterministic_checked_eq': '**On a well-formed private key the checked deterministic signer is the plain one.**',
-    'api_keygen_checked_eq': '**With a key written by `keygen`, the checked signers are the plain signers**, on every message under the `Room` bound, every context and every `addrnd`.',
-    'keygen_internal_checked_eq': 'The same for a key written by `slh_keygen_internal`.',
-    'api_sign_checked_bytes': '**Rust `sign_checked` = `byteSignPure` on well-formed keys.**',
-    'api_sign_deterministic_checked_bytes': '**Rust `sign_deterministic_checked` = `byteSignPure` with `addrnd := PK.seed` on well-formed keys.**',
-    'api_checked_pure_cores': '**The signing items of part (a), for the checked signers, on well-formed keys** (in particular every key written by `keygen`, `slhdsa.sha2_%(set)s.api_keygen_keyOk`).',
     'pure_rom_security': '''**The Rust external pure interface and its security in the random-oracle model (SLH-DSA-SHA2-%(set)s).**
 
 1. `PureEndToEnd optRand pkSeedDist`: the Rust `slh_keygen_internal`, `slh_sign`, `slh_verify` never panic and compute the deterministic cores of `X = Reduction.externalAlg %(se)s.vp %(se)s.prims optRand pkSeedDist` on the FIPS byte encodings (under `Room m.length %(rp)d`), and `X` is correct.
@@ -356,7 +306,7 @@ def gen(name, ctor, n, k):
 import ME2E.Sha2_%(set)s
 
 /-!
-# SLH-DSA-SHA2-%(set)s: the interface module `api`, the checked signers, typed end-to-end forms
+# SLH-DSA-SHA2-%(set)s: the interface module `api`, typed end-to-end forms
 
 GENERATED by `scripts/gen_api_rom.py` (statements: git `26aa3d8`'s `security/E2E/Api.lean`, `External.lean`,
 `Main.lean` at SHA2-128s under the renamings listed there; proofs: `ME2E/Api.lean`,
@@ -364,7 +314,7 @@ GENERATED by `scripts/gen_api_rom.py` (statements: git `26aa3d8`'s `security/E2E
 
 Rust functions (Aeneas names `slhdsa.sets.sha2_%(set)s.*`, the per-set wrappers that the re-export
 modules `sha2_%(set)s::api` and `sha2_%(set)s::encoding` expose): `keygen`, `sign`,
-`sign_deterministic`, `verify`, `sign_checked`, `sign_deterministic_checked`, and the internal and
+`sign_deterministic`, `verify`, and the internal and
 pure functions `slh_keygen_internal`, `slh_sign`, `slh_verify`.
 
 1. **The interface functions are the scheme's cores**: `api_keygen_eq` (`keygen` = `slh_keygen_internal`
@@ -375,9 +325,6 @@ pure functions `slh_keygen_internal`, `slh_sign`, `slh_verify`.
    nothing.
 2. **Standard-model headlines for the interface**: `api_pure_security`, `api_pure_security_linear`
    (the bounds are those of `rust_pure_security`, `rust_pure_security_linear`).
-3. **The checked signers on well-formed keys** (`Spec.KeyOk Spec.sha2_%(set)s`): `api_sign_checked_eq_sign`,
-   `api_sign_deterministic_checked_eq`, `api_keygen_checked_eq`, `keygen_internal_checked_eq`,
-   `api_sign_checked_bytes`, `api_sign_deterministic_checked_bytes`, `api_checked_pure_cores`.
 -/
 
 ''' % P, HDR_OPEN % P, '\n/-! ### 1. The interface functions are the cores of the byte-level scheme -/\n\n']
@@ -396,12 +343,9 @@ pure functions `slh_keygen_internal`, `slh_sign`, `slh_verify`.
     w('/-! ### 2. Headline forms for the interface -/\n\n')
     for f, nm in SEC_THMS:
         w(thm(nm, T(f, nm), pf[nm], P))
-    w('/-! ### 3. The checked signers on well-formed keys -/\n\n')
-    for f, nm in CHK_THMS:
-        w(thm(nm, T(f, nm), pf[nm], P))
     w('end ME2E.sha2_%s\n\n' % name)
     names = [nm for _, nm in API_THMS] + ['api_pure_bytes_end_to_end'] + [nm for _, nm in TYPED_THMS] + \
-        ['pure_end_to_end', 'api_pure_end_to_end'] + [nm for _, nm in SEC_THMS + CHK_THMS]
+        ['pure_end_to_end', 'api_pure_end_to_end'] + [nm for _, nm in SEC_THMS]
     for nm in names:
         w('#print axioms ME2E.sha2_%s.%s\n' % (name, nm))
     os.makedirs(os.path.join(ROOT, 'ME2E', 'Api'), exist_ok=True)

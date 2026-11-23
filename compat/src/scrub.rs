@@ -16,9 +16,9 @@ use zeroize::Zeroize;
 /// Bytes overwritten: one size for all six sets.
 ///
 /// Measured with `tests/wipe.rs` (AArch64, Apple M5 Ultra, optimised builds): the
-/// deepest secret-handling call is the checked signer of SLH-DSA-SHA2-256s,
-/// at 17,536 bytes of stack with `hw-sha2` (16,896 portable); key generation
-/// followed by both signers came to at most 17,632 bytes. The test prints the
+/// deepest secret-handling call is the signer of SLH-DSA-SHA2-256s, at
+/// 17,488 bytes of stack with `hw-sha2` (16,848 portable); key generation
+/// followed by signing came to at most 17,568 bytes. The test prints the
 /// figures for the build it runs in and fails unless this leaves at least
 /// 8 KiB to spare for every set. An unoptimised build uses more stack and may
 /// not be covered.

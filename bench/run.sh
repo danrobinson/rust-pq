@@ -45,15 +45,36 @@ mkdir -p "$OUT"
 echo "== frozen copies under variants/ still match the single-set tree (git 26aa3d8; modulo the cfg(feature = \"count\") counter)"
 strip_counter() { grep -v -e 'feature = "count"' -e 'COMPRESSIONS' -e 'Benchmark-only: number of compression'; }
 OLD=26aa3d8
+# variants/current is the single-set crate minus the functions removed from this repository on
+# 2026-11-22 (HANDOFF.md): there the copy may differ from the original only by deleted lines,
+# doc-comment lines, and `use` lists that lost names.
+only_removals() { python3 -I -c '
+import sys, re, difflib
+a = open(sys.argv[1]).read().split("\n"); b = open(sys.argv[2]).read().split("\n")
+pieces = lambda s: [p.strip() for p in re.split("[,{]", s)]
+def sub(l, x):
+    it = iter(pieces(x))
+    return all(any(p == q for q in it) for p in pieces(l))
+ok = True
+for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+    if op in ("equal", "delete"): continue
+    for l in b[j1:j2]:
+        if l.strip() == "" or l.lstrip().startswith("//"): continue
+        if "," in l and any(sub(l, x) for x in a[i1:i2]): continue
+        print("added:", l); ok = False
+sys.exit(0 if ok else 1)' "$1" "$2"; }
 for pair in "variants/base/src:opt/original/rust/src" "variants/current/src:rust/src"; do
   copy=${pair%%:*}; orig=${pair##*:}
   files=$(git -C .. ls-tree --name-only "$OLD" "$orig/" | grep '\.rs$') || { echo "cannot read $OLD:$orig (needs the git history)"; exit 1; }
   for f in $files; do
-    if ! diff -qB <(git -C .. show "$OLD:$f" | strip_counter) <(strip_counter < "$copy/$(basename "$f")") >/dev/null; then
+    if [ "$copy" = variants/current/src ]; then
+      only_removals <(git -C .. show "$OLD:$f" | strip_counter) <(strip_counter < "$copy/$(basename "$f")") > /dev/null \
+        || { echo "STALE COPY: $copy/$(basename "$f") is not $OLD:$f with lines removed"; exit 1; }
+    elif ! diff -qB <(git -C .. show "$OLD:$f" | strip_counter) <(strip_counter < "$copy/$(basename "$f")") >/dev/null; then
       echo "STALE COPY: $copy/$(basename "$f") differs from $OLD:$f"; exit 1
     fi
   done
-  echo "$copy == $OLD:$orig"
+  echo "$copy == $OLD:$orig$([ "$copy" = variants/current/src ] && echo ' (with the removed functions taken out)')"
 done | tee "$OUT/copies.txt"
 
 echo "== ACVP tests of the variant copies"

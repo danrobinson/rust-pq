@@ -25,31 +25,22 @@
 //!
 //! # What is verified and what is not
 //!
-//! Key generation, signing and verification are the verified crate's
-//! per-set interface functions (`slhdsa::sha2_128s::keygen`, `sign`,
-//! `sign_deterministic`, `sign_checked`, `verify`, …), called on byte
-//! arrays: which bytes of a private key are which, the context-string
-//! framing, and the choice of `PK.seed` as the randomness of a deterministic
-//! signature are all decided there, as are the acceptance of key and
-//! signature bytes, the comparison of private keys and the PKCS#8 / SPKI
-//! encodings (`slhdsa::sha2_128s::encoding`, …). The proofs cover the
-//! portable build of that crate. What this crate adds is **not** covered by
-//! the proofs: the key and signature types and their trait plumbing, drawing
-//! randomness from a random source, joining a multi-part message into one
-//! buffer, *decoding* PKCS#8 / SPKI (done by the `pkcs8` crate before the
-//! key bytes reach the verified parser), and the wiping described below.
+//! Key generation, signing and verification, and every decision this crate
+//! would otherwise make itself, are functions of the verified crate
+//! (`slhdsa::api`, `slhdsa::slh`, `slhdsa::encoding` and `slhdsa::adapter`),
+//! called on the caller's bytes at each set's parameters: which bytes of a
+//! private key are which, the context-string framing and the order of the
+//! argument checks, the choice of `PK.seed` as the randomness of a
+//! deterministic signature, appending the parts of a multi-part message, the
+//! acceptance of key and signature bytes, the comparisons of keys,
+//! signatures and algorithm identifiers, and the PKCS#8 / SPKI encodings.
+//! What this crate adds is **not** covered by the proofs: the key and
+//! signature types and their trait plumbing, drawing randomness from a
+//! random source, the loop over the parts of a message, *decoding* PKCS#8 /
+//! SPKI (done by the `pkcs8` crate before the key bytes reach the verified
+//! parser), and the wiping described below. `README.md` lists it exactly.
 //! The tests compare every entry point with RustCrypto's crate on the same
 //! inputs, for all six sets.
-//!
-//! # Optional guard against faults
-//!
-//! The signing methods do the work of the standard and no more, as
-//! RustCrypto's do. [`SigningKey::try_sign_checked`] adds a guard: each
-//! value that a one-time key signs is computed twice, by routes that share
-//! no work, and compared before the signature is released. A fault during
-//! signing that would otherwise produce a signature a forger can exploit is
-//! reported as an error instead. The signature is the same; signing takes a
-//! little under twice as long.
 //!
 //! # Secrets are wiped
 //!
@@ -78,9 +69,8 @@
 //!   they differ.
 //! * Multi-part messages are copied into one buffer before signing or
 //!   verifying.
-//! * Additions: [`SigningKey::try_sign_checked`], and, behind the default
-//!   `getrandom` feature, [`SigningKey::generate`] and
-//!   [`SigningKey::try_sign_hedged`].
+//! * Additions, behind the default `getrandom` feature:
+//!   [`SigningKey::generate`] and [`SigningKey::try_sign_hedged`].
 //!
 //! # Credit
 //!
@@ -114,13 +104,18 @@ pub use signature_encoding::{Signature, SignatureLen};
 pub use signing_key::{SigningKey, SigningKeyLen};
 pub use verifying_key::{VerifyingKey, VerifyingKeyLen};
 
-/// Join the parts of a multi-part message. One part is used as it is.
-fn joined<'a>(parts: &'a [&'a [u8]], buf: &'a mut Vec<u8>) -> &'a [u8] {
-    if parts.len() == 1 {
-        return parts[0];
-    }
+/// The parts of a multi-part message, joined by the verified
+/// `slhdsa::adapter::append`. (The loop over `&[&[u8]]` itself cannot be
+/// translated: nested borrows.)
+fn join(parts: &[&[u8]]) -> Vec<u8> {
+    let mut m = Vec::new();
     for part in parts {
-        buf.extend_from_slice(part);
+        slhdsa::adapter::append(&mut m, part);
     }
-    buf
+    m
+}
+
+/// Equality of two public byte strings, by the verified `slhdsa::adapter::bytes_equal`.
+fn same(a: &[u8], b: &[u8]) -> bool {
+    slhdsa::adapter::bytes_equal(a, b)
 }

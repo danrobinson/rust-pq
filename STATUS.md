@@ -18,19 +18,20 @@ processor instructions, taken unchanged from the single-set tree's `lean-hw`).
 
 | Item | State |
 |---|---|
-| Same modules and public functions as the single-set tree's `rust/src` (`api`, `encoding`, checked signer, `no_std` + alloc, `hw-sha2` with the same runtime detection), six sets | done (generic functions, plus per-set typed wrappers with the single-set crate's signatures) |
+| Same modules and public functions as the single-set tree's `rust/src` (`api`, `encoding`, `no_std` + alloc, `hw-sha2` with the same runtime detection), six sets | done (generic functions, plus per-set typed wrappers with the single-set crate's signatures) |
 | `chain_blocks`, seed-state precomputation, `sha256_from`, in-place `H_msg`, stack HMAC key blocks, FORS batches and joint climbing, on the SHA-256 paths of every set | done |
 | SHA-512 for `H`, `T_l`, `H_msg`, `PRF_msg` (n = 24, 32) | done, portable |
 | `PRF_msg`'s inner HMAC digest | kept on the stack (this stage; see "Secrets and constant time") |
 | `hw-sha2` chain kernel for n = 24 and 32 | done (one kernel, generic in `N`; the wrappers are unchanged); proved |
-| Hardware SHA-512 (FEAT_SHA512) | separate, experimental, **unverified** feature `hw-sha512` |
-| Tests, four builds | all pass: 88 default, 90 `hw-sha2`, 91 `hw-sha2,hw-sha512`, 89 `hw-sha512` (one fewer each since the cross-test against the single-set crate was removed, 2026-11-22) |
+| Hardware SHA-512 (FEAT_SHA512) | part of `hw-sha2` since 2026-11-22 (own run-time test), translated and **proved** (section "Hardware SHA-512") |
+| Tests, two builds | all pass: 87 default, 90 `hw-sha2` |
 | Charon/Aeneas, default build | no opaque function, no axiom, no `External` file |
-| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` left out (21 declarations, defined by the model in `lean-hw/Slhdsa/{Types,Funs}External.lean` over `lean-hw/Arm.lean`, the single-set tree's files unchanged) |
-| **Refinement proofs, default build** | **done**: `lean/Slhdsa/Proofs` (19 files, about 9,100 lines); headline files `Theorems.lean` (37 theorems), `ApiTheorems.lean` (174), `EncodingTheorems.lean` (72), `Compat128.lean` (24); every one depends only on `propext`, `Classical.choice`, `Quot.sound` (checked by `scripts/check.sh`); no `sorry`, `axiom`, `native_decide`, `bv_decide` |
-| Correctness of the specification (`lean/Spec/Checked.lean`, `Correctness.lean`) | done, generically for every `p` with `p.Valid` |
-| 128s against the single-set specification | done: `lean/Spec/Compat128.lean` proves `Spec.f Spec.sha2_128s = Spec128.f` for every function, where `Spec128` (`lean/Spec/Old128.lean`) is a verbatim copy of the single-set tree's `lean/Spec/{SlhDsa,Checked}.lean`; `Slhdsa/Compat128.lean` restates the 128s headlines against it |
-| **Refinement proofs, `hw-sha2` build** | **done**: `lean-hw/` proves the same 307 headline theorems (the four headline files are links to `lean/`'s) about the `hw-sha2` translation, all six sets, on the three standard axioms; new proofs only for the chain kernel generic in `N` and the hand-off (`lean-hw/Slhdsa/Proofs/ChainTop.lean`, `Hw/{ChainModel,ChainLane,ChainRun,ChainLoop,ChainMain,ChainAll,Chain,Guard}.lean`, about 2,400 lines); guard theorems for `Arm.haveSha2 = false`; the wrapper model passes `ArmTest` (1,745 cases, 0 mismatches) |
+| Charon/Aeneas, `hw-sha2` build | only `sha256::hw::arm` and `sha512::hw::arm` left out (32 declarations, defined by the model in `lean-hw/Slhdsa/{Types,Funs}External.lean` over `lean-hw/Arm.lean`; the SHA-256 part is the single-set tree's, unchanged) |
+| **Refinement proofs, default build** | **done**: `lean/Slhdsa/Proofs` (18 files, about 8,500 lines); headline files `Theorems.lean` (37 theorems), `ApiTheorems.lean` (66), `EncodingTheorems.lean` (72), `Compat128.lean` (12); every one depends only on `propext`, `Classical.choice`, `Quot.sound` (checked by `scripts/check.sh`); no `sorry`, `axiom`, `native_decide`, `bv_decide` |
+| Correctness of the specification (`lean/Spec/Keys.lean`, `Correctness.lean`) | done, generically for every `p` with `p.Valid` |
+| 128s against the single-set specification | done: `lean/Spec/Compat128.lean` proves `Spec.f Spec.sha2_128s = Spec128.f` for every function, where `Spec128` (`lean/Spec/Old128.lean`) is a verbatim copy of the single-set tree's specification; `Slhdsa/Compat128.lean` restates the 128s headlines against it |
+| **Refinement proofs, `hw-sha2` build** | **done**: `lean-hw/` proves the same 187 headline theorems (the four headline files are links to `lean/`'s) about the `hw-sha2` translation, all six sets, on the three standard axioms; new proofs only for the chain kernel generic in `N` and the hand-off (`lean-hw/Slhdsa/Proofs/ChainTop.lean`, `Hw/{ChainModel,ChainLane,ChainRun,ChainLoop,ChainMain,ChainAll,Chain,Guard}.lean`, about 2,400 lines); guard theorems for `Arm.haveSha2 = false`; since 2026-11-22 also the SHA-512 kernel (`Hw512/{Rounds,Wrappers,Compress,Guard}.lean`, `Compress512Top.lean`) and guards for `Arm.haveSha512 = false`; the wrapper model passes `ArmTest` (2,961 cases, 0 mismatches) |
+| The adapter's decisions (`rust/src/adapter.rs`, 2026-11-22) | translated in both builds; proved in `lean/Slhdsa/Proofs/Adapter.lean`, headline list `AdapterTheorems.lean` (14); `compat/` only forwards (its remaining surface: `compat/README.md`) |
 | Constant-time proofs, security link | both builds (later stages, not described here): `lean/CT_STATUS.md`, `security/STATUS.md`, `security-hw/README.md` |
 
 ## Design, and why
@@ -98,11 +99,9 @@ Other decisions:
 - **Per-set modules** `sha2_128s` … `sha2_256f` (generated by one macro in
   `sets.rs`) hold `params` (`N`, `PK_BYTES`, `SK_BYTES`, `SEED_BYTES`,
   `SIG_BYTES`, `PKCS8_BYTES`, `SPKI_BYTES`, `PARAMS`), the internal and pure
-  functions and the checked signer (`slh_keygen_internal`, `slh_sign_internal`,
-  `slh_sign_internal_checked`, `slh_verify_internal`, `slh_sign`,
-  `slh_sign_checked`, `slh_verify`), the interface functions (`keygen`,
-  `public_key`, `sign`, `sign_deterministic`, `sign_checked`,
-  `sign_deterministic_checked`, `verify`) and the encodings
+  functions (`slh_keygen_internal`, `slh_sign_internal`,
+  `slh_verify_internal`, `slh_sign`, `slh_verify`), the interface functions
+  (`keygen`, `public_key`, `sign`, `sign_deterministic`, `verify`) and the encodings
   (`PKCS8_PREFIX`, `SPKI_PREFIX`, `secret_key_from`, `public_key_from`,
   `signature_len_ok`, `secret_keys_equal`, `pkcs8_encode`/`decode`,
   `spki_encode`/`decode`), with re-export modules `api` and `encoding` so the
@@ -118,8 +117,7 @@ Other decisions:
   192s, 192f, 256s, 256f), and a test compares each set's PKCS#8 and SPKI
   bytes with RustCrypto's `to_pkcs8_der` / `to_public_key_der`.
 - `#[inline(never)]` as in the single-set crate on the functions that handle the seed
-  (generic `slh_keygen_internal`, `slh_sign_internal`,
-  `slh_sign_internal_checked`, `api::keygen`, and the per-set wrappers of
+  (generic `slh_keygen_internal`, `slh_sign_internal`, `api::keygen`, and the per-set wrappers of
   the same names).
 
 ## Files changed
@@ -138,16 +136,16 @@ This stage (proofs): `rust/src/hash.rs` (`prf_msg`: stack outer block),
 `rust/src/sha256.rs` (hardware test no longer writes the record);
 `lean/Slhdsa/{Types,Funs}.lean` and `lean-hw/Slhdsa/{Types,Funs}.lean`
 regenerated; `lean/Slhdsa/Proofs/*` rewritten for the new code (new
-`Sha256Core`, `CompressTop`, `ChainTop`, `HashMsg`, `Checked`, `Api`,
+`Sha256Core`, `CompressTop`, `ChainTop`, `HashMsg`, `Api`,
 `Encoding`); `lean/Slhdsa/Theorems.lean` regenerated, new
 `ApiTheorems.lean`, `EncodingTheorems.lean`, `Compat128.lean`;
-`lean/Slhdsa.lean`; new `lean/Spec/{Checked,Correctness,Old128,Compat128}.lean`,
-`lean/Spec.lean` imports `Checked`; `scripts/check.sh`; this file.
+`lean/Slhdsa.lean`; new `lean/Spec/{Keys,Correctness,Old128,Compat128}.lean`,
+`lean/Spec.lean` imports `Keys`; `scripts/check.sh`; this file.
 
 Stage `hw-sha2` proofs: `lean-hw/lakefile.toml` (`Spec` compiled in place
 from `../lean`; the `Slhdsa` library with its default root); new links
 `lean-hw/Slhdsa.lean`, `lean-hw/Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean`,
-`lean-hw/Slhdsa/Proofs/*.lean` (17 files, to `../lean/Slhdsa/Proofs`),
+`lean-hw/Slhdsa/Proofs/*.lean` (16 files now, to `../lean/Slhdsa/Proofs`),
 `lean-hw/Slhdsa/Proofs/CompressTop.lean` and
 `lean-hw/Slhdsa/Proofs/Hw/{Model,Rounds,Compress,Wrappers}.lean` (to
 the single-set tree's `lean-hw/Slhdsa/Proofs`), `lean-hw/ArmTest.lean` (to
@@ -159,27 +157,29 @@ output).
 
 ## Tests
 
-All pass, run on this machine (Apple M5 Ultra) in four builds: default,
-`--features hw-sha2`, `--features hw-sha2,hw-sha512`, `--features hw-sha512`;
-and `hw-sha2,hw-sha512` again with `RUSTFLAGS="-C target-feature=-sha2,-sha3"`
-(the runtime-detection path Linux takes).
+All pass, run on this machine (Apple M5 Ultra) in two builds: default and
+`--features hw-sha2`; and `hw-sha2` again with
+`RUSTFLAGS="-C target-feature=-sha2,-sha3"` (the runtime-detection path Linux
+takes). (Until 2026-11-22 the unproved SHA-512 backend was a separate feature
+`hw-sha512`, tested in two more builds.)
 
 | file | tests | what |
 |---|---|---|
-| `acvp.rs` | 29 | per set (×6): ACVP keyGen 10/10 (also through `keygen`, `public_key`), sigGen 28/28 (each also through the checked signer and the `api` functions), sigVer 28/28, round trip and tampering; Table 2 sizes and `N = PARAMS.n`; SHA-256, SHA-512 (also `sha512_from`), HMAC-SHA-256/512 against `sha2`/`hmac`; `PRF_msg` and `H_msg` of all six sets against HMAC and MGF1 written with `sha2`/`hmac`, message lengths 0..140 and others; until 2026-11-22 also 128s byte-identical to the single-set crate (keygen, both `api::keygen`, `public_key`, `slh_sign_internal(_checked)`, `slh_sign(_checked)`, all four `api` signers, damaged-key refusal, verdicts on 10 signature variants through three verifiers, both prefixes, PKCS#8/SPKI encode and decode, byte conversions, `secret_keys_equal`; test removed with that crate) |
-| `api.rs` | 31 | the single-set tree's `rust/tests/api.rs` ported, 5 tests ×6 sets: `keygen` is the internal function on the three seeds; the checked signers return the plain signature on honest keys; contexts over 255 bytes refused; a damaged key (bytes in SK.seed, PK.seed, PK.root) gives no checked signature while a changed SK.prf still does; a wrong value from either route is caught by `ht_sign_checked`. Plus the cost of the check (128s, printed) |
+| `acvp.rs` | 29 | per set (×6): ACVP keyGen 10/10 (also through `keygen`, `public_key`), sigGen 28/28 (each also through the `api` functions), sigVer 28/28, round trip and tampering; Table 2 sizes and `N = PARAMS.n`; SHA-256, SHA-512 (also `sha512_from`), HMAC-SHA-256/512 against `sha2`/`hmac`; `PRF_msg` and `H_msg` of all six sets against HMAC and MGF1 written with `sha2`/`hmac`, message lengths 0..140 and others; until 2026-11-22 also 128s byte-identical to the single-set crate (keygen, both `api::keygen`, `public_key`, `slh_sign_internal`, `slh_sign`, the `api` signers, verdicts on 10 signature variants through three verifiers, both prefixes, PKCS#8/SPKI encode and decode, byte conversions, `secret_keys_equal`; test removed with that crate) |
+| `api.rs` | 30 | from the single-set tree's `rust/tests/api.rs`, 5 tests ×6 sets: `keygen` is the internal function on the three seeds; the interface signers return the signature of `slh_sign` / `slh_sign_internal`, which verifies; contexts over 255 bytes refused; a damaged key (bytes in SK.seed, PK.seed, PK.root) gives a signature that does not verify, while a changed SK.prf does not matter; the top tree's root is `PK.root` |
 | `compress.rs` | 10 (11 with `hw-sha2`, 12 with both) | the single-set tree's `rust/tests/compress.rs` ported: `compress` on 200,000 random and 2,565 edge cases; `chain_blocks::<N>` for N = 16, 24, 32 against a reference on random blocks with uniform, mixed, single-step, empty, reversed and carry-crossing ranges, batch sizes 0..41, 64, 70, 128, 140, equal and unequal block heads; chain independence; panics; SHA-512 `compress` on 50,000 random cases; the backends are active where the CPU has them |
 | (unit) | 0 (1 with `hw-sha2`) | `sha256::hw::vectors`: the wrappers against the record `vectors/arm-wrappers.txt` |
-| `rustcrypto.rs` | 18 | per set (×6) against `slh-dsa` 0.2.0-rc.5: same keys from the same seeds; byte-identical signatures (internal hedged and deterministic, pure with context hedged and deterministic, through `api` and the checked signers); each verifies the other's; both reject the same tampering; PKCS#8 and SPKI bytes identical, each decodes the other's; OID equals `const_oid::db::fips205`'s; encoder/decoder/conversion edge cases |
+| `rustcrypto.rs` | 18 | per set (×6) against `slh-dsa` 0.2.0-rc.5: same keys from the same seeds; byte-identical signatures (internal hedged and deterministic, pure with context hedged and deterministic, through `api`); each verifies the other's; both reject the same tampering; PKCS#8 and SPKI bytes identical, each decodes the other's; OID equals `const_oid::db::fips205`'s; encoder/decoder/conversion edge cases |
 
 Also run, outside the repository: the single-set tree's `compat`'s whole test suite (including
 the 86-result drop-in comparison with RustCrypto, `wipe.rs` and `heap.rs`)
 against this crate's 128s, through a scratch shim crate that exposes
 `sha2_128s` under the single-set crate's paths: all pass, default and `hw-sha2`. The
-unscrubbed stack depth of keygen plus checked signing was 14,024 bytes
+unscrubbed stack depth of keygen plus signing (twice) was 14,024 bytes
 (the single-set crate: 14,136); the adapter run left 0 of 208 searched secret forms.
 And `cargo build --target aarch64-unknown-none` for the library: default,
-`hw-sha2`, `hw-sha2` with `+sha2`, `hw-sha2,hw-sha512`.
+`hw-sha2`, `hw-sha2` with `+sha2` (and, on 2026-11-22, default, `hw-sha2` and `hw-sha2` with
+`+sha2,+sha3` again).
 
 ## Translation (Charon + Aeneas)
 
@@ -193,7 +193,9 @@ And `cargo build --target aarch64-unknown-none` for the library: default,
   every one defined in the single-set tree's `lean-hw/Slhdsa/{Types,Funs}External.lean`, which
   `lean-hw` holds. `lake build` there builds it and its proofs
   (3,711 jobs).
-- The `hw-sha512` build was not translated (see the last section).
+- Since 2026-11-22 the `hw-sha2` build includes the SHA-512 backend: Aeneas leaves out 32
+  declarations (the 21 above, the SHA-512 vector type and the ten wrappers of
+  `sha512::hw::arm`), all defined in `lean-hw/Slhdsa/{Types,Funs}External.lean`.
 
 ## Measurements
 
@@ -241,7 +243,7 @@ Portable (this crate: no features):
 | 256s | 38.69 ms | 494.6 ms | 667.5 µs | 28.59 ms | 354.5 ms | 484.6 µs |
 | 256f | 2.42 ms | 50.29 ms | 1.33 ms | 1.80 ms | 36.69 ms | 974.8 µs |
 
-`--features hw-sha2` (SHA-512 portable):
+`--features hw-sha2` as it was before 2026-11-22 (SHA-512 portable):
 
 | set | keygen | sign | verify | RC keygen | RC sign | RC verify |
 |---|---|---|---|---|---|---|
@@ -252,7 +254,7 @@ Portable (this crate: no features):
 | 256s | 4.74 ms | 126.6 ms | 170.2 µs | 8.32 ms | 114.5 ms | 156.5 µs |
 | 256f | 291.7 µs | 9.40 ms | 271.7 µs | 513.5 µs | 11.15 ms | 299.6 µs |
 
-`--features hw-sha2,hw-sha512` (experimental, unverified SHA-512 backend):
+`--features hw-sha2,hw-sha512` before 2026-11-22 (the same SHA-512 kernel as today's `hw-sha2`, then a separate, unproved feature):
 
 | set | keygen | sign | verify | RC keygen | RC sign | RC verify |
 |---|---|---|---|---|---|---|
@@ -272,7 +274,25 @@ portable build in every set, the same ratio as the single-set crate (its portabl
 SHA-256 compression is slower per block than the `sha2` crate's). With
 `hw-sha2` it is faster than RustCrypto in every operation of the 128 and f
 sets and in 192s keygen and signing, and slower in 192s verification and all
-of 256s except keygen — because SHA-512 is still portable there.
+of 256s except keygen — because SHA-512 was still portable there.
+
+`--features hw-sha2` since 2026-11-22 (verified SHA-512 backend), `compat/examples/timing.rs`
+(through the adapter, deterministic signing of a 31-byte message, medians of 7 runs, 31 for
+verify; RustCrypto in the same binary), two runs, load average 1.8–2.7, second run within 1.5%
+of the first; first run:
+
+| set | keygen | sign | verify | RC keygen | RC sign | RC verify |
+|---|---|---|---|---|---|---|
+| 128s | 3.95 ms | 30.39 ms | 34 µs | 8.29 ms | 62.61 ms | 57 µs |
+| 128f | 75 µs | 1.53 ms | 95 µs | 129 µs | 2.99 ms | 171 µs |
+| 192s | 6.13 ms | 67.68 ms | 66 µs | 12.54 ms | 124.8 ms | 111 µs |
+| 192f | 109 µs | 2.92 ms | 163 µs | 193 µs | 5.40 ms | 292 µs |
+| 256s | 4.11 ms | 65.10 ms | 92 µs | 8.40 ms | 115.6 ms | 156 µs |
+| 256f | 269 µs | 6.05 ms | 168 µs | 535 µs | 11.19 ms | 291 µs |
+
+So the verified backend signs 192s in 67.7 ms and 256s in 65.1 ms, the times of the unproved
+one (67.9 and 65.3 ms above; it is the same kernel, restructured only in that its store wrapper
+writes two vectors and the caller joins the halves).
 
 **How much SHA-512 takes in the 192/256 sets** (`hw-sha2` build). Counted
 with an instrumented scratch copy: SHA-512 compressions per keygen / sign /
@@ -283,7 +303,7 @@ WOTS+ keys. A portable compression costs 179.6 ns (median of 7 runs of 10^6
 calls). So SHA-512 is about 15–19% of key generation, 42–57% of signing and
 42–57% of verification in these sets:
 
-| set | keygen | sign | verify | measured saving with `hw-sha512` (keygen / sign / verify) |
+| set | keygen | sign | verify | measured saving with hardware SHA-512 (keygen / sign / verify) |
 |---|---|---|---|---|
 | 192s | 15% | 49% | 57% | 11% / 41% / 45% |
 | 192f | 15% | 42% | 42% | 10% / 33% / 33% |
@@ -291,26 +311,34 @@ calls). So SHA-512 is about 15–19% of key generation, 42–57% of signing and
 | 256f | 19% | 44% | 47% | 13% / 36% / 37% |
 
 (Share = count × 179.6 ns / measured time; the measured saving is what the
-experimental backend actually removed, at about 30 ns per compression.) More
+hardware backend actually removed, at about 30 ns per compression.) More
 would need what the SHA-256 path has, several independent hashes
 interleaved in the unit (the `H` of one FORS level, and the climbs of the k
 trees, are independent); that was not tried.
 
-## Hardware SHA-512 (`hw-sha512`): what it is
+## Hardware SHA-512 (part of `hw-sha2` since 2026-11-22)
 
-`rust/src/sha512.rs`, module `hw`: nine wrappers around the FEAT_SHA512
-intrinsics (`vsha512hq_u64`, `vsha512h2q_u64`, `vsha512su0q_u64`,
-`vsha512su1q_u64`, loads, stores, add, extract) and a forty-step
-`compress_block`, entered by `sha512::compress` after a run-time test
-(`std::arch::is_aarch64_feature_detected!("sha3")`, or the build's target
-features where the target guarantees them or has no operating system), with
-the portable `compress_portable` as the fallback. One block at a time, no
-multi-lane kernel. It is a separate feature so that the `hw-sha2` build, its
-translation and its 21-declaration model are unchanged. Tested like the rest
-(`compress` on 50,000 random blocks against `sha2::compress512`, and every
-test file in the builds `hw-sha512` and `hw-sha2,hw-sha512`, including the
-run-time detection path). Not translated, no model of the instructions, no
-proof.
+`rust/src/sha512.rs`, module `hw`, built with `hw-sha2`: ten wrappers in `hw::arm` around the
+FEAT_SHA512 intrinsics (`available`, `load_words`, `store_words`, `load_be`, `add`, `ext1`,
+`sha512h`, `sha512h2`, `sha512su0`, `sha512su1`; each one to three intrinsics), and a forty-step
+`compress_block` in the Aeneas subset, entered by `sha512::compress` after its own run-time test
+(`std::arch::is_aarch64_feature_detected!("sha3")`, or the build's target features where the
+target guarantees them or has no operating system), with the portable `compress_portable` as
+the fallback. One block at a time, no multi-lane kernel. A CPU with the SHA-256 and without the
+SHA-512 instructions gets hardware SHA-256 and portable SHA-512. Until 2026-11-22 this kernel was
+a separate, untranslated feature `hw-sha512`; folding it into `hw-sha2` keeps one hardware
+translation (`lean-hw`) and one proof tree.
+
+Proved (`lean-hw/Slhdsa/Proofs/Hw512`, `Compress512Top.lean`): `hw_compress_block512_spec`
+(with `Arm.haveSha512 = true`, `compress_block` is FIPS 180-4's SHA-512 compression function on
+the block), `hw_compress512_spec` (whenever `hw::compress` returns a state it is that function on
+`data[off..off + 128]`), `S512.compress_spec` (the default build's statement of
+`sha512::compress`, whichever the feature test answers), and the guards
+`compress_block512_undef`, `compress_block512_no_spec` (without the instructions the kernel
+fails, so no postcondition holds of it). The model of the four instructions is in
+`lean-hw/Arm.lean` (`SHA512H`, `SHA512H2`, `SHA512SU0`, `SHA512SU1`, `ADD2`, `EXT1`, from the
+Arm ARM pseudocode); `ArmTest` checks it against 1,216 recorded calls of the ten wrappers
+(`vectors/arm-wrappers.txt`, lines 1,746–2,961). Constant time: `lean-hw/Ct/Compress512Top.lean`.
 
 ## Secrets and constant time
 
@@ -321,8 +349,7 @@ digits and tree indices, and in the hardware kernel on `N` and the slot
 schedule (step ranges, which are public). The kernel's cache of the first
 rounds is keyed on the first 16 block bytes, an address prefix, as before.
 `der_decode` returns early on a prefix mismatch, like the single-set crate's
-`pkcs8_decode` (the prefix is not secret). Root comparisons in the checked
-signer use array `==` as in the single-set crate. Secret values are on the stack in the
+`pkcs8_decode` (the prefix is not secret). Secret values are on the stack in the
 same places as in the single-set crate; the SHA-512 key blocks of `PRF_msg` are on the
 stack too. Nothing of this has been checked by the constant-time machinery of
 the single-set tree's `lean/Ct` (at the time it had not been run on this tree; it has since, `lean/CT_STATUS.md`); the compat stack and heap
@@ -392,14 +419,10 @@ and `Room m.length (msgSlack N)` (`msgSlack n = if n = 16 then 152 else 304`;
 `+ 257` for the pure functions). The per-set theorems discharge `PN` from
 `Spec.sha2_*_valid` and the set's `PARAMS`.
 
-`lean/Slhdsa/ApiTheorems.lean`: for each set the 29 statements of
-the single-set tree's `lean/Slhdsa/ApiTheorems.lean` (checked signer: never fails, releases only
-FIPS 205 signatures, every released signature verifies under the key's public
-part, always signs with a well-formed key; completeness of plain and checked
-signing with generated keys; `keygen`, `public_key`, `sign`,
-`sign_deterministic`, `sign_checked`, `sign_deterministic_checked`,
-`verify`), on top of the generic `Spec.slhSignChecked_sound` /
-`_complete`, `Spec.slh_complete`, `Spec.keygen_keyOk` of
+`lean/Slhdsa/ApiTheorems.lean`: for each set 11 statements of
+the single-set tree's `lean/Slhdsa/ApiTheorems.lean` (completeness of signing with generated
+keys; `keygen`, `public_key`, `sign`, `sign_deterministic`, `verify`), on top of the generic
+`Spec.slh_complete_internal`, `Spec.slh_complete`, `Spec.keygen_keyOk` of
 `lean/Spec/Correctness.lean` (all for any `p` with `p.Valid`).
 `lean/Slhdsa/EncodingTheorems.lean`: for each set the 12 statements of
 the single-set tree's `lean/Slhdsa/EncodingTheorems.lean`, with that set's DER prefixes written
@@ -414,15 +437,15 @@ differences are forced: the Rust function is this crate's
 (`sets.sha2_128s.slh_sign` rather than `slh.slh_sign`), and the
 specification is the generic one at a parameter set. For the latter,
 `lean/Spec/Old128.lean` is a verbatim copy of the single-set tree's `lean/Spec/SlhDsa.lean` and
-`Checked.lean` in namespace `Spec128` (only the definitions that do not
+of its definitions `KeyOk`, `skPk`, in namespace `Spec128` (only the definitions that do not
 depend on the parameter set, which are character-for-character the same, are
 shared with `Spec`), `lean/Spec/Compat128.lean` proves
 `Spec.f Spec.sha2_128s = Spec128.f` for every function (`slhSignInternal_eq`,
-`slhSign_eq`, `slhSignChecked_eq`, `KeyOk_eq`, …), and
-`lean/Slhdsa/Compat128.lean` restates all 24 128s theorems of `Theorems.lean`
+`slhSign_eq`, `KeyOk_eq`, …), and
+`lean/Slhdsa/Compat128.lean` restates all 12 128s theorems of `Theorems.lean`
 and `ApiTheorems.lean` that mention the specification against `Spec128`, i.e.
 literally the single-set tree's `lean` statements up to the name of the Rust function. The
-remaining 16 `ApiTheorems` and all `EncodingTheorems` mention no
+remaining 4 `ApiTheorems` and all `EncodingTheorems` mention no
 specification function and have the single-set tree's `lean` statements as they are.
 
 ### Files
@@ -435,7 +458,7 @@ specification function and have the single-set tree's `lean` statements as they 
 `chain_blocks` model generic in `N`), `ChainTop`, `HashMsg` (`PRF_msg`
 with the stack outer block, `H_msg`, MGF1 for both hashes), `Wots`, `Xmss`,
 `Fors` (both the `N == 16` batch paths and the `N > 16` node-by-node paths),
-`Ht`, `Slh`, `Checked`, `Api`, `Encoding`, `Sets` (the 22 per-set wrappers × 6).
+`Ht`, `Slh`, `Api`, `Encoding`, `Sets` (the 18 per-set wrappers × 6).
 The per-set files (`Sets`, `Theorems`, `ApiTheorems`, `EncodingTheorems`,
 `Compat128`) are generated by the scripts in `scripts/gen/`; they are
 plain Lean and are checked like the rest.
@@ -455,7 +478,7 @@ translation calls no wrapper the model lacks.
 ### Headline statements
 
 `lean-hw/Slhdsa/{Theorems,ApiTheorems,EncodingTheorems,Compat128}.lean` are
-symbolic links to `lean/Slhdsa/`'s: the same 307 statements, word for word
+symbolic links to `lean/Slhdsa/`'s: the same 187 statements, word for word
 (for 128s, `Theorems.lean` lines 94–137, quoted above), now elaborated against
 the `hw-sha2` translation. As in the single-set tree's `lean-hw`, no headline statement carries a
 hypothesis about the processor: the hand-offs are proved for both values of
@@ -466,7 +489,7 @@ hypothesis about the processor: the hand-offs are proved for both values of
 
 - Linked from `lean/Slhdsa/Proofs`: every proof file that does not depend on
   the build (`Basic`, `Params`, `Sha256Core`, `Sha256`, `Sha512`, `Util`,
-  `Hash`, `HashMsg`, `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`, `Checked`, `Api`,
+  `Hash`, `HashMsg`, `Wots`, `Xmss`, `Fors`, `Ht`, `Slh`, `Api`,
   `Encoding`, `Sets`), and `Slhdsa.lean`.
 - From the single-set tree's `lean-hw/Slhdsa/Proofs`, unchanged (links until
   2026-11-22, now copies): `CompressTop.lean` and
@@ -515,8 +538,6 @@ or `N`-dependent branch.
 - **Constant-time proofs and the security link**: done for both builds after
   this file's main text was written; see `lean/CT_STATUS.md`,
   `security/STATUS.md`, `security-hw/README.md`.
-- **`hw-sha512` is experimental and unverified**: no translation, no model of
-  the SHA-512 instructions, no proof.
 - **Hypotheses of the generic statements** (not of the per-set ones, which
   discharge them): `PN p N`, i.e. `(paramsS p).Valid` and `p.n = N` — the two
   sources of `n` must agree; key slices of length `4N` / `2N`; the generic
@@ -531,8 +552,8 @@ or `N`-dependent branch.
   128s only, before this stage's `PRF_msg` change, through a scratch shim;
   there is no RustCrypto-style adapter for the other five sets.
 - **Not tested**: a CPU without the SHA-2 instructions running the `hw-sha2`
-  build (as for the single-set crate), a CPU without FEAT_SHA512 running `hw-sha512`,
-  any non-Apple AArch64 machine.
+  build (as for the single-set crate), a CPU with the SHA-256 and without the SHA-512
+  instructions, any non-Apple AArch64 machine.
 - **The public root of `slhdsa`** no longer has `keygen`, `sign`, … for
   128s: they are `slhdsa::sha2_128s::…` (`compat/` and `bench/` use those).
 - `rust/src/sha256.rs`'s hardware test checks the processor against
@@ -541,12 +562,12 @@ or `N`-dependent branch.
 ## Build
 
 ```
-scripts/check.sh          # Rust tests (4 builds), both extractions + checks, proofs of both builds + placeholder and axiom checks, ArmTest, spec sigVer ×6, constant time, security, compat
+scripts/check.sh          # Rust tests (2 builds), both extractions + checks, proofs of both builds + placeholder and axiom checks, ArmTest, spec sigVer ×6, constant time, security, compat
 scripts/check.sh full     # also the slow spec keygen/signing vectors
 cd lean && lake build     # the proofs of the default build alone
 cd lean-hw && lake build  # the proofs of the hw-sha2 build alone
-cd lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
-cd rust && cargo test --release [--features hw-sha2[,hw-sha512]]
+cd lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
+cd rust && cargo test --release [--features hw-sha2]
 ```
 
 `lean-hw` uses the dependency checkouts of `lean/.lake/packages`

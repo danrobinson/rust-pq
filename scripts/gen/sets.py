@@ -67,19 +67,6 @@ theorem slh_sign_internal_spec (m : Slice U8) (sk : Array U8 {SK}#usize) (addrnd
   rw [h1, s_post, Array.val_to_slice, hP]
 
 @[step]
-theorem slh_sign_internal_checked_spec (m : Slice U8) (sk : Array U8 {SK}#usize)
-    (addrnd : Array U8 {N}#usize) (hm : Room m.length {SL}) :
-    sets.sha2_{S}.slh_sign_internal_checked m sk addrnd ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignInternalChecked Spec.sha2_{S} (bytes m.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
-  unfold sets.sha2_{S}.slh_sign_internal_checked
-  let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (slhdsa.slh_sign_internal_checked_spec _ pn m s addrnd (by simp [s_post])
-    (by rw [slack]; exact hm))
-  intro r h1
-  rw [h1, s_post, Array.val_to_slice, hP]
-
-@[step]
 theorem slh_verify_internal_spec (m sig : Slice U8) (pk : Array U8 {PK}#usize) (hm : Room m.length {SL}) :
     sets.sha2_{S}.slh_verify_internal m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal Spec.sha2_{S} (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
@@ -99,19 +86,6 @@ theorem slh_sign_spec (m ctx : Slice U8) (sk : Array U8 {SK}#usize) (addrnd : Ar
   unfold sets.sha2_{S}.slh_sign
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
   apply WP.spec_mono (slhdsa.slh_sign_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
-  intro r h1
-  rw [h1, s_post, Array.val_to_slice, hP]
-
-@[step]
-theorem slh_sign_checked_spec (m ctx : Slice U8) (sk : Array U8 {SK}#usize) (addrnd : Array U8 {N}#usize)
-    (hm : Room m.length {SLP}) :
-    sets.sha2_{S}.slh_sign_checked m ctx sk addrnd ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked Spec.sha2_{S} (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
-  unfold sets.sha2_{S}.slh_sign_checked
-  let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (slhdsa.slh_sign_checked_spec _ pn m ctx s addrnd (by simp [s_post])
-    (by rw [slack]; exact hm))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, hP]
 
@@ -171,32 +145,6 @@ theorem sign_deterministic_spec (m ctx : Slice U8) (sk : Array U8 {SK}#usize) (h
   unfold sets.sha2_{S}.sign_deterministic
   let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
   apply WP.spec_mono (api_sign_deterministic_spec _ pn m ctx s (by simp [s_post]) (by rw [slack]; exact hm))
-  intro r h1
-  rw [h1, s_post, Array.val_to_slice, hP]
-
-@[step]
-theorem sign_checked_spec (m ctx : Slice U8) (sk : Array U8 {SK}#usize) (addrnd : Array U8 {N}#usize)
-    (hm : Room m.length {SLP}) :
-    sets.sha2_{S}.sign_checked m ctx sk addrnd ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked Spec.sha2_{S} (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
-  unfold sets.sha2_{S}.sign_checked
-  let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (api_sign_checked_spec _ pn m ctx s addrnd (by simp [s_post]) (by rw [slack]; exact hm))
-  intro r h1
-  rw [h1, s_post, Array.val_to_slice, hP]
-
-@[step]
-theorem sign_deterministic_checked_spec (m ctx : Slice U8) (sk : Array U8 {SK}#usize)
-    (hm : Room m.length {SLP}) :
-    sets.sha2_{S}.sign_deterministic_checked m ctx sk ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked Spec.sha2_{S} (bytes m.val) (bytes ctx.val) (bytes sk.val)
-          (Spec.block Spec.sha2_{S} (bytes sk.val) 2) ⦄ := by
-  unfold sets.sha2_{S}.sign_deterministic_checked
-  let* ⟨ s, s_post ⟩ ← Array.to_slice.step_spec
-  apply WP.spec_mono (api_sign_deterministic_checked_spec _ pn m ctx s (by simp [s_post])
-    (by rw [slack]; exact hm))
   intro r h1
   rw [h1, s_post, Array.val_to_slice, hP]
 

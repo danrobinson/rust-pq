@@ -43,9 +43,9 @@ pub mod util;
 pub mod wots;
 pub mod xmss;
 
-pub use api::{keygen, public_key, sign, sign_checked, sign_deterministic, sign_deterministic_checked, verify};
+pub use api::{keygen, public_key, sign, sign_deterministic, verify};
 pub mod encoding;
 pub use slh::{
-    slh_keygen_internal, slh_sign, slh_sign_checked, slh_sign_internal, slh_sign_internal_checked, slh_verify,
+    slh_keygen_internal, slh_sign, slh_sign_internal, slh_verify,
     slh_verify_internal,
 };

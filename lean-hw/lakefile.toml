@@ -13,7 +13,8 @@ name = "Spec"
 srcDir = "../lean"
 
 # The instruction model of the hardware backend (`Arm.lean`, trusted: a transcription of the
-# Arm ARM pseudocode of the instructions the eighteen wrappers of `sha256::hw::arm` call).
+# Arm ARM pseudocode of the instructions the wrappers of `sha256::hw::arm` (eighteen) and
+# `sha512::hw::arm` (ten) call).
 [[lean_lib]]
 name = "Arm"
 
@@ -21,8 +22,9 @@ name = "Arm"
 # proofs. Proof files that do not depend on the build, and the headline files, are symbolic
 # links into ../lean/Slhdsa. This package's own files: the wrapper model
 # (`Slhdsa/{Types,Funs}External.lean`, trusted, with `Arm.lean`), `Slhdsa/Proofs/CompressTop.lean`,
-# `Slhdsa/Proofs/ChainTop.lean` and `Slhdsa/Proofs/Hw/*.lean` (the single-block kernel, the
-# wrappers, and the chain kernel generic in `N`).
+# `Slhdsa/Proofs/Compress512Top.lean`, `Slhdsa/Proofs/ChainTop.lean`, `Slhdsa/Proofs/Hw/*.lean`
+# (the single-block kernel, the wrappers, and the chain kernel generic in `N`) and
+# `Slhdsa/Proofs/Hw512/*.lean` (the SHA-512 wrappers and kernel).
 [[lean_lib]]
 name = "Slhdsa"
 

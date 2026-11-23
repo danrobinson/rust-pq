@@ -288,7 +288,7 @@ fn main() {
     let mut classes = "fixed-random".to_string();
     // set PSTATE.DIT (Arm data-independent-timing mode) for the measuring thread
     let mut dit = false;
-    // which signer `sign-key` / `sign-addrnd` time: internal | internal-checked
+    // which signer `sign-key` / `sign-addrnd` time: internal
     let mut entry = "internal".to_string();
     // diagnostics: prepare both classes by the same code path (the fixed
     // class is drawn like the random one and then overwritten with its fixed
@@ -435,7 +435,7 @@ fn main() {
             let vary_key = mode == "sign-key";
             let entries = sign_entries();
             let e = entries.iter().find(|e| e.key == entry && !e.ctx).unwrap_or_else(|| {
-                eprintln!("--entry must be internal or internal-checked");
+                eprintln!("--entry must be internal");
                 std::process::exit(2)
             });
             let mut rng = Rng::new(seed ^ 0x5167);

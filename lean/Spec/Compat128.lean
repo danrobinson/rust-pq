@@ -131,24 +131,8 @@ theorem slhSign_eq : Spec.slhSign sha2_128s = slhSign := by
 theorem slhVerify_eq : Spec.slhVerify sha2_128s = slhVerify := by
   funext msg sig ctx pk; simp only [Spec.slhVerify, slhVerify, slhVerifyInternal_eq]
 
-/-! ## The checked signer -/
+/-! ## Keys -/
 
-theorem forsPkGen_eq : Spec.forsPkGen sha2_128s = forsPkGen := by
-  funext skSeed pkSeed adrs; simp only [Spec.forsPkGen, forsPkGen, k_eq, a_eq, forsNode_eq, T_eq]
-theorem htCheckedStep_eq : Spec.htCheckedStep sha2_128s = htCheckedStep := by
-  funext skSeed pkSeed pkRoot st j
-  simp only [Spec.htCheckedStep, htCheckedStep, xmssSign_eq, xmssPkFromSig_eq, d_eq, xmssNode_eq,
-    hp_eq]
-theorem htSignChecked_eq : Spec.htSignChecked sha2_128s = htSignChecked := by
-  funext mA mB skSeed pkSeed idxTree idxLeaf pkRoot
-  simp only [Spec.htSignChecked, htSignChecked, d_eq, htCheckedStep_eq]
-theorem slhSignInternalChecked_eq : Spec.slhSignInternalChecked sha2_128s = slhSignInternalChecked := by
-  funext msg sk addrnd
-  simp only [Spec.slhSignInternalChecked, slhSignInternalChecked, block_eq, PRFmsg_eq, Hmsg_eq,
-    mdBytes_eq, digestTree_eq, digestLeaf_eq, forsSign_eq, forsPkFromSig_eq, forsPkGen_eq,
-    htSignChecked_eq]
-theorem slhSignChecked_eq : Spec.slhSignChecked sha2_128s = slhSignChecked := by
-  funext msg ctx sk addrnd; simp only [Spec.slhSignChecked, slhSignChecked, slhSignInternalChecked_eq]
 theorem KeyOk_eq : Spec.KeyOk sha2_128s = KeyOk := by
   funext sk; simp only [Spec.KeyOk, KeyOk, block_eq, xmssNode_eq, hp_eq, d_eq]
 theorem skPk_eq : Spec.skPk sha2_128s = skPk := rfl

@@ -5,7 +5,6 @@
 //!
 //! ```text
 //! cargo run --release --example timing --features hw-sha2
-//! cargo run --release --example timing --features hw-sha2,hw-sha512
 //! ```
 //!
 //! Optional arguments: the number of repetitions for key generation and
@@ -76,9 +75,8 @@ fn main() {
     let reps = args.first().copied().unwrap_or(7);
     let vreps = args.get(1).copied().unwrap_or(31);
     println!(
-        "features: hw-sha2 {}, hw-sha512 {}; {reps} runs of keygen and sign, {vreps} of verify; milliseconds, median (min–max)",
+        "features: hw-sha2 {}; {reps} runs of keygen and sign, {vreps} of verify; milliseconds, median (min–max)",
         cfg!(feature = "hw-sha2"),
-        cfg!(feature = "hw-sha512")
     );
     println!("| set | operation | this crate | RustCrypto | RustCrypto / this crate |");
     println!("|---|---|---|---|---|");

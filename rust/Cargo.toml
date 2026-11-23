@@ -9,14 +9,10 @@ name = "slhdsa"
 
 [features]
 # Opt-in, off by default: compute SHA-256 with the ARMv8 SHA-256 instructions
-# when the CPU has them (AArch64; a no-op elsewhere). Adds
-# the crate's only `unsafe` code (module `sha256::hw`). SHA-512 stays portable.
+# and SHA-512 with the ARMv8.2 SHA-512 instructions, each when the CPU has
+# them (tested separately at run time; AArch64; a no-op elsewhere). Adds the
+# crate's only `unsafe` code (modules `sha256::hw` and `sha512::hw`).
 hw-sha2 = []
-# Opt-in, off by default, EXPERIMENTAL and not covered by any proof: compute
-# the SHA-512 compression function with the ARMv8.2 SHA-512 instructions when
-# the CPU has them (module `sha512::hw`). Only the sets with n = 24, 32 use
-# SHA-512. Independent of `hw-sha2`.
-hw-sha512 = []
 
 [dev-dependencies]
 serde_json = "1"

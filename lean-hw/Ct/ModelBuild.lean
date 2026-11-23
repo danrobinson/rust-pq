@@ -4,7 +4,7 @@ import Slhdsa.FunsExternal
 /-!
 # The leakage model, build-specific part: the six-set crate built with `hw-sha2` (TRUSTED)
 
-The union of two existing tables, nothing new:
+The union of two existing tables, and (since 2026-11-22) the ten SHA-512 wrappers:
 
 * the eighteen intrinsic wrappers of `sha256::hw::arm`, the `Clone` of `uint32x4_t` and
   `massert`: the single-set tree's `lean-hw/Ct/ModelBuild.lean` (git `26aa3d8`), COPIED (not linked, because
@@ -15,6 +15,14 @@ The union of two existing tables, nothing new:
   documentation, only the added `Slice.index_mut` block and its entry in `modelConsts`;
 * `core.slice.index.Slice.index_mut`: this tree's portable `../lean/Ct/ModelBuild.lean`,
   copied unchanged (mutable sub-slices of slices emit the range, as `Slice.index`).
+
+* the ten wrappers of `sha512::hw::arm` (new; last sections), on the same rules: `available`
+  and the register-only wrappers (`add`, `ext1`, `sha512h`, `sha512h2`, `sha512su0`,
+  `sha512su1`) and `store_words` (two vectors into an array of its own) emit nothing; the loads
+  `load_words w at` and `load_be b at` emit `range at (at + 2) w.length` and
+  `range at (at + 16) b.length`. The assumption about the processor below covers in addition
+  `SHA512H`, `SHA512H2`, `SHA512SU0`, `SHA512SU1` and the 64-bit `ADD`, `EXT`, `ST1`, which Arm
+  also lists as data-independent in time under `PSTATE.DIT`.
 
 The single-set tree's description of the wrappers' events, quoted:
 
@@ -141,6 +149,43 @@ abbrev core.slice.index.Slice.index_mut {T I Output : Type _}
     Ct.Leak (Output × (Output → Aeneas.Std.Slice T)) :=
   Leak.prim (inst.ev i s) (Aeneas.Std.core.slice.index.Slice.index_mut inst.base s i)
 
+
+/-! ## The SHA-512 wrappers (`sha512::hw::arm`) -/
+
+/-- The vector type of the SHA-512 wrappers. -/
+abbrev V2 := core.core_arch.arm_shared.neon.uint64x2_t
+
+abbrev sha512.hw.arm.available : Ct.Leak Bool :=
+  Leak.prim [] slhdsa.sha512.hw.arm.available
+
+abbrev sha512.hw.arm.add (a b : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.add a b)
+
+abbrev sha512.hw.arm.ext1 (a b : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.ext1 a b)
+
+abbrev sha512.hw.arm.sha512h (a b c : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.sha512h a b c)
+
+abbrev sha512.hw.arm.sha512h2 (a b c : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.sha512h2 a b c)
+
+abbrev sha512.hw.arm.sha512su0 (a b : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.sha512su0 a b)
+
+abbrev sha512.hw.arm.sha512su1 (a b c : V2) : Ct.Leak V2 :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.sha512su1 a b c)
+
+/-- Writes an array of its own (fixed positions): no event. -/
+abbrev sha512.hw.arm.store_words (a b : V2) : Ct.Leak (Aeneas.Std.Array U64 4#usize) :=
+  Leak.prim [] (slhdsa.sha512.hw.arm.store_words a b)
+
+abbrev sha512.hw.arm.load_words (w : Aeneas.Std.Slice U64) (at' : Usize) : Ct.Leak V2 :=
+  Leak.prim [.range at'.val (at'.val + 2) w.length] (slhdsa.sha512.hw.arm.load_words w at')
+
+abbrev sha512.hw.arm.load_be (b : Aeneas.Std.Slice U8) (at' : Usize) : Ct.Leak V2 :=
+  Leak.prim [.range at'.val (at'.val + 16) b.length] (slhdsa.sha512.hw.arm.load_be b at')
+
 end slhdsa_leak
 
 namespace Ct.Build
@@ -159,7 +204,12 @@ def modelConsts : List Lean.Name := [
   ``slhdsa_leak.sha256.hw.arm.store_be,
   ``slhdsa_leak.core.core_arch.arm_shared.neon.uint32x4_t.Insts.CoreCloneClone.clone,
   ``slhdsa_leak.massert,
-  ``slhdsa_leak.core.slice.index.Slice.index_mut
+  ``slhdsa_leak.core.slice.index.Slice.index_mut,
+  ``slhdsa_leak.sha512.hw.arm.available, ``slhdsa_leak.sha512.hw.arm.add,
+  ``slhdsa_leak.sha512.hw.arm.ext1, ``slhdsa_leak.sha512.hw.arm.sha512h,
+  ``slhdsa_leak.sha512.hw.arm.sha512h2, ``slhdsa_leak.sha512.hw.arm.sha512su0,
+  ``slhdsa_leak.sha512.hw.arm.sha512su1, ``slhdsa_leak.sha512.hw.arm.store_words,
+  ``slhdsa_leak.sha512.hw.arm.load_words, ``slhdsa_leak.sha512.hw.arm.load_be
 ]
 
 end Ct.Build

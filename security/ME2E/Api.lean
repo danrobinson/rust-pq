@@ -9,8 +9,7 @@ the single-set `E2E/Api.lean`, git `26aa3d8`) and by the typed forms of the end-
 * splitting a `3n`-byte seed string and a `4n`-byte private key into `n`-byte blocks
   (`block_seeds`, `block_sk_pkSeed`, `seeds_split`, `sk_split`; `Spec.block p` at any `p`);
 * `optVec_eq`, `map_wire`: optional Rust signature vectors;
-* `spec_slhSignChecked_eq`: on a well-formed key (`Spec.KeyOk p`) the checked Algorithm 22 *is*
-  Algorithm 22, for every valid `p`; `slhSign_tooLong`;
+* `slhSign_tooLong`: Algorithm 22 refuses a context of more than 255 bytes;
 * typed values: `secretKey S sk`, the `4n`-byte Rust private key read as VCVio's typed key, with
   `skBytes_secretKey`; `keygen_typed`, `signPure_typed`, `verifyPure_typed`: outputs equal to
   `Spec.slhKeygenInternal` / `slhSign` / `slhVerify` at `S.spec` are VCVio's `keygenInternal`,
@@ -128,18 +127,7 @@ theorem map_wire (r : Option (alloc.vec.Vec U8)) :
     r.map (fun v => wire v.val) = (r.map (fun v => bytes v.val)).map cv := by
   cases r <;> rfl
 
-/-! ### The checked signer of the specification on well-formed keys -/
-
-/-- For a valid parameter set and a well-formed key, the checked Algorithm 22 *is* Algorithm 22,
-on every message, context and randomness. -/
-theorem spec_slhSignChecked_eq (p : Spec.Params) (hv : p.Valid) (msg ctx sk addrnd : Spec.Bytes)
-    (hk : Spec.KeyOk p sk) :
-    Spec.slhSignChecked p msg ctx sk addrnd = Spec.slhSign p msg ctx sk addrnd := by
-  by_cases hc : ctx.length ≤ 255
-  · obtain ⟨sig, h⟩ := Spec.slhSignChecked_complete p hv msg ctx sk addrnd hc hk
-    rw [h, (Spec.slhSignChecked_sound p hv _ _ _ _ _ h).1]
-  · have hc' : ctx.length > 255 := by omega
-    simp [Spec.slhSignChecked, Spec.slhSign, hc']
+/-! ### Algorithm 22 with a long context -/
 
 theorem slhSign_tooLong (p : Spec.Params) (msg : Spec.Bytes) (ctx : Slice U8) (sk addrnd : Spec.Bytes)
     (hc : 255 < ctx.length) : Spec.slhSign p msg (bytes ctx.val) sk addrnd = none := by
@@ -217,7 +205,6 @@ end ME2E
 #print axioms ME2E.sk_split
 #print axioms ME2E.optVec_eq
 #print axioms ME2E.map_wire
-#print axioms ME2E.spec_slhSignChecked_eq
 #print axioms ME2E.slhSign_tooLong
 #print axioms ME2E.skBytes_secretKey
 #print axioms ME2E.keygen_typed

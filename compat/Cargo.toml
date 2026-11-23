@@ -22,11 +22,9 @@ zeroize = []
 # Operating-system randomness: `SigningKey::generate` and
 # `SigningKey::try_sign_hedged`. Not part of upstream's interface.
 getrandom = ["dep:getrandom"]
-# Pass-through to the verified crate: ARMv8 SHA-256 instructions.
+# Pass-through to the verified crate: ARMv8 SHA-256 and ARMv8.2 SHA-512
+# instructions (SHA-512 is used by the sets with n = 24, 32).
 hw-sha2 = ["slhdsa/hw-sha2"]
-# Pass-through to the verified crate: ARMv8.2 SHA-512 instructions for the
-# sets with n = 24, 32. EXPERIMENTAL and NOT covered by any proof.
-hw-sha512 = ["slhdsa/hw-sha512"]
 
 [dependencies]
 slhdsa = { path = "../rust" }

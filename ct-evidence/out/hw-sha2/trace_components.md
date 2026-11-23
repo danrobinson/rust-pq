@@ -59,7 +59,6 @@ crate under test: `slhdsa` built with `--features hw-sha2` (`sha256::hw_active()
 | fors_node/z=8 | SK.seed | 2 | 18 | 18 | 0 | 166310 | 7297 | 92652 | 5 | yes | PASS (all identical) |
 | fors_node/z=12 | SK.seed | 2 | 18 | 18 | 0 | 2668250 | 117547 | 1485732 | 95 | yes | PASS (all identical) |
 | fors_sign | SK.seed (md public, fixed) | 2 | 18 | 18 | 0 | 37376192 | 1647132 | 20857671 | 1457 | yes | PASS (all identical) |
-| fors_pk_gen | SK.seed | 2 | 18 | 18 | 0 | 37357897 | 1646065 | 20801027 | 1344 | yes | PASS (all identical) |
 | slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 2 | 26 | 26 | 0 | 39104965 | 764410 | 13815845 | 1535 | yes | PASS (all identical) |
 | slh_keygen_internal/all-inputs | SK.seed, SK.prf and PK.seed | 1 | 13 | 13 | 0 | 39104965 | 764410 | 13815845 | 1535 | yes | PASS (all identical) |
 | api::keygen | SK.seed and SK.prf (PK.seed fixed) | 2 | 18 | 18 | 0 | 39104989 | 764412 | 13815881 | 1535 | yes | PASS (all identical) |

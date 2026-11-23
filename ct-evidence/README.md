@@ -102,7 +102,7 @@ Experiments:
     shapes of `chain_blocks_portable`;
   * `wots_pk_gen`, `wots_sign`, `xmss_node` (z = 0..4), `xmss_sign`,
     `fors_sk_gen`, `fors_node` (z = 0..12, both the batched and the recursive
-    path), `fors_sign`, `fors_pk_gen`, `slh_keygen_internal` (also with
+    path), `fors_sign`, `slh_keygen_internal` (also with
     PK.seed varied) and `api::keygen`, with `SK.seed` (and `SK.prf`) varied;
   * `wots_pk_from_sig`, `xmss_pk_from_sig`, `fors_pk_from_sig` with the
     signature bytes varied: the recomputation a verifier does, which the
@@ -126,12 +126,8 @@ Experiments:
   from secrets to control flow and addresses:
   `R` = result of `hash::prf_msg`; `PK_FORS` = result of
   `fors::fors_pk_from_sig`; the seven XMSS roots = results of
-  `xmss::xmss_pk_from_sig`; and in the checked signer, which computes each of
-  these (except the top root, which it compares with `PK.root`) a second time
-  from the secret seed, also the result of `fors::fors_pk_gen` and of the six
-  calls `xmss::xmss_node(.., i = 0, z = 9, ..)`. That is 9 values per
-  signature, 16 in the checked signer. Run B uses the same public inputs
-  (M, ctx, PK.seed, PK.root) and *different* `SK.seed`, `SK.prf`, `addrnd`, and
+  `xmss::xmss_pk_from_sig`. That is 9 values per signature. Run B uses the
+  same public inputs (M, ctx, PK.seed, PK.root) and *different* `SK.seed`, `SK.prf`, `addrnd`, and
   the tracer overwrites those results with run A's values (through the
   emulator API, when the call returns; nothing else is touched). All other
   intermediate values in run B -- every FORS secret, every WOTS+ secret and
@@ -141,21 +137,17 @@ Experiments:
   Checks in every configuration: the emulated output of A equals the native
   one and verifies natively; **the recorded values are exactly, in order, the
   values a verifier computes from (M, PK, signature of A)** (recomputed
-  natively with `h_msg`, `fors_pk_from_sig` and `xmss_pk_from_sig`, the
-  second-route values of the checked signer being equal to the first-route
-  ones), which also confirms the hook points and the return convention;
+  natively with `h_msg`, `fors_pk_from_sig` and `xmss_pk_from_sig`), which
+  also confirms the hook points and the return convention;
   replaying A's values into A is a no-op; in B every value is pinned, B
   returns a signature with A's `R` and a different body; and without pinning
   B's trace must differ from A's.
-  The hook points are located through the symbols of the five functions,
-  which are out-of-line in both builds; the entry of `xmss_node` counts only
-  when its third integer argument (z) is 9. A build that inlines one of them
+  The hook points are located through the symbols of the three functions,
+  which are out-of-line in both builds. A build that inlines one of them
   makes the experiment report INCONCLUSIVE, not pass.
-  Entry points: `internal` (`slh_sign_internal`), `internal-checked`
-  (`slh_sign_internal_checked`), `slh`, `slh-checked` (`slh_sign`,
-  `slh_sign_checked`, 17-byte context), `api`, `api-checked` (`api::sign`,
-  `api::sign_checked`), `api-det`, `api-det-checked`
-  (`api::sign_deterministic(_checked)`, where `addrnd` is `PK.seed`).
+  Entry points: `internal` (`slh_sign_internal`), `slh` (`slh_sign`,
+  17-byte context), `api` (`api::sign`), `api-det`
+  (`api::sign_deterministic`, where `addrnd` is `PK.seed`).
 * `cttrace sign-profile --entry E` -- unconditioned signing runs over random
   honest keys with M and PK.seed fixed; reports which coarse quantities are
   invariant (instruction count, call-out count, SHA-256 instruction counts,
@@ -203,7 +195,7 @@ fixed vs random with `--same-prep` without and with DIT, and zero vs fixed.
 `scripts/dudect_diag.sh` (ten hash-level rows) and
 `scripts/dudect_diag_chain.sh` (the multi-block `chain_blocks` rows).
 
-`dudect sign-key` / `sign-addrnd` (`--entry internal|internal-checked`) time
+`dudect sign-key` / `sign-addrnd` (`--entry internal`) time
 whole signing; see RESULTS.md for what the class design can and cannot show.
 
 Timing is only meaningful on a quiet machine. `./run.sh dudect-null` runs the
@@ -235,7 +227,7 @@ access once to `pip install unicorn==2.1.4` (the wheel ships
 ./run.sh <step> [default|hw-sha2|both]     # default: both; THREADS=8 by default
 ./run.sh setup        # .venv + libunicorn + build, toolchain/source hashes, hwcheck
 ./run.sh trace        # component trace comparison
-./run.sh sign         # whole-signature pinned trace comparison, 8 entry points
+./run.sh sign         # whole-signature pinned trace comparison, 4 entry points
 ./run.sh profile      # whole-signature unconditioned profile
 ./run.sh disasm       # static facts + rlib comparison
 ./run.sh dudect-null  # timing noise floor (random-vs-random) and positive controls
@@ -260,7 +252,7 @@ cargo build --release --features hw-sha2 --target-dir target-hw  # hw-sha2 build
 ./target/release/cttrace list
 ./target/release/cttrace hwcheck
 ./target/release/cttrace components [--filter SUBSTR] [--scale F] [--threads N] [--seed S]
-./target/release/cttrace sign --entry internal-checked [--pubs P] [--secrets K] [--no-mem] [--threads N]
+./target/release/cttrace sign --entry internal [--pubs P] [--secrets K] [--no-mem] [--threads N]
 ./target/release/cttrace sign-profile --entry internal --pubs N
 ./target/release/dudect components [--filter A|B] [--scale F] [--fixed-zero] [--dit] [--same-prep] [--reps-mul K] [--classes fixed-random|fixed-fixed|random-random] [--seed S]
 ./target/release/dudect sign-key --entry internal --n 300   |   ./target/release/dudect sign-addrnd --n 300

@@ -32,10 +32,6 @@ Additions, as in the single-set adapter:
   by default).
 - `SigningKey::try_sign_hedged(msg, ctx)` is FIPS 205's default signing: the per-signature
   randomness comes from the operating system (same feature).
-- `SigningKey::try_sign_checked(msg, ctx, opt_rand)` signs with the guard against faults: each
-  value a one-time key signs is computed twice, by routes that share no work, and an error is
-  returned instead of a signature if a pair disagrees; it also refuses a private key whose
-  stored public half does not belong to its seeds. The signature is the same as the plain one.
 
 As in RustCrypto's crate, `sign` is the deterministic variant and `sign_with_rng` the hedged
 one with the caller's random source.
@@ -47,14 +43,13 @@ one with the caller's random source.
 | `alloc` | yes | as upstream: `to_vec`, the PKCS#8 / SPKI encoders |
 | `getrandom` | yes | `generate`, `try_sign_hedged` (needs a target `getrandom` supports) |
 | `zeroize` | no | accepted for upstream compatibility; keys are always wiped |
-| `hw-sha2` | no | passed to `../rust`: SHA-256 on the ARMv8 SHA-256 instructions where the CPU has them |
-| `hw-sha512` | no | passed to `../rust`: SHA-512 compression on the ARMv8.2 SHA-512 instructions (n = 24, 32 only). **Experimental and not covered by any proof.** |
+| `hw-sha2` | no | passed to `../rust`: SHA-256 on the ARMv8 SHA-256 instructions and SHA-512 on the ARMv8.2 SHA-512 instructions, each where the CPU has them (proved relative to the instruction model of `../lean-hw`) |
 
 `no_std`, always needs an allocator. Built for `aarch64-unknown-none` with
 `--no-default-features` and each of: nothing, `alloc`, `alloc,zeroize`, `hw-sha2`,
-`alloc,hw-sha2`, `hw-sha512`, `alloc,zeroize,hw-sha2,hw-sha512`, and the last also with
-`-C target-feature=+sha2,+sha3`; also in the release profile with nothing, `hw-sha2` and
-`hw-sha512`. `getrandom` does
+`alloc,hw-sha2`, `alloc,zeroize,hw-sha2`, and the last also with
+`-C target-feature=+sha2,+sha3`; also in the release profile with nothing and `hw-sha2`
+(2026-11-22). `getrandom` does
 not build there (the `getrandom` crate has no backend for it).
 
 ## Secrets are wiped
@@ -69,19 +64,19 @@ not build there (the `getrandom` crate has no backend for it).
   it fails unless `SCRUB_BYTES` exceeds every figure by at least 8 KiB. Measured on this
   machine (Apple M5 Ultra, optimised test build, bytes):
 
-  | set | keygen | sign | sign_checked | all three in a row |
-  |---|---|---|---|---|
-  | SHA2-128s | 11,336 | 13,864 | 13,880 | 13,976 |
-  | SHA2-128f | 10,568 | 13,352 | 13,352 | 13,448 |
-  | SHA2-192s | 11,592 | 15,680 | 15,728 | 15,824 |
-  | SHA2-192f | 10,728 | 14,816 | 14,864 | 14,960 |
-  | SHA2-256s | 11,656 | 16,848 | 16,896 | 16,992 |
-  | SHA2-256f | 11,016 | 16,048 | 16,096 | 16,192 |
+  | set | keygen | sign | both in a row |
+  |---|---|---|---|
+  | SHA2-128s | 11,336 | 13,864 | 13,944 |
+  | SHA2-128f | 10,568 | 13,352 | 13,432 |
+  | SHA2-192s | 11,592 | 15,680 | 15,760 |
+  | SHA2-192f | 10,728 | 14,816 | 14,896 |
+  | SHA2-256s | 11,656 | 16,848 | 16,928 |
+  | SHA2-256f | 11,016 | 16,048 | 16,128 |
 
-  (default build; the `hw-sha2` and `hw-sha2,hw-sha512` builds are listed under Tests). The
-  deepest is the checked signer of SHA2-256s, about 17 KiB, so 64 KiB leaves ample room, also
-  for a compiler that lays frames out less tightly.
-- `tests/wipe.rs` then runs key generation, signing, checked signing, a clone and moves of the
+  (default build; the `hw-sha2` build is listed under Tests). The deepest is the signer of
+  SHA2-256s, about 17 KiB, so 64 KiB leaves ample room, also for a compiler that lays frames
+  out less tightly.
+- `tests/wipe.rs` then runs key generation, hedged and deterministic signing, a clone and moves of the
   key through this crate on such a stack, and searches it for 212 to 420 forms (per set) of
   the seeds and of values derived from them: `SK.seed`, `SK.prf`, HMAC's key blocks and the
   states after them, the inner HMAC digest of `PRF_msg`, the hidden FORS values next to the
@@ -107,38 +102,72 @@ through this crate (key generation, two signatures, moves) used up to about 260 
 
 ## What is and is not verified
 
-Every decision this crate makes is made by a function of the verified crate, at the set's
-module `slhdsa::sha2_128s` … `slhdsa::sha2_256f`:
+Since 2026-11-22 every decision this crate made itself is made in the verified crate, by the
+functions of `../rust/src/adapter.rs` (translated by Aeneas and proved: `../lean/Slhdsa/Proofs/Adapter.lean`,
+headline list `../lean/Slhdsa/AdapterTheorems.lean`), which this crate calls at each set's
+`PARAMS` and `N`:
 
-- key generation, signing and verification (`keygen`, `sign`, `sign_deterministic`,
-  `sign_checked`, `sign_deterministic_checked`, `verify`, `slh_sign_internal`,
-  `slh_verify_internal`, `public_key`): the layout of a private key, the context-string
-  framing, the choice of randomness for a deterministic signature;
-- which byte strings are accepted as keys and signatures, and the comparison of two private
-  keys (`encoding::secret_key_from`, `public_key_from`, `signature_len_ok`,
-  `secret_keys_equal`);
-- the PKCS#8 and SubjectPublicKeyInfo encodings (`encoding::pkcs8_encode`, `spki_encode`).
+| what | verified function | proved (for every valid parameter set) |
+|---|---|---|
+| joining a multi-part message | `adapter::append`, once per part | appending is list append |
+| order of the argument checks: a context over 255 bytes is refused before a randomizer of the wrong length is noticed; the randomizer must be `n` bytes | `adapter::sign_into` (with `randomizer`) | `adapter_sign_into_long_ctx`, `adapter_randomizer_panic` |
+| which randomness a deterministic signature uses (`PK.seed`) | `adapter::randomizer` | `adapter_randomizer_spec` (`randS`) |
+| signing, hedged or deterministic, with a context, into the caller's buffer | `adapter::sign_into` | `adapter_sign_into_spec`: success exactly when the context has ≤ 255 bytes, and then Algorithm 22 |
+| signing without context (KAT interface) | `adapter::sign_internal_into` | `adapter_sign_internal_into_spec`: Algorithm 19 |
+| key generation from three separate seeds, their lengths | `adapter::keygen_seeds` | `adapter_keygen_seeds_spec` (Algorithm 18), `adapter_keygen_seeds_panic` |
+| key generation from the `3n` random bytes | `api::keygen` | `api_keygen_spec` |
+| which byte strings are private keys, and which bytes are their public key | `adapter::signing_key_from` | `adapter_signing_key_from_spec` (exactly `4n` bytes; `Spec.skPk`) |
+| which byte strings are public keys / signatures | `encoding::public_key_from`, `adapter::signature_from` | `enc_public_key_from_spec`, `adapter_signature_from_spec` |
+| verification, with and without context | `api::verify`, `slh::slh_verify_internal` | `api_verify_spec`, `slh_verify_internal_spec` |
+| `==` on private keys | `encoding::secret_keys_equal` | `enc_secret_keys_equal_spec` |
+| `==` on public keys and signatures; the algorithm-identifier test of PKCS#8 / SPKI decoding (`spki`'s `assert_algorithm_oid`, same error) | `adapter::bytes_equal` | `adapter_bytes_equal_spec` |
+| the PKCS#8 and SubjectPublicKeyInfo encodings | `encoding::der_encode` with the set's prefix | `enc_der_encode_spec`, and per set `EncodingTheorems.lean` |
 
-What is proved about those functions is in `../STATUS.md` (functional correctness against the
-FIPS 205 transcription), `../lean/CT_STATUS.md` (constant time) and `../security` (security
-link), for the portable build of `../rust` and, relative to the instruction model of
-`../lean-hw`, for the `hw-sha2` build (`../lean-hw`, `../security-hw`). `hw-sha512` is
-unverified.
+What is proved about the underlying functions is in `../STATUS.md` (functional correctness
+against the FIPS 205 transcription), `../lean/CT_STATUS.md` (constant time) and `../security`
+(security link), for the portable build of `../rust` and, relative to the instruction model of
+`../lean-hw`, for the `hw-sha2` build, hardware SHA-256 and SHA-512 included (`../lean-hw`,
+`../security-hw`; the adapter's functions are in both translations). The constant-time proofs
+check the adapter's functions only through the checker and the erasure theorems (every
+primitive they use is in the leakage model); there is no relational theorem about them.
 
-What is left here, and is **not** covered by the proofs:
+### The exact remaining unproved surface
 
-- the trait implementations and conversions between the fixed-size array types, each of which
-  forwards to one of the functions above (plus upstream's argument checks kept in upstream's
-  order: a context over 255 bytes is an error before a wrong-length `opt_rand` panics);
-- the loop that appends the parts of a multi-part message into one buffer;
-- drawing random bytes from the caller's or the operating system's random source;
-- *decoding* PKCS#8 and SubjectPublicKeyInfo, which the `pkcs8` crate's traits do before this
-  crate sees the key bytes (the bytes it hands over then go through the verified parser), and
-  that crate's well-formedness check of the verified encoding on the way out;
-- `==` on public keys and signatures (hybrid-array's comparison, as in the single-set adapter);
-- the wiping.
+`src/` is 941 lines, 598 of them neither blank nor comment (`lib.rs` 121 / 27, `params.rs`
+181 / 121, `signing_key.rs` 314 / 225, `verifying_key.rs` 166 / 124, `signature_encoding.rs`
+125 / 94, `scrub.rs` 34 / 7). None of it is translated. Line by line it is:
 
-Nothing the adapter needed was missing from `../rust`.
+- **Forwarding** (each body calls one verified function on the caller's slices, at the set's
+  `PARAMS` and `N`, and copies nothing it decides): `params.rs`'s `Core` impl; the methods and
+  trait impls of the three types. Trusted: that each passes the set's `PARAMS` with the
+  matching `N` (the per-set `PN` facts `slhdsa.sha2_<set>.pn` hold for exactly those pairs) and
+  arrays of the set's lengths (fixed by the types; `params.rs` checks at compile time that the
+  lengths are the verified crate's).
+- **Type and trait plumbing that cannot be translated**: the generic `ParameterSet` / length
+  traits over `hybrid_array` sizes, `Signature`, `SigningKey`, `VerifyingKey`, the
+  `signature` crate's traits, `Clone`, `Debug`, `From`/`TryFrom` conversions, `to_bytes`,
+  `to_vec` (external traits and generic types; Aeneas translates neither the traits of other
+  crates nor `typenum` sizes).
+- **Three small pieces of logic, kept here and why**: the loop over the parts of a multi-part
+  message in `lib.rs` (`for part in parts { append(..) }`: a `&[&[u8]]` has nested borrows,
+  which Aeneas does not translate; the step it repeats is the verified `append`);
+  `params.rs`'s `split` (`Option<&[u8]>` to the pair `(has, bytes)` the verified signers take:
+  the erasure step of the constant-time library does not handle a `match` on `Option`); and
+  in `SigningKey::try_new` and `raw_try_sign_with_rng`, which byte ranges of a buffer the
+  random source fills (`[0, n)`, `[n, 2n)`, `[2n, 3n)`, and `[0, n)`), next to the RNG calls.
+- **The random source** (`rand_core`'s `try_fill_bytes`, `getrandom::SysRng`): randomness is
+  outside any functional statement.
+- **The `pkcs8` / `spki` / `der` crates**: *decoding* a PKCS#8 or SPKI document (the
+  `Decode…Key` blanket impls parse the DER before this crate is called; it then gets the
+  algorithm identifier, which it compares with the verified `bytes_equal`, and the key bytes,
+  which go through the verified parsers; the BIT STRING's unused-bits test is `der`'s), and
+  the `der` crate's well-formedness check of the verified encodings on the way out
+  (`SecretDocument::try_from`, `Document::try_from`), and `BitString::new` for signatures.
+  Replacing them would change which inputs the interface accepts (`DecodePrivateKey` is a
+  blanket impl over `TryFrom<PrivateKeyInfoRef>`).
+- **Allocation and wiping**: the `Box` holding the private key, `Drop`/`ZeroizeOnDrop`, the
+  `zeroize` calls, and `scrub.rs` (`scrub_stack` after each secret computation). Wiping is not a
+  functional property and is tested, not proved (`tests/wipe.rs`, `tests/heap.rs`).
 
 ## Differences from RustCrypto's crate
 
@@ -149,89 +178,86 @@ Nothing the adapter needed was missing from `../rust`.
   feature needs a target the `getrandom` crate supports; turn it off on bare metal.)
 - A `SigningKey` is always wiped; its `Debug` output leaves the secret out; comparing two
   signing keys looks at every byte.
-- Multi-part messages are copied into one buffer before signing or verifying.
+- Multi-part messages are copied into one buffer before signing or verifying (since 2026-11-22
+  also a one-part message).
 
 ## Tests
 
 ```bash
 cargo test
 cargo test --features hw-sha2
-cargo test --features hw-sha2,hw-sha512
 ```
 
 - `tests/dropin.rs`: one piece of source, written against RustCrypto's interface, is compiled
   against both crates for each of the six sets. All 516 recorded results (86 per set: keys,
   signatures, encodings, accept/reject answers, error cases) must be equal; the count is
   pinned.
-- `tests/extras.rs` (37 tests; 38 with `hw-sha2`, 39 with both, which add a check that the
-  hardware backends are in use): per set, random keys and message lengths around every block
+- `tests/extras.rs` (37 tests; 39 with `hw-sha2`, which adds checks that the two hardware
+  backends are in use): per set, random keys and message lengths around every block
   boundary of `PRF_msg` and `H_msg` (SHA-256 for n = 16, SHA-512 otherwise) against
-  RustCrypto; operating-system randomness; the checked signer; key comparison; `Debug`.
+  RustCrypto; operating-system randomness; a key whose public half does not match its seeds;
+  key comparison; `Debug`.
 - `tests/wipe.rs`, `tests/heap.rs` (6 tests each): the searches described above.
 
-All pass in the three builds: 51 tests by default (dropin 1, extras 37, heap 6, wipe 6, doc 1),
-52 with `hw-sha2`, 53 with `hw-sha2,hw-sha512`. The stack depths `tests/wipe.rs` measured in
-the hardware builds (identical for `hw-sha2` and `hw-sha2,hw-sha512`), bytes:
+All pass in both builds: 51 tests by default (dropin 1, extras 37, heap 6, wipe 6, doc 1),
+53 with `hw-sha2`. The stack depths `tests/wipe.rs` measured in
+the `hw-sha2` build, bytes:
 
-| set | keygen | sign | sign_checked | all three |
-|---|---|---|---|---|
-| SHA2-128s | 12,656 | 15,152 | 15,168 | 15,264 |
-| SHA2-128f | 11,888 | 14,640 | 14,640 | 14,736 |
-| SHA2-192s | 12,784 | 16,368 | 16,416 | 16,512 |
-| SHA2-192f | 11,920 | 15,504 | 15,552 | 15,648 |
-| SHA2-256s | 12,784 | 17,488 | 17,536 | 17,632 |
-| SHA2-256f | 12,144 | 16,688 | 16,736 | 16,832 |
+| set | keygen | sign | both |
+|---|---|---|---|
+| SHA2-128s | 12,656 | 15,152 | 15,232 |
+| SHA2-128f | 11,888 | 14,640 | 14,720 |
+| SHA2-192s | 12,784 | 16,368 | 16,448 |
+| SHA2-192f | 11,920 | 15,504 | 15,584 |
+| SHA2-256s | 12,784 | 17,488 | 17,568 |
+| SHA2-256f | 12,144 | 16,688 | 16,768 |
 
-In the release profile (`cargo test --release --test wipe`) the figures are a few hundred bytes
-lower (at most 16,688 portable and 17,248 with `hw-sha2`, both for 256s).
+In the release profile (`cargo test --release --test wipe`) the figures differ by a few hundred
+bytes (at most 16,608 portable and 17,168 with `hw-sha2`, both for 256s).
 
 ## Timing
 
 `examples/timing.rs`: key generation, deterministic signing of a 31-byte message, and
 verification, through this crate and through RustCrypto's crate from the same seeds,
 alternating between the two; release build; medians of 7 runs (31 for verification), in
-milliseconds. Each configuration was run twice; the two runs agree within about 5 %, so the
-ratios below are stable on this machine (Apple M5 Ultra), although it was shared with Lean
-builds using about 8 cores at the time (load average about 4). RustCrypto's crate goes through
-`sha2` 0.11.1, which on this CPU detects and uses the ARMv8 SHA-256 *and* SHA-512 instructions
-at run time in every build.
+milliseconds. Run twice on 2026-11-22 (Apple M5 Ultra, load average 1.8–2.7); the two runs agree
+within 1.5 %. RustCrypto's crate goes through `sha2` 0.11.1, which on this CPU detects and uses
+the ARMv8 SHA-256 *and* SHA-512 instructions at run time.
 
 ```bash
 cargo run --release --example timing --features hw-sha2
-cargo run --release --example timing --features hw-sha2,hw-sha512
 ```
 
-Medians of the first run of each (this crate / RustCrypto; the last column is RustCrypto's time
-over this crate's, so above 1 means this crate is faster):
+Medians of the first run (this crate / RustCrypto; the last column is RustCrypto's time over
+this crate's, so above 1 means this crate is faster):
 
-| set | operation | `hw-sha2` | ratio | `hw-sha2,hw-sha512` | ratio |
-|---|---|---|---|---|---|
-| 128s | keygen | 4.21 / 8.84 | 2.10 | 4.18 / 8.79 | 2.10 |
-| 128s | sign | 32.4 / 66.6 | 2.06 | 32.3 / 66.4 | 2.06 |
-| 128s | verify | 0.037 / 0.066 | 1.78 | 0.038 / 0.067 | 1.77 |
-| 128f | keygen | 0.082 / 0.138 | 1.69 | 0.081 / 0.137 | 1.68 |
-| 128f | sign | 1.63 / 3.20 | 1.96 | 1.62 / 3.09 | 1.91 |
-| 128f | verify | 0.102 / 0.187 | 1.83 | 0.099 / 0.177 | 1.80 |
-| 192s | keygen | 7.29 / 13.7 | 1.88 | 6.20 / 13.1 | 2.12 |
-| 192s | sign | 121 / 133 | 1.09 | 69.2 / 127 | 1.83 |
-| 192s | verify | 0.118 / 0.106 | 0.89 | 0.063 / 0.106 | 1.68 |
-| 192f | keygen | 0.125 / 0.198 | 1.58 | 0.124 / 0.210 | 1.69 |
-| 192f | sign | 4.52 / 5.50 | 1.21 | 3.13 / 5.90 | 1.88 |
-| 192f | verify | 0.241 / 0.291 | 1.21 | 0.170 / 0.307 | 1.81 |
-| 256s | keygen | 4.86 / 8.57 | 1.76 | 4.19 / 8.63 | 2.06 |
-| 256s | sign | 133 / 117 | 0.88 | 66.5 / 117 | 1.76 |
-| 256s | verify | 0.182 / 0.170 | 0.94 | 0.103 / 0.173 | 1.67 |
-| 256f | keygen | 0.332 / 0.560 | 1.69 | 0.295 / 0.565 | 1.92 |
-| 256f | sign | 10.0 / 12.0 | 1.19 | 6.53 / 12.2 | 1.87 |
-| 256f | verify | 0.287 / 0.314 | 1.09 | 0.186 / 0.320 | 1.72 |
+| set | operation | `hw-sha2` | ratio |
+|---|---|---|---|
+| 128s | keygen | 3.95 / 8.29 | 2.10 |
+| 128s | sign | 30.4 / 62.6 | 2.06 |
+| 128s | verify | 0.034 / 0.057 | 1.68 |
+| 128f | keygen | 0.075 / 0.129 | 1.71 |
+| 128f | sign | 1.53 / 2.99 | 1.96 |
+| 128f | verify | 0.095 / 0.171 | 1.79 |
+| 192s | keygen | 6.13 / 12.5 | 2.04 |
+| 192s | sign | 67.7 / 124.8 | 1.84 |
+| 192s | verify | 0.066 / 0.111 | 1.67 |
+| 192f | keygen | 0.109 / 0.193 | 1.77 |
+| 192f | sign | 2.92 / 5.40 | 1.85 |
+| 192f | verify | 0.163 / 0.292 | 1.80 |
+| 256s | keygen | 4.11 / 8.40 | 2.04 |
+| 256s | sign | 65.1 / 115.6 | 1.78 |
+| 256s | verify | 0.092 / 0.156 | 1.68 |
+| 256f | keygen | 0.269 / 0.535 | 1.99 |
+| 256f | sign | 6.05 / 11.19 | 1.85 |
+| 256f | verify | 0.168 / 0.291 | 1.73 |
 
-With `hw-sha2` alone (not covered by the proofs, see above) this crate is about twice as fast
-for the n = 16 sets. For n = 24 and 32, where `H`, `T_l`, `H_msg` and `PRF_msg` are SHA-512,
-portable here but on the instructions in RustCrypto's crate, it ranges from about 10–13 %
-slower (256s signing; also 192s and 256s verification) to about 1.2× faster (the f sets). With
-the unverified `hw-sha512` as well it is 1.7–2.1× faster for every set and operation. The
-cost of the adapter itself (an extra signature copy, the 64 KiB stack scrub) was not measured
-separately.
+With `hw-sha2` (SHA-256 and, for n = 24 and 32, SHA-512 on the instructions, both proved
+relative to the instruction model) this crate is 1.7–2.1× faster than RustCrypto's for every
+set and operation. Before 2026-11-22 the SHA-512 backend was a separate, unproved feature; the
+verified one signs 192s in 67.7 ms and 256s in 65.1 ms, as that one did (69.2 and 66.5 ms in the
+measurement of that time). The cost of the adapter itself (an extra signature copy, the 64 KiB
+stack scrub) was not measured separately.
 
 ## Credit and licence
 

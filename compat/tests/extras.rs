@@ -1,5 +1,6 @@
 //! What this crate adds to, or does differently from, RustCrypto's `slh-dsa`:
-//! operating-system randomness, hedged signing, the checked signer, and care
+//! operating-system randomness, hedged signing, keys that key generation would not
+//! produce, and care
 //! with the secret; and many random inputs against RustCrypto. Every test is
 //! run for each of the six SHA-2 parameter sets.
 
@@ -158,29 +159,17 @@ macro_rules! extras {
                 }
             }
 
-            /// The checked signer: the same signature as the plain one on a
-            /// good key, with and without supplied randomness, and an error
-            /// for a private key whose stored public half is not the one its
-            /// seeds give (the plain signer, like RustCrypto's, signs with
-            /// such a key and the signature does not verify).
+            /// A private key whose stored public half is not the one its seeds
+            /// give: the signer, like RustCrypto's, signs with it, and the
+            /// signature does not verify.
             #[test]
-            fn checked_signing() {
+            fn a_key_with_a_wrong_public_half() {
                 let sk = SigningKey::<$P>::new(&mut TestRng(22));
-                let rand = TestRng(23).bytes(N);
-                for opt_rand in [None, Some(rand.as_slice())] {
-                    let plain = sk.try_sign_with_context(b"m", b"c", opt_rand).unwrap();
-                    let checked = sk.try_sign_checked(b"m", b"c", opt_rand).unwrap();
-                    assert!(checked == plain);
-                }
-                assert!(sk.try_sign_checked(b"m", &[0u8; 256], None).is_err());
-
                 let msg = b"message";
                 let mut odd = sk.to_bytes();
                 odd[4 * N - 1] ^= 1;
                 let ours = SigningKey::<$P>::try_from(odd.as_slice()).unwrap();
                 let theirs = upstream::SigningKey::<upstream::$P>::try_from(odd.as_slice()).unwrap();
-                assert!(ours.try_sign_checked(msg, b"", None).is_err());
-                assert!(ours.try_sign_checked(msg, b"", Some(rand.as_slice())).is_err());
                 let plain = ours.try_sign(msg).unwrap();
                 assert!(plain.to_bytes() == upstream::signature::Signer::sign(&theirs, msg).to_bytes());
                 assert!(ours.verifying_key().try_verify_with_context(msg, b"", &plain).is_err());
@@ -225,9 +214,9 @@ fn hw_sha2_backend_is_in_use() {
     assert!(slhdsa::sha256::hw_active(), "hw-sha2 is on, but SHA-256 runs portable code");
 }
 
-/// Likewise for the experimental `hw-sha512` (FEAT_SHA512).
+/// Likewise for SHA-512 (FEAT_SHA512), also under `hw-sha2`.
 #[test]
-#[cfg(all(feature = "hw-sha512", target_arch = "aarch64"))]
+#[cfg(all(feature = "hw-sha2", target_arch = "aarch64"))]
 fn hw_sha512_backend_is_in_use() {
-    assert!(slhdsa::sha512::hw_active(), "hw-sha512 is on, but SHA-512 runs portable code");
+    assert!(slhdsa::sha512::hw_active(), "hw-sha2 is on, but SHA-512 runs portable code");
 }

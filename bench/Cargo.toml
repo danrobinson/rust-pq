@@ -22,7 +22,7 @@ hw = ["slhdsa/hw-sha2", "slhdsa_api/hw-sha2"]
 [dependencies]
 slhdsa = { path = "../rust" }
 # The interface programs are meant to use: RustCrypto's types and traits around the verified
-# crate, signing with the fault check and wiping afterwards. Entry `verified-api`.
+# crate, wiping afterwards. Entry `verified-api`.
 slhdsa_api = { package = "slhdsa-compat", path = "../compat" }
 # `verified-before`: the pre-optimisation single-set verified crate. Cargo cannot depend on two
 # path packages both named `slhdsa`, so this is variants/base, a frozen copy of

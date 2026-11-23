@@ -10,3 +10,8 @@ open Aeneas Aeneas.Std Result ControlFlow Error
 four 32-bit elements. -/
 @[rust_type "core::core_arch::arm_shared::neon::uint32x4_t"]
 def core.core_arch.arm_shared.neon.uint32x4_t : Type := Arm.V
+
+/-- [core::core_arch::arm_shared::neon::uint64x2_t]: a 128-bit register as
+two 64-bit elements. -/
+@[rust_type "core::core_arch::arm_shared::neon::uint64x2_t"]
+def core.core_arch.arm_shared.neon.uint64x2_t : Type := Arm.V2

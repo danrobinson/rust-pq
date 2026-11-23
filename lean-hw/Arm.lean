@@ -3,17 +3,18 @@ module
 @[expose] public section
 
 /-!
-# The Arm instructions used by the `hw-sha2` backend
+# The Arm instructions used by the `hw-sha2` backends
 
 This file is the meaning the proofs give to the processor instructions that
-`rust/src/sha256.rs`, module `hw::arm`, wraps. It is a transcription of the
-pseudocode in the Arm Architecture Reference Manual for A-profile
-architecture (DDI 0487): the instruction descriptions of `SHA256H`,
-`SHA256H2`, `SHA256SU0` and `SHA256SU1`, and the shared functions
+`rust/src/sha256.rs` and `rust/src/sha512.rs`, modules `hw::arm`, wrap. It is
+a transcription of the pseudocode in the Arm Architecture Reference Manual
+for A-profile architecture (DDI 0487): the instruction descriptions of
+`SHA256H`, `SHA256H2`, `SHA256SU0` and `SHA256SU1`, and the shared functions
 `SHA256hash`, `SHAchoose`, `SHAmajority`, `SHAhashSIGMA0` and
-`SHAhashSIGMA1`. The other instructions (element-wise add, logical
-operations, shifts, `EXT`, loads and stores) are simple enough to state
-directly.
+`SHAhashSIGMA1`; and (last section) the descriptions of `SHA512H`,
+`SHA512H2`, `SHA512SU0` and `SHA512SU1` (FEAT_SHA512). The other
+instructions (element-wise add, logical operations, shifts, `EXT`, loads and
+stores) are simple enough to state directly.
 
 Nothing here is proved about the processor. The definitions are checked
 against the processor by running both on the same inputs (`ArmTest.lean`).
@@ -167,5 +168,112 @@ the test has said yes: a program that skipped the test, or got it the wrong
 way round, would fail for one of the two values, and its theorems could not be
 proved without knowing which value this is. -/
 opaque haveSha2 : Bool
+
+/-! ## The SHA-512 instructions (FEAT_SHA512)
+
+The instruction descriptions of `SHA512H`, `SHA512H2`, `SHA512SU0` and
+`SHA512SU1` in the Arm ARM, and the plain vector operations the SHA-512
+kernel of `rust/src/sha512.rs`, module `hw::arm`, uses, on a 128-bit
+register viewed as two 64-bit elements. In the pseudocode `X<63:0>` is
+element 0 (`e0`) and `X<127:64>` element 1 (`e1`). -/
+
+/-- A 128-bit register as two 64-bit elements: `e0` is bits 63:0. -/
+structure V2 where
+  e0 : BitVec 64
+  e1 : BitVec 64
+deriving DecidableEq, Inhabited, Repr
+
+/-- `ROR(x, n)` on 64 bits. -/
+def ROR64 (x : BitVec 64) (n : Nat) : BitVec 64 := x.rotateRight n
+
+/-- `LSR(x, n)` on 64 bits (the pseudocode's `Zeros(n) : x<63:n>`). -/
+def LSR64 (x : BitVec 64) (n : Nat) : BitVec 64 := x >>> n
+
+/-- `SHA512H <Qd>, <Qn>, <Vm>.2D`:
+```
+X = V[n]; Y = V[m]; W = V[d];
+MSigma1 = ROR(Y<127:64>, 14) EOR ROR(Y<127:64>, 18) EOR ROR(Y<127:64>, 41);
+Vtmp<127:64> = (Y<127:64> AND X<63:0>) EOR (NOT(Y<127:64>) AND X<127:64>);
+Vtmp<127:64> = (Vtmp<127:64> + MSigma1 + W<127:64>);
+tmp = Vtmp<127:64> + Y<63:0>;
+MSigma1 = ROR(tmp, 14) EOR ROR(tmp, 18) EOR ROR(tmp, 41);
+Vtmp<63:0> = (tmp AND Y<127:64>) EOR (NOT(tmp) AND X<63:0>);
+Vtmp<63:0> = (Vtmp<63:0> + MSigma1 + W<63:0>);
+V[d] = Vtmp;
+``` -/
+def SHA512H (d n m : V2) : V2 :=
+  let X := n
+  let Y := m
+  let W := d
+  let sig1 (x : BitVec 64) : BitVec 64 := ROR64 x 14 ^^^ ROR64 x 18 ^^^ ROR64 x 41
+  let hi := ((Y.e1 &&& X.e0) ^^^ (~~~Y.e1 &&& X.e1)) + sig1 Y.e1 + W.e1
+  let tmp := hi + Y.e0
+  let lo := ((tmp &&& Y.e1) ^^^ (~~~tmp &&& X.e0)) + sig1 tmp + W.e0
+  ⟨lo, hi⟩
+
+/-- `SHA512H2 <Qd>, <Qn>, <Vm>.2D`:
+```
+X = V[n]; Y = V[m]; W = V[d];
+NSigma0 = ROR(Y<63:0>, 28) EOR ROR(Y<63:0>, 34) EOR ROR(Y<63:0>, 39);
+Vtmp<127:64> = (X<63:0> AND Y<127:64>) EOR (X<63:0> AND Y<63:0>) EOR (Y<127:64> AND Y<63:0>);
+Vtmp<127:64> = (Vtmp<127:64> + NSigma0 + W<127:64>);
+NSigma0 = ROR(Vtmp<127:64>, 28) EOR ROR(Vtmp<127:64>, 34) EOR ROR(Vtmp<127:64>, 39);
+Vtmp<63:0> = (Vtmp<127:64> AND Y<63:0>) EOR (Vtmp<127:64> AND Y<127:64>) EOR (Y<127:64> AND Y<63:0>);
+Vtmp<63:0> = (Vtmp<63:0> + NSigma0 + W<63:0>);
+V[d] = Vtmp;
+``` -/
+def SHA512H2 (d n m : V2) : V2 :=
+  let X := n
+  let Y := m
+  let W := d
+  let sig0 (x : BitVec 64) : BitVec 64 := ROR64 x 28 ^^^ ROR64 x 34 ^^^ ROR64 x 39
+  let hi := ((X.e0 &&& Y.e1) ^^^ (X.e0 &&& Y.e0) ^^^ (Y.e1 &&& Y.e0)) + sig0 Y.e0 + W.e1
+  let lo := ((hi &&& Y.e0) ^^^ (hi &&& Y.e1) ^^^ (Y.e1 &&& Y.e0)) + sig0 hi + W.e0
+  ⟨lo, hi⟩
+
+/-- `SHA512SU0 <Vd>.2D, <Vn>.2D`:
+```
+X = V[n]; W = V[d];
+sig0 = ROR(W<127:64>, 1) EOR ROR(W<127:64>, 8) EOR ('0000000':W<127:71>);
+Vtmp<63:0> = W<63:0> + sig0;
+sig0 = ROR(X<63:0>, 1) EOR ROR(X<63:0>, 8) EOR ('0000000':X<63:7>);
+Vtmp<127:64> = W<127:64> + sig0;
+V[d] = Vtmp;
+``` -/
+def SHA512SU0 (d n : V2) : V2 :=
+  let s (x : BitVec 64) : BitVec 64 := ROR64 x 1 ^^^ ROR64 x 8 ^^^ LSR64 x 7
+  ⟨d.e0 + s d.e1, d.e1 + s n.e0⟩
+
+/-- `SHA512SU1 <Vd>.2D, <Vn>.2D, <Vm>.2D`:
+```
+X = V[n]; Y = V[m]; W = V[d];
+sig1 = ROR(X<127:64>, 19) EOR ROR(X<127:64>, 61) EOR ('000000':X<127:70>);
+Vtmp<127:64> = W<127:64> + sig1 + Y<127:64>;
+sig1 = ROR(X<63:0>, 19) EOR ROR(X<63:0>, 61) EOR ('000000':X<63:6>);
+Vtmp<63:0> = W<63:0> + sig1 + Y<63:0>;
+V[d] = Vtmp;
+``` -/
+def SHA512SU1 (d n m : V2) : V2 :=
+  let s (x : BitVec 64) : BitVec 64 := ROR64 x 19 ^^^ ROR64 x 61 ^^^ LSR64 x 6
+  ⟨d.e0 + s n.e0 + m.e0, d.e1 + s n.e1 + m.e1⟩
+
+/-- `ADD <Vd>.2D, <Vn>.2D, <Vm>.2D`: element-wise sum modulo 2^64. -/
+def ADD2 (a b : V2) : V2 := ⟨a.e0 + b.e0, a.e1 + b.e1⟩
+
+/-- `EXT` at one 64-bit element (`vextq_u64(a, b, 1)`): the top element of
+`a`, then the bottom element of `b`. -/
+def EXT1 (a b : V2) : V2 := ⟨a.e1, b.e0⟩
+
+/-- Eight bytes in memory order as one element after `REV64` on bytes: the
+first byte is the most significant. -/
+def beWord64 (b0 b1 b2 b3 b4 b5 b6 b7 : BitVec 8) : BitVec 64 :=
+  b0 ++ b1 ++ b2 ++ b3 ++ b4 ++ b5 ++ b6 ++ b7
+
+/-- Whether the processor running the program has the `neon` and `sha3`
+features (Rust's name for FEAT_SHA3 with FEAT_SHA512): what
+`is_aarch64_feature_detected!` answers for both. Opaque, independent of
+`haveSha2`, and used in the same way: the SHA-512 wrappers fail when it is
+`false`, and every statement about the crate is proved for both answers. -/
+opaque haveSha512 : Bool
 
 end Arm

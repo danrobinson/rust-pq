@@ -13,8 +13,7 @@ same files against the `hw-sha2` build). One Lake project; every library is a de
   function each game is about.
 - `ME2E`: the verified Rust functions `sets.sha2_<set>.slh_*` are the byte-level scheme cores;
   `ME2E.sha2_<set>.rust_security` etc.; the interface functions `sets.sha2_<set>.{keygen, sign,
-  sign_deterministic, verify}` likewise, with the checked signers equal to the plain ones on well-formed
-  keys (`ME2E.sha2_<set>.api_pure_security`, `api_sign_checked_eq_sign`, …); the random-oracle theorem for
+  sign_deterministic, verify}` likewise (`ME2E.sha2_<set>.api_pure_security`, …); the random-oracle theorem for
   the context-string interface (`ME2E.sha2_<set>.pure_rom_security`, `rust_pure_rom_security_bytes`,
   `api_pure_rom_security(_bytes)`); for 128s also the forms for forgers over a general sampling
   spec (`ME2E.sha2_128s.rust_securityG`, …, `api_pure_securityG`; `STATUS.md` §5b).
@@ -63,7 +62,7 @@ git -C VCVio-upstream checkout a10530a59390442437f3c69db11015c4dd437839
 (cd VCVio-upstream && lake exe cache get)      # Mathlib cache
 cd ../security
 lake build                                     # everything
-scripts/check.sh                               # generators, build, placeholder grep, 263 axiom reports
+scripts/check.sh                               # generators, build, placeholder grep, 232 axiom reports
 ```
 
 `scripts/check.sh` reads the single-set tree's statements from git commit `26aa3d8` (the templates of the

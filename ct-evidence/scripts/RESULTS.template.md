@@ -62,15 +62,15 @@ and relative in B (section 2).
 | T1b | The verifier's recomputation (`*_pk_from_sig`) with the signature bytes varied | {{default:COMP_VS_ROWS}} rows, {{default:COMP_VS_PAIRS}} pairs: all identical | {{hw-sha2:COMP_VS_ROWS}} rows, {{hw-sha2:COMP_VS_PAIRS}} pairs: all identical |
 | T2 | Positive controls (leaky code in the harness), same checker | {{default:COMP_LEAKY}}: **all detected** | {{hw-sha2:COMP_LEAKY}}: **all detected** |
 | T3 | Public-variation controls (a public input varied must change the trace) | {{default:COMP_PUBCTL}}: all detected | {{hw-sha2:COMP_PUBCTL}} (includes the `PREFIX` row): all detected |
-| T4 | Whole signing with the declassified values pinned, 8 entry points: run B (fresh SK.seed, SK.prf, addrnd) vs run A with R, PK_FORS and the XMSS roots forced to A's values | {{default:SIGN_TOTAL_CFGS}} public configurations, {{default:SIGN_TOTAL_PAIRS}} pairs: **all identical**; every unpinned control differs | {{hw-sha2:SIGN_TOTAL_CFGS}} public configurations, {{hw-sha2:SIGN_TOTAL_PAIRS}} pairs: **all identical**; every unpinned control differs |
-| T5 | Whole-signature unconditioned profile over honest random keys | {{default:PROFILE_internal_RUNS}} + {{default:PROFILE_internal-checked_RUNS}} runs; call counts of every function constant; instruction count spread {{default:PROFILE_internal_SPREAD}} (checked: {{default:PROFILE_internal-checked_SPREAD}}) | {{hw-sha2:PROFILE_internal_RUNS}} + {{hw-sha2:PROFILE_internal-checked_RUNS}} runs; call counts and SHA-256 instruction counts constant; instruction count spread {{hw-sha2:PROFILE_internal_SPREAD}} (checked: {{hw-sha2:PROFILE_internal-checked_SPREAD}}) |
+| T4 | Whole signing with the declassified values pinned, 4 entry points: run B (fresh SK.seed, SK.prf, addrnd) vs run A with R, PK_FORS and the XMSS roots forced to A's values | {{default:SIGN_TOTAL_CFGS}} public configurations, {{default:SIGN_TOTAL_PAIRS}} pairs: **all identical**; every unpinned control differs | {{hw-sha2:SIGN_TOTAL_CFGS}} public configurations, {{hw-sha2:SIGN_TOTAL_PAIRS}} pairs: **all identical**; every unpinned control differs |
+| T5 | Whole-signature unconditioned profile over honest random keys | {{default:PROFILE_internal_RUNS}} runs; call counts of every function constant; instruction count spread {{default:PROFILE_internal_SPREAD}} | {{hw-sha2:PROFILE_internal_RUNS}} runs; call counts and SHA-256 instruction counts constant; instruction count spread {{hw-sha2:PROFILE_internal_SPREAD}} |
 | S1 | Static disassembly of the `slhdsa` functions in the binary | {{default:STATIC_TOTAL}}; no call of `memcmp`/`bcmp` | {{hw-sha2:STATIC_TOTAL}}; no call of `memcmp`/`bcmp` |
-| D0 | Timing noise floor: random vs random before and after each series, 52 rows | no row above 4.5 (largest {{default:DUDECT_NULLB_MAX}} before, {{default:DUDECT_NULLA_MAX}} after): timing usable | no row above 4.5 (largest {{hw-sha2:DUDECT_NULLB_MAX}} before, {{hw-sha2:DUDECT_NULLA_MAX}} after): timing usable |
-| D1 | dudect, 50 component rows, fixed vs random secret (both classes prepared alike), `PSTATE.DIT = 0` | **{{default:DUDECT_SAME_NFLAG}} rows above 4.5**, all short hash-level calls (largest {{default:DUDECT_SAME_MAX}}) | **{{hw-sha2:DUDECT_SAME_NFLAG}} row above 4.5**: {{hw-sha2:DUDECT_SAME_FLAGGED}} |
+| D0 | Timing noise floor: random vs random before and after each series, 51 rows | no row above 4.5 (largest {{default:DUDECT_NULLB_MAX}} before, {{default:DUDECT_NULLA_MAX}} after): timing usable | no row above 4.5 (largest {{hw-sha2:DUDECT_NULLB_MAX}} before, {{hw-sha2:DUDECT_NULLA_MAX}} after): timing usable |
+| D1 | dudect, 49 component rows, fixed vs random secret (both classes prepared alike), `PSTATE.DIT = 0` | **{{default:DUDECT_SAME_NFLAG}} rows above 4.5**, all short hash-level calls (largest {{default:DUDECT_SAME_MAX}}) | **{{hw-sha2:DUDECT_SAME_NFLAG}} row above 4.5**: {{hw-sha2:DUDECT_SAME_FLAGGED}} |
 | D2 | the same with `PSTATE.DIT = 1` | no row above 4.5 (largest {{default:DUDECT_SAMEDIT_MAX}}) | no row above 4.5 (largest {{hw-sha2:DUDECT_SAMEDIT_MAX}}) |
-| D3 | diagnostics, `PSTATE.DIT = 0`: two different fixed secrets; the all-zero secret vs another fixed one | not distinguishable; **distinguishable in {{default:DUDECT_ZF_NFLAG}} of 50 rows** (bulk hash inputs; largest {{default:DUDECT_ZF_MAX}}) | not distinguishable; **distinguishable in {{hw-sha2:DUDECT_ZF_NFLAG}} of 50 rows** (largest {{hw-sha2:DUDECT_ZF_MAX}}; includes an all-zero SK.seed in `fors_sk_gen`) |
+| D3 | diagnostics, `PSTATE.DIT = 0`: two different fixed secrets; the all-zero secret vs another fixed one | not distinguishable; **distinguishable in {{default:DUDECT_ZF_NFLAG}} of 49 rows** (bulk hash inputs; largest {{default:DUDECT_ZF_MAX}}) | not distinguishable; **distinguishable in {{hw-sha2:DUDECT_ZF_NFLAG}} of 49 rows** (largest {{hw-sha2:DUDECT_ZF_MAX}}; includes an all-zero SK.seed in `fors_sk_gen`) |
 | D4 | the same diagnostics with `PSTATE.DIT = 1` | not distinguishable | not distinguishable |
-| D5 | dudect, whole signing, plain and checked signer, 4 x 600 signatures, `PSTATE.DIT = 0` | no row above 4.5 (largest {{default:DUDECT_SIGN_MAX}}) | no row above 4.5 (largest {{hw-sha2:DUDECT_SIGN_MAX}}) |
+| D5 | dudect, whole signing, 2 x 600 signatures, `PSTATE.DIT = 0` | no row above 4.5 (largest {{default:DUDECT_SIGN_MAX}}) | no row above 4.5 (largest {{hw-sha2:DUDECT_SIGN_MAX}}) |
 | D6 | dudect positive controls (`leaky_cmp`, `leaky_loop`) | detected in every fixed-vs-random run (max abs t {{default:DUDECT_FR_CTL}} in the first) | detected in every fixed-vs-random run ({{hw-sha2:DUDECT_FR_CTL}} in the first) |
 
 **No secret-dependent divergence was found in the compiled code of either
@@ -143,8 +143,8 @@ flow and the addresses/sizes of all memory accesses of the compiled `sha256`,
 `chain_blocks` (and `chain_blocks_portable`), `wots_pk_gen`, `wots_sign`,
 `xmss_node` (z = 0..4), `xmss_sign`, `fors_sk_gen`, `fors_node` (z up to 12,
 through both the batched path, z <= 7, and the recursive one), `fors_sign`,
-`fors_pk_gen`, the whole `slh_keygen_internal` (which is `xmss_node` at
-z = 9) and `api::keygen` did not depend on the secret bytes. For
+the whole `slh_keygen_internal` (which is `xmss_node` at z = 9) and
+`api::keygen` did not depend on the secret bytes. For
 `chain_blocks` the varied bytes are everything in each 64-byte block except
 its first 16 bytes; what was held fixed, and is public in every call the crate
 makes, is the number of blocks, the step ranges, and those 16-byte prefixes.
@@ -206,25 +206,20 @@ results of the same calls with A's values. All other data in run B (every
 FORS secret and node, every WOTS+ secret and chain value, every Merkle node,
 the 7840-byte signature body) differ from run A.
 
-The values, and where they are taken (all five functions are out-of-line
+The values, and where they are taken (all three functions are out-of-line
 symbols in both builds; nothing in the crate was changed and nothing had to be
 wrapped):
 
-| value | hook point (result of the call) | per signature | checked signer |
-|---|---|---|---|
-| `R` | `slhdsa::hash::prf_msg` | 1 | 1 |
-| `PK_FORS`, from the FORS signature | `slhdsa::fors::fors_pk_from_sig` | 1 | 1 |
-| `PK_FORS`, from the secret seed | `slhdsa::fors::fors_pk_gen` | - | 1 |
-| XMSS root of layer j, from the XMSS signature | `slhdsa::xmss::xmss_pk_from_sig` | 7 | 7 |
-| XMSS root of layer j < 6, from the secret seed | `slhdsa::xmss::xmss_node` called with i = 0, z = 9 | - | 6 |
-| | total | 9 | 16 |
+| value | hook point (result of the call) | per signature |
+|---|---|---|
+| `R` | `slhdsa::hash::prf_msg` | 1 |
+| `PK_FORS`, from the FORS signature | `slhdsa::fors::fors_pk_from_sig` | 1 |
+| XMSS root of layer j, from the XMSS signature | `slhdsa::xmss::xmss_pk_from_sig` | 7 |
+| | total | 9 |
 
 (The 2026-11-20 harness hooked `thash` and picked calls by address type. In
-the current crate the roots are no longer results of `thash`, and at the
-level of the hash calls the two routes of the checked signer cannot be told
-apart, so the hooks are on the functions that return the values. The checked
-signer compares its top root with `PK.root` instead of recomputing it, hence
-6 second-route roots.)
+the current crate the roots are no longer results of `thash`, so the hooks
+are on the functions that return the values.)
 
 Sanity checks performed in every configuration (all passed; a failure prints
 a `- config` line and makes the generator of this file stop):
@@ -234,21 +229,18 @@ a `- config` line and makes the generator of this file stop):
 * the recorded values are, in order and in kind, exactly the values a
   verifier computes natively from (M', PK, signature of A): `R` read off the
   signature, `PK_FORS = fors_pk_from_sig(..)`, and the chain of
-  `xmss_pk_from_sig(..)` roots ending in `PK.root`; the second-route values of
-  the checked signer equal the first-route ones. So the pinned values are
+  `xmss_pk_from_sig(..)` roots ending in `PK.root`. So the pinned values are
   public by construction of the check, not only by the audit's argument, and
   the hook points and the return convention (`[u8; 16]` through the x8 result
   pointer) are confirmed;
 * replaying A's values into A leaves trace and output unchanged;
-* in B all 9 (16) values are pinned, B returns a signature whose `R` is A's
-  and whose body differs from A's (in the checked signer this also means its
-  comparisons succeeded on the pinned values);
+* in B all 9 values are pinned, B returns a signature whose `R` is A's
+  and whose body differs from A's;
 * without pinning, B's trace differs from A's (the "unpinned control"
   column), so the pinning is what makes them equal.
 
-default build (`slh_sign_internal` and `slh_sign_internal_checked` with
-control flow and memory addresses; the six wrappers around them with control
-flow only):
+default build (`slh_sign_internal` with control flow and memory addresses;
+the three wrappers around it with control flow only):
 
 {{default:SIGN_SUMMARY}}
 
@@ -260,20 +252,12 @@ Per-configuration tables, default build, `slh_sign_internal`:
 
 {{default:SIGN_internal}}
 
-default build, `slh_sign_internal_checked`:
-
-{{default:SIGN_internal-checked}}
-
 hw-sha2 build, `slh_sign_internal`:
 
 {{hw-sha2:SIGN_internal}}
 
-hw-sha2 build, `slh_sign_internal_checked`:
-
-{{hw-sha2:SIGN_internal-checked}}
-
-(The per-configuration tables of the six other entry points are in
-`out/*/trace_sign_{slh,slh-checked,api,api-checked,api-det,api-det-checked}.md`.
+(The per-configuration tables of the three other entry points are in
+`out/*/trace_sign_{slh,api,api-det}.md`.
 Message lengths 32, 0, 100 and 1 bytes rotate over the configurations; the
 entry points with a context use a 17-byte context; in the deterministic
 entry points `addrnd` is PK.seed, so only SK.seed and SK.prf are varied.)
@@ -282,24 +266,14 @@ What this establishes: for {{default:SIGN_TOTAL_PAIRS}} (default) and
 {{hw-sha2:SIGN_TOTAL_PAIRS}} (hw-sha2) pairs of unrelated secret sets, once the
 public intermediate values are equal, the entire execution
 ({{default:SIGN_internal_INSN}} instructions per signature in the default
-build, {{default:SIGN_internal-checked_INSN}} checked;
-{{hw-sha2:SIGN_internal_INSN}} and {{hw-sha2:SIGN_internal-checked_INSN}} in
-the hw-sha2 build) is identical in control flow and, where memory was traced,
+build, {{hw-sha2:SIGN_internal_INSN}} in the hw-sha2 build) is identical in control flow and, where memory was traced,
 in every memory address, allocation size and copy length. This includes, in
-the hw-sha2 build, the lane scheduling of every one of the ~11600 (checked:
-~21800) `chain_blocks` calls of a signature and every hit and miss of the
+the hw-sha2 build, the lane scheduling of every one of the ~11600
+`chain_blocks` calls of a signature and every hit and miss of the
 first-rounds cache. What it does not establish: anything about inputs not
 sampled. In run B the key is not a valid key pair (PK.root is A's) and the
 output is not a valid signature; that is irrelevant to the property tested,
 which is about which data the trace depends on.
-
-The checked signer adds, on top of plain signing, two more computations from
-the secret seed (`fors_pk_gen`, a T1 row, and six `xmss_node` at z = 9, which
-is what the T1 row `slh_keygen_internal` runs) and eight 16-byte comparisons,
-which the compiler emitted
-branch-free (`cmp`/`ccmp`/`cset`, `eor`/`orr`/`csel`: see section 2); their
-outcome is a public bit in an honest run and only decides, at the very end,
-whether the signature is returned.
 
 ### T5. Unconditioned profile of whole signing (`out/*/trace_sign_profile_*.md`)
 
@@ -307,17 +281,9 @@ default build, `slh_sign_internal`:
 
 {{default:PROFILE_internal}}
 
-default build, `slh_sign_internal_checked`:
-
-{{default:PROFILE_internal-checked}}
-
 hw-sha2 build, `slh_sign_internal`:
 
 {{hw-sha2:PROFILE_internal}}
-
-hw-sha2 build, `slh_sign_internal_checked`:
-
-{{hw-sha2:PROFILE_internal-checked}}
 
 So over random honest keys the *amount* of work is essentially constant:
 every signature makes exactly the same number of calls of every function of
@@ -387,11 +353,6 @@ the rlib comparison.
   single-block `compress` is inlined into its callers as a 16-step loop
   (`cmp R, #0x10`, `cmp R, #0xc`) whose indexed loads are `K` and the four
   schedule vectors by the step counter.
-* **Comparisons in the checked signer.** `ht_sign_checked` compares 16-byte
-  values with `cmp`/`ccmp`/`cset` and `eor`/`orr`/`cmp`/`csel` (the three
-  csel-family instructions in its row), accumulating into a flag without
-  branching; its conditional branches are the layer counter (`cmp w, #0x7`,
-  `cmp w, #0x6`) and `Vec` capacity checks.
 * **Object code.** The functions are instruction-for-instruction the ones
   `cargo build --release` produces from the main crate's manifest. (The first
   function of each object file is disassembled under the assembler's `ltmp0`
@@ -407,7 +368,7 @@ The T1 trace equality is the dynamic confirmation of these readings.
 In short: the noise floor was low enough to measure. No timing difference
 was found in whole signing, nor, in any run of either build, in the rows
 `wots_pk_gen`, `wots_sign`, `xmss_node`, `xmss_sign`, `fors_node` for z >= 1,
-`fors_sign`, `fors_pk_gen` and `slh_keygen_internal` (the generator of this
+`fors_sign` and `slh_keygen_internal` (the generator of this
 file checks that). At the hash level, with `PSTATE.DIT = 0`, the fixed-vs-random test flags rows in
 both builds; the diagnostics attribute this to the processor reacting to
 repeated and to all-zero data (and, for the multi-block rows of the standard
@@ -529,7 +490,7 @@ every T1 row.
 **What was measured, default build.**
 
 1. *Fixed vs random is distinguishable with `PSTATE.DIT = 0`* (column B):
-   {{default:DUDECT_FR_NFLAG}} of 50 rows above 4.5 --
+   {{default:DUDECT_FR_NFLAG}} of 49 rows above 4.5 --
    {{default:DUDECT_FR_FLAGGED}}. The varied bytes are, per row: the whole
    message (`sha256`), state and block (`compress`), the hashed value
    (`thash_short`, `thash`), bytes 16..64 of the blocks (`chain_blocks`),
@@ -537,7 +498,7 @@ every T1 row.
    0.01% to 0.25% of the call time) but far outside the noise of columns A
    and E.
 2. *The all-zero secret against random ones* (column C) is distinguishable in
-   {{default:DUDECT_FZ_NFLAG}} of 50 rows, most strongly `compress` (all-zero
+   {{default:DUDECT_FZ_NFLAG}} of 49 rows, most strongly `compress` (all-zero
    state and block run about 1.7% faster than random ones).
 3. *For the multi-block `chain_blocks` rows, the flags of the standard
    fixed-vs-random design come from the harness, not from the data.* Two of
@@ -555,7 +516,7 @@ every T1 row.
    (the 2026-11-20 harness had the same preparation, and no row with
    kilobytes of varied bytes); columns F and G are the same runs without it.
 4. *In the corrected design, with `PSTATE.DIT = 0`* (column F),
-   {{default:DUDECT_SAME_NFLAG}} of 50 rows remain above 4.5:
+   {{default:DUDECT_SAME_NFLAG}} of 49 rows remain above 4.5:
    {{default:DUDECT_SAME_FLAGGED}}. All of them are short hash-level calls
    (at most 15 compressions) repeated 8 to 256 times per measurement on one
    input. The other rows are not flagged, among them every row at the level
@@ -574,7 +535,7 @@ every T1 row.
 6. *But the all-zero value is special.* Against another fixed value (column
    H; ZF in the diagnostics), i.e. with both classes repeating one value and
    prepared alike, the all-zero secret is distinguishable in
-   {{default:DUDECT_ZF_NFLAG}} of 50 rows ({{default:DUDECT_ZF_FLAGGED}}):
+   {{default:DUDECT_ZF_NFLAG}} of 49 rows ({{default:DUDECT_ZF_FLAGGED}}):
    wherever the zeroed bytes are a bulk hash input -- `sha256` from 16 bytes
    up, `compress` (all-zero state and block about 0.5% to 1.1% faster),
    `thash`, `thash_values`, the `chain_blocks` rows (blocks whose bytes 16..64
@@ -587,7 +548,7 @@ every T1 row.
    the value itself, at least for this extreme value. Values between "all-zero"
    and "pseudo-random" (single zero words, low weight) were not tried.
 7. *With `PSTATE.DIT = 1` none of this is there.* In the corrected design
-   (column G) {{default:DUDECT_SAMEDIT_NFLAG}} of 50 rows exceed 4.5; in the
+   (column G) {{default:DUDECT_SAMEDIT_NFLAG}} of 49 rows exceed 4.5; in the
    diagnostics, with DIT on, fixed vs random, zero vs random, fixed vs fixed
    and zero vs fixed are all below 4.5 on the ten hash-level rows, and so are
    fixed vs random with the same preparation, fixed vs fixed and zero vs
@@ -597,14 +558,14 @@ every T1 row.
 **hw-sha2 build.** The same experiments show the same structure with
 smaller effects.
 
-* Fixed vs random (B): {{hw-sha2:DUDECT_FR_NFLAG}} of 50 rows
+* Fixed vs random (B): {{hw-sha2:DUDECT_FR_NFLAG}} of 49 rows
   ({{hw-sha2:DUDECT_FR_FLAGGED}}); in the corrected design (F)
   {{hw-sha2:DUDECT_SAME_NFLAG}} ({{hw-sha2:DUDECT_SAME_FLAGGED}}). Of the
   hash-level rows only bare `sha256` on a one-byte message is flagged;
   `compress`, `thash_short`, `chain_blocks` and `fors_node`, which are flagged
   in the default build, are not (in the diagnostics FR and FR/same are below
   3 for every row but `sha256/len=1`).
-* The all-zero value: zero vs random (C) {{hw-sha2:DUDECT_FZ_NFLAG}} of 50
+* The all-zero value: zero vs random (C) {{hw-sha2:DUDECT_FZ_NFLAG}} of 49
   rows; zero vs fixed (H) {{hw-sha2:DUDECT_ZF_NFLAG}}
   ({{hw-sha2:DUDECT_ZF_FLAGGED}}). Here the all-zero value is distinguishable
   also where it is a 16-byte value inside a PRF or F input: `fors_sk_gen`
@@ -619,7 +580,7 @@ smaller effects.
   same preparation, nor fixed vs fixed, nor random vs random). On these
   multi-block rows the all-zero value is *not* distinguishable from another
   fixed value in this build.
-  The corrected design (G) flags {{hw-sha2:DUDECT_SAMEDIT_NFLAG}} of 50 rows,
+  The corrected design (G) flags {{hw-sha2:DUDECT_SAMEDIT_NFLAG}} of 49 rows,
   and in the diagnostics every DIT column is below 4.5 except that
   standard-design one on the multi-block rows. DIT costs
   {{hw-sha2:DIT_COST}} in speed.
@@ -647,7 +608,7 @@ inference from the observations above, not a measurement of the mechanism.
 * The crate does not set DIT, and its default build cannot (`msr DIT` needs
   `unsafe`). A caller that wants the platform's guarantee of
   data-independent timing has to enable DIT around secret-key operations
-  (`msr DIT, #1` or the platform API). With DIT on, none of the 50 component
+  (`msr DIT, #1` or the platform API). With DIT on, none of the 49 component
   rows of either build shows a difference in the corrected design. That is a
   deployment recommendation; nothing in `rust/src` can remove the effect.
 
@@ -676,8 +637,8 @@ Class designs and what they show:
   timing effect at scale.
 * *whole key fixed*: class 0 = fixed addrnd, class 1 = fresh addrnd (hedged
   signing randomness is secret until R is published; R itself is public).
-* Outcome: no row above 4.5 in either build, for the plain and the checked
-  signer (largest max |t| {{default:DUDECT_SIGN_MAX}} in the default build,
+* Outcome: no row above 4.5 in either build (largest max |t|
+  {{default:DUDECT_SIGN_MAX}} in the default build,
   {{hw-sha2:DUDECT_SIGN_MAX}} in the hw-sha2 build), all with
   `PSTATE.DIT = 0`.
 * Resolution. default build: {{default:DUDECT_SIGN_RES}}. hw-sha2 build:
@@ -744,7 +705,7 @@ platform.
   the PC sequence inside a block is implied. Block boundaries come from
   Unicorn's translator, which cannot cause a missed divergence, only a
   different event count.
-* **Declassification-pinned signing test.** Depends on locating five
+* **Declassification-pinned signing test.** Depends on locating three
   functions as out-of-line symbols and on the result-pointer return
   convention of this build; both are checked in every configuration against
   natively recomputed values. It tests "the trace depends on secrets only via
@@ -752,9 +713,7 @@ platform.
   honest run A by recomputing them the way a verifier does.
 * **Unwinding paths** (bounds-check panics, allocation failure, `ctx` longer
   than 255 bytes returning `None`) are never taken with valid inputs and were
-  not explored. The `None` result of the checked signer on a disagreement
-  (a fault, or a key that key generation does not produce) was exercised only
-  by the unpinned control runs, whose traces are not compared with anything.
+  not explored.
 * **Verification functions** (`slh_verify*`, `ht_verify`, which ends in a
   comparison of public values) handle only public data and were not tested as
   secret-handling code; `fors_pk_from_sig`/`xmss_pk_from_sig` are exercised
@@ -793,18 +752,15 @@ experiments are exactly reproducible on the same toolchain; timing numbers
 will vary run to run.
 
 Wall-clock times of the runs recorded here (8 threads for the trace
-experiments, one for timing): component traces 3 min (default) and 1 min (hw-sha2); pinned signing, eight
-entry points, 35 min (default) and 40 min (hw-sha2, with more configurations
-and memory tracing throughout); profiles about 1 min; disassembly seconds.
-Timing, per build: runs A-E about 30 min, F-H 9 to 13 min, whole signing 19
-min (default) and 2 min (hw-sha2), the ten-row diagnostics about 25 min, the
-multi-block follow-up about 13 min.
+experiments, one for timing): component traces 3 min (default) and 1 min (hw-sha2); disassembly seconds.
+Timing, per build: runs A-E about 30 min, F-H 9 to 13 min, the ten-row
+diagnostics about 25 min, the multi-block follow-up about 13 min.
 
 ## Historical note (2026-11-20)
 
 The first version of this harness and of this file was made on 2026-11-20
 for an earlier version of the crate (per-call `thash` on heap buffers,
-`wots::chain`, HMAC through `hmac_sha256`, no checked signer, no `api` module,
+`wots::chain`, HMAC through `hmac_sha256`, no `api` module,
 no `hw-sha2` backend). Its results (43 component rows and 44 pinned
 whole-signature pairs identical, all controls detected; a small timing effect
 on bare SHA-256 with a repeated message that vanished with `PSTATE.DIT = 1`)

@@ -1,4 +1,4 @@
-import Slhdsa.Proofs.Checked
+import Slhdsa.Proofs.Slh
 open Aeneas Aeneas.Std Result
 
 /-! The crate's interface, module `api`, for any valid parameter set. -/
@@ -57,28 +57,6 @@ theorem api_sign_deterministic_spec {N : Usize} (p : params.Params) (hp : PN p N
   unfold api.sign_deterministic
   let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
   apply WP.spec_mono (slh_sign_spec p hp m ctx sk pk_seed hsk hm)
-  intro r hr
-  rw [hr, bytes_block_N p hp sk pk_seed 2 pk_seed_post]
-
-@[step]
-theorem api_sign_checked_spec {N : Usize} (p : params.Params) (hp : PN p N) (m ctx sk : Slice U8)
-    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
-    api.sign_checked p m ctx sk addrnd ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val) (bytes addrnd.val) ⦄ := by
-  unfold api.sign_checked
-  exact slh_sign_checked_spec p hp m ctx sk addrnd hsk hm
-
-@[step]
-theorem api_sign_deterministic_checked_spec {N : Usize} (p : params.Params) (hp : PN p N)
-    (m ctx sk : Slice U8) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val + 257)) :
-    api.sign_deterministic_checked N p m ctx sk ⦃ r =>
-      r.map (fun v => bytes v.val) =
-        Spec.slhSignChecked (paramsS p) (bytes m.val) (bytes ctx.val) (bytes sk.val)
-          (Spec.block (paramsS p) (bytes sk.val) 2) ⦄ := by
-  unfold api.sign_deterministic_checked
-  let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
-  apply WP.spec_mono (slh_sign_checked_spec p hp m ctx sk pk_seed hsk hm)
   intro r hr
   rw [hr, bytes_block_N p hp sk pk_seed 2 pk_seed_post]
 

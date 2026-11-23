@@ -1,6 +1,6 @@
 //! The private key type.
 
-use crate::{joined, ParameterSet, Signature, VerifyingKey, VerifyingKeyLen};
+use crate::{join, same, ParameterSet, Signature, VerifyingKey, VerifyingKeyLen};
 use ::signature::{
     rand_core::{CryptoRng, TryCryptoRng},
     Error, KeypairRef, MultipartSigner, RandomizedMultipartSigner, RandomizedSigner, Signer,
@@ -60,7 +60,7 @@ impl<P: ParameterSet> core::fmt::Debug for SigningKey<P> {
 /// Looks at every byte, wherever the keys differ.
 impl<P: ParameterSet> PartialEq for SigningKey<P> {
     fn eq(&self, other: &Self) -> bool {
-        P::sk_eq(&self.bytes, &other.bytes)
+        slhdsa::encoding::secret_keys_equal(&self.bytes, &other.bytes)
     }
 }
 
@@ -116,11 +116,6 @@ impl<P: ParameterSet> SigningKey<P> {
         }
     }
 
-    /// `PK.seed`, the third block of the private key.
-    fn pk_seed(&self) -> &[u8] {
-        &self.bytes[2 * P::N..3 * P::N]
-    }
-
     #[doc(hidden)]
     #[must_use]
     /// Construct a new SigningKey from pre-chosen seeds.
@@ -128,15 +123,13 @@ impl<P: ParameterSet> SigningKey<P> {
     /// Published for KAT validation purposes but not intended for general use.
     /// Each seed must be `n` bytes long, panics otherwise.
     pub fn slh_keygen_internal(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8]) -> Self {
-        let n = P::N;
-        assert!(sk_seed.len() == n && sk_prf.len() == n && pk_seed.len() == n);
-        let mut seeds = Array::<u8, P::SkLen>::default();
-        seeds[..n].copy_from_slice(sk_seed);
-        seeds[n..2 * n].copy_from_slice(sk_prf);
-        seeds[2 * n..3 * n].copy_from_slice(pk_seed);
-        let key = Self::from_seeds(&seeds[..3 * n]);
-        seeds.zeroize();
-        key
+        let mut bytes = Box::new(Array::<u8, P::SkLen>::default());
+        let mut pk = Array::<u8, P::VkLen>::default();
+        P::keygen_seeds(sk_seed, sk_prf, pk_seed, bytes.as_mut_slice(), &mut pk);
+        SigningKey {
+            bytes,
+            verifying_key: VerifyingKey { bytes: pk },
+        }
     }
 
     #[doc(hidden)]
@@ -145,12 +138,9 @@ impl<P: ParameterSet> SigningKey<P> {
     /// Published for KAT validation purposes but not intended for general use.
     /// opt_rand must be a P::N length slice, panics otherwise.
     pub fn slh_sign_internal(&self, msg: &[&[u8]], opt_rand: Option<&[u8]>) -> Signature<P> {
-        let rand = opt_rand.unwrap_or(self.pk_seed());
-        assert!(rand.len() == P::N);
-        let mut buf = Vec::new();
-        let m = joined(msg, &mut buf);
+        let m = join(msg);
         let mut sig = Array::<u8, P::SigLen>::default();
-        P::sign_internal(m, &self.bytes, rand, &mut sig);
+        P::sign_internal(&m, &self.bytes, opt_rand, &mut sig);
         Signature { bytes: sig }
     }
 
@@ -171,37 +161,6 @@ impl<P: ParameterSet> SigningKey<P> {
         self.raw_try_sign_with_context(&[msg], ctx, opt_rand)
     }
 
-    /// [`try_sign_with_context`](Self::try_sign_with_context) with a guard
-    /// against faults during signing: each value that a one-time key signs is
-    /// computed twice, by routes that share no work, and compared before the
-    /// signature is released. The signature is the same; signing takes a
-    /// little under twice as long.
-    ///
-    /// Not part of RustCrypto's interface.
-    /// # Errors
-    /// Returns an error if the context string is too long, or if a
-    /// recomputation disagreed: the key is not one that key generation
-    /// produces, or the computation was disturbed.
-    pub fn try_sign_checked(
-        &self,
-        msg: &[u8],
-        ctx: &[u8],
-        opt_rand: Option<&[u8]>,
-    ) -> Result<Signature<P>, Error> {
-        if ctx.len() > 255 {
-            return Err(Error::new());
-        }
-        if let Some(rand) = opt_rand {
-            assert!(rand.len() == P::N);
-        }
-        let mut sig = Array::<u8, P::SigLen>::default();
-        if P::sign_checked(msg, ctx, &self.bytes, opt_rand, &mut sig) {
-            Ok(Signature { bytes: sig })
-        } else {
-            Err(Error::new())
-        }
-    }
-
     /// Hedged signing with a context string: FIPS 205's default `slh_sign`,
     /// with the per-signature randomness drawn from the operating system.
     ///
@@ -220,16 +179,9 @@ impl<P: ParameterSet> SigningKey<P> {
         ctx: &[u8],
         opt_rand: Option<&[u8]>,
     ) -> Result<Signature<P>, Error> {
-        if ctx.len() > 255 {
-            return Err(Error::new());
-        }
-        if let Some(rand) = opt_rand {
-            assert!(rand.len() == P::N);
-        }
-        let mut buf = Vec::new();
-        let m = joined(msg, &mut buf);
+        let m = join(msg);
         let mut sig = Array::<u8, P::SigLen>::default();
-        if P::sign(m, ctx, &self.bytes, opt_rand, &mut sig) {
+        if P::sign(&m, ctx, &self.bytes, opt_rand, &mut sig) {
             Ok(Signature { bytes: sig })
         } else {
             Err(Error::new())
@@ -271,11 +223,10 @@ impl<P: ParameterSet> TryFrom<&[u8]> for SigningKey<P> {
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         let mut sk = Box::new(Array::<u8, P::SkLen>::default());
-        if !P::sk_from(bytes, sk.as_mut_slice()) {
+        let mut pk = Array::<u8, P::VkLen>::default();
+        if !P::sk_from(bytes, sk.as_mut_slice(), &mut pk) {
             return Err(Error::new());
         }
-        let mut pk = Array::<u8, P::VkLen>::default();
-        P::pk_of(&sk, &mut pk);
         Ok(SigningKey {
             bytes: sk,
             verifying_key: VerifyingKey { bytes: pk },
@@ -332,9 +283,11 @@ where
     type Error = pkcs8::Error;
 
     fn try_from(private_key_info: pkcs8::PrivateKeyInfoRef<'_>) -> pkcs8::Result<Self> {
-        private_key_info
-            .algorithm
-            .assert_algorithm_oid(P::ALGORITHM_OID)?;
+        // `spki`'s `assert_algorithm_oid`, with the comparison done by the verified crate.
+        let oid = private_key_info.algorithm.oid;
+        if !same(oid.as_bytes(), P::ALGORITHM_OID.as_bytes()) {
+            return Err(pkcs8::spki::Error::OidUnknown { oid }.into());
+        }
 
         Self::try_from(private_key_info.private_key.as_bytes())
             .map_err(|_| pkcs8::KeyError::Invalid.into())

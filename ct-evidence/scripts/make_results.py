@@ -13,7 +13,7 @@ import os, re, sys
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.dirname(here)
 VARIANTS = ["default", "hw-sha2"]
-ENTRIES = ["internal", "internal-checked", "slh", "slh-checked", "api", "api-checked", "api-det", "api-det-checked"]
+ENTRIES = ["internal", "slh", "api", "api-det"]
 NOT_RUN = "(not run)"
 
 def rd(v, name):
@@ -109,7 +109,7 @@ for v in VARIANTS:
         need("overall: ALL CONFIGURATIONS PASS" in t and all(r[9] == "PASS" for r in rows), f"{v}: pinned signing {e}")
         need(not any(l.startswith("- config") for l in t.splitlines()), f"{v}: pinned signing {e} has log lines")
         pinned = sorted({int(r[2]) for r in rows})
-        need(pinned == ([16] if "checked" in e else [9]), f"{v}: {e} pinned {pinned}")
+        need(pinned == [9], f"{v}: {e} pinned {pinned}")
         pairs = sum(int(r[3]) for r in rows); ident = sum(int(r[4]) for r in rows)
         need(pairs == ident and all(int(r[5]) == 0 for r in rows), f"{v}: {e} pinned traces differ")
         ctl = [r[6].split("/") for r in rows]
@@ -126,7 +126,7 @@ for v in VARIANTS:
             R.setdefault(K(f"SIGN_{e}{k}"), NOT_RUN)
 
     # --- profiles
-    for e in ("internal", "internal-checked"):
+    for e in ("internal",):
         t = rd(v, f"trace_sign_profile_{e}.md")
         R[K(f"PROFILE_{e}")] = "\n".join(l for l in t.splitlines() if l.startswith("- ")) if t else NOT_RUN
         if t:
@@ -221,7 +221,7 @@ for v in VARIANTS:
     else:
         R[K("DIT_COST")] = R[K("DIT_RES")] = NOT_RUN
     srows = []
-    for e in ("internal", "internal-checked"):
+    for e in ("internal",):
         for d_ in ("key", "addrnd"):
             rows, hdr, load = dud(f"dudect_sign_{d_}_{e}.md")
             if rows and load and len(load) >= 2:
@@ -280,7 +280,7 @@ for v in VARIANTS:
     DC_ = diag("dudect_diag_chain.md", "DIAGC")
 
 # statements of the template about the timing results
-HIGH = ("wots_pk_gen", "wots_sign", "xmss_node", "xmss_sign", "fors_sign", "fors_pk_gen", "slh_keygen_internal")
+HIGH = ("wots_pk_gen", "wots_sign", "xmss_node", "xmss_sign", "fors_sign", "slh_keygen_internal")
 for v_ in VARIANTS:
     for key_ in ("FR", "FZ", "DIT", "SAME", "SAMEDIT", "ZF"):
         fl = R.get(f"{v_}:DUDECT_{key_}_FLAGGED", NOT_RUN)

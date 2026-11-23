@@ -13,6 +13,79 @@ This file replaces the handoff of 2026-11-21 (git `26aa3d8:HANDOFF.md`), which d
 single-set tree. `quantum/HANDOFF*.md` and `security/Ideal/HANDOFF.md` are older states, kept for
 the record.
 
+## Added on 2026-11-22: the adapter's decisions in the verified crate
+
+New `rust/src/adapter.rs` (translated in both builds; proofs `lean/Slhdsa/Proofs/Adapter.lean`,
+headline list `lean/Slhdsa/AdapterTheorems.lean`, 14 `#print axioms`, checked by
+`scripts/check.sh` in both builds): `append` (one part of a multi-part message), `randomizer`
+(`addrnd` or `PK.seed`; wrong length fails the `assert!`), `sign_into` (context test first, then
+Algorithm 22 into the caller's buffer), `sign_internal_into`, `keygen_seeds`, `signing_key_from`
+(`4n` bytes, public key `Spec.skPk`), `signature_from`, `bytes_equal`; `slh::with_context` became
+`pub(crate)`; `Spec.slhSignInternal_length` added to `Spec/Correctness.lean`. `compat/src` now only
+forwards (to these and to `api::keygen`, `api::verify`, `slh::slh_verify_internal`,
+`encoding::{public_key_from, secret_keys_equal, der_encode}`); the OID test of PKCS#8/SPKI
+decoding uses the verified `bytes_equal` and produces `spki`'s error. What is left there, exactly:
+`compat/README.md`, "The exact remaining unproved surface"; the survey of the rest of what a user
+runs: `README.md`, "What is not proven". Not done: `&[&[u8]]` cannot be translated (nested
+borrows), so the loop over the parts stays in `compat`; `Option<&[u8]>` became a flag and bytes
+(the constant-time erasure step does not handle a `match` on `Option`); no relational
+constant-time theorem about the adapter's functions (they pass the checker and erasure only).
+Constant-time model additions: `massert` (portable `lean/Ct/ModelBuild.lean`), `instDecidableNot`,
+`Bool.or` (`lean/Ct/Check.lean`). `lean-hw` also proves `sha256_hw_active_eq` and
+`sha512_hw_active_eq` (the `hw_active` functions return the feature tests' answers).
+
+## Added on 2026-11-22: verified hardware SHA-512
+
+The SHA-512 backend (FEAT_SHA512: `SHA512H`, `SHA512H2`, `SHA512SU0`, `SHA512SU1`), until then the
+separate unproved feature `hw-sha512`, is now part of `hw-sha2`, with its own run-time test
+(`sha512::hw::arm::available`, `neon` + `sha3`), translated and proved, so `lean-hw` stays the one
+hardware translation. Rust: `rust/src/sha512.rs`, module `hw` (ten wrappers in `hw::arm`, one to
+three intrinsics each; `compress_block` and `compress` in the Aeneas subset; the store wrapper now
+writes two vectors and the kernel joins the halves); feature `hw-sha512` removed from `rust/` and
+`compat/`. Model: `lean-hw/Arm.lean` (`V2`, `SHA512H`, `SHA512H2`, `SHA512SU0`, `SHA512SU1`,
+`ADD2`, `EXT1`, `beWord64`, `haveSha512`), `Slhdsa/{Types,Funs}External.lean` (the vector type
+and the ten wrappers; 32 declarations left out of the extraction). Record: `vectors/arm-wrappers.txt`
+grew from 1,745 to 2,961 cases (the first 1,745 unchanged), written by the hardware test with
+`ARM_VECTORS_WRITE=1`; `ArmTest`: 2,961 cases, 0 mismatches (and 10 of 10 deliberately altered
+SHA-512 results caught). Proofs: `lean-hw/Slhdsa/Proofs/Hw512/{Rounds,Wrappers,Compress,Guard}.lean`,
+`lean-hw/Slhdsa/Proofs/Compress512Top.lean`; the default build's SHA-512 proof was split into
+`Sha512Core.lean` / `Compress512Top.lean` / `Sha512.lean` (statements unchanged) so that only
+`Compress512Top` differs between the builds. Constant time: `lean/Ct/Sha512.lean` split the same
+way; `lean-hw/Ct/Compress512Top.lean`; ten new entries in `lean-hw/Ct/ModelBuild.lean`
+(`lean/CT_STATUS.md`, Part 2). Timing (`compat/examples/timing.rs`, `hw-sha2`): 192s signing
+67.7 ms, 256s 65.1 ms (the unproved feature: about 68 and 65 ms).
+
+## Removed on 2026-11-22: the fault-check signer
+
+**Removed on 2026-11-22 at the owner's request** (the fault-tolerance feature is not needed). It
+exists, with everything below, up to git commit `01580f6`. Removed: the Rust functions
+`sign_checked`, `sign_deterministic_checked` (`api` and per set), `slh_sign_checked`,
+`slh_sign_internal_checked` (`slh` and per set), `ht_sign_checked`, `fors_pk_gen`, and their
+tests; `lean/Spec/Checked.lean` (`forsPkGen`, `htCheckedStep`, `htSignChecked`,
+`slhSignInternalChecked`, `slhSignChecked`; `KeyOk` and `skPk`, which the completeness statements
+use, moved to the new `lean/Spec/Keys.lean`), the checked-signer theorems of
+`lean/Spec/Correctness.lean` (`htSignChecked_sound`/`_complete`, `slhSignInternalChecked_sound`/
+`_complete`, `slhSignChecked_sound`/`_complete`; `slh_complete_internal` and `slh_complete` are
+now proved directly, through the new `htRoot_keyOk`, with unchanged statements; `fors_correct`
+now states its right-hand side without `forsPkGen`), the same definitions in
+`lean/Spec/Old128.lean` and their equalities in `lean/Spec/Compat128.lean` (the copy of the
+single-set specification keeps the FIPS 205 functions and `KeyOk`, `skPk`), `lean/Slhdsa/Proofs/Checked.lean`, the
+`api_sign_checked_spec`-style lemmas of `Proofs/{Api,Sets,Fors}.lean`, 18 theorems per set of
+`ApiTheorems.lean` (`…_checked_correct`, `…_checked_verifies`, `…_checked_complete`,
+`complete_internal_checked`, `complete_checked`, `api_complete_sign_checked`,
+`api_complete_sign_deterministic_checked`, `spec_sign_…_checked_verifies`) and the 12 128s
+restatements in `Compat128.lean` (headlines 307 → 187 per build); in `lean/Ct` the checked
+simulators and theorems (`Ct.Sign.sign_internal_checked`, `slh_sign_checked`, `api_sign_checked`,
+`api_sign_deterministic_checked`, `Ct.Fors.fors_pk_gen*`, four per set; the two early-exit
+theorems lost their conjuncts about the checked signers) (171 → 143 per build); in `security`
+`ME2E.spec_slhSignChecked_eq` and per set `api_sign_checked_eq_sign`,
+`api_sign_deterministic_checked_eq`, `api_keygen_checked_eq`, `keygen_internal_checked_eq`,
+`api_sign_checked_bytes`, `api_sign_deterministic_checked_bytes`, `api_checked_pure_cores`
+(headlines 263 → 232, both builds); in `compat` `SigningKey::try_sign_checked` and the
+`ParameterSet::sign_checked` method; the copy in `bench/variants/current` (its copy check in
+`bench/run.sh` now allows removed lines); the entries of `ct-evidence` (harness, raw outputs of
+those entries, template; `RESULTS.md` regenerated). Generated files were regenerated.
+
 ## The restructuring of 2026-11-22
 
 **Moved** (with `mv`, build caches included): the six-set `rust`, `lean` (with its `.lake`),
@@ -135,19 +208,23 @@ otherwise reproduces it exactly).
 
 Run after the last edit, from the state described here (2026-11-22):
 
-- `scripts/check.sh`: the crate's tests in four builds (default 88, `hw-sha2` 90,
-  `hw-sha2,hw-sha512` 91, `hw-sha512` 89 tests), both re-extractions (identical output; 21
-  declarations left to the hardware model), `lean` and `lean-hw` with their headline axiom checks
-  (37 + 174 + 72 + 24 theorems each, plus 8 kernel and guard theorems), ArmTest, the spec on the
-  sigVer vectors of the six sets, constant time for both builds (15 + 6 × 26 theorems each), the
-  two security checks and the adapter's tests in two builds. Its last lines:
+- `scripts/check.sh` (run after the last edit of 2026-11-22, after the three changes above): the
+  crate's tests in two builds (default 87, `hw-sha2` 90), both re-extractions (32 declarations
+  left to the hardware model), `lean` and `lean-hw` with their headline axiom checks (37 + 66 + 72
+  + 12 + 14 theorems each, plus 13 kernel and guard theorems and 2 `hw_active` lemmas on
+  `[propext, Quot.sound]`), ArmTest (2,961 cases), the spec on the sigVer vectors of the six sets,
+  constant time for both builds (11 + 6 × 22 theorems each), the two security checks and the
+  adapter's tests in two builds (51 and 53). Its last lines:
 
   ```
-  security: 263 / 263 headline theorems reported CHECK PASSED
-  security-hw: 263 / 263 headline theorems reported CHECK PASSED
+  security: 232 / 232 headline theorems reported CHECK PASSED
+  security-hw: 232 / 232 headline theorems reported CHECK PASSED
   ...
   All checks passed.
   ```
+  Not rerun after the three changes: `quantum/scripts/check-integration.sh`, `bench/run.sh`,
+  `ct-evidence/run.sh` (its `cttrace hwcheck` was run: AS EXPECTED, both builds), and
+  `scripts/check-arm.sh` beyond its record test. The lines below are of the earlier state.
 - `quantum/scripts/check-integration.sh` (no Integration file changed):
 
   ```
@@ -207,9 +284,6 @@ Nothing below is silently dropped; all of it is in git commit `26aa3d8`.
   the `…_tight` … `…_tight7` forms. Only the `…_tight8` forms (the strongest) are attached to the
   six-set functions (`MIdeal.sha2_128s.*_tight8`, with `pure_bytes_end_to_end` and
   `pureBytesAlg_realCF`); the bounds of all the earlier stages are still proved in `Ideal`.
-- **The checked signer** (`sign_checked`, `slh_sign_internal_checked`, `ht_sign_checked`,
-  `fors_pk_gen`): **present**, per set, with its theorems (`ApiTheorems.lean`) and the security
-  statement that it equals the plain signer on honest keys (`api_keygen_checked_eq`).
 - **The cross-test against the single-set crate** (`cross_128s_against_original_crate`): removed
   with that crate; it passed at `26aa3d8`. The equality of the 128s statements is kept in Lean
   (`lean/Slhdsa/Compat128.lean`, `security/MReduction/Check128s.lean`, the generators' textual
@@ -277,20 +351,20 @@ single-set statements) checked statements and definitions, not proofs.
 
 ## Trusted pieces of the `hw-sha2` build
 
-`lean-hw/Arm.lean` and `lean-hw/Slhdsa/{Types,Funs}External.lean` (twenty-one definitions): a
+`lean-hw/Arm.lean` and `lean-hw/Slhdsa/{Types,Funs}External.lean` (thirty-two definitions since
+2026-11-22: the SHA-256 part's twenty-one and the SHA-512 vector type and ten wrappers): a
 hand transcription of Arm's pseudocode, tested against one processor (Apple M5) through
-`vectors/arm-wrappers.txt` (1,745 cases; `rust` checks the processor against it, `ArmTest.lean`
-the model); reviewed in `reports/Trusted statements review.md` (single-set tree, same wrappers).
+`vectors/arm-wrappers.txt` (2,961 cases; `rust` checks the processor against it, `ArmTest.lean`
+the model); the SHA-256 part reviewed in `reports/Trusted statements review.md` (single-set
+tree, same wrappers); the SHA-512 part (2026-11-22) not reviewed by anyone else.
 Not covered: other AArch64 processors, a CPU without the instructions running the feature, and
 `std`'s feature detection being wrong. The constant-time proof of the build additionally assumes
-that the register-only vector and SHA-256 instructions take operand-independent time (Arm's
-`PSTATE.DIT`).
+that the register-only vector, SHA-256 and SHA-512 instructions take operand-independent time
+(Arm's `PSTATE.DIT`).
 
 ## Not done
 
 - **SHAKE parameter sets**, pre-hash variants.
-- **Verified hardware SHA-512.** `hw-sha512` is experimental and unproved; with `hw-sha2` alone,
-  256s signing is about 10% slower than RustCrypto's hardware build.
 - **Ideal-compression bound** for the sets other than 128s (needs the counting re-instantiated
   and, at n = 24, 32, an ideal SHA-512 compression function).
 - **Binary-level evidence** for this crate (above).
@@ -312,8 +386,8 @@ cd security    && lake build && scripts/check.sh
 cd security-hw && lake build && scripts/check.sh
 cd lean        && lake build Slhdsa Spec Ct spectest
 cd lean-hw     && lake build && lake build Ct
-cd lean-hw     && lake build Slhdsa.Proofs.Hw.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
-cd rust        && cargo test --release [--features hw-sha2[,hw-sha512]]
+cd lean-hw     && lake build Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt
+cd rust        && cargo test --release [--features hw-sha2]
 cd compat      && cargo test --release [--features hw-sha2]
 cd bench       && ./run.sh               # about 40 minutes; cargo bench --bench sets for the six sets
 cd ct-evidence && ./run.sh setup         # see its README

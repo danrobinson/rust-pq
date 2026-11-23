@@ -17,7 +17,6 @@ crate under test: `slhdsa` built with `--features hw-sha2` (`sha256::hw_active()
 | fors_node/z=7 | 82912 | 5754 | 5371 | 4596 | 4596 | yes | as expected |
 | slh_keygen_internal | 39104965 | 4391936 | 4105216 | 3508224 | 3508224 | yes | as expected |
 | slh::slh_sign_internal | 311239549 | 33328712 | 31150032 | 26621856 | 26621856 | yes | as expected |
-| slh::slh_sign_internal_checked | 583224615 | 62265032 | 58194448 | 49735392 | 49735392 | yes | as expected |
 
 SHA-256 instructions present in this binary's `__text` section (static count): SHA256H 315, SHA256H2 295, SHA256SU0 254, SHA256SU1 254.
 

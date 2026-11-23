@@ -308,13 +308,6 @@ pub extern "C" fn w_fors_sign(i: *const u8, o: *mut u8) {
     out[..s.len()].copy_from_slice(&s);
 }
 
-#[inline(never)]
-pub extern "C" fn w_fors_pk_gen(i: *const u8, o: *mut u8) {
-    let (b, out) = unsafe { (inp(i), outp(o)) };
-    let d = slhdsa::fors::fors_pk_gen::<16>(&P, &a16(b, OFF_SEC), &seed(b), adrs(b));
-    out[..16].copy_from_slice(&d);
-}
-
 /// sig = data[0..2912], md = in[256..277]
 #[inline(never)]
 pub extern "C" fn w_fors_pk_from_sig(i: *const u8, o: *mut u8) {
@@ -375,22 +368,10 @@ pub extern "C" fn w_sign_internal(i: *const u8, o: *mut u8) {
     put_sig(out, Some(set::slh_sign_internal(m, &sk, &addrnd)));
 }
 #[inline(never)]
-pub extern "C" fn w_sign_internal_checked(i: *const u8, o: *mut u8) {
-    let (b, out) = unsafe { (inp(i), outp(o)) };
-    let (m, _, sk, addrnd) = sign_args(b);
-    put_sig(out, set::slh_sign_internal_checked(m, &sk, &addrnd));
-}
-#[inline(never)]
 pub extern "C" fn w_slh_sign(i: *const u8, o: *mut u8) {
     let (b, out) = unsafe { (inp(i), outp(o)) };
     let (m, ctx, sk, addrnd) = sign_args(b);
     put_sig(out, set::slh_sign(m, ctx, &sk, &addrnd));
-}
-#[inline(never)]
-pub extern "C" fn w_slh_sign_checked(i: *const u8, o: *mut u8) {
-    let (b, out) = unsafe { (inp(i), outp(o)) };
-    let (m, ctx, sk, addrnd) = sign_args(b);
-    put_sig(out, set::slh_sign_checked(m, ctx, &sk, &addrnd));
 }
 #[inline(never)]
 pub extern "C" fn w_api_sign(i: *const u8, o: *mut u8) {
@@ -399,22 +380,10 @@ pub extern "C" fn w_api_sign(i: *const u8, o: *mut u8) {
     put_sig(out, set::sign(m, ctx, &sk, &addrnd));
 }
 #[inline(never)]
-pub extern "C" fn w_api_sign_checked(i: *const u8, o: *mut u8) {
-    let (b, out) = unsafe { (inp(i), outp(o)) };
-    let (m, ctx, sk, addrnd) = sign_args(b);
-    put_sig(out, set::sign_checked(m, ctx, &sk, &addrnd));
-}
-#[inline(never)]
 pub extern "C" fn w_api_sign_deterministic(i: *const u8, o: *mut u8) {
     let (b, out) = unsafe { (inp(i), outp(o)) };
     let (m, ctx, sk, _) = sign_args(b);
     put_sig(out, set::sign_deterministic(m, ctx, &sk));
-}
-#[inline(never)]
-pub extern "C" fn w_api_sign_deterministic_checked(i: *const u8, o: *mut u8) {
-    let (b, out) = unsafe { (inp(i), outp(o)) };
-    let (m, ctx, sk, _) = sign_args(b);
-    put_sig(out, set::sign_deterministic_checked(m, ctx, &sk));
 }
 
 /// A whole-signing entry point of the crate.
@@ -424,24 +393,18 @@ pub struct SignEntry {
     /// the crate function
     pub name: &'static str,
     pub f: Entry,
-    /// the checked signer: every signed value computed twice
-    pub checked: bool,
     /// takes a context string (M' = 0 ‖ |ctx| ‖ ctx ‖ M)
     pub ctx: bool,
     /// addrnd = PK.seed
     pub deterministic: bool,
 }
 pub fn sign_entries() -> Vec<SignEntry> {
-    let e = |key, name, f, checked, ctx, deterministic| SignEntry { key, name, f, checked, ctx, deterministic };
+    let e = |key, name, f, ctx, deterministic| SignEntry { key, name, f, ctx, deterministic };
     vec![
-        e("internal", "slh::slh_sign_internal", w_sign_internal as Entry, false, false, false),
-        e("internal-checked", "slh::slh_sign_internal_checked", w_sign_internal_checked as Entry, true, false, false),
-        e("slh", "slh::slh_sign", w_slh_sign as Entry, false, true, false),
-        e("slh-checked", "slh::slh_sign_checked", w_slh_sign_checked as Entry, true, true, false),
-        e("api", "api::sign", w_api_sign as Entry, false, true, false),
-        e("api-checked", "api::sign_checked", w_api_sign_checked as Entry, true, true, false),
-        e("api-det", "api::sign_deterministic", w_api_sign_deterministic as Entry, false, true, true),
-        e("api-det-checked", "api::sign_deterministic_checked", w_api_sign_deterministic_checked as Entry, true, true, true),
+        e("internal", "slh::slh_sign_internal", w_sign_internal as Entry, false, false),
+        e("slh", "slh::slh_sign", w_slh_sign as Entry, true, false),
+        e("api", "api::sign", w_api_sign as Entry, true, false),
+        e("api-det", "api::sign_deterministic", w_api_sign_deterministic as Entry, true, true),
     ]
 }
 
@@ -725,7 +688,6 @@ pub fn targets() -> Vec<Target> {
         ));
     }
     v.push(tgt("fors_sign", w_fors_sign, sec16.clone(), "SK.seed (md public, fixed)", (2, 8), 300, clamp_adrs));
-    v.push(tgt("fors_pk_gen", w_fors_pk_gen, sec16.clone(), "SK.seed", (2, 8), 300, clamp_adrs));
     v.push(tgt("slh_keygen_internal", w_keygen, vec![(OFF_SEC, 32)], "SK.seed and SK.prf (PK.seed fixed)", (2, 12), 1000, |_| {}));
     v.push(tgt("slh_keygen_internal/all-inputs", w_keygen, vec![(OFF_SEC, 32), (OFF_PKSEED, 16)], "SK.seed, SK.prf and PK.seed", (1, 12), 0, |_| {}));
     v.push(tgt("api::keygen", w_api_keygen, vec![(OFF_SEC, 32)], "SK.seed and SK.prf (PK.seed fixed)", (2, 8), 0, |_| {}));

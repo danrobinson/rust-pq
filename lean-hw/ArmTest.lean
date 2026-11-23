@@ -1,4 +1,5 @@
 import Slhdsa.Proofs.Hw.Wrappers
+import Slhdsa.Proofs.Hw512.Wrappers
 
 /-! Runs the Lean meaning of the intrinsic wrappers on the cases recorded
 from a processor in `vectors/arm-wrappers.txt`, which
@@ -6,10 +7,11 @@ from a processor in `vectors/arm-wrappers.txt`, which
 
 The wrappers are defined in `Slhdsa/FunsExternal.lean` over the instruction
 model `Arm.lean`, as functions into Aeneas's `Result`, which cannot be run.
-`Slhdsa/Proofs/Hw/Wrappers.lean` proves each of them, on a processor with the
-instructions (`Arm.haveSha2 = true`), equal to a plain function (an
-instruction of `Arm.lean` or one of the `w…` functions there), behind a bounds
-check (`wWordsIn`, `wBytesIn`) for the four that touch memory. Each case below
+`Slhdsa/Proofs/Hw/Wrappers.lean` and `Slhdsa/Proofs/Hw512/Wrappers.lean` prove
+each of them, on a processor with the instructions (`Arm.haveSha2 = true`,
+resp. `Arm.haveSha512 = true`), equal to a plain function (an instruction of
+`Arm.lean` or one of the `w…` functions there), behind a bounds check
+(`wWordsIn`, `w64WordsIn`, `wBytesIn`) for the ones that touch memory. Each case below
 calls those same functions and bounds checks, by name; only the parsing of the
 record is written here.
 
@@ -32,6 +34,13 @@ def bytesOf (s : String) : List (BitVec 8) :=
     | hi :: lo :: rest => BitVec.ofNat 8 (16 * hexVal hi + hexVal lo) :: go rest
     | _ => []
   go s.toList
+
+def words64 (s : String) : List (BitVec 64) := (s.splitOn ",").map fun w => BitVec.ofNat 64 (hexNat w)
+
+def vec2 (s : String) : Arm.V2 :=
+  match words64 s with
+  | [a, b] => ⟨a, b⟩
+  | _ => ⟨0, 0⟩
 
 def vec (s : String) : Arm.V :=
   match words s with
@@ -67,6 +76,19 @@ def check (line : String) : Bool :=
   | ["sha256h", a, b, c, "=", r] => Arm.SHA256H (vec a) (vec b) (vec c) == vec r
   | ["sha256h2", a, b, c, "=", r] => Arm.SHA256H2 (vec a) (vec b) (vec c) == vec r
   | ["sha256su1", a, b, c, "=", r] => Arm.SHA256SU1 (vec a) (vec b) (vec c) == vec r
+  | ["load_words64", ws, i, "=", r] =>
+    let w := words64 ws
+    w64WordsIn w.length i.toNat! && w64LoadWords w i.toNat! == vec2 r
+  | ["store_words64", a, b, "=", r] => w64StoreWords (vec2 a) (vec2 b) == words64 r
+  | ["load_be64", bs, i, "=", r] =>
+    let b := bytesOf bs
+    wBytesIn b.length i.toNat! && w64LoadBe b i.toNat! == vec2 r
+  | ["add64", a, b, "=", r] => Arm.ADD2 (vec2 a) (vec2 b) == vec2 r
+  | ["ext1", a, b, "=", r] => Arm.EXT1 (vec2 a) (vec2 b) == vec2 r
+  | ["sha512su0", a, b, "=", r] => Arm.SHA512SU0 (vec2 a) (vec2 b) == vec2 r
+  | ["sha512h", a, b, c, "=", r] => Arm.SHA512H (vec2 a) (vec2 b) (vec2 c) == vec2 r
+  | ["sha512h2", a, b, c, "=", r] => Arm.SHA512H2 (vec2 a) (vec2 b) (vec2 c) == vec2 r
+  | ["sha512su1", a, b, c, "=", r] => Arm.SHA512SU1 (vec2 a) (vec2 b) (vec2 c) == vec2 r
   | _ => false
 
 def main (args : List String) : IO UInt32 := do

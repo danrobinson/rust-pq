@@ -65,14 +65,12 @@ macro_rules! interop {
                     assert!(a_det[..] == theirs.slh_sign_internal(&[&msg], None).to_bytes()[..], "sign_internal det");
 
                     // Pure interface with a context, hedged and deterministic,
-                    // through the interface module and the checked signer.
+                    // through the interface module.
                     let c = s::api::sign(&msg, &ctx, &ours_sk, &rand_n).unwrap();
                     let d = theirs.try_sign_with_context(&msg, &ctx, Some(&rand)).unwrap().to_bytes();
                     assert!(c[..] == d[..], "sign");
-                    assert!(s::api::sign_checked(&msg, &ctx, &ours_sk, &rand_n).unwrap() == c);
                     let c_det = s::api::sign_deterministic(&msg, &ctx, &ours_sk).unwrap();
                     assert!(c_det[..] == theirs.try_sign_with_context(&msg, &ctx, None).unwrap().to_bytes()[..], "sign det");
-                    assert!(s::api::sign_deterministic_checked(&msg, &ctx, &ours_sk).unwrap() == c_det);
                     assert_eq!(c.len(), SIG_BYTES);
 
                     // Each verifies the other's, and both reject the same tampering.

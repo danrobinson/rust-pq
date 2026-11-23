@@ -815,8 +815,9 @@ pub(crate) mod hw {
         Slot { x, xb, t: slot.t + steps, ..*slot }
     }
 
-    /// What each wrapper of [`arm`] returns on this processor, against the
-    /// record in `vectors/arm-wrappers.txt`. The Lean model of the wrappers
+    /// What each wrapper of [`arm`] and of `crate::sha512::hw::arm` returns
+    /// on this processor, against the record in `vectors/arm-wrappers.txt`
+    /// (the SHA-256 wrappers' cases first, then the SHA-512 wrappers'). The Lean model of the wrappers
     /// (`lean-hw/Slhdsa/FunsExternal.lean`) is run on the same file
     /// (`lean-hw/ArmTest.lean`), so the two agree on every case recorded.
     /// With `ARM_VECTORS_WRITE=1` in the environment the test (re)writes the
@@ -849,6 +850,29 @@ pub(crate) mod hw {
             fn v(&mut self) -> [u32; 4] {
                 [self.word(), self.word(), self.word(), self.word()]
             }
+            /// A 64-bit word that is often all zeros, all ones or a single bit.
+            fn word64(&mut self) -> u64 {
+                match self.next() % 8 {
+                    0 => 0,
+                    1 => u64::MAX,
+                    2 => 1 << (self.next() % 64),
+                    _ => self.next(),
+                }
+            }
+            fn v2(&mut self) -> [u64; 2] {
+                [self.word64(), self.word64()]
+            }
+        }
+
+        use crate::sha512::hw::arm as a5;
+        fn v2(w: [u64; 2]) -> a5::V {
+            unsafe { core::mem::transmute(w) }
+        }
+        fn w2(v: a5::V) -> [u64; 2] {
+            unsafe { core::mem::transmute(v) }
+        }
+        fn words64(ws: &[u64]) -> String {
+            ws.iter().map(|x| format!("{x:016x}")).collect::<Vec<_>>().join(",")
         }
 
         // The vector type is four `u32` in lane order; these two do not go
@@ -922,6 +946,36 @@ pub(crate) mod hw {
                     writeln!(out, "sha256h2 {} {} {} = {}", words(&a), words(&b), words(&c), words(&w(arm::sha256h2(v(a), v(b), v(c))))).unwrap();
                     writeln!(out, "sha256su1 {} {} {} = {}", words(&a), words(&b), words(&c), words(&w(arm::sha256su1(v(a), v(b), v(c))))).unwrap();
                 }
+                // The SHA-512 wrappers, from a stream of their own.
+                let mut rng = Rng(0x5348_4135_3132_5645);
+                for _ in 0..48 {
+                    let len = 2 + (rng.next() % 11) as usize;
+                    let ws: Vec<u64> = (0..len).map(|_| rng.word64()).collect();
+                    let at = (rng.next() as usize) % (len - 1);
+                    writeln!(out, "load_words64 {} {at} = {}", words64(&ws), words64(&w2(a5::load_words(&ws, at)))).unwrap();
+                }
+                for _ in 0..48 {
+                    let (a, b) = (rng.v2(), rng.v2());
+                    writeln!(out, "store_words64 {} {} = {}", words64(&a), words64(&b), words64(&a5::store_words(v2(a), v2(b)))).unwrap();
+                }
+                for _ in 0..64 {
+                    let len = 16 + (rng.next() % 129) as usize;
+                    let bs: Vec<u8> = (0..len).map(|_| rng.next() as u8).collect();
+                    let at = (rng.next() as usize) % (len - 15);
+                    writeln!(out, "load_be64 {} {at} = {}", hex(&bs), words64(&w2(a5::load_be(&bs, at)))).unwrap();
+                }
+                for _ in 0..96 {
+                    let (a, b) = (rng.v2(), rng.v2());
+                    writeln!(out, "add64 {} {} = {}", words64(&a), words64(&b), words64(&w2(a5::add(v2(a), v2(b))))).unwrap();
+                    writeln!(out, "ext1 {} {} = {}", words64(&a), words64(&b), words64(&w2(a5::ext1(v2(a), v2(b))))).unwrap();
+                    writeln!(out, "sha512su0 {} {} = {}", words64(&a), words64(&b), words64(&w2(a5::sha512su0(v2(a), v2(b))))).unwrap();
+                }
+                for _ in 0..256 {
+                    let (a, b, c) = (rng.v2(), rng.v2(), rng.v2());
+                    writeln!(out, "sha512h {} {} {} = {}", words64(&a), words64(&b), words64(&c), words64(&w2(a5::sha512h(v2(a), v2(b), v2(c))))).unwrap();
+                    writeln!(out, "sha512h2 {} {} {} = {}", words64(&a), words64(&b), words64(&c), words64(&w2(a5::sha512h2(v2(a), v2(b), v2(c))))).unwrap();
+                    writeln!(out, "sha512su1 {} {} {} = {}", words64(&a), words64(&b), words64(&c), words64(&w2(a5::sha512su1(v2(a), v2(b), v2(c))))).unwrap();
+                }
             }
             out
         }
@@ -929,6 +983,7 @@ pub(crate) mod hw {
         #[test]
         fn arm_wrappers_match_the_record() {
             assert!(arm::available(), "this test needs a CPU with the SHA-256 instructions");
+            assert!(a5::available(), "this test needs a CPU with the SHA-512 instructions");
             let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../vectors/arm-wrappers.txt");
             let now = cases();
             if std::env::var_os("ARM_VECTORS_WRITE").is_some() {

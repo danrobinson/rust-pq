@@ -1,7 +1,6 @@
 import Ct.Slh
 import Ct.Sim
 import Slhdsa.Proofs.Api
-import Slhdsa.Proofs.Checked
 
 /-!
 # Functional facts used by the signing theorems

@@ -21,6 +21,18 @@ set_option maxRecDepth 2048
 
 namespace slhdsa
 
+/-- [slhdsa::params::Params]
+    Source: 'src/params.rs', lines 24:0-39:1
+    Visibility: public -/
+structure params.Params where
+  n : Std.Usize
+  h : Std.U32
+  d : Std.U32
+  hp : Std.U32
+  a : Std.U32
+  k : Std.U32
+  m : Std.Usize
+
 /-- [slhdsa::address::Adrs]
     Source: 'src/address.rs', lines 13:0-27:1
     Visibility: public -/
@@ -72,17 +84,5 @@ structure sha256.hw.First where
   head : Array Std.U8 16#usize
   a1 : core.core_arch.arm_shared.neon.uint32x4_t
   e1 : core.core_arch.arm_shared.neon.uint32x4_t
-
-/-- [slhdsa::params::Params]
-    Source: 'src/params.rs', lines 24:0-39:1
-    Visibility: public -/
-structure params.Params where
-  n : Std.Usize
-  h : Std.U32
-  d : Std.U32
-  hp : Std.U32
-  a : Std.U32
-  k : Std.U32
-  m : Std.Usize
 
 end slhdsa

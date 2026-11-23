@@ -24,7 +24,7 @@ are rejected, because they are not on the whitelist.
 The whitelist is part of the trusted leakage model.
 
 This file is a copy of the single-set tree's `lean/Ct/Check.lean` (the checker itself is unchanged).
-The whitelist differs from the single-set tree's by five entries, marked `[six-set]` below: the 64-bit
+The whitelist differs from the single-set tree's by six entries, marked `[six-set]` below (the last, `instDecidableNot` and `Bool.or`, added on 2026-11-22 for `adapter::randomizer`): the 64-bit
 counterparts of the 32-bit wrapping addition and rotation that the single-set tree already lists
 (SHA-512 works on 64-bit words exactly as SHA-256 does on 32-bit words), the constant
 `u64::MAX`, and the 128-bit literal and cast target that SHA-512's padding needs for its 128-bit
@@ -96,6 +96,11 @@ def nonLeaking : List Name := [
   -- flag-setting comparison. Only the decidability instances listed above can reach it, so it
   -- cannot stand for a comparison of arrays, which is the instrumented `PartialEqArray.eq`.
   ``Decidable.decide,
+  -- [six-set, 2026-11-22] Boolean `not` and `or` on such flags: the condition
+  -- `!has_addrnd || addrnd.len() == N` of the `assert!` in `adapter::randomizer`, which Rust
+  -- builds before the branch (the `assert!` itself is the instrumented `massert`, a branch
+  -- event). Pure, total, on values that the event records anyway.
+  ``instDecidableNot, ``Bool.or,
   -- Literals.
   ``OfNat.ofNat, ``instOfNatNat, ``instOfNat, ``Aeneas.Std.U8.ofNat, ``Aeneas.Std.U32.ofNat,
   ``Aeneas.Std.U64.ofNat, ``Aeneas.Std.Usize.ofNat, ``Aeneas.Std.I32.ofInt,

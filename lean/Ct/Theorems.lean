@@ -99,12 +99,8 @@ end Ct.Theorems
 #print axioms Ct.Theorems.generic.keygen_internal_trace
 #print axioms Ct.Theorems.generic.keygen_ct
 #print axioms Ct.Sign.sign_internal
-#print axioms Ct.Sign.sign_internal_checked
 #print axioms Ct.Sign.slh_sign
-#print axioms Ct.Sign.slh_sign_checked
 #print axioms Ct.Sign.api_sign
-#print axioms Ct.Sign.api_sign_checked
 #print axioms Ct.Sign.api_sign_deterministic
-#print axioms Ct.Sign.api_sign_deterministic_checked
 #print axioms Ct.Sign.slh_sign_long_ctx
 #print axioms Ct.Sign.api_long_ctx

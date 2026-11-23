@@ -69,12 +69,12 @@ fn schedule(data: &[u8], off: usize) -> [u64; 80] {
 
 /// The SHA-512 compression function on the block at `data[off..off + 128]`.
 ///
-/// With the opt-in `hw-sha512` feature, on a CPU that has the ARMv8.2
+/// With the opt-in `hw-sha2` feature, on a CPU that has the ARMv8.2
 /// SHA-512 instructions, the result comes from [`hw`]; otherwise from
 /// [`compress_portable`].
 #[inline]
 pub fn compress(state: &[u64; 8], data: &[u8], off: usize) -> [u64; 8] {
-    #[cfg(all(feature = "hw-sha512", target_arch = "aarch64", target_endian = "little"))]
+    #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
     {
         if let Some(out) = hw::compress(state, data, off) {
             return out;
@@ -208,8 +208,10 @@ pub fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
 
 /// Whether [`compress`] is running on hardware SHA-512 instructions.
 ///
-/// Exists only with the `hw-sha512` feature.
-#[cfg(feature = "hw-sha512")]
+/// Exists only with the `hw-sha2` feature. `false` means the feature is on
+/// but this CPU (or this architecture) lacks the SHA-512 instructions, so the
+/// portable code is in use.
+#[cfg(feature = "hw-sha2")]
 pub fn hw_active() -> bool {
     #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
     {
@@ -223,18 +225,22 @@ pub fn hw_active() -> bool {
 
 /// SHA-512 on the ARMv8.2 SHA-512 instructions (FEAT_SHA512).
 ///
-/// Compiled only with the opt-in `hw-sha512` feature, which is separate from
-/// `hw-sha2` and is NOT covered by any proof or by the instruction model of
-/// `../lean-hw`: it is an experiment to measure what hardware SHA-512
-/// buys the sets with n = 24 and n = 32 (FIPS 205 §11.2.2), where SHA-512
-/// computes `H`, `T_l`, `H_msg` and `PRF_msg`. It replaces one function, the
-/// compression function, one block at a time.
+/// Compiled with the opt-in `hw-sha2` feature, like `sha256::hw`, and tested
+/// for separately at run time: a CPU may have the SHA-256 instructions and
+/// not these. It stands in for one function of the portable code, the
+/// compression function, one block at a time. The build with the feature
+/// has its own translation and proofs (`lean-hw/`), which show that
+///
+/// > whenever `hw::compress` returns `Some`, it holds what
+/// > [`compress_portable`] returns for the same arguments,
+///
+/// on the model of the instructions in `lean-hw/Arm.lean`
+/// (`lean-hw/Slhdsa/Proofs/Hw512/`). The proofs cover this module except its
+/// submodule `arm`, the functions that call the intrinsics.
 ///
 /// The state is held as four vectors of two words, (a, b), (c, d), (e, f),
-/// (g, h); each step does two rounds, and the vectors change roles from one
-/// step to the next, so after the forty steps (a multiple of four) they are
-/// back in place.
-#[cfg(all(feature = "hw-sha512", target_arch = "aarch64", target_endian = "little"))]
+/// (g, h); each of the forty steps does two rounds.
+#[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
 #[allow(unsafe_code)]
 pub(crate) mod hw {
     /// As `sha256::hw`'s `kernel!`: compiled with the SHA-512 instructions
@@ -249,7 +255,10 @@ pub(crate) mod hw {
         };
     }
 
-    /// The instructions: each function is one or two intrinsics.
+    /// The instructions: each function is one to three intrinsics and nothing
+    /// else. This is the only code of this module Aeneas does not translate;
+    /// the proofs take the meaning of these functions from the definitions in
+    /// `lean-hw/Slhdsa/FunsExternal.lean`.
     #[allow(unused_unsafe)]
     pub(crate) mod arm {
         use core::arch::aarch64::*;
@@ -257,7 +266,8 @@ pub(crate) mod hw {
         /// Two 64-bit words; word 0 is the lower lane.
         pub type V = uint64x2_t;
 
-        /// Whether this CPU has the SHA-512 instructions (as `sha256::hw::arm::available`).
+        /// Whether this CPU has the SHA-512 instructions: as
+        /// `sha256::hw::arm::available`, for `neon` and `sha3`.
         #[inline]
         pub fn available() -> bool {
             #[cfg(any(target_os = "none", all(target_feature = "neon", target_feature = "sha3")))]
@@ -271,8 +281,9 @@ pub(crate) mod hw {
         }
 
         // SAFETY, for every function below: the caller has established that
-        // the CPU has `neon` and `sha3`. The functions that touch memory
-        // check their bounds first.
+        // the CPU has `neon` and `sha3` (see `kernel!`). The functions that
+        // touch memory check their bounds first, and NEON loads and stores
+        // have no alignment requirement.
         kernel! {
             /// The words `w[at..at + 2]`.
             pub fn load_words(w: &[u64], at: usize) -> V {
@@ -280,14 +291,12 @@ pub(crate) mod hw {
                 unsafe { vld1q_u64(w.as_ptr().add(at)) }
             }
 
-            /// The words of `a`, `b`, `c`, `d` in order.
-            pub fn store_words(a: V, b: V, c: V, d: V) -> [u64; 8] {
-                let mut out = [0u64; 8];
+            /// The words of `a` followed by the words of `b`.
+            pub fn store_words(a: V, b: V) -> [u64; 4] {
+                let mut out = [0u64; 4];
                 unsafe {
                     vst1q_u64(out.as_mut_ptr(), a);
                     vst1q_u64(out.as_mut_ptr().add(2), b);
-                    vst1q_u64(out.as_mut_ptr().add(4), c);
-                    vst1q_u64(out.as_mut_ptr().add(6), d);
                 }
                 out
             }
@@ -308,24 +317,24 @@ pub(crate) mod hw {
                 unsafe { vextq_u64(a, b, 1) }
             }
 
-            /// `SHA512H`.
-            pub fn sha512h(a: V, b: V, c: V) -> V {
-                unsafe { vsha512hq_u64(a, b, c) }
+            /// `SHA512H`: the sums of two rounds that reach `e`.
+            pub fn sha512h(sum: V, fg: V, de: V) -> V {
+                unsafe { vsha512hq_u64(sum, fg, de) }
             }
 
-            /// `SHA512H2`.
-            pub fn sha512h2(a: V, b: V, c: V) -> V {
-                unsafe { vsha512h2q_u64(a, b, c) }
+            /// `SHA512H2`: the two new values of `a`.
+            pub fn sha512h2(t: V, cd: V, ab: V) -> V {
+                unsafe { vsha512h2q_u64(t, cd, ab) }
             }
 
-            /// `SHA512SU0`.
-            pub fn sha512su0(a: V, b: V) -> V {
-                unsafe { vsha512su0q_u64(a, b) }
+            /// `SHA512SU0`: the first part of two new schedule words.
+            pub fn sha512su0(w0_1: V, w2_3: V) -> V {
+                unsafe { vsha512su0q_u64(w0_1, w2_3) }
             }
 
-            /// `SHA512SU1`.
-            pub fn sha512su1(a: V, b: V, c: V) -> V {
-                unsafe { vsha512su1q_u64(a, b, c) }
+            /// `SHA512SU1`: two new schedule words.
+            pub fn sha512su1(s: V, w14_15: V, w9_10: V) -> V {
+                unsafe { vsha512su1q_u64(s, w14_15, w9_10) }
             }
         }
     }
@@ -346,9 +355,8 @@ pub(crate) mod hw {
     }
 
     kernel! {
-        /// Forty steps of two rounds. `a`, `c`, `e`, `g` hold the pairs of
-        /// working variables in the roles (a, b), (c, d), (e, f), (g, h);
-        /// `m` the eight most recent schedule vectors.
+        /// Forty steps of two rounds. `ab`, `cd`, `ef`, `gh` hold the working
+        /// variables in pairs, `m` the eight most recent schedule vectors.
         fn compress_block(state: &[u64; 8], block: &[u8; 128]) -> [u64; 8] {
             let ab0 = arm::load_words(state, 0);
             let cd0 = arm::load_words(state, 2);
@@ -364,22 +372,22 @@ pub(crate) mod hw {
                 arm::load_be(block, 96),
                 arm::load_be(block, 112),
             ];
-            let mut a = ab0;
-            let mut c = cd0;
-            let mut e = ef0;
-            let mut g = gh0;
+            let mut ab = ab0;
+            let mut cd = cd0;
+            let mut ef = ef0;
+            let mut gh = gh0;
             let mut i = 0;
             while i < 40 {
                 // Rounds 2i, 2i + 1 on W[2i..2i + 2] + K[2i..2i + 2].
                 let wk = arm::add(m[i % 8], arm::load_words(&super::K, 2 * i));
-                let sum = arm::add(arm::ext1(wk, wk), g);
-                let t = arm::sha512h(sum, arm::ext1(e, g), arm::ext1(c, e));
-                let g2 = arm::sha512h2(t, c, a);
-                let c2 = arm::add(c, t);
-                g = e;
-                e = c2;
-                c = a;
-                a = g2;
+                let sum = arm::add(arm::ext1(wk, wk), gh);
+                let t = arm::sha512h(sum, arm::ext1(ef, gh), arm::ext1(cd, ef));
+                let ab2 = arm::sha512h2(t, cd, ab);
+                let ef2 = arm::add(cd, t);
+                gh = ef;
+                ef = ef2;
+                cd = ab;
+                ab = ab2;
                 // W[2i + 16..2i + 18], needed from step i + 8 on.
                 if i < 32 {
                     m[i % 8] = arm::sha512su1(
@@ -390,7 +398,9 @@ pub(crate) mod hw {
                 }
                 i += 1;
             }
-            arm::store_words(arm::add(a, ab0), arm::add(c, cd0), arm::add(e, ef0), arm::add(g, gh0))
+            let lo = arm::store_words(arm::add(ab, ab0), arm::add(cd, cd0));
+            let hi = arm::store_words(arm::add(ef, ef0), arm::add(gh, gh0));
+            [lo[0], lo[1], lo[2], lo[3], hi[0], hi[1], hi[2], hi[3]]
         }
     }
 }

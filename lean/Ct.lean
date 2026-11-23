@@ -16,6 +16,8 @@ import Ct.Tactic
 import Ct.Sha256Core
 import Ct.CompressTop
 import Ct.Sha256
+import Ct.Sha512Core
+import Ct.Compress512Top
 import Ct.Sha512
 import Ct.Heads
 import Ct.Hash
@@ -59,7 +61,8 @@ the changes their headers list; the others are this tree's own.
 * `Ct/FactsMulti.lean` facts on mutable sub-slices of slices.
 * `Ct/Tactic.lean` (copy) `ct_step`, with two more `ct_side` alternatives.
 * `Ct/Sha256Core.lean`, `Ct/CompressTop.lean`, `Ct/Sha256.lean` (link) SHA-256 (the same code).
-* `Ct/Sha512.lean` SHA-512.
+* `Ct/Sha512Core.lean`, `Ct/Compress512Top.lean`, `Ct/Sha512.lean` SHA-512 (`Compress512Top`
+  is build-specific: `../lean-hw/Ct` has its own).
 * `Ct/ChainTop.lean` `hash::chain_blocks` (build-specific: `../lean-hw/Ct` has its own).
 * `Ct/Hash.lean`, `Ct/Wots.lean`, `Ct/Xmss.lean`, `Ct/Fors.lean`, `Ct/Slh.lean`,
   `Ct/SignFacts.lean`, `Ct/Sign.lean` the relational lemmas and the simulators, generic in the

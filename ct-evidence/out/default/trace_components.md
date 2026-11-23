@@ -59,7 +59,6 @@ crate under test: `slhdsa` built with default features, cargo release profile; e
 | fors_node/z=8 | SK.seed | 2 | 18 | 18 | 0 | 2350413 | 92606 | 380864 | 5 | yes | PASS (all identical) |
 | fors_node/z=12 | SK.seed | 2 | 18 | 18 | 0 | 37655253 | 1485116 | 6101894 | 95 | yes | PASS (all identical) |
 | fors_sign | SK.seed (md public, fixed) | 2 | 18 | 18 | 0 | 526649311 | 20767300 | 85367011 | 1457 | yes | PASS (all identical) |
-| fors_pk_gen | SK.seed | 2 | 18 | 18 | 0 | 527187174 | 20792653 | 85428490 | 1344 | yes | PASS (all identical) |
 | slh_keygen_internal | SK.seed and SK.prf (PK.seed fixed) | 2 | 26 | 26 | 0 | 855131659 | 33839032 | 122888215 | 1535 | yes | PASS (all identical) |
 | slh_keygen_internal/all-inputs | SK.seed, SK.prf and PK.seed | 1 | 13 | 13 | 0 | 855131659 | 33839032 | 122888215 | 1535 | yes | PASS (all identical) |
 | api::keygen | SK.seed and SK.prf (PK.seed fixed) | 2 | 18 | 18 | 0 | 855131683 | 33839034 | 122888251 | 1535 | yes | PASS (all identical) |

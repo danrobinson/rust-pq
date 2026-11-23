@@ -82,7 +82,7 @@ for f in Slhdsa/Funs.lean Slhdsa/Proofs/ChainTop.lean Slhdsa/Proofs/Hw/Chain.lea
 done
 grep -q "^$root/lean/Slhdsa/Funs.lean$" "$out/srcs" && { echo "FAIL: the portable translation was compiled"; fail=1; }
 
-echo "== 3. #print axioms (the 263 headlines of ../security, here over the hw-sha2 translation) =="
+echo "== 3. #print axioms (the headlines of ../security, here over the hw-sha2 translation) =="
 cat > "$out/Ax.lean" <<'EOL'
 import MLink
 import MReduction
@@ -109,7 +109,6 @@ open MLink MReduction
 #print axioms MReduction.structural
 #print axioms MReduction.slhdsa_sha2_bytes_suf_cma_final
 #print axioms MReduction.final_resources_final_sha2
-#print axioms ME2E.spec_slhSignChecked_eq
 #print axioms ME2E.seeds_split
 #print axioms ME2E.sk_split
 #print axioms ME2E.pureRomScheme_instantiation
@@ -136,8 +135,6 @@ for s in $SETS; do
            api_keygen_eq api_sign_eq api_verify_eq api_sign_deterministic_eq api_pure_cores \
            api_pure_bytes_end_to_end pure_end_to_end api_pure_end_to_end \
            api_pure_security api_pure_security_linear \
-           api_sign_checked_eq_sign api_sign_deterministic_checked_eq api_keygen_checked_eq \
-           keygen_internal_checked_eq api_checked_pure_cores \
            pure_rom_security api_pure_rom_security rust_pure_rom_security_bytes api_pure_rom_security_bytes; do
     echo "#print axioms ME2E.sha2_${s}.${t}" >> "$out/Ax.lean"; done
 done

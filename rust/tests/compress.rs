@@ -293,9 +293,9 @@ fn chain_blocks_panics_if_a_range_is_missing_32() {
     slhdsa::hash::chain_blocks::<32>(&slhdsa::sha256::H0, &mut blocks, &[0; 4], &[1; 5]);
 }
 
-/// With `hw-sha512`, the SHA-512 backend must be in use exactly when the CPU
+/// With `hw-sha2`, the SHA-512 backend must be in use exactly when the CPU
 /// has the instructions.
-#[cfg(all(feature = "hw-sha512", target_arch = "aarch64"))]
+#[cfg(all(feature = "hw-sha2", target_arch = "aarch64"))]
 #[test]
 fn sha512_hardware_backend_is_active_where_the_cpu_has_it() {
     let cpu_has_it = std::arch::is_aarch64_feature_detected!("sha3");

@@ -17,7 +17,6 @@ crate under test: `slhdsa` built with default features, cargo release profile; e
 | fors_node/z=7 | 1173585 | 0 | 0 | 0 | 0 | yes | as expected |
 | slh_keygen_internal | 855131659 | 0 | 0 | 0 | 0 | yes | as expected |
 | slh::slh_sign_internal | 6513220472 | 0 | 0 | 0 | 0 | yes | as expected |
-| slh::slh_sign_internal_checked | 12171178015 | 0 | 0 | 0 | 0 | yes | as expected |
 
 SHA-256 instructions present in this binary's `__text` section (static count): SHA256H 0, SHA256H2 0, SHA256SU0 0, SHA256SU1 0.
 

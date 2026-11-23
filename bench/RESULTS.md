@@ -164,9 +164,6 @@ around the verified functions, wiping the stack after key generation and signing
 - Interoperability: `verified-api` produces byte-identical keys and signatures and cross-verifies
   with every FIPS 205 implementation in both configurations (`results/run6/interop*.md`).
 - Compression counts unchanged: 292,352 / 2,218,488 / 2,274.
-- Not in this benchmark: the opt-in checked signer. A separate timing test
-  (`cargo test --release --features hw-sha2 --test api cost_of_the_check -- --nocapture`)
-  measured 56.5 ms against 30.2 ms, a ratio of 1.87.
 
 ## Interoperability against the new crate (`results/run2/interop.md`)
 

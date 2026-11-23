@@ -1,15 +1,14 @@
 //! The six SHA-2 parameter sets, and the calls into the verified crate.
 //!
 //! One macro, [`parameter_set!`], defines each set's type, its lengths, its
-//! name and identifier, and its forwarding to the module of the verified
-//! crate for that set (`slhdsa::sha2_128s`, …). Nothing here decides
-//! anything: every function below converts slices to the verified crate's
-//! fixed-size array types, calls one verified function, copies the result
-//! out, and (for the ones that touch the secret) overwrites the stack.
+//! name and identifier, and its forwarding to the verified crate. Nothing
+//! here decides anything: every function below calls one verified function
+//! (the generic ones of `slhdsa::api`, `slhdsa::slh`, `slhdsa::encoding` and
+//! `slhdsa::adapter`, at the set's `PARAMS` and `N`) on the caller's slices,
+//! and the ones that touch the secret then overwrite the stack.
 
 use crate::scrub::scrub_stack;
 use crate::{SignatureLen, SigningKeyLen, VerifyingKeyLen};
-use alloc::vec::Vec;
 
 /// The verified functions, on byte slices of the parameter set's lengths.
 /// Each one that works with the secret seed overwrites the stack it used
@@ -23,30 +22,22 @@ pub(crate) trait Core {
     /// `slh_keygen` on its `3n` random bytes `SK.seed ‖ SK.prf ‖ PK.seed`:
     /// writes `SK` and `PK`.
     fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]);
-    /// `slh_sign`. `addrnd` absent is the deterministic variant.
-    /// `false` if the context is too long.
+    /// `slh_keygen_internal` on three separate seeds (`slhdsa::adapter::keygen_seeds`).
+    fn keygen_seeds(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]);
+    /// `slh_sign` on `m` (`slhdsa::adapter::sign_into`).
     fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool;
-    /// `slh_sign` with every signed value computed twice and compared.
-    /// `false` if the context is too long or a recomputation disagreed.
-    fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool;
-    /// `slh_sign_internal` on the message as given.
-    fn sign_internal(m: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]);
-    /// `slh_verify_internal` on the message as given.
+    /// `slh_sign_internal` on `m` (`slhdsa::adapter::sign_internal_into`).
+    fn sign_internal(m: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]);
+    /// `slh_verify_internal`.
     fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool;
     /// `slh_verify` with a context string.
     fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool;
-
-    /// Accept `bytes` as a private key: writes it to `sk` and returns `true`
-    /// if it has the right length.
-    fn sk_from(bytes: &[u8], sk: &mut [u8]) -> bool;
-    /// Accept `bytes` as a public key, likewise.
+    /// A private key and its public key from bytes (`slhdsa::adapter::signing_key_from`).
+    fn sk_from(bytes: &[u8], sk: &mut [u8], pk: &mut [u8]) -> bool;
+    /// A public key from bytes (`slhdsa::encoding::public_key_from`).
     fn pk_from(bytes: &[u8], pk: &mut [u8]) -> bool;
-    /// Whether `bytes` has the length of a signature.
-    fn sig_len_ok(bytes: &[u8]) -> bool;
-    /// Whether two private keys are equal, looking at every byte.
-    fn sk_eq(a: &[u8], b: &[u8]) -> bool;
-    /// The public key held in a private key.
-    fn pk_of(sk: &[u8], pk: &mut [u8]);
+    /// A signature from bytes (`slhdsa::adapter::signature_from`).
+    fn sig_from(bytes: &[u8], sig: &mut [u8]) -> bool;
     /// The PKCS#8 DER encoding of a private key, handed to `f`, then wiped.
     /// (Used by the encoders, which need the `alloc` feature.)
     #[cfg_attr(not(feature = "alloc"), allow(dead_code))]
@@ -66,30 +57,17 @@ pub trait ParameterSet: Core + SigningKeyLen + VerifyingKeyLen + SignatureLen {
     const ALGORITHM_OID: pkcs8::ObjectIdentifier;
 }
 
-/// Copy a signature out, if one was made.
-fn put(made: Option<Vec<u8>>, sig: &mut [u8]) -> bool {
-    match made {
-        Some(bytes) => {
-            sig.copy_from_slice(&bytes);
-            true
-        }
-        None => false,
+/// `Option<&[u8]>` as the verified signers take it: whether there is a
+/// randomizer, and its bytes (empty when there is none).
+fn split(addrnd: Option<&[u8]>) -> (bool, &[u8]) {
+    match addrnd {
+        Some(r) => (true, r),
+        None => (false, &[]),
     }
 }
 
-/// A slice as the fixed-length array the verified functions take. The callers
-/// in this crate always pass the right length; a wrong one is a bug here.
-fn fixed<const L: usize>(bytes: &[u8]) -> &[u8; L] {
-    bytes.try_into().expect("length fixed by the parameter set")
-}
-
-/// The mutable counterpart of [`fixed`].
-fn fixed_mut<const L: usize>(bytes: &mut [u8]) -> &mut [u8; L] {
-    bytes.try_into().expect("length fixed by the parameter set")
-}
-
 /// One parameter set: the type, its lengths, name and identifier, and the
-/// forwarding to `slhdsa::$m`.
+/// forwarding to the verified crate at `slhdsa::$m::params`.
 macro_rules! parameter_set {
     ($ty:ident, $m:ident, $name:literal, $oid:ident, sk: $sk:ident, vk: $vk:ident, sig: $sig:ident) => {
         #[doc = concat!("SLH-DSA-", $name, ".")]
@@ -128,88 +106,68 @@ macro_rules! parameter_set {
             const N: usize = slhdsa::$m::params::N;
 
             fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]) {
-                slhdsa::$m::keygen(fixed(seeds), fixed_mut(sk), fixed_mut(pk));
+                slhdsa::api::keygen::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, seeds, sk, pk);
+                scrub_stack();
+            }
+
+            fn keygen_seeds(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]) {
+                slhdsa::adapter::keygen_seeds::<{ slhdsa::$m::params::N }>(
+                    &slhdsa::$m::params::PARAMS, sk_seed, sk_prf, pk_seed, sk, pk,
+                );
                 scrub_stack();
             }
 
             fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool {
-                let made = match addrnd {
-                    Some(addrnd) => slhdsa::$m::sign(m, ctx, fixed(sk), fixed(addrnd)),
-                    None => slhdsa::$m::sign_deterministic(m, ctx, fixed(sk)),
-                };
+                let (has, r) = split(addrnd);
+                let ok = slhdsa::adapter::sign_into::<{ slhdsa::$m::params::N }>(
+                    &slhdsa::$m::params::PARAMS, m, ctx, sk, has, r, sig,
+                );
                 scrub_stack();
-                put(made, sig)
+                ok
             }
 
-            fn sign_checked(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool {
-                let made = match addrnd {
-                    Some(addrnd) => slhdsa::$m::sign_checked(m, ctx, fixed(sk), fixed(addrnd)),
-                    None => slhdsa::$m::sign_deterministic_checked(m, ctx, fixed(sk)),
-                };
+            fn sign_internal(m: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) {
+                let (has, r) = split(addrnd);
+                slhdsa::adapter::sign_internal_into::<{ slhdsa::$m::params::N }>(
+                    &slhdsa::$m::params::PARAMS, m, sk, has, r, sig,
+                );
                 scrub_stack();
-                put(made, sig)
-            }
-
-            fn sign_internal(m: &[u8], sk: &[u8], addrnd: &[u8], sig: &mut [u8]) {
-                let bytes = slhdsa::$m::slh_sign_internal(m, fixed(sk), fixed(addrnd));
-                scrub_stack();
-                sig.copy_from_slice(&bytes);
             }
 
             fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool {
-                slhdsa::$m::slh_verify_internal(m, sig, fixed(pk))
+                slhdsa::slh::slh_verify_internal::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, pk)
             }
 
             fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool {
-                slhdsa::$m::verify(m, sig, ctx, fixed(pk))
+                slhdsa::api::verify::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, ctx, pk)
             }
 
-            fn sk_from(bytes: &[u8], sk: &mut [u8]) -> bool {
-                let mut parsed = slhdsa::$m::encoding::secret_key_from(bytes);
-                let ok = match &parsed {
-                    Some(key) => {
-                        sk.copy_from_slice(key);
-                        true
-                    }
-                    None => false,
-                };
-                zeroize::Zeroize::zeroize(&mut parsed);
+            fn sk_from(bytes: &[u8], sk: &mut [u8], pk: &mut [u8]) -> bool {
+                let ok = slhdsa::adapter::signing_key_from::<{ slhdsa::$m::params::N }>(bytes, sk, pk);
                 scrub_stack();
                 ok
             }
 
             fn pk_from(bytes: &[u8], pk: &mut [u8]) -> bool {
-                match slhdsa::$m::encoding::public_key_from(bytes) {
-                    Some(key) => {
-                        pk.copy_from_slice(&key);
-                        true
-                    }
-                    None => false,
-                }
+                slhdsa::encoding::public_key_from(bytes, pk)
             }
 
-            fn sig_len_ok(bytes: &[u8]) -> bool {
-                slhdsa::$m::encoding::signature_len_ok(bytes)
-            }
-
-            fn sk_eq(a: &[u8], b: &[u8]) -> bool {
-                slhdsa::$m::encoding::secret_keys_equal(fixed(a), fixed(b))
-            }
-
-            fn pk_of(sk: &[u8], pk: &mut [u8]) {
-                pk.copy_from_slice(&slhdsa::$m::public_key(fixed(sk)));
+            fn sig_from(bytes: &[u8], sig: &mut [u8]) -> bool {
+                slhdsa::adapter::signature_from(&slhdsa::$m::params::PARAMS, bytes, sig)
             }
 
             fn with_pkcs8<T>(sk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T {
                 let mut der = [0u8; slhdsa::$m::params::PKCS8_BYTES];
-                slhdsa::$m::encoding::pkcs8_encode(fixed(sk), &mut der);
+                slhdsa::encoding::der_encode(&slhdsa::$m::PKCS8_PREFIX, sk, &mut der);
                 let out = f(&der);
                 zeroize::Zeroize::zeroize(&mut der);
                 out
             }
 
             fn with_spki<T>(pk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T {
-                f(&slhdsa::$m::encoding::spki_encode(fixed(pk)))
+                let mut der = [0u8; slhdsa::$m::params::SPKI_BYTES];
+                slhdsa::encoding::der_encode(&slhdsa::$m::SPKI_PREFIX, pk, &mut der);
+                f(&der)
             }
         }
     };

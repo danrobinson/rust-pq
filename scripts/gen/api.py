@@ -7,6 +7,21 @@ import subprocess
 def old(path): return subprocess.run(['git', '-C', ROOT, 'show', '26aa3d8:' + path], check=True, capture_output=True, text=True).stdout
 M = old('lean/Slhdsa/ApiTheorems.lean')
 body = M[M.index('/-! ## (A) Exactness -/'):M.index('end slhdsa')]
+# The single-set file also has theorems about functions this crate no longer has (removed on
+# 2026-11-22; HANDOFF.md). Kept: the theorems named here, with their docstrings, in the
+# template's order; the section headers are replaced by two new ones below.
+KEEP = ['api_public_key_correct', 'keygen_keyOk', 'api_keygen_correct', 'block48_length',
+        'api_keygen_keyOk', 'api_verify_correct', 'api_sign_correct', 'api_sign_deterministic_correct',
+        'complete_internal', 'complete', 'api_complete_sign', 'api_complete_sign_deterministic']
+def chunk_name(c):
+    m = re.search(r'^theorem (\w+)', c, re.M)
+    return m.group(1) if m else None
+chunks = body.split('\n\n')
+keep = [c for c in chunks if chunk_name(c) in KEEP]
+assert [chunk_name(c) for c in keep] == KEEP, [chunk_name(c) for c in keep]
+body = '\n\n'.join(keep) + '\n\n'
+body = body.replace('theorem api_public_key_correct', '/-! ## Keys and the interface -/\n\ntheorem api_public_key_correct', 1)
+body = body.replace('theorem complete_internal', '/-! ## Completeness: signatures made with a generated key verify -/\n\ntheorem complete_internal', 1)
 names = re.findall(r'^theorem (\w+)', body, re.M)
 names = [n for n in names if n not in ('ok_inj','bytes_length16','block48_length')]
 t = body
@@ -18,16 +33,12 @@ t = t.replace('Array U8 64#usize','Array U8 {SK}#usize').replace('Array U8 16#us
 t = t.replace('Array U8 32#usize','Array U8 {PK}#usize').replace('Array U8 48#usize','Array U8 {SEED}#usize')
 t = t.replace('Room m.length 152','Room m.length {SL}').replace('Room m.length 409','Room m.length {SLP}')
 # rust functions
-for a,b in [('slh.slh_sign_internal_checked','sets.sha2_{S}.slh_sign_internal_checked'),
-            ('slh.slh_sign_checked','sets.sha2_{S}.slh_sign_checked'),
-            ('slh.slh_verify_internal','sets.sha2_{S}.slh_verify_internal'),
+for a,b in [('slh.slh_verify_internal','sets.sha2_{S}.slh_verify_internal'),
             ('slh.slh_keygen_internal','sets.sha2_{S}.slh_keygen_internal'),
             ('slh.slh_sign_internal ','sets.sha2_{S}.slh_sign_internal '),
             ('slh.slh_sign ','sets.sha2_{S}.slh_sign '),
             ('slh.slh_verify ','sets.sha2_{S}.slh_verify '),
-            ('api.sign_deterministic_checked','sets.sha2_{S}.sign_deterministic_checked'),
             ('api.sign_deterministic ','sets.sha2_{S}.sign_deterministic '),
-            ('api.sign_checked','sets.sha2_{S}.sign_checked'),
             ('api.public_key','sets.sha2_{S}.public_key'),
             ('api.verify,','sets.sha2_{S}.verify,'),
             ('api.verify ','sets.sha2_{S}.verify '),
@@ -35,17 +46,15 @@ for a,b in [('slh.slh_sign_internal_checked','sets.sha2_{S}.slh_sign_internal_ch
             ('api.sign ','sets.sha2_{S}.sign ')]:
     t = t.replace(a,b)
 # spec functions with parameter
-for f in ['slhSignInternalChecked','slhSignChecked','slhSignInternal','slhSign','slhVerifyInternal','slhVerify',
+for f in ['slhSignInternal','slhSign','slhVerifyInternal','slhVerify',
           'skPk','KeyOk','block','slhKeygenInternal']:
     t = re.sub(r'Spec\.%s(?=[ \n])' % f, 'Spec.%s Spec.sha2_{S}' % f, t)
 # spec lemmas (generic): add P hv
-for f in ['slhSignInternalChecked_sound','slhSignChecked_sound','slhSignInternalChecked_complete',
-          'slhSignChecked_complete','slh_complete_internal','slh_complete','keygen_keyOk']:
+for f in ['slh_complete_internal','slh_complete','keygen_keyOk']:
     t = re.sub(r'Spec\.%s(?=[ \n])' % f, 'Spec.%s Spec.sha2_{S} Spec.sha2_{S}_valid' % f, t)
 # local spec lemma names -> per-set
-for f in ['slh_sign_internal_checked_spec','slh_sign_checked_spec','api_sign_deterministic_checked_spec',
-          'api_public_key_spec','api_keygen_spec','api_sign_deterministic_spec']:
-    g = {'api_sign_deterministic_checked_spec':'sign_deterministic_checked_spec','api_public_key_spec':'public_key_spec',
+for f in ['api_public_key_spec','api_keygen_spec','api_sign_deterministic_spec']:
+    g = {'api_public_key_spec':'public_key_spec',
          'api_keygen_spec':'keygen_spec','api_sign_deterministic_spec':'sign_deterministic_spec'}.get(f,f)
     t = re.sub(r'(?<![\w.])%s(?=[ \n])' % f, 'sha2_{S}.%s' % g, t)
 # helpers
@@ -56,28 +65,22 @@ import Spec.Correctness
 open Aeneas Aeneas.Std Result
 
 /-!
-# Results about the checked signer and the crate's interface, per parameter set
+# Results about the crate's interface, per parameter set
 
-For each of the six sets, the statements of the single-set tree's
-`ApiTheorems.lean`, about the per-set functions of `sets.rs` (fixed-size key
-types) and FIPS 205 at that set:
+For each of the six sets, about the per-set functions of `sets.rs` (fixed-size
+key types) and FIPS 205 at that set:
 
-* (A) the checked signer never fails, and every signature it releases is the
-  signature of FIPS 205 (the right-hand sides of `sign_internal_correct` and
-  `sign_correct`);
-* (B) every signature it releases verifies under the public key held in the
-  private key, for every private key;
-* (C) for a well-formed private key (`Spec.KeyOk`: the last block is the root
-  that key generation derives from the first and third; in particular every
-  key that key generation produced) it always releases a signature;
-* (D) completeness: with a key from key generation, the signatures of the
-  plain and the checked signers verify;
-* (E) the rest of the interface: `keygen`, `public_key`, `verify`, and the
-  plain `sign` and `sign_deterministic`.
+* the interface: `keygen` (Algorithm 21 on its three blocks of random bytes;
+  the key it writes is well formed, `Spec.KeyOk`: the last block is the root
+  that key generation derives from the first and third), `public_key`,
+  `verify`, `sign` and `sign_deterministic`;
+* completeness: with a key from key generation, the signatures of the internal,
+  the pure and the interface signers verify.
 
 `Spec.skPk p sk` is `sk.drop (2n)`, the public key `PK.seed ‖ PK.root` held in
 a private key. The hypotheses `Room` are those of `Theorems.lean`. Generated
-by a script from the single-set file (the same proofs, at each set).
+by a script from the single-set tree's file (the same statements and proofs,
+at each set).
 -/
 
 namespace slhdsa

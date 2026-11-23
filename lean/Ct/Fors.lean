@@ -200,35 +200,6 @@ theorem fors_batch_loop3_body {N : Usize} (i z : U32) (a a' : Array U8 N)
          simp_all; omega)
       | (ct_facts; simp_all)
 
-theorem fors_pk_gen_loop_body {N : Usize} (p : slhdsa.params.Params) (sk sk' : Array U8 N)
-    (seed seed' : slhdsa.hash.Seed N) (adrs : slhdsa.address.Adrs) (r r' : alloc.vec.Vec U8)
-    (i : U32) (h : r.length = r'.length) :
-    Rel (fors.fors_pk_gen_loop.body p sk seed adrs r i)
-      (fors.fors_pk_gen_loop.body p sk' seed' adrs r' i)
-      (CFRel (fun p q => p.1.length = q.1.length ∧ p.2 = q.2) (fun p q => p.length = q.length)) := by
-  unfold fors.fors_pk_gen_loop.body
-  ct_steps
-  all_goals (ct_facts; simp_all)
-
-@[ct_rel] theorem fors_pk_gen_loop {N : Usize} (p : slhdsa.params.Params) (sk sk' : Array U8 N)
-    (seed seed' : slhdsa.hash.Seed N) (adrs : slhdsa.address.Adrs) (r r' : alloc.vec.Vec U8)
-    (i : U32) (h : r.length = r'.length) :
-    Rel (fors.fors_pk_gen_loop p sk seed adrs r i) (fors.fors_pk_gen_loop p sk' seed' adrs r' i)
-      (fun p q => p.length = q.length) := by
-  unfold fors.fors_pk_gen_loop
-  refine Rel.loop (fun p q => p.1.length = q.1.length ∧ p.2 = q.2) ?_ ⟨h, rfl⟩
-  rintro ⟨x, k⟩ ⟨x', k'⟩ ⟨hx, (rfl : k = k')⟩
-  exact fors_pk_gen_loop_body p sk sk' seed seed' adrs x x' k hx
-
-/-- `fors_pk_gen` (the second route to the FORS public key): nothing secret reaches the
-trace. -/
-@[ct_rel] theorem fors_pk_gen {N : Usize} (p : slhdsa.params.Params) (sk sk' : Array U8 N)
-    (seed seed' : slhdsa.hash.Seed N) (adrs : slhdsa.address.Adrs) :
-    Rel (fors.fors_pk_gen p sk seed adrs) (fors.fors_pk_gen p sk' seed' adrs) (fun _ _ => True) := by
-  unfold fors.fors_pk_gen
-  ct_steps
-  all_goals (ct_facts; simp_all)
-
 abbrev KBlocks := Array (Array U8 64#usize) 35#usize
 abbrev KVals (N : Usize) := Array (Array U8 N) 35#usize
 abbrev KIdx := Array U32 35#usize

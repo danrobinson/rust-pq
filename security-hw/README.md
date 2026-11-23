@@ -12,8 +12,8 @@ There are no proof sources here: `lakefile.toml` compiles in place, unmodified,
   files are links to `../lean`'s, so the Rust-function theorems `ME2E` builds on are the same
   statements, here about the `hw-sha2` functions.
 
-So the 263 headlines of `../security` (Rust functions = scheme cores, standard-model bounds, `api`
-forms, checked = plain signer, the context-string random-oracle theorem, all six sets; and the
+So the 232 headlines of `../security` (Rust functions = scheme cores, standard-model bounds, `api`
+forms, the context-string random-oracle theorem, all six sets; and the
 closed ideal-compression bound, SLH-DSA-SHA2-128s only) hold, under the same names and
 statements, of the `hw-sha2` build. In particular, verbatim as in `../security/STATUS.md` §5
 (`../security/MIdeal/Sha2_128s.lean`, lines 158, 222, 274),
@@ -39,7 +39,7 @@ It checks that the libraries are `../security`'s (only `Slhdsa`'s source and the
 differ), builds every default target (all libraries), scans every source file the build compiled
 (links resolved) for `sorry` / `axiom` / `native_decide` / `bv_decide`, checks that the
 environments of `ME2E` and `MIdeal` contain the `hw-sha2` chain kernel
-`slhdsa.sha256.hw.chain_all`, prints the axioms of the 263 headlines (expected: `propext`, `Classical.choice`, `Quot.sound`; the list is written
+`slhdsa.sha256.hw.chain_all`, prints the axioms of the 232 headlines (expected: `propext`, `Classical.choice`, `Quot.sound`; the list is written
 to `status/axioms.txt`) and checks that they are the names of `../security/status/axioms.txt`.
 Last run: see `../HANDOFF.md`, "Checks". `lake build` alone builds every library, as in
 `../security`.
@@ -49,10 +49,10 @@ Last run: see `../HANDOFF.md`, "Checks". `lake build` alone builds every library
 - Covers: the same theorems as `../security`, about the `hw-sha2` translation. What they
   mean, and their hypotheses, are described in `../security/STATUS.md`.
 - Trusted in addition, as for `../lean-hw`: the instruction model of `../lean-hw/Arm.lean`
-  and `../lean-hw/Slhdsa/FunsExternal.lean` (the eighteen `sha256::hw::arm` wrappers,
+  and `../lean-hw/Slhdsa/FunsExternal.lean` (the eighteen `sha256::hw::arm` and ten `sha512::hw::arm` wrappers,
   transcribed from the Arm ARM and tested against one processor by `ArmTest`, not proved).
-- Not covered here: constant time of the `hw-sha2` build (proved separately in `../lean-hw/Ct`), the
-  experimental `hw-sha512` feature (not translated), and everything `../security/STATUS.md`
+- Not covered here: constant time of the `hw-sha2` build (proved separately in `../lean-hw/Ct`)
+  (nothing of the crate is left untranslated) and everything `../security/STATUS.md`
   lists as not covered for the portable build — in particular the ideal-compression bound is for
   SLH-DSA-SHA2-128s only (the ideal-model analysis of `../security/Ideal` is of SHA-256 with 16-byte
   outputs; the other five sets would need it re-instantiated at their parameters, and for

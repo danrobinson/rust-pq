@@ -2,8 +2,9 @@
 # Check the hw-sha2 backend on this machine's processor. Needs only Rust (rustup).
 #
 # The Lean model of the Arm instructions (lean-hw/Arm.lean) is tied to real
-# hardware by vectors/arm-wrappers.txt: 1,745 calls of the eighteen intrinsic
-# wrappers with the results one processor gave. This script replays the same
+# hardware by vectors/arm-wrappers.txt: 2,961 calls of the twenty-eight
+# intrinsic wrappers (eighteen SHA-256, ten SHA-512) with the results one
+# processor gave. This script replays the same
 # calls on the processor it runs on and fails on the first result that differs,
 # then runs every other test of the crate on the hardware backend. Run it on a
 # second AArch64 machine (for example an AWS Graviton instance) to learn
@@ -26,10 +27,12 @@ if [ -r /proc/cpuinfo ]; then
   grep -m1 'CPU part' /proc/cpuinfo || true
   grep -m1 'CPU variant' /proc/cpuinfo || true
   if grep -m1 '^Features' /proc/cpuinfo | grep -qw sha2; then echo "sha2: reported by the kernel"; else echo "sha2: NOT reported by the kernel"; fi
+  if grep -m1 '^Features' /proc/cpuinfo | grep -qw sha512; then echo "sha512: reported by the kernel"; else echo "sha512: NOT reported by the kernel (the record test needs it)"; fi
   if grep -m1 '^Features' /proc/cpuinfo | grep -qw dit; then echo "dit: reported by the kernel"; else echo "dit: not reported by the kernel"; fi
 else
   sysctl -n machdep.cpu.brand_string 2>/dev/null || true
   echo "sha2: hw.optional.arm.FEAT_SHA256 = $(sysctl -n hw.optional.arm.FEAT_SHA256 2>/dev/null || echo unknown)"
+  echo "sha512: hw.optional.arm.FEAT_SHA512 = $(sysctl -n hw.optional.arm.FEAT_SHA512 2>/dev/null || echo unknown)"
   echo "dit: hw.optional.arm.FEAT_DIT = $(sysctl -n hw.optional.arm.FEAT_DIT 2>/dev/null || echo unknown)"
 fi
 rustc --version
