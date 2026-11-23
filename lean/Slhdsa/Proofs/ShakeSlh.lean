@@ -102,9 +102,8 @@ theorem slh_keygen_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (
   · simp only [Slice.length, hpk2, List.length_append]; omega
 
 set_option maxHeartbeats 2000000 in
-@[step]
-theorem slh_sign_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sk : Slice U8)
-    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val)) :
+theorem slh_sign_internal_all_lengths {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sk : Slice U8)
+    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) :
     shake.slh.slh_sign_internal p m sk addrnd ⦃ sig =>
       bytes sig.val = Spec.slhSignInternal (params p) (bytes m.val) (bytes sk.val)
         (bytes addrnd.val) ∧
@@ -171,8 +170,15 @@ theorem slh_sign_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp
 set_option maxHeartbeats 2000000 in
 /-- For every byte string `sig`, of any length. -/
 @[step]
-theorem slh_verify_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sig pk : Slice U8)
-    (hpk : pk.length = 2 * N.val) (hm : Room m.length (msgSlack N.val)) :
+theorem slh_sign_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sk : Slice U8)
+    (addrnd : Array U8 N) (hsk : sk.length = 4 * N.val) (hm : Room m.length (msgSlack N.val)) :
+    shake.slh.slh_sign_internal p m sk addrnd ⦃ sig =>
+      bytes sig.val = Spec.slhSignInternal (params p) (bytes m.val) (bytes sk.val)
+        (bytes addrnd.val) ∧
+      sig.length = (paramsS p).sigBytes ⦄ := slh_sign_internal_all_lengths p hp m sk addrnd hsk
+
+theorem slh_verify_internal_all_lengths {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sig pk : Slice U8)
+    (hpk : pk.length = 2 * N.val) :
     shake.slh.slh_verify_internal N p m sig pk ⦃ b =>
       b = Spec.slhVerifyInternal (params p) (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := by
   have hv := hp.valid
@@ -242,6 +248,12 @@ theorem slh_verify_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (
     rw [← hb0, ← hb1, ← hr, ← digest_post, ← hmd, ← idx_tree_post,
       ← idx_leaf_post, ← hadrs, ← h5, ← pk_fors_post, ← h9, ← b_post]
     simp [hlen']
+
+@[step]
+theorem slh_verify_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sig pk : Slice U8)
+    (hpk : pk.length = 2 * N.val) (hm : Room m.length (msgSlack N.val)) :
+    shake.slh.slh_verify_internal N p m sig pk ⦃ b =>
+      b = Spec.slhVerifyInternal (params p) (bytes m.val) (bytes sig.val) (bytes pk.val) ⦄ := slh_verify_internal_all_lengths p hp m sig pk hpk
 
 @[step]
 theorem slh_sign_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m ctx sk : Slice U8)
