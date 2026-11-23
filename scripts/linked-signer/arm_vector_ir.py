@@ -33,15 +33,17 @@ irop.operations.setdefault("Iop_Reverse8sIn32_x4", Reverse8sIn32())
 
 
 class UnsignedLaneShift:
-    """USHL.4S uses each signed low byte as an unsigned-lane shift count."""
+    """USHL uses the signed low byte of each count to shift an unsigned lane."""
+
+    def __init__(self, width):
+        self.width = width
 
     _float = False
 
-    @staticmethod
-    def calculate(value, shifts):
+    def calculate(self, value, shifts):
         require(value.size() == shifts.size() == 128, "wrong USHL width")
         result = []
-        for word, count in zip(value.chop(32), shifts.chop(32)):
+        for word, count in zip(value.chop(self.width), shifts.chop(self.width)):
             count = c.simplify(count[7:0])
             require(count.concrete, "expected static USHL count")
             delta = (count.concrete_value ^ 128) - 128
@@ -49,4 +51,25 @@ class UnsignedLaneShift:
         return c.Concat(*result)
 
 
-irop.operations.setdefault("Iop_Sh32Ux4", UnsignedLaneShift())
+irop.operations.setdefault("Iop_Sh32Ux4", UnsignedLaneShift(32))
+irop.operations.setdefault("Iop_Sh64Ux2", UnsignedLaneShift(64))
+
+
+class NarrowUnsigned:
+    """Narrow each lane by retaining its low half."""
+
+    _float = False
+
+    def __init__(self, width):
+        self.width = width
+
+    def calculate(self, value):
+        require(value.size() == 128, "wrong narrow operand width")
+        return c.Concat(
+            *(lane[self.width // 2 - 1 : 0] for lane in value.chop(self.width))
+        )
+
+
+for width in (16, 32, 64):
+    name = f"Iop_NarrowUn{width}to{width // 2}x{128 // width}"
+    irop.operations.setdefault(name, NarrowUnsigned(width))
