@@ -26,7 +26,7 @@ theorem step_eq (N : Usize) (iv : Hash) (half : Reg) (pre : Hash)
         let words ← pack N w hash t half
         let out ← PlatformRust.sha256.x86.avx512.compress iv pre words
         ok (cont (next,words,out))) := by
-  unfold wots_endpoints_loop1_loop0.body pack PlatformRust.sha256.x86.avx512.compress
+  unfold wots_endpoints_loop1_loop0.body pack packHigh PlatformRust.sha256.x86.avx512.compress
   apply bind_congr
   rintro ⟨o,next⟩
   cases o with
