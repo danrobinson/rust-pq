@@ -143,3 +143,6 @@ name = "Treehash"
 
 [[lean_lib]]
 name = "Xmssroot"
+
+[[lean_lib]]
+name = "Armplatform"

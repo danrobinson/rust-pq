@@ -1009,3 +1009,5 @@ import Xmssroot.Top
 LEAN
 )
 grep -Fx "'slhdsa.X86.XmssRoot.batch_root_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmssroot-axioms"
+
+python3 "$root/scripts/check-arm-api-proof.py"
