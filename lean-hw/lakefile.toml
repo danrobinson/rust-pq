@@ -158,3 +158,6 @@ name = "Armplatform"
 
 [[lean_lib]]
 name = "Xfors"
+
+[[lean_lib]]
+name = "X86platform"
