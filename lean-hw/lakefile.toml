@@ -245,3 +245,6 @@ name = "Rcdispatch"
 
 [[lean_lib]]
 name = "Rcavx"
+
+[[lean_lib]]
+name = "PeerEquality"
