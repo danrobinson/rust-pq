@@ -64,4 +64,8 @@ def sha2_256f_malformed (msg sig pk : Spec.Bytes) (fits : sig.length < 2^64) (ba
     LinkedArm.Signer.VerifyTrace Spec.sha2_256f msg sig pk false :=
   toVerifyTrace sha2_256f_guard _ _ _ _ (rejects sha2_256f_guard sig fits bad)
 theorem sha2_256f_hashCall : hashCall sha2_256f_path 32 Spec.sha2_256f.sigBytes 0x1000ccb5c sha2_256f_toHash = some (expectedCall 32) := by decide
+theorem reversedLengthBranch : inspect {sha2_128s_path with branch := (sha2_128s_path.branch.1,sha2_128s_path.branch.2 ^^^ 1)} ≠
+    inspect sha2_128s_path := by decide
+theorem wrongRejection : inspect {sha2_128s_path with reject := sha2_128s_path.reject.map (fun (pc,w) => (pc,if w == 0x52800000 then 0x52800020 else w))} ≠
+    inspect sha2_128s_path := by decide
 end LinkedAppleSha2VerifyLength
