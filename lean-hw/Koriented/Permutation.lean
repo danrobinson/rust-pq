@@ -6,7 +6,7 @@ namespace slhdsa.Oriented
 set_option maxHeartbeats 2500000
 open KorientedRust.shake256
 
-private theorem rotateInverse (x : Lane) (r : Nat) : (x.rotateRight r).rotateLeft r = x := by
+theorem rotateInverse (x : Lane) (r : Nat) : (x.rotateRight r).rotateLeft r = x := by
   ext i hi
   simp only [BitVec.getElem_rotateLeft, BitVec.getElem_rotateRight]
   split <;> split <;> (first | congr 1 <;> omega | omega)
@@ -14,7 +14,7 @@ private theorem rotateInverse (x : Lane) (r : Nat) : (x.rotateRight r).rotateLef
 private theorem wordAt (a : Array U64 25#usize) (i : Nat) (hi : i < 25) :
     (Keccak.words a)[i]! = a.val[i]!.bv := by simp [Keccak.words,getElem!_pos,hi]
 
-private theorem start (a : Array U64 25#usize) :
+theorem start (a : Array U64 25#usize) :
     core.array.from_fn 25#usize oriented.permute.closure.Insts.CoreOpsFunctionFnMutTupleUsizeU64 a
       ⦃ out => decode out = Keccak.words a ⦄ := by
   apply WP.spec_mono (core.array.from_fn.spec_stateless_getElem! 25#usize _ _
@@ -35,7 +35,7 @@ private theorem start (a : Array U64 25#usize) :
   rw [i_post,i1_post]
   exact rotateInverse _ _
 
-private theorem rounds (a : Array U64 25#usize) (keys : Slice U64) :
+theorem rounds (a : Array U64 25#usize) (keys : Slice U64) :
     oriented.permute_loop0 ⟨keys,0⟩ a ⦃ out => decode out = (keys.val.map (·.bv)).foldl round (decode a) ⦄ := by
   unfold oriented.permute_loop0
   apply loop.spec_decr_nat
@@ -66,7 +66,7 @@ private theorem rounds (a : Array U64 25#usize) (keys : Slice U64) :
   · exact ⟨rfl,Nat.zero_le _,by simp⟩
 
 
-private theorem finish (a state : Array U64 25#usize) :
+theorem finish (a state : Array U64 25#usize) :
     oriented.permute_loop1 ⟨0#usize,25#usize⟩ state a ⦃ out => Keccak.words out = decode a ⦄ := by
   unfold oriented.permute_loop1
   apply loop.spec_decr_nat

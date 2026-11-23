@@ -172,6 +172,9 @@ name = "Segmentedapi"
 name = "Keccakasm"
 
 [[lean_lib]]
+name = "Kbulk"
+
+[[lean_lib]]
 name = "Koriented"
 
 [[lean_lib]]

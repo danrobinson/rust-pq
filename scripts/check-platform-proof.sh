@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Kbulk|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1047,3 +1047,12 @@ import Koriented.Permutation
 LEAN
 )
 grep -Fx "'slhdsa.Oriented.permute_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/oriented-axioms"
+extract Kbulk KbulkRust kbulk --start-from 'crate::shake256::oriented::blocks' --opaque 'crate::shake256::oriented::round'
+echo 'shake256.oriented.round' > "$scratch/expected"
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kbulk.Top && lake env lean --stdin > "$scratch/kbulk-axioms" <<'LEAN'
+import Kbulk.Top
+#print axioms slhdsa.Oriented.Bulk.blocks_fips
+LEAN
+)
+grep -Fx "'slhdsa.Oriented.Bulk.blocks_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/kbulk-axioms"

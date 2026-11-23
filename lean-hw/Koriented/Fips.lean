@@ -10,7 +10,7 @@ def decode (a : Array U64 25#usize) : State :=
   _root_.Array.ofFn (n := 25) fun i =>
     a.val[i.val]!.bv.rotateLeft (KorientedRust.shake256.oriented.OFF.val[i.val]!.val)
 
-private theorem decodedAt (a : Array U64 25#usize) (i : Nat) (h : i < 25) :
+theorem decodedAt (a : Array U64 25#usize) (i : Nat) (h : i < 25) :
     (decode a)[i]! = a.val[i]!.bv.rotateLeft (KorientedRust.shake256.oriented.OFF.val[i]!.val) := ofFnAt _ _ h
 
 def before (a : Array U64 25#usize) : Array U64 25#usize := Id.run do
