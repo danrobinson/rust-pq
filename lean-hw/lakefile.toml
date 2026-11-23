@@ -149,3 +149,7 @@ name = "Armplatform"
 
 [[lean_lib]]
 name = "Segmented"
+
+
+[[lean_lib]]
+name = "Platformadapter"
