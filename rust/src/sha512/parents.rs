@@ -47,7 +47,8 @@ fn parents_active<const N: usize>(
     let end = count / LANES * LANES;
     for j in (0..end).step_by(LANES) {
         let mut blocks = [[0u8; 128]; LANES];
-        for (lane, block) in blocks.iter_mut().enumerate() {
+        for lane in 0..LANES {
+            let block = &mut blocks[lane];
             let i = j + lane;
             parent_block::<N>(
                 block,
@@ -91,7 +92,8 @@ fn path_parents_active<const N: usize>(
     let end = values.len() / LANES * LANES;
     for j in (0..end).step_by(LANES) {
         let mut blocks = [[0u8; 128]; LANES];
-        for (lane, block) in blocks.iter_mut().enumerate() {
+        for lane in 0..LANES {
+            let block = &mut blocks[lane];
             let i = j + lane;
             let position = indices[i];
             indices[i] >>= 1;

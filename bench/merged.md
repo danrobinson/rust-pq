@@ -56,3 +56,20 @@ The FORS leaf, FORS parent and WOTS public-key kernels now transpose four digest
 | Xeon 6975P-C | 1.0283× | 0.9994× | 28.33 ms | 0.930× |
 
 The transposed stores improved all 94 recorded kernel workloads on each CPU. Scalar per-word stores slowed full-width FORS batches on both Xeons. Each build passed 15 tests per CPU, including a differential against portable SHA-256 for truncated leaves, overlapping parent batches, partial batches, untouched outputs and ten-block WOTS digests. All 95 kernel shapes passed the differential. The libtest output prefix obscured the first timing line for 16-byte leaves with one active lane, so that shape is excluded from the timing summaries. The raw reference charges general SHA compression for each required block. The library reuses common round prefixes across lanes. [Public API results](results/merged/transpose-stores-summary.csv) · [Public samples](results/merged/transpose-stores.csv.gz) · [Kernel samples](results/merged/transpose-kernels.csv.gz) · [Kernels and reproduction harness](results/merged/transpose-experiment.tar.gz) · [Raw reference methodology](headroom.md)
+
+## SHA-512 FORS parent drivers
+
+Three builds prepared the same parent blocks using an iterator, an indexed loop, or an explicit counter. We kept the indexed loop because it admits a direct proof of the in-place tree and path updates. Each machine ran one warmup and eight timed rounds in rotating build order. The speedup column is the median of 36 paired workload medians. The changes were small across all six machines. A fourth x86 candidate initialized only active XMSS message rows and showed no consistent public API advantage.
+
+| CPU | Indexed loop speedup | SHA2-128s signing, 32 B | Sign / fresh raw SHA | Sign / previous fastest SHA |
+|---|---:|---:|---:|---:|
+| Xeon 8275CL (C5) | 1.0001× | 36.71 ms | 0.635× | 1.035×¹ |
+| EPYC 9R45 | 0.9987× | 21.73 ms | 0.666× | 0.921× |
+| Xeon 6975P-C | 1.0007× | 28.32 ms | 0.441× | 0.930× |
+| Graviton2 | 1.0001× | 64.99 ms | 1.099× | 1.099× |
+| Graviton4 | 1.0002× | 49.73 ms | 1.081× | 1.081× |
+| Apple M5 Ultra | 0.9986× | 30.19 ms | 0.879× | 0.892× |
+
+Fresh raw SHA uses this run’s fastest complete dedicated-instruction or bulk kernel for each hash width, falling back to the fastest measured C implementation on processors without that instruction. The previous fastest rate also admits the Rust transposed SIMD kernels on x86. Ratios use measured rounds 1–6, which have matching compression counts for the exact keys and messages. Latencies and paired speedups use all eight timed rounds. A ratio of 1.099× means 9.9% more time than the counted general-purpose SHA work. The library can share fixed message-prefix rounds. ¹ AWS assigned a Xeon 8275CL this time. The historical C5 reference used a Xeon 8124M, so only the fresh C5 comparison is on the same processor.
+
+The CSV includes key generation, signing and verification for both message sizes and all six SHA-2 parameter sets. Regenerate it with `python3 bench/sha-cost/summarize-parents.py`. [216 workloads](results/merged/parent-driver-summary.csv) · [API samples](results/merged/parent-driver-samples.csv.gz) · [Fresh raw SHA samples](results/merged/parent-driver-raw.csv.gz) · [Candidate source and Linux runner](results/merged/parent-driver-experiment.tar.gz) · [Compression counts and baseline methodology](headroom.md)

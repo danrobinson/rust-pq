@@ -68,3 +68,12 @@ name = "Digest256"
 
 [[lean_lib]]
 name = "Parentblock"
+
+[[lean_lib]]
+name = "Parentdriver"
+
+[[lean_lib]]
+name = "Parentx86"
+
+[[lean_lib]]
+name = "Parentarm"

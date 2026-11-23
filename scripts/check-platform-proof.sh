@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -266,4 +266,28 @@ LEAN
 )
 for name in parent_block_spec x86_parents arm_parents; do
   grep -Fx "'slhdsa.PlatformParent.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parentblock-axioms.log"
+done
+
+for package in Parentx86 Parentarm; do
+  case "$package" in
+    Parentx86) driver_llbc=parentx86; platform_arch=x86_64-unknown-linux-gnu
+      available=sha256.x86.avx512_available
+      compress=sha512.x86.compress_parents ;;
+    Parentarm) driver_llbc=parentarm; platform_arch=aarch64-unknown-linux-gnu
+      available=sha512.hw.arm.available
+      compress=sha512.paired.compress_parents ;;
+  esac
+  extract "$package" "${package}Rust" "$driver_llbc" \
+    --start-from 'crate::sha512::parents::parents' --start-from 'crate::sha512::parents::path_parents' \
+    --opaque 'crate::address' --opaque 'crate::sha512::parents::parent_block' \
+    --opaque 'crate::sha256::x86::avx512_available' --opaque 'crate::sha512::x86::compress_parents' \
+    --opaque 'crate::sha512::paired::compress_parents' --opaque 'crate::sha512::hw::arm::available'
+  printf '%s\n' address.Adrs address.Adrs.with_word3 sha512.parents.parent_block \
+    "$available" "$compress" | LC_ALL=C sort > "$scratch/expected"
+  cmp "$scratch/actual" "$scratch/expected"
+done
+unset platform_arch
+(cd lean-hw && lake build Parentdriver.Proof && lake env lean Parentdriver/Proof.lean > "$scratch/driver-axioms.log")
+for name in x86_tree_spec arm_tree_spec x86_path_spec arm_path_spec; do
+  grep -Fx "'slhdsa.PlatformParent.Driver.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/driver-axioms.log"
 done
