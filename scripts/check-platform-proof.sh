@@ -692,12 +692,16 @@ done
 
 extract Streamround StreamRoundRust streamround --start-from 'crate::sha256::stream::round' \
   --start-from 'crate::sha512::stream::round'
-(cd lean-hw && lake build Streamround.Proof && lake env lean --stdin > "$scratch/stream-round-axioms" <<'LEAN'
-import Streamround.Proof
+(cd lean-hw && lake build Streamround.Read && lake env lean --stdin > "$scratch/stream-round-axioms" <<'LEAN'
+import Streamround.Read
+#print axioms slhdsa.X86.Stream.read32
+#print axioms slhdsa.X86.Stream.read64
+#print axioms slhdsa.X86.Stream.expansion256
+#print axioms slhdsa.X86.Stream.expansion512
 #print axioms slhdsa.X86.Stream.round256_spec
 #print axioms slhdsa.X86.Stream.round512_spec
 LEAN
 )
-for name in round256_spec round512_spec; do
+for name in round256_spec round512_spec read32 read64 expansion256 expansion512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-round-axioms"
 done
