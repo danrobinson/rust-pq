@@ -34,4 +34,35 @@ theorem ordered_round512 (i lane : Nat) (st v : Array U64 8#usize)
   intro out computed
   simp only [computed,state,rounds512,List.range_succ,List.foldl_append,List.foldl_cons,List.foldl_nil]
 
+
+theorem write_ordered256 (table : Array (Array U32 16#usize) 64#usize)
+    (blocks : Array (Array U8 64#usize) 16#usize) (i : Usize) (row : Array U32 16#usize)
+    (bound : i.val < 64) (previous : ordered256 table blocks i.val)
+    (values : ∀ lane < 16, row.val[lane]!.bv =
+      Spec.SHA256.K[i.val]! + (Spec.SHA256.schedule (bytes blocks.val[lane]!.val))[i.val]!) :
+    ordered256 (table.set i row) blocks (i.val+1) := by
+  intro t ht lane hl
+  rw [Array.set_val_eq]
+  by_cases current : i.val=t
+  · subst t
+    rw [Avx2.setSame _ _ _ (by simpa using bound)]
+    exact values lane hl
+  · rw [Avx2.setOther _ _ _ _ current]
+    exact previous t (by omega) lane hl
+
+theorem write_ordered512 (table : Array (Array U64 8#usize) 80#usize)
+    (blocks : Array (Array U8 128#usize) 8#usize) (i : Usize) (row : Array U64 8#usize)
+    (bound : i.val < 80) (previous : ordered512 table blocks i.val)
+    (values : ∀ lane < 8, row.val[lane]!.bv =
+      Spec.SHA512.K[i.val]! + (Spec.SHA512.schedule (bytes blocks.val[lane]!.val))[i.val]!) :
+    ordered512 (table.set i row) blocks (i.val+1) := by
+  intro t ht lane hl
+  rw [Array.set_val_eq]
+  by_cases current : i.val=t
+  · subst t
+    rw [Avx2.setSame _ _ _ (by simpa using bound)]
+    exact values lane hl
+  · rw [Avx2.setOther _ _ _ _ current]
+    exact previous t (by omega) lane hl
+
 end slhdsa.X86.Stream
