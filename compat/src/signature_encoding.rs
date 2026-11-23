@@ -1,5 +1,6 @@
 //! The signature type and its encodings.
 
+use crate::params::{Core, Buffer};
 use crate::{same, ParameterSet};
 use ::signature::{Error, SignatureEncoding};
 use hybrid_array::typenum::Unsigned;
@@ -26,8 +27,9 @@ pub trait SignatureLen {
 /// This is a large value held inline: `P::SigLen` bytes. Any byte string of
 /// the right length is accepted; nothing about it is checked until it is
 /// verified.
-pub struct Signature<P: ParameterSet> {
-    pub(crate) bytes: Array<u8, P::SigLen>,
+#[allow(private_bounds)]
+pub struct Signature<P: Core> {
+    pub(crate) bytes: P::Sig,
 }
 
 impl<P: ParameterSet> Clone for Signature<P> {
@@ -48,7 +50,7 @@ impl<P: ParameterSet> core::fmt::Debug for Signature<P> {
 
 impl<P: ParameterSet> PartialEq for Signature<P> {
     fn eq(&self, other: &Self) -> bool {
-        same(&self.bytes, &other.bytes)
+        same(self.bytes.as_slice(), other.bytes.as_slice())
     }
 }
 
@@ -58,12 +60,12 @@ impl<P: ParameterSet> Signature<P> {
     /// Serialize the signature to a `Vec<u8>` of length `P::SigLen`.
     #[cfg(feature = "alloc")]
     pub fn to_vec(&self) -> Vec<u8> {
-        self.bytes.to_vec()
+        self.bytes.as_slice().to_vec()
     }
 
     /// Serialize the signature to a new stack-allocated array
     pub fn to_bytes(&self) -> Array<u8, P::SigLen> {
-        self.bytes.clone()
+        Array(self.bytes.clone())
     }
 }
 
@@ -71,8 +73,8 @@ impl<P: ParameterSet> TryFrom<&[u8]> for Signature<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let mut sig = Array::<u8, P::SigLen>::default();
-        if !P::sig_from(bytes, &mut sig) {
+        let mut sig = P::Sig::zeroed();
+        if !P::sig_from(bytes, sig.as_mut_slice()) {
             return Err(Error::new());
         }
         Ok(Signature { bytes: sig })
@@ -112,14 +114,14 @@ impl<P: ParameterSet> AssociatedAlgorithmIdentifier for Signature<P> {
 
 impl<P: ParameterSet> From<Signature<P>> for Array<u8, P::SigLen> {
     fn from(sig: Signature<P>) -> Array<u8, P::SigLen> {
-        sig.bytes
+        Array(sig.bytes)
     }
 }
 
 impl<P: ParameterSet> From<&Array<u8, P::SigLen>> for Signature<P> {
     fn from(bytes: &Array<u8, P::SigLen>) -> Signature<P> {
         Signature {
-            bytes: bytes.clone(),
+            bytes: bytes.0.clone(),
         }
     }
 }

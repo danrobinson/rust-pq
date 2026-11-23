@@ -119,7 +119,7 @@ headline list `../lean/Slhdsa/AdapterTheorems.lean`), which this crate calls at 
 
 | what | verified function | proved (for every valid parameter set) |
 |---|---|---|
-| joining a multi-part message | `adapter::append`, once per part | appending is list append |
+| joining a multi-part message | `multipart::join` in this crate | the output contains every part in order |
 | order of the argument checks: a context over 255 bytes is refused before a randomizer of the wrong length is noticed; the randomizer must be `n` bytes | `adapter::sign_into` (with `randomizer`) | `adapter_sign_into_long_ctx`, `adapter_randomizer_panic` |
 | which randomness a deterministic signature uses (`PK.seed`) | `adapter::randomizer` | `adapter_randomizer_spec` (`randS`) |
 | signing, hedged or deterministic, with a context, into the caller's buffer | `adapter::sign_into` | `adapter_sign_into_spec`: success exactly when the context has ≤ 255 bytes, and then Algorithm 22 |
@@ -141,30 +141,28 @@ against the FIPS 205 transcription), `../lean/CT_STATUS.md` (constant time) and 
 check the adapter's functions only through the checker and the erasure theorems (every
 primitive they use is in the leakage model); there is no relational theorem about them.
 
-### The exact remaining unproved surface
+### Public API proofs
 
-`src/` is 941 lines, 598 of them neither blank nor comment (`lib.rs` 121 / 27, `params.rs`
-181 / 121, `signing_key.rs` 314 / 225, `verifying_key.rs` 166 / 124, `signature_encoding.rs`
-125 / 94, `scrub.rs` 34 / 7). None of it is translated. Line by line it is:
+`scripts/check-compat-proof.sh` extracts the production adapter with Charon and
+Aeneas and compares its translation with the checked-in files. The `Facade`
+Lean library composes that translation with each build of the core. For each
+SHA-2 set the caller-visible signature bytes and verifier verdict agree with
+the executable specification through the deterministic `Signer`, `Verifier`,
+and the explicit-context APIs. A supplied randomizer has the set's byte length.
+The proofs include parameter dispatch, array and slice conversions on those paths,
+and the result constructed by each method.
 
-- **Forwarding** (each body calls one verified function on the caller's slices, at the set's
-  `PARAMS` and `N`, and copies nothing it decides): `params.rs`'s `Core` impl; the methods and
-  trait impls of the three types. Trusted: that each passes the set's `PARAMS` with the
-  matching `N` (the per-set `PN` facts `slhdsa.sha2_<set>.pn` hold for exactly those pairs) and
-  arrays of the set's lengths (fixed by the types; `params.rs` checks at compile time that the
-  lengths are the verified crate's).
-- **Type and trait plumbing that cannot be translated**: the generic `ParameterSet` / length
-  traits over `hybrid_array` sizes, `Signature`, `SigningKey`, `VerifyingKey`, the
-  `signature` crate's traits, `Clone`, `Debug`, `From`/`TryFrom` conversions, `to_bytes`,
-  `to_vec` (external traits and generic types; Aeneas translates neither the traits of other
-  crates nor `typenum` sizes).
-- **Three small pieces of logic, kept here and why**: the loop over the parts of a multi-part
-  message in `lib.rs` (`for part in parts { append(..) }`: a `&[&[u8]]` has nested borrows,
-  which Aeneas does not translate; the step it repeats is the verified `append`);
-  `params.rs`'s `split` (`Option<&[u8]>` to the pair `(has, bytes)` the verified signers take:
-  the erasure step of the constant-time library does not handle a `match` on `Option`); and
-  in `SigningKey::try_new` and `raw_try_sign_with_rng`, which byte ranges of a buffer the
-  random source fills (`[0, n)`, `[n, 2n)`, `[2n, 3n)`, and `[0, n)`), next to the RNG calls.
+The adapter uses native fixed-size arrays internally. Rust's associated-type
+equalities make each array the storage of its RustCrypto serialization type.
+`Facade/Multipart.lean` proves that recursive assembly preserves every part.
+
+### Remaining trust boundary
+
+The `Facade` theorems concern functional results. The existing core theorems
+continue to cover key generation, core codecs, and source-level trace behavior.
+The adapter RNG paths, general serialization traits, and DER decoding require
+separate reasoning.
+
 - **The random source** (`rand_core`'s `try_fill_bytes`, `getrandom::SysRng`): randomness is
   outside any functional statement.
 - **The `pkcs8` / `spki` / `der` crates**: *decoding* a PKCS#8 or SPKI document (the

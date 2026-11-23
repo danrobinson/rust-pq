@@ -17,3 +17,6 @@ name = "Ct"
 [[lean_exe]]
 name = "spectest"
 root = "SpecTest"
+
+[[lean_lib]]
+name = "Facade"

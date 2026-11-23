@@ -177,6 +177,7 @@ for d in security security-hw; do
 done
 
 # Adapter crate.
+./scripts/check-compat-proof.sh
 for feat in "" "--features hw-sha2"; do
   # shellcheck disable=SC2086
   out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }

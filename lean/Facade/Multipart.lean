@@ -1,4 +1,4 @@
-import Slhdsa.Compat.SlhDsa
+import Facade.Funs
 import Slhdsa.Proofs.Sha256
 
 open Aeneas Aeneas.Std Result

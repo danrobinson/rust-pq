@@ -10,12 +10,30 @@
 use crate::scrub::scrub_stack;
 use crate::{SignatureLen, SigningKeyLen, VerifyingKeyLen};
 
+/// Fixed-size storage used by the scheme. Public serialization uses the
+/// RustCrypto array types, while the signing path needs only ordinary arrays.
+pub(crate) trait Buffer: Sized {
+    fn zeroed() -> Self;
+    fn as_slice(&self) -> &[u8];
+    fn as_mut_slice(&mut self) -> &mut [u8];
+}
+
+impl<const N: usize> Buffer for [u8; N] {
+    fn zeroed() -> Self { [0; N] }
+    fn as_slice(&self) -> &[u8] { self }
+    fn as_mut_slice(&mut self) -> &mut [u8] { self }
+}
+
+pub(crate) trait SigningKeyStorage { type Sk: Buffer + Clone; }
+pub(crate) trait VerifyingKeyStorage { type Vk: Buffer + Clone; }
+pub(crate) trait SignatureStorage { type Sig: Buffer + Clone; }
+
 /// The verified functions, on byte slices of the parameter set's lengths.
 /// Each one that works with the secret seed overwrites the stack it used
 /// before returning (see [`crate::scrub`]).
 ///
 /// Private: a parameter set cannot be defined outside this crate.
-pub(crate) trait Core {
+pub(crate) trait Core: SigningKeyStorage + VerifyingKeyStorage + SignatureStorage {
     /// Security parameter `n` in bytes.
     const N: usize;
 
@@ -49,7 +67,12 @@ pub(crate) trait Core {
 
 /// A parameter set of FIPS 205. Implemented by the six SHA-2 sets.
 #[allow(private_bounds)] // Intentionally not implementable elsewhere
-pub trait ParameterSet: Core + SigningKeyLen + VerifyingKeyLen + SignatureLen {
+pub trait ParameterSet:
+    Core
+    + SigningKeyLen<SkLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Sk>>
+    + VerifyingKeyLen<VkLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Vk>>
+    + SignatureLen<SigLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Sig>>
+{
     /// Human-readable name of the parameter set, as in FIPS 205.
     const NAME: &'static str;
 
@@ -101,6 +124,10 @@ macro_rules! parameter_set {
             const NAME: &'static str = concat!("SLH-DSA-", $name);
             const ALGORITHM_OID: pkcs8::ObjectIdentifier = const_oid::db::fips205::$oid;
         }
+
+        impl SigningKeyStorage for $ty { type Sk = [u8; slhdsa::$m::params::SK_BYTES]; }
+        impl VerifyingKeyStorage for $ty { type Vk = [u8; slhdsa::$m::params::PK_BYTES]; }
+        impl SignatureStorage for $ty { type Sig = [u8; slhdsa::$m::params::SIG_BYTES]; }
 
         impl Core for $ty {
             const N: usize = slhdsa::$m::params::N;

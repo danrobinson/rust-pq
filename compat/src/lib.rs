@@ -25,22 +25,13 @@
 //!
 //! # What is verified and what is not
 //!
-//! Key generation, signing and verification, and every decision this crate
-//! would otherwise make itself, are functions of the verified crate
-//! (`slhdsa::api`, `slhdsa::slh`, `slhdsa::encoding` and `slhdsa::adapter`),
-//! called on the caller's bytes at each set's parameters: which bytes of a
-//! private key are which, the context-string framing and the order of the
-//! argument checks, the choice of `PK.seed` as the randomness of a
-//! deterministic signature, appending the parts of a multi-part message, the
-//! acceptance of key and signature bytes, the comparisons of keys,
-//! signatures and algorithm identifiers, and the PKCS#8 / SPKI encodings.
-//! What this crate adds is **not** covered by the proofs: the key and
-//! signature types and their trait plumbing, drawing randomness from a
-//! random source, the loop over the parts of a message, *decoding* PKCS#8 /
-//! SPKI (done by the `pkcs8` crate before the key bytes reach the verified
-//! parser), and the wiping described below. `README.md` lists it exactly.
-//! The tests compare every entry point with RustCrypto's crate on the same
-//! inputs, for all six sets.
+//! The Lean proofs in `lean/Facade` cover the actual implementations of
+//! `Signer::try_sign`, `Verifier::verify`, `try_sign_with_context`, and
+//! `try_verify_with_context` at each SHA-2 parameter set. They include
+//! argument forwarding, message assembly, and the returned bytes or verdict.
+//! The underlying core has separate proofs for key generation and encodings.
+//! External randomness, DER parsing, allocation, and physical memory wiping
+//! have separate trust assumptions, described in the adapter README.
 //!
 //! # Secrets are wiped
 //!
