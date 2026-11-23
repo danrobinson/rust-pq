@@ -15,6 +15,7 @@ from entries import certificate as entry_certificate
 from hypertree import verify as verify_hypertree
 from image import Image, require
 from permute import decode
+from reject import certificate as rejection_certificate
 from sha2 import verify as verify_sha2
 from single import verify
 
@@ -310,7 +311,7 @@ if __name__ == "__main__":
         PATH=str(Path.home() / ".elan/bin") + os.pathsep + os.environ["PATH"],
     )
     subprocess.run(
-        ["lake", "build", "Spec.ShakeWords", "Spec.ArmSha3Binary", "Spec.SlhDsa"],
+        ["lake", "build", "Spec.ShakeWords", "Spec.ArmSha3Binary", "Spec.ArmSignReject", "Spec.SlhDsa"],
         cwd=ROOT / "lean",
         env=env,
         check=True,
@@ -352,6 +353,14 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
+        subprocess.run(
+            ["lake", "env", "lean", "--stdin"],
+            cwd=ROOT / "lean",
+            env=env,
+            input=rejection_certificate(image),
+            text=True,
+            check=True,
+        )
         for bits in (256, 512):
             verify_sha2(image, snapshot, bits)
         verify_hypertree(image, snapshot)
@@ -360,6 +369,7 @@ if __name__ == "__main__":
             mutation_tests(image, Path(folder), env)
     if args.self_test:
         print("Rejected seven mutations in the linked image")
+    print("Verified 36 public signing rejection paths and four negative instruction controls")
     print("Verified all 36 keygen, internal signing and verification entry stubs")
     print("Verified the linked Arm hardware SHA-256 and SHA-512 compression routines")
     print("Verified Apple arm64 two-state Keccak-f[1600] and single-state wrapper")
