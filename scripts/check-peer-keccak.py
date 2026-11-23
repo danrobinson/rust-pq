@@ -32,8 +32,7 @@ def arm_source(path, manifest, target):
 
 def scalar_source(path, manifest, target):
     command = ["cargo", "rustc", "--lib", "--release", "--locked", "--target", target,
-               "--target-dir", path / "ir", "--manifest-path", manifest, "--", "-C", "opt-level=3",
-               "-C", "no-vectorize-loops", "-C", "no-vectorize-slp", "--emit=llvm-ir"]
+               "--target-dir", path / "ir", "--manifest-path", manifest, "--", "--emit=llvm-ir"]
     subprocess.run(command, cwd=path, check=True)
     [ir] = list((path / "ir" / target / "release").rglob("keccak-*.ll"))
     scripts = ROOT / "scripts/peer-shake"
@@ -67,7 +66,7 @@ def main():
         for target in ARM:
             arm_source(root, manifest, target)
         locked["common"]["append"](root / "src/lib.rs", (ROOT / "scripts/peer-shake/keccak.rs").read_text())
-        for target in (*ARM, "x86_64-unknown-linux-gnu"):
+        for target in (*ARM, "x86_64-unknown-linux-gnu", "i686-unknown-linux-gnu", "x86_64-unknown-none"):
             scalar_source(root, manifest, target)
         audit(root, ["Peerarmkeccak.Top", "Peerarmkeccak.SoftProof", "Peerarmkeccak.SoftLinuxProof"],
               ["PeerKeccak.Arm.both", "PeerKeccak.Arm.single", "PeerKeccak.Soft.permute_fips",

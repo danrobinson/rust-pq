@@ -29,25 +29,30 @@ def blocks(code):
     return result
 
 
-def called(line, name, *, round_arg=False):
-    ptr = r"ptr noalias nofree noundef nonnull align 8 dereferenceable\(200\) %state"
+def called(line, name, *, round_arg=False, alignment=8):
+    ptr = rf"ptr noalias nofree noundef(?: nonnull)? align {alignment} dereferenceable\(200\) %state"
     m = re.fullmatch(r"tail call (?:fastcc )?void @("+name+r")\("+ptr+(r", i64 noundef 24" if round_arg else "")+r"\)",line)
     if not m:
         raise ValueError("unexpected Keccak call " + line)
     return m[1]
 
 
-def direct(code, name, *, round_arg=False):
+def direct(code, name, *, round_arg=False, alignment=8):
     graph = blocks(code)
     if list(graph) != ["start"] or len(graph["start"]) != 2 or graph["start"][1] != "ret void":
         raise ValueError("expected one direct Keccak call")
-    return called(graph["start"][0], name, round_arg=round_arg)
+    return called(graph["start"][0], name, round_arg=round_arg, alignment=alignment)
 
 
 def select(text, target):
+    # Bare-metal and Wasm calls carry an explicit nounwind call-site attribute.
+    # Discard exactly that group after checking its definition in the module.
+    for attr in re.findall(r"^attributes #(\d+) = \{ nounwind \}$", text, re.M):
+        text = re.sub(r"(?<=\)) #"+attr+r"$", "", text, flags=re.M)
+    alignment = 4 if target.startswith("i686-") else 8
     public = body(text, "proof_dispatch_keccak")
-    if target.startswith("x86_64"):
-        kernel = direct(public, SOFT)
+    if not target.startswith("aarch64-"):
+        kernel = direct(public, SOFT, alignment=alignment)
     elif target == "aarch64-apple-darwin":
         direct(public, ARM, round_arg=True)
         return text
@@ -71,7 +76,7 @@ def select(text, target):
             raise ValueError("unexpected SHA3 thunk operand")
         direct(re.sub(re.escape(entry[1])+r"\b", "%state", body(text, helper)), ARM, round_arg=True)
         kernel = called(no[0], SOFT)
-    if direct(body(text, "proof_scalar_keccak"), SOFT) != kernel:
+    if direct(body(text, "proof_scalar_keccak"), SOFT, alignment=alignment) != kernel:
         raise ValueError("proof entry does not select public scalar object")
     # Expose the selected kernel body under the uniform input name used by
     # the SSA decoder. For Apple the scalar entry contains the inlined body.
