@@ -30,6 +30,7 @@ def main():
     eager = runpy.run_path(str(PROOFS / "eager.py"))
     reader = runpy.run_path(str(PROOFS / "reader.py"))
     wire = runpy.run_path(str(PROOFS / "wiring.py"))
+    cert = runpy.run_path(str(PROOFS / "certificates.py"))["Certificates"]()
     with tempfile.TemporaryDirectory(prefix="peer-stream-") as d:
         root = Path(d)
         buffer, sha = root / "buffer", root / "sha"
@@ -47,15 +48,15 @@ def main():
         locked["common"]["append"](lib, (PROOFS / "roots.rs").read_text())
         for target in TARGETS:
             data = compiled(buffer, "block_buffer", target, [])
-            eager["inspect"](data)
-            reader["inspect"](data)
+            eager["inspect"](data, cert.record)
+            reader["inspect"](data, cert.record)
             provider = compiled(sha, "sha3", target, FEATURES)
             it = reader["canonical"](provider, "proof_iterate_sha3_blocks", ("%blocks.0","%blocks.1","%process"))
             if it != (PROOFS / "iterate.ll").read_text().strip():
                 raise ValueError("unexpected block iterator SSA")
             n,k=z3.Ints("blocks iteration")
             domain={"guard":[n>=0,n<67818912035696881,k>=0,k<n]}
-            eager["requires"](domain,z3.And((k+1)*136<=n*136,n*136<=2**63-1,
+            cert.record(domain,z3.And((k+1)*136<=n*136,n*136<=2**63-1,
                          ((k+1)*136==n*136)==(k+1==n),n-(k+1)<n-k),"block iterator bounds/termination")
             file = sha / (target+".llbc")
             subprocess.run([ROOT / ".tools/aeneas/charon/bin/charon", "cargo", "--monomorphize",
@@ -68,7 +69,10 @@ def main():
                 raise ValueError("unexpected SHAKE256 receiver, field, closure, iterator or result plumbing")
             print(target+": verified unbounded streaming and concrete provider wiring",flush=True)
         audit=runpy.run_path(str(ROOT/"scripts/check-peer-keccak.py"))["audit"]
-        audit(root, ["Peerarmkeccak.Xof"], ["PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
+        obligations, names = cert.program()
+        if obligations != (ROOT / "lean-hw/Peerarmkeccak/BufferVcs.lean").read_text():
+            raise ValueError("fresh LLVM verification obligations differ from checked Lean declarations")
+        audit(root, ["Peerarmkeccak.Xof","Peerarmkeccak.BufferVcs"], [*names,"PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
                "PeerShake.Buffer.updateView","PeerShake.Buffer.padView","PeerShake.Buffer.readView"])
 
 

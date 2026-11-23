@@ -52,6 +52,8 @@ def audit(path, modules, names):
     output = subprocess.check_output(["lake", "env", "lean", f], cwd=LEAN, text=True)
     for name in names:
         line, = [line for line in output.splitlines() if f"'{name}'" in line]
+        if "does not depend on any axioms" in line:
+            continue
         match = re.search(r"depends on axioms: \[(.*?)\]", line)
         if not match or set(match[1].split(", ")) - {"propext", "Classical.choice", "Quot.sound"}:
             raise ValueError(line)
