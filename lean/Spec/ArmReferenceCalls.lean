@@ -1,4 +1,4 @@
-import Spec.ArmInternalSigner
+import Spec.ArmSha2ReferenceCalls
 import Spec.ArmVerifyBody
 
 /-! Total reference implementations of the local contracts for the measured SHAKE
@@ -58,14 +58,18 @@ private def recovered (p : Params) (sig pk dg : Bytes) : Nat → Bytes
            xmssPkFromSig p pos.2 ((sig.drop (p.n+p.forsSigBytes+j*p.xmssSigBytes)).take p.xmssSigBytes)
              (recovered p sig pk dg j) (block p pk 0) {Adrs.zero with layer := j, tree := pos.1}
 
-def referenceVerifier {p : Params} (row : p ∈ parameterSets) (m sig pk : Bytes)
+theorem messageDigestSize (p : Params) (r seed root m : Bytes) : (Hmsg p r seed root m).length = p.m := by
+  cases hf : p.family with
+  | shake => simp [Hmsg,hf]
+  | sha2 => exact sha2HmsgLength p hf _ _ _ _
+
+def referenceVerifier {p : Params} (valid : p.Valid) (m sig pk : Bytes)
     (sigLen : sig.length = p.sigBytes) (pkLen : pk.length = 2*p.n) : ArmVerifyBody.Callees p m sig pk := by
   let dg := Hmsg p (sig.take p.n) (block p pk 0) (block p pk 1) m
-  have valid := (props row).1
   refine {digest := dg, digits := base2b (dg.take p.mdBytes) p.a p.k,
           roots := recovered p sig pk dg, sigSize := sigLen, keySize := pkLen,
           digestSize := ?_, rootSize := ?_, hash := rfl, decode := rfl, forest := rfl, layer := ?_}
-  · simp [dg,Hmsg,(props row).2.1]
+  · exact messageDigestSize _ _ _ _ _
   · intro j _
     cases j with
     | zero => exact T_length p valid _ _ _

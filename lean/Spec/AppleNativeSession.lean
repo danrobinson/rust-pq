@@ -1,3 +1,4 @@
+import Lean.Util.CollectAxioms
 import Spec.AppleKeygenWitness
 import Spec.AppleInternalSignerWitness
 import Spec.AppleVerifyBodyWitness
@@ -9,19 +10,41 @@ import Spec.ArmReferenceCalls
     and the interpreters' successful-runtime models are assumed. -/
 namespace LinkedArm.NativeSession
 open Spec LinkedArm.Signer
+/-- The two signing families have different hash and FORS ABIs. Their native
+    trace constructors prove equality of the bytes selected for return. -/
+structure SigningModel (p : Params) where
+  Calls : Bytes → Bytes → Bytes → Type
+  result : ∀ {msg key rand}, Calls msg key rand → ArmInternalSigner.Observation → Bytes
+  reference : ∀ msg key rand, key.length = 4*p.n → rand.length = p.n → Calls msg key rand
+  expected : ArmInternalSigner.Observation
+
+def shakeModel {p} (row : p ∈ parameterSets) : SigningModel p where
+  Calls := ArmInternalSigner.Callees p
+  result := ArmInternalSigner.materialize
+  reference := referenceSigner row
+  expected := ArmInternalSigner.expected
+
+def sha2Model {p} (row : p ∈ sha2Sets) : SigningModel p where
+  Calls := ArmInternalSigner.Sha2.Callees p
+  result := ArmInternalSigner.Sha2.materialize
+  reference := referenceSha2Signer row
+  expected := ArmInternalSigner.Sha2.expected
+
 structure Entries (p : Params) where
   kg : ArmKeygen.Config
   path : List (Nat × Nat)
+  model : SigningModel p
   signing : ArmInternalSigner.Image
-  verifying : ArmVerifyBody.Image
+  verifyRun : Option (List ArmVerifyBody.Action)
+  verifyEvents : List ArmVerifyBody.Action
   keyChecked : ArmKeygen.run kg path = some (ArmKeygen.secret p.n, ArmKeygen.publicKey p.n)
-  signChecked : ∀ profile : Fin 4, ArmInternalSigner.run signing profile = some ArmInternalSigner.expected
-  verifyChecked : ArmVerifyBody.run verifying = some (ArmVerifyBody.expected p)
+  signChecked : ∀ profile : Fin 4, ArmInternalSigner.run signing profile = some model.expected
+  verifyChecked : verifyRun = some verifyEvents
   keyWidth : p.n % 4 = 0 ∧ p.n ≤ 32
-  supported : p ∈ parameterSets
-  signTrace : ∀ {msg key rand out} (profile : Fin 4), ArmInternalSigner.run signing profile = some out →
-    (s : ArmInternalSigner.Callees p msg key rand) → Signature p msg key rand (ArmInternalSigner.materialize s out)
-  verifyTrace : ∀ {msg sig key events}, ArmVerifyBody.run verifying = some events →
+  valid : p.Valid
+  signEq : ∀ {msg key rand out} (profile : Fin 4), ArmInternalSigner.run signing profile = some out →
+    (s : model.Calls msg key rand) → model.result s out = slhSignInternal p msg key rand
+  verifyTrace : ∀ {msg sig key events}, verifyRun = some events →
     (v : ArmVerifyBody.Callees p msg sig key) → VerifyTrace p msg sig key (ArmVerifyBody.returned v events)
 
 def readKey (sources : Nat → Bytes) (cells : ArmKeygen.Cells) := ArmKeygen.bytes (ArmKeygen.interpret sources) cells
@@ -30,30 +53,26 @@ def readKey (sources : Nat → Bytes) (cells : ArmKeygen.Cells) := ArmKeygen.byt
     successful allocation profiles. Each call site uses its stated contract. -/
 theorem returns {p} (e : Entries p) (profile : Fin 4) :
     ∃ keys signed verified, ArmKeygen.run e.kg e.path = some keys ∧
-      ArmInternalSigner.run e.signing profile = some signed ∧ ArmVerifyBody.run e.verifying = some verified :=
+      ArmInternalSigner.run e.signing profile = some signed ∧ e.verifyRun = some verified :=
   ⟨_, _, _, e.keyChecked, e.signChecked profile, e.verifyChecked⟩
 
 theorem internal {p} (e : Entries p) (profile : Fin 4)
     {keys signed verified} (kg : ArmKeygen.run e.kg e.path = some keys)
-    (sg : ArmInternalSigner.run e.signing profile = some signed) (vr : ArmVerifyBody.run e.verifying = some verified)
+    (sg : ArmInternalSigner.run e.signing profile = some signed) (vr : e.verifyRun = some verified)
     (sources : Nat → Bytes) (sizes : ∀ i < 4, (sources i).length = p.n)
     (subtree : Node p (sources 0) (sources 2) {Adrs.zero with layer := p.d-1} 0 p.hp (sources 3))
-    {msg rand} (s : ArmInternalSigner.Callees p msg (readKey sources keys.1) rand)
-    (v : ArmVerifyBody.Callees p msg (ArmInternalSigner.materialize s signed) (readKey sources keys.2)) :
+    {msg rand} (s : e.model.Calls msg (readKey sources keys.1) rand)
+    (v : ArmVerifyBody.Callees p msg (e.model.result s signed) (readKey sources keys.2)) :
     (readKey sources keys.1, readKey sources keys.2) = slhKeygenInternal p (sources 0) (sources 1) (sources 2) ∧
-    ArmInternalSigner.materialize s signed = slhSignInternal p msg (readKey sources keys.1) rand ∧
-    ArmVerifyBody.returned v verified = slhVerifyInternal p msg (ArmInternalSigner.materialize s signed) (readKey sources keys.2) ∧
+    e.model.result s signed = slhSignInternal p msg (readKey sources keys.1) rand ∧
+    ArmVerifyBody.returned v verified = slhVerifyInternal p msg (e.model.result s signed) (readKey sources keys.2) ∧
     ArmVerifyBody.returned v verified = true := by
   have key := ArmKeygen.concreteKeyGeneration kg e.keyChecked sources sizes e.keyWidth.1 e.keyWidth.2 subtree
-  have sign := supported_internal_eq e.supported (e.signTrace profile sg s)
+  have sign := e.signEq profile sg s
   have verify := (e.verifyTrace vr v).eq_spec
-  have pv : p.Valid := by
-    have row := e.supported
-    simp only [parameterSets, List.mem_cons, List.not_mem_nil, or_false] at row
-    rcases row with rfl | rfl | rfl | rfl | rfl | rfl <;> constructor <;> decide
-  have wellFormed := keygen_keyOk p pv _ _ _ (sizes 0 (by decide)) (sizes 1 (by decide)) (sizes 2 (by decide))
+  have wellFormed := keygen_keyOk p e.valid _ _ _ (sizes 0 (by decide)) (sizes 1 (by decide)) (sizes 2 (by decide))
   rw [← key.eq_spec] at wellFormed
-  have accept := slh_complete_internal p pv msg (readKey sources keys.1) rand wellFormed.1
+  have accept := slh_complete_internal p e.valid msg (readKey sources keys.1) rand wellFormed.1
   have pk : readKey sources keys.2 = skPk p (readKey sources keys.1) := wellFormed.2
   rw [← sign, ← pk, ← verify] at accept
   exact ⟨key.eq_spec, sign, verify, accept⟩
@@ -75,11 +94,11 @@ def runWithReferenceCalls {p : Params} (e : Entries p) (profile : Fin 4)
   let pk := readKey sources keys.2
   if h : sk.length = 4*p.n ∧ pk.length = 2*p.n ∧ rand.length = p.n then
     let obs ← ArmInternalSigner.run e.signing profile
-    let s := referenceSigner e.supported msg sk rand h.1 h.2.2
-    let sig := ArmInternalSigner.materialize s obs
+    let s := e.model.reference msg sk rand h.1 h.2.2
+    let sig := e.model.result s obs
     if hs : sig.length = p.sigBytes then
-      let events ← ArmVerifyBody.run e.verifying
-      let v := referenceVerifier e.supported msg sig pk hs h.2.1
+      let events ← e.verifyRun
+      let v := referenceVerifier e.valid msg sig pk hs h.2.1
       return ((sk,pk),sig,ArmVerifyBody.returned v events)
     else none
   else none
@@ -91,10 +110,7 @@ theorem run_eq {p} (e : Entries p) (profile : Fin 4) (secret prf seed msg rand :
     let keys := slhKeygenInternal p secret prf seed
     runWithReferenceCalls e profile secret prf seed msg rand =
       some (keys, slhSignInternal p msg keys.1 rand, true) := by
-  have valid : p.Valid := by
-    have row := e.supported
-    simp only [parameterSets, List.mem_cons, List.not_mem_nil, or_false] at row
-    rcases row with rfl | rfl | rfl | rfl | rfl | rfl <;> constructor <;> decide
+  have valid := e.valid
   let sources := keySources p secret prf seed
   have sized (i : Nat) (hi : i < 4) : (sources i).length = p.n := by
     interval_cases i
@@ -114,12 +130,12 @@ theorem run_eq {p} (e : Entries p) (profile : Fin 4) (secret prf seed msg rand :
     sizes.2.1, sizes.2.2.1, Prod.mk.injEq] at len
   have h : sk.length = 4*p.n ∧ pk.length = 2*p.n ∧ rand.length = p.n := by
     exact ⟨by omega,by omega,sizes.2.2.2⟩
-  let calls := referenceSigner e.supported msg sk rand h.1 h.2.2
-  let sig := ArmInternalSigner.materialize calls ArmInternalSigner.expected
+  let calls := e.model.reference msg sk rand h.1 h.2.2
+  let sig := e.model.result calls e.model.expected
   have hs : sig = slhSignInternal p msg sk rand :=
-    supported_internal_eq e.supported (e.signTrace profile (e.signChecked profile) calls)
+    e.signEq profile (e.signChecked profile) calls
   have sigLen : sig.length = p.sigBytes := hs ▸ slhSignInternal_length p valid _ _ _
-  let ver := referenceVerifier e.supported msg sig pk sigLen h.2.1
+  let ver := referenceVerifier e.valid msg sig pk sigLen h.2.1
   have result := internal e profile e.keyChecked (e.signChecked profile) e.verifyChecked sources sized tree calls ver
   unfold runWithReferenceCalls
   simp only [e.keyChecked, e.signChecked, e.verifyChecked]
@@ -127,20 +143,22 @@ theorem run_eq {p} (e : Entries p) (profile : Fin 4) (secret prf seed msg rand :
   rw [dite_eq_left h]
   change (if hs' : sig.length = p.sigBytes then _ else _) = _
   rw [dite_eq_left sigLen]
-  change some ((sk,pk),sig,ArmVerifyBody.returned ver (ArmVerifyBody.expected p)) = _
+  change some ((sk,pk),sig,ArmVerifyBody.returned ver e.verifyEvents) = _
   rw [result.2.2.2,hs,← key]
 
 def shake_128s_entries : Entries Spec.shake_128s where
   kg := LinkedAppleKeygen.shake_128s_keygen_config
   path := LinkedAppleKeygen.shake_128s_keygen_path
   signing := LinkedInternalSigner.shake_128s
-  verifying := LinkedAppleVerifyBody.shake_128s_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_128s_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_128s
   keyChecked := LinkedAppleKeygen.shake_128s_keygen_checked
   signChecked := LinkedInternalSigner.shake_128s_checked
   verifyChecked := LinkedAppleVerifyBody.shake_128s_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_128s_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_128s_eq
   verifyTrace := LinkedAppleVerifyBody.shake_128s_trace
 
 def shake_128s_internal_keygen : Entries Spec.shake_128s :=
@@ -153,13 +171,15 @@ def shake_128f_entries : Entries Spec.shake_128f where
   kg := LinkedAppleKeygen.shake_128f_keygen_config
   path := LinkedAppleKeygen.shake_128f_keygen_path
   signing := LinkedInternalSigner.shake_128f
-  verifying := LinkedAppleVerifyBody.shake_128f_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_128f_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_128f
   keyChecked := LinkedAppleKeygen.shake_128f_keygen_checked
   signChecked := LinkedInternalSigner.shake_128f_checked
   verifyChecked := LinkedAppleVerifyBody.shake_128f_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_128f_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_128f_eq
   verifyTrace := LinkedAppleVerifyBody.shake_128f_trace
 
 def shake_128f_internal_keygen : Entries Spec.shake_128f :=
@@ -172,13 +192,15 @@ def shake_192s_entries : Entries Spec.shake_192s where
   kg := LinkedAppleKeygen.shake_192s_keygen_config
   path := LinkedAppleKeygen.shake_192s_keygen_path
   signing := LinkedInternalSigner.shake_192s
-  verifying := LinkedAppleVerifyBody.shake_192s_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_192s_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_192s
   keyChecked := LinkedAppleKeygen.shake_192s_keygen_checked
   signChecked := LinkedInternalSigner.shake_192s_checked
   verifyChecked := LinkedAppleVerifyBody.shake_192s_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_192s_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_192s_eq
   verifyTrace := LinkedAppleVerifyBody.shake_192s_trace
 
 def shake_192s_internal_keygen : Entries Spec.shake_192s :=
@@ -191,13 +213,15 @@ def shake_192f_entries : Entries Spec.shake_192f where
   kg := LinkedAppleKeygen.shake_192f_keygen_config
   path := LinkedAppleKeygen.shake_192f_keygen_path
   signing := LinkedInternalSigner.shake_192f
-  verifying := LinkedAppleVerifyBody.shake_192f_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_192f_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_192f
   keyChecked := LinkedAppleKeygen.shake_192f_keygen_checked
   signChecked := LinkedInternalSigner.shake_192f_checked
   verifyChecked := LinkedAppleVerifyBody.shake_192f_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_192f_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_192f_eq
   verifyTrace := LinkedAppleVerifyBody.shake_192f_trace
 
 def shake_192f_internal_keygen : Entries Spec.shake_192f :=
@@ -210,13 +234,15 @@ def shake_256s_entries : Entries Spec.shake_256s where
   kg := LinkedAppleKeygen.shake_256s_keygen_config
   path := LinkedAppleKeygen.shake_256s_keygen_path
   signing := LinkedInternalSigner.shake_256s
-  verifying := LinkedAppleVerifyBody.shake_256s_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_256s_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_256s
   keyChecked := LinkedAppleKeygen.shake_256s_keygen_checked
   signChecked := LinkedInternalSigner.shake_256s_checked
   verifyChecked := LinkedAppleVerifyBody.shake_256s_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_256s_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_256s_eq
   verifyTrace := LinkedAppleVerifyBody.shake_256s_trace
 
 def shake_256s_internal_keygen : Entries Spec.shake_256s :=
@@ -229,13 +255,15 @@ def shake_256f_entries : Entries Spec.shake_256f where
   kg := LinkedAppleKeygen.shake_256f_keygen_config
   path := LinkedAppleKeygen.shake_256f_keygen_path
   signing := LinkedInternalSigner.shake_256f
-  verifying := LinkedAppleVerifyBody.shake_256f_image
+  model := shakeModel (by decide)
+  verifyRun := ArmVerifyBody.run LinkedAppleVerifyBody.shake_256f_image
+  verifyEvents := ArmVerifyBody.expected Spec.shake_256f
   keyChecked := LinkedAppleKeygen.shake_256f_keygen_checked
   signChecked := LinkedInternalSigner.shake_256f_checked
   verifyChecked := LinkedAppleVerifyBody.shake_256f_checked
   keyWidth := by decide
-  supported := by decide
-  signTrace := LinkedInternalSigner.shake_256f_trace
+  valid := by constructor <;> decide
+  signEq := LinkedInternalSigner.shake_256f_eq
   verifyTrace := LinkedAppleVerifyBody.shake_256f_trace
 
 def shake_256f_internal_keygen : Entries Spec.shake_256f :=
@@ -248,4 +276,15 @@ def shake_256f_internal_keygen : Entries Spec.shake_256f :=
 #print axioms internal
 #print axioms shake_128s_entries
 #print axioms shake_128f_entries
+/- Check all instantiated certificates as well as the two composition results. -/
+run_cmd
+  for decl in [``run_eq, ``internal, ``returns, ``shake_128s_entries, ``shake_128f_entries,
+      ``shake_192s_entries, ``shake_192f_entries, ``shake_256s_entries, ``shake_256f_entries,
+      ``shake_128s_internal_keygen, ``shake_128f_internal_keygen,
+      ``shake_192s_internal_keygen, ``shake_192f_internal_keygen,
+      ``shake_256s_internal_keygen, ``shake_256f_internal_keygen] do
+    for ax in (← Lean.collectAxioms decl) do
+      unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
+        throwError "{decl} depends on unexpected axiom {ax}"
+
 end LinkedArm.NativeSession
