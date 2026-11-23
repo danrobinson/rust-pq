@@ -43,6 +43,8 @@ On the final older Xeon profile the fused WOTS kernel accounted for 93% of SHA2-
 
 CPU-specific compilation also had workload-specific effects. On C8i, `-C target-cpu=native` sped up SHA2-192s short verification by 1.10×, with a gain in every round. On Graviton4, the distributable release was faster for larger-set signing. For SHA2-256s on a short message, the native build took 20% longer. Apple SHA2-128s short key generation varied from 0.92× to 1.04× compared with its predecessor, with a median of 0.98×. The Apple data supports little change on that operation.
 
+The [paired hash replay](results/hash-replay/README.md) measures the effect of reusing SHA-256 prefix rounds on seven CPUs.
+
 ## Reading the SHA references
 
 For each operation and input, the reference time is the counted number of SHA-256 blocks times the measured SHA-256 block time, plus the corresponding SHA-512 product. Thus 1.10× means 10% more elapsed time. A 32-byte SHA2-128s signature uses 2,218,488 equivalent SHA-256 blocks. Its fixed address prefix permits sharing some rounds, and its truncated outputs avoid full digest serialization. An implementation can beat a reference that compresses every independent block in full. [Block counts](sha-cost/counts.csv) · [Measured kernel rates](results/headroom/rates.csv)
