@@ -1,5 +1,6 @@
 import Rcarmcode.Registers
 import Armstream.Proof
+import Rcarmcode.Loop
 
 namespace slhdsa.RcArmCode
 open Spec.SHA256 Aeneas Aeneas.Std
