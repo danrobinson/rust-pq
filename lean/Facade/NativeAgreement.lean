@@ -1,5 +1,5 @@
 import Facade.PublicSession
-import Spec.AppleSha2NativeSession
+import Spec.AppleNativeVerdict
 
 /-! Composition across the Rust extraction and the measured native driver model.
     The native side receives precisely the seeds, framed message and randomness
@@ -117,8 +117,25 @@ theorem sha2_256f_native_agreement : PublicNativeSession Spec.sha2_256f 561 sha2
   public_native_agreement sha2_256f_session sha2_256f_entries
     (by right; decide) (by decide) (by decide)
 
+/-- The caller can supply any signature, including one with a wrong length.
+    On a valid context the extracted verifier and measured internal verifier
+    return the same Boolean for the framed message and supplied public key. -/
+theorem submitted_signature_agreement (family : Spec.HashFamily) {N : Usize} (p : params.Params)
+    (hp : PN p N) (entry : VerificationEntry (view family p)) (m sig ctx pk : Slice U8)
+    (keySize : pk.length = 2*N.val) (room : Room m.length (msgSlack N.val + 257))
+    (valid : ctx.length ≤ 255) (fits : (bytes sig.val).length < 2^64) :
+    ∃ v, verify family N p m sig ctx pk = ok v ∧
+      arbitraryVerdict entry (Spec.withContext (bytes m.val) (bytes ctx.val)) (bytes sig.val) (bytes pk.val) = some v := by
+  obtain ⟨v, run, value⟩ := spec_imp_exists (api_verify_spec family p hp m sig ctx pk keySize room)
+  have width : (view family p).n = N.val := hp.n
+  have k : (bytes pk.val).length = 2*(view family p).n := by simpa [width] using keySize
+  have vctx : (bytes ctx.val).length ≤ 255 := by simpa using valid
+  refine ⟨v, run, ?_⟩
+  rw [arbitraryVerdict_eq entry _ _ _ fits k, value]
+  simp only [Spec.slhVerify, ite_eq_right (show ¬(bytes ctx.val).length > 255 by omega)]
+
 run_cmd
-  for decl in [``public_native_agreement,
+  for decl in [``public_native_agreement, ``submitted_signature_agreement,
       ``shake_128s_native_agreement, ``shake_128f_native_agreement,
       ``shake_192s_native_agreement, ``shake_192f_native_agreement,
       ``shake_256s_native_agreement, ``shake_256f_native_agreement,

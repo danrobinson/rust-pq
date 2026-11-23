@@ -44,7 +44,7 @@ def main():
             "Spec.AppleKeygenWitness",
             "Spec.AppleVerifyLengthWitness",
             "Spec.AppleNativeVerdict",
-            "Spec.AppleSha2PublicSignWitness",
+            "Spec.AppleSha2PublicSession",
             "Spec.AppleSha2PublicVerifyWitness",
             "Spec.ApplePureNativeSession",
             "Spec.ApplePureFrameWitness",
