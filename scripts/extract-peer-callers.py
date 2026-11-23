@@ -152,6 +152,7 @@ def main():
             ):
                 ty = prefix + name
                 for trait, fields in [
+                    ("WotsParams", f"type WotsMsgLen=U<{2*n}>;type WotsSigLen=U<{2*n+3}>;"),
                     ("XmssParams", f"type HPrime=U<{hp}>;"),
                     ("HypertreeParams", f"type D=U<{d}>;type H=U<{h}>;"),
                     (
@@ -160,6 +161,9 @@ def main():
                     ),
                 ]:
                     actual = compact(body(source, rf"impl {trait} for {ty}\b"))
+                    if trait == "WotsParams":
+                        actual = actual.replace(f"U<{{{n}*2}}>", f"U<{2*n}>").replace(
+                            f"U<{{{n}*2+3}}>", f"U<{2*n+3}>")
                     for x, y in [(a, k), (k, a)]:
                         actual = actual.replace(
                             f"U<{{({x}*{y}usize).div_ceil(8)}}>",
@@ -175,6 +179,9 @@ def main():
             actual = compact(body(body(source, impl), rf"\bfn {name}\b"))
             require(actual == compact(expected), f"unsupported {file}::{impl}::{name}")
 
+        runpy.run_path(str(HERE / "peer-shake/wots_source.py"))["check"](
+            exact, scoped, compact, UPSTREAM["extract_body"](tar, peer, "wots.rs")
+        )
         for file, ty in [
             ("signing_key", "SkSeed"),
             ("signing_key", "SkPrf"),
