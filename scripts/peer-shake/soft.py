@@ -17,6 +17,7 @@ def decode(text):
     if not function:
         raise ValueError("missing scalar permutation entry")
     base, code = function.groups()
+    state_alignment = int(re.search(r"align (4|8) (?:captures\(none\) )?dereferenceable\(200\)",function[0].splitlines()[0])[1])
     blocks = {}
     for line in code.splitlines():
         line = re.sub(r"\s*;.*$","",line.strip())
@@ -36,9 +37,9 @@ def decode(text):
         if not condition:
             raise ValueError(detail)
     for line in blocks[entry]:
-        if (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr ("+REG+r"), i64 (\d+)",line)):
+        if (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr ("+REG+r"), i(?:32|64) (\d+)",line)):
             q,p,k=m.groups();addr[q]=addr[p]+int(k)
-        elif (m:=re.fullmatch(r"("+REG+r") = load i64, ptr ("+REG+r"), align 8",line)):
+        elif (m:=re.fullmatch(r"("+REG+r") = load i64, ptr ("+REG+r"), align "+str(state_alignment),line)):
             q,p=m.groups();check(addr[p]%8==0,"unaligned input");words[q]=addr[p]//8
         elif line.startswith("tail call void @llvm.experimental.noalias.scope.decl(metadata "):
             continue
@@ -53,13 +54,15 @@ def decode(text):
     def val(op):
         return regs[op] if op in regs else {"-1":"(~~~(0 : Lane))"}[op]
     advanced = False
+    required_alignment = None
     for line in blocks[loop]:
-        if (m:=re.fullmatch(r"("+REG+r") = phi i64 \[ ("+REG+r"|0), %"+re.escape(entry)+r" \], \[ ("+REG+r"), %"+re.escape(loop)+r" \]",line)):
-            q,start,latch=m.groups()
+        if (m:=re.fullmatch(r"("+REG+r") = phi (i32|i64) \[ ("+REG+r"|0), %"+re.escape(entry)+r" \], \[ ("+REG+r"), %"+re.escape(loop)+r" \]",line)):
+            q,ty,start,latch=m.groups()
             if start=="0":
                 check(offset is None,"duplicate index")
                 offset,next_offset=q,latch
             else:
+                check(ty=="i64","invalid state word width")
                 lane=words[start]
                 check(lane not in latches or latches[lane] == latch,"inconsistent duplicated SSA lane")
                 regs[q]=f"a[{lane}]!"
@@ -71,14 +74,15 @@ def decode(text):
         elif (m:=re.fullmatch(r"("+REG+r") = tail call(?: noundef)? i64 @llvm.fshl.i64\(i64 ("+REG+r"), i64 ("+REG+r"), i64 (\d+)\)",line)):
             q,a,b,n=m.groups();check(a==b and int(n)<64,"not a rotation")
             regs[q]=f"v{len(definitions)}";definitions.append((regs[q],f"({val(a)}).rotateLeft {n}"))
-        elif (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr (@\w+), i64 ("+REG+r")",line)):
+        elif (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr (@\w+), i(?:32|64) ("+REG+r")",line)):
             q,table,index=m.groups();check(index==offset,"unexpected round constant address");table_ptr=q
-        elif (m:=re.fullmatch(r"("+REG+r") = add (?:nuw nsw |nuw |nsw )?i64 ("+REG+r"), 8",line)):
+        elif (m:=re.fullmatch(r"("+REG+r") = add (?:nuw nsw |nuw |nsw )?i(?:32|64) ("+REG+r"), 8",line)):
             check(not advanced and m.groups()==(next_offset,offset),"wrong loop advance")
             advanced = True
-        elif (m:=re.fullmatch(r"("+REG+r") = load i64, ptr ("+REG+r"), align 8",line)):
-            check(m[2]==table_ptr,"wrong round constant read");regs[m[1]]="rc"
-        elif (m:=re.fullmatch(r"("+REG+r") = icmp eq i64 ("+REG+r"), 192",line)):
+        elif (m:=re.fullmatch(r"("+REG+r") = load i64, ptr ("+REG+r"), align (4|8)",line)):
+            check(m[2]==table_ptr and required_alignment is None,"wrong round constant read")
+            required_alignment=int(m[3]);regs[m[1]]="rc"
+        elif (m:=re.fullmatch(r"("+REG+r") = icmp eq i(?:32|64) ("+REG+r"), 192",line)):
             condition,test=m.groups();check(test==next_offset,"wrong termination check")
         elif line != f"br i1 {condition}, label %{exit_}, label %{loop}":
             raise ValueError(line)
@@ -88,17 +92,17 @@ def decode(text):
     for line in blocks[exit_]:
         if line=="ret void":
             continue
-        if (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr ("+REG+r"), i64 (\d+)",line)):
+        if (m:=re.fullmatch(r"("+REG+r") = getelementptr inbounds(?: nuw)? i8, ptr ("+REG+r"), i(?:32|64) (\d+)",line)):
             q,p,k=m.groups(); addr[q]=addr[p]+int(k)
             continue
-        m=re.fullmatch(r"store i64 ("+REG+r"), ptr ("+REG+r"), align 8",line)
+        m=re.fullmatch(r"store i64 ("+REG+r"), ptr ("+REG+r"), align "+str(state_alignment),line)
         check(m is not None,"unexpected store "+line)
         v,p=m.groups()
         check(addr[p]%8==0 and addr[p]//8 not in stores,"duplicate/unaligned output")
         stores[addr[p]//8]=v
     check(blocks[exit_][-1]=="ret void" and stores==latches,"stores and carried state disagree")
-    m=re.search(r"^"+re.escape(table)+r' = [^\n]*constant \[192 x i8\] c"([^"]+)", align 8',text,re.M)
-    check(m is not None,"missing round constants")
+    m=re.search(r"^"+re.escape(table)+r' = [^\n]*constant \[192 x i8\] c"([^"]+)", align (4|8)\b',text,re.M)
+    check(m is not None and required_alignment is not None and int(m[2])>=required_alignment,"invalid round constant allocation")
     endian = re.search(r'^target datalayout = "([eE])',text,re.M)[1]
     data = llvm_string(m[1])
     check(len(data)==192,"invalid table")
