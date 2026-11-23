@@ -30,6 +30,20 @@ def arm_source(path, manifest, target):
             raise ValueError(f"{target} pinned Keccak source diverges in {name}")
 
 
+def scalar_source(path, manifest, target):
+    command = ["cargo", "rustc", "--lib", "--release", "--locked", "--target", target,
+               "--target-dir", path / "ir", "--manifest-path", manifest, "--", "-C", "opt-level=3",
+               "-C", "no-vectorize-loops", "-C", "no-vectorize-slp", "--emit=llvm-ir"]
+    subprocess.run(command, cwd=path, check=True)
+    [ir] = list((path / "ir" / target / "release").rglob("keccak-*.ll"))
+    scripts = ROOT / "scripts/peer-shake"
+    checked = runpy.run_path(str(scripts / "dispatch.py"))["select"](ir.read_text(), target)
+    result = runpy.run_path(str(scripts / "soft.py"))["program"](checked)
+    name = "Soft" if target == "aarch64-apple-darwin" else "SoftLinux"
+    if result.replace("PeerKeccak.Soft", "PeerKeccak."+name) != (PACKAGE / (name+"Program.lean")).read_text():
+        raise ValueError(f"verified scalar program differs on {target}")
+
+
 def audit(path, modules, names):
     subprocess.run(["lake", "build", *modules], cwd=LEAN, check=True)
     f = path / "Check.lean"
@@ -50,7 +64,12 @@ def main():
         manifest = locked["unpack"](root, "keccak", "0.2.2")
         for target in ARM:
             arm_source(root, manifest, target)
-        audit(root, ["Peerarmkeccak.Top"], ["PeerKeccak.Arm.both", "PeerKeccak.Arm.single"])
+        locked["common"]["append"](root / "src/lib.rs", (ROOT / "scripts/peer-shake/keccak.rs").read_text())
+        for target in (*ARM, "x86_64-unknown-linux-gnu"):
+            scalar_source(root, manifest, target)
+        audit(root, ["Peerarmkeccak.Top", "Peerarmkeccak.SoftProof", "Peerarmkeccak.SoftLinuxProof"],
+              ["PeerKeccak.Arm.both", "PeerKeccak.Arm.single", "PeerKeccak.Soft.permute_fips",
+               "PeerKeccak.SoftLinux.permute_fips"])
 
 
 if __name__ == "__main__":
