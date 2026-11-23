@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Kbulk|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1056,3 +1056,16 @@ import Kbulk.Top
 LEAN
 )
 grep -Fx "'slhdsa.Oriented.Bulk.blocks_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/kbulk-axioms"
+extract Kspongel KspongeLRust kspongel --start-from 'crate::shake256::shake256' \
+  --opaque 'crate::shake256::oriented::blocks' --opaque 'crate::shake256::oriented::permute'
+cat > "$scratch/expected" <<'NAMES'
+shake256.oriented.blocks
+shake256.oriented.permute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kspongel.Top && lake env lean --stdin > "$scratch/linux-shake-axioms" <<'LEAN'
+import Kspongel.Top
+#print axioms slhdsa.PlatformShake.Linux.shake256_fips
+LEAN
+)
+grep -Fx "'slhdsa.PlatformShake.Linux.shake256_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/linux-shake-axioms"
