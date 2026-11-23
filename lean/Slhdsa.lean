@@ -10,3 +10,7 @@ import Slhdsa.Proofs.ShakeAddress
 import Slhdsa.Proofs.Shake256
 import Slhdsa.Proofs.ShakeHash
 import Slhdsa.Proofs.ShakeWots
+import Slhdsa.Proofs.ShakeXmss
+import Slhdsa.Proofs.ShakeHt
+import Slhdsa.Proofs.ShakeFors
+import Slhdsa.Proofs.ShakeAdapter

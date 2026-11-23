@@ -53,7 +53,7 @@ def modelConsts : List Name := [
   ``slhdsa_leak.core.ops.index.IndexSlice, ``slhdsa_leak.core.ops.index.IndexMutSlice,
   ``slhdsa_leak.core.array.Array.index, ``slhdsa_leak.core.array.Array.index_mut,
   ``slhdsa_leak.core.slice.index.Slice.index, ``slhdsa_leak.alloc.vec.Vec.index,
-  ``slhdsa_leak.core.slice.Slice.copy_from_slice, ``slhdsa_leak.alloc.vec.Vec.extend_from_slice,
+  ``slhdsa_leak.core.slice.Slice.copy_from_slice, ``slhdsa_leak.alloc.vec.Vec.extend_from_slice, ``slhdsa_leak.alloc.vec.from_elem,
   ``slhdsa_leak.alloc.vec.Vec.push,
   ``slhdsa_leak.instHDivUScalarLeak, ``slhdsa_leak.instHModUScalarLeak,
   ``slhdsa_leak.core.array.equality.PartialEqArray.eq,
@@ -87,7 +87,7 @@ def nonLeaking : List Name := [
   -- `wrapping_add` is addition modulo 2^64 and `rotate_right` a rotation by a constant amount,
   -- total and pure, the 64-bit counterparts of the 32-bit entries above. As for those, the
   -- operand values are not recorded (the model has no operand events for `+` or rotations).
-  ``Aeneas.Std.core.num.U64.wrapping_add, ``Aeneas.Std.core.num.U64.rotate_right,
+  ``Aeneas.Std.core.num.U64.wrapping_add, ``Aeneas.Std.core.num.U64.rotate_right, ``Aeneas.Std.core.num.U64.rotate_left,
   -- Comparisons producing a `Prop`/`Bool` (the branch on them is instrumented by `Leak.cond`).
   ``Aeneas.Std.instLTUScalar, ``Aeneas.Std.UScalar.decLt, ``Aeneas.Std.instLEUScalar,
   ``Aeneas.Std.UScalarDecidableLE, ``Aeneas.Std.instDecidableEqUScalar_1, ``bne,
@@ -121,7 +121,7 @@ def nonLeaking : List Name := [
   -- vectors as slices, lengths, the empty vector. None of them accesses an element.
   ``Aeneas.Std.Array.repeat, ``Aeneas.Std.Array.make, ``Aeneas.Std.Array.to_slice,
   ``Aeneas.Std.Array.to_slice_mut, ``Aeneas.Std.Slice.len, ``Aeneas.Std.alloc.vec.Vec.len,
-  ``Aeneas.Std.alloc.vec.Vec.deref, ``Aeneas.Std.alloc.vec.Vec.new,
+  ``Aeneas.Std.alloc.vec.Vec.deref, ``Aeneas.Std.alloc.vec.Vec.deref_mut, ``Aeneas.Std.alloc.vec.Vec.new,
   -- Trait dictionaries for machine scalars, passed to `copy_from_slice`,
   -- `extend_from_slice` and array `==` (their methods are the identity / scalar `!=`).
   ``Aeneas.Std.core.clone.CloneU8, ``Aeneas.Std.core.clone.CloneU32,

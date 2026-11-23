@@ -1,5 +1,6 @@
 //! FORS with SHAKE256, FIPS 205 Algorithms 14–17.
 use super::hash::{digest, start, thash, thash_pair, Seed};
+use super::xmss::climb;
 use crate::address::{Adrs, FORS_PRF, FORS_ROOTS};
 use crate::params::Params;
 use crate::util::{base_2b, block};
@@ -64,25 +65,14 @@ pub(super) fn fors_pk_from_sig<const N: usize>(
     let mut i = 0;
     while i < indices.len() {
         let offset = i * (1 + p.a as usize);
-        let mut idx = ((i as u32) << p.a) + indices[i];
-        let mut value = thash(
+        let idx = ((i as u32) << p.a) + indices[i];
+        let value = thash(
             seed,
             &adrs.with_word2(0).with_word3(idx),
             &block(sig, offset),
         );
-        let mut j = 0;
-        while j < p.a {
-            let sibling = block(sig, offset + 1 + j as usize);
-            let parent = adrs.with_word2(j + 1).with_word3(idx >> 1);
-            value = if idx & 1 == 0 {
-                thash_pair(seed, &parent, &value, &sibling)
-            } else {
-                thash_pair(seed, &parent, &sibling, &value)
-            };
-            idx >>= 1;
-            j += 1;
-        }
-        roots.absorb(&value);
+        let root = climb(value, idx, sig, offset + 1, p.a, seed, adrs);
+        roots.absorb(&root);
         i += 1;
     }
     digest(roots)

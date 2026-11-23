@@ -8321,63 +8321,65 @@ def shake.hash.prf_msg
   let sponge3 ← shake256.Sponge.absorb sponge2 msg
   shake.hash.digest N sponge3
 
-/-- [slhdsa::shake::fors::fors_pk_from_sig]: loop body 1:
-    Source: 'src/shake/fors.rs', lines 74:8-84:9 -/
+/-- [slhdsa::shake::xmss::climb]: loop body 0:
+    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Visibility: public -/
 @[rust_loop_body]
-def shake.fors.fors_pk_from_sig_loop0_loop0.body
-  {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
-  (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
-  (i6 : Std.U32) (offset : Std.Usize) (idx : Std.U32) (value : Array Std.U8 N)
-  (j : Std.U32) :
-  Result (ControlFlow (Std.U32 × (Array Std.U8 N) × Std.U32) (Array Std.U8
+def shake.xmss.climb_loop.body
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
+  Result (ControlFlow ((Array Std.U8 N) × Std.U32 × Std.U32) (Array Std.U8
     N))
   := do
-  if j < i
+  if k < height
   then
-    let i7 ← offset + 1#usize
-    let i8 ← lift (UScalar.cast .Usize j)
-    let i9 ← i7 + i8
-    let sibling ← util.block N sig i9
-    let i10 ← j + 1#u32
-    let a ←
-      address.Adrs.with_word2
-        {
-          layer := i1,
-          tree := i2,
-          typ := i3,
-          keypair := i4,
-          word2 := i5,
-          word3 := i6
-        } i10
-    let i11 ← idx >>> 1#i32
-    let parent ← address.Adrs.with_word3 a i11
-    let i12 ← lift (idx &&& 1#u32)
-    let value1 ←
-      if i12 = 0#u32
-      then shake.hash.thash_pair seed parent value sibling
-      else shake.hash.thash_pair seed parent sibling value
-    ok (cont (i11, value1, i10))
-  else ok (done value)
+    let i ← lift (UScalar.cast .Usize k)
+    let i1 ← first + i
+    let sibling ← util.block N auth i1
+    let parent ← index >>> 1#i32
+    let i2 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i2
+    let a1 ← address.Adrs.with_word3 a parent
+    let i3 ← lift (index &&& 1#u32)
+    let node1 ←
+      if i3 = 0#u32
+      then shake.xmss.hash2 seed a1 node sibling
+      else shake.xmss.hash2 seed a1 sibling node
+    ok (cont (node1, parent, i2))
+  else ok (done node)
 
-/-- [slhdsa::shake::fors::fors_pk_from_sig]: loop 1:
-    Source: 'src/shake/fors.rs', lines 74:8-84:9 -/
+/-- [slhdsa::shake::xmss::climb]: loop 0:
+    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
+    Visibility: public -/
 @[rust_loop]
-def shake.fors.fors_pk_from_sig_loop0_loop0
-  {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
-  (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
-  (i6 : Std.U32) (offset : Std.Usize) (idx : Std.U32) (value : Array Std.U8 N)
-  (j : Std.U32) :
+def shake.xmss.climb_loop
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
+  (index : Std.U32) (k : Std.U32) :
   Result (Array Std.U8 N)
   := do
   loop
-    (fun (idx1, value1, j1) => shake.fors.fors_pk_from_sig_loop0_loop0.body i
-      sig seed i1 i2 i3 i4 i5 i6 offset idx1 value1 j1)
-    (idx, value, j)
+    (fun (node1, index1, k1) => shake.xmss.climb_loop.body auth first height
+      seed adrs node1 index1 k1)
+    (node, index, k)
+
+/-- [slhdsa::shake::xmss::climb]:
+    Source: 'src/shake/../xmss.rs', lines 50:0-75:1
+    Visibility: public -/
+@[reducible]
+def shake.xmss.climb
+  {N : Std.Usize} (node : Array Std.U8 N) (idx : Std.U32) (auth : Slice Std.U8)
+  (first : Std.Usize) (height : Std.U32) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  shake.xmss.climb_loop auth first height seed adrs node idx 0#u32
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]: loop body 0:
-    Source: 'src/shake/fors.rs', lines 65:4-87:5 -/
+    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
 @[rust_loop_body]
-def shake.fors.fors_pk_from_sig_loop0.body
+def shake.fors.fors_pk_from_sig_loop.body
   {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
   (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
   (i6 : Std.U32) (indices : alloc.vec.Vec Std.U32) (roots : shake256.Sponge)
@@ -8409,19 +8411,27 @@ def shake.fors.fors_pk_from_sig_loop0.body
     let a1 ← address.Adrs.with_word3 a idx
     let a2 ← util.block N sig offset
     let value ← shake.hash.thash seed a1 a2
-    let value1 ←
-      shake.fors.fors_pk_from_sig_loop0_loop0 i sig seed i1 i2 i3 i4 i5 i6
-        offset idx value 0#u32
-    let s ← lift (Array.to_slice value1)
+    let i14 ← offset + 1#usize
+    let root ←
+      shake.xmss.climb value idx sig i14 i seed
+        {
+          layer := i1,
+          tree := i2,
+          typ := i3,
+          keypair := i4,
+          word2 := i5,
+          word3 := i6
+        }
+    let s ← lift (Array.to_slice root)
     let roots1 ← shake256.Sponge.absorb roots s
-    let i14 ← i7 + 1#usize
-    ok (cont (roots1, i14))
+    let i15 ← i7 + 1#usize
+    ok (cont (roots1, i15))
   else ok (done roots)
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]: loop 0:
-    Source: 'src/shake/fors.rs', lines 65:4-87:5 -/
+    Source: 'src/shake/fors.rs', lines 66:4-77:5 -/
 @[rust_loop]
-def shake.fors.fors_pk_from_sig_loop0
+def shake.fors.fors_pk_from_sig_loop
   {N : Std.Usize} (i : Std.U32) (sig : Slice Std.U8) (seed : Array Std.U8 N)
   (i1 : Std.U32) (i2 : Std.U64) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
   (i6 : Std.U32) (indices : alloc.vec.Vec Std.U32) (roots : shake256.Sponge)
@@ -8429,12 +8439,12 @@ def shake.fors.fors_pk_from_sig_loop0
   Result shake256.Sponge
   := do
   loop
-    (fun (roots1, i8) => shake.fors.fors_pk_from_sig_loop0.body i sig seed i1
-      i2 i3 i4 i5 i6 indices roots1 i8)
+    (fun (roots1, i8) => shake.fors.fors_pk_from_sig_loop.body i sig seed i1 i2
+      i3 i4 i5 i6 indices roots1 i8)
     (roots, i7)
 
 /-- [slhdsa::shake::fors::fors_pk_from_sig]:
-    Source: 'src/shake/fors.rs', lines 55:0-89:1 -/
+    Source: 'src/shake/fors.rs', lines 56:0-79:1 -/
 def shake.fors.fors_pk_from_sig
   {N : Std.Usize} (p : params.Params) (sig : Slice Std.U8) (md : Slice Std.U8)
   (seed : Array Std.U8 N) (adrs : address.Adrs) :
@@ -8446,12 +8456,12 @@ def shake.fors.fors_pk_from_sig
   let a1 ← address.Adrs.with_keypair a adrs.keypair
   let roots ← shake.hash.start seed a1
   let roots1 ←
-    shake.fors.fors_pk_from_sig_loop0 p.a sig seed adrs.layer adrs.tree
+    shake.fors.fors_pk_from_sig_loop p.a sig seed adrs.layer adrs.tree 
       adrs.typ adrs.keypair adrs.word2 adrs.word3 indices roots 0#usize
   shake.hash.digest N roots1
 
 /-- [slhdsa::shake::fors::fors_sk_gen]:
-    Source: 'src/shake/fors.rs', lines 8:0-14:1 -/
+    Source: 'src/shake/fors.rs', lines 9:0-15:1 -/
 def shake.fors.fors_sk_gen
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
   (adrs : address.Adrs) (idx : Std.U32) :
@@ -8463,7 +8473,7 @@ def shake.fors.fors_sk_gen
   shake.hash.thash seed a2 sk
 
 /-- [slhdsa::shake::fors::fors_node]:
-    Source: 'src/shake/fors.rs', lines 16:0-25:1 -/
+    Source: 'src/shake/fors.rs', lines 17:0-26:1 -/
 def shake.fors.fors_node
   {N : Std.Usize} (sk : Array Std.U8 N) (i : Std.U32) (z : Std.U32)
   (seed : Array Std.U8 N) (adrs : address.Adrs) :
@@ -8485,7 +8495,7 @@ def shake.fors.fors_node
 partial_fixpoint
 
 /-- [slhdsa::shake::fors::fors_sign]: loop body 1:
-    Source: 'src/shake/fors.rs', lines 44:8-49:9
+    Source: 'src/shake/fors.rs', lines 45:8-50:9
     Visibility: public -/
 @[rust_loop_body]
 def shake.fors.fors_sign_loop0_loop0.body
@@ -8510,7 +8520,7 @@ def shake.fors.fors_sign_loop0_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop 1:
-    Source: 'src/shake/fors.rs', lines 44:8-49:9
+    Source: 'src/shake/fors.rs', lines 45:8-50:9
     Visibility: public -/
 @[rust_loop]
 def shake.fors.fors_sign_loop0_loop0
@@ -8525,7 +8535,7 @@ def shake.fors.fors_sign_loop0_loop0
     (sig, j)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop body 0:
-    Source: 'src/shake/fors.rs', lines 39:4-51:5
+    Source: 'src/shake/fors.rs', lines 40:4-52:5
     Visibility: public -/
 @[rust_loop_body]
 def shake.fors.fors_sign_loop0.body
@@ -8554,7 +8564,7 @@ def shake.fors.fors_sign_loop0.body
   else ok (done sig)
 
 /-- [slhdsa::shake::fors::fors_sign]: loop 0:
-    Source: 'src/shake/fors.rs', lines 39:4-51:5
+    Source: 'src/shake/fors.rs', lines 40:4-52:5
     Visibility: public -/
 @[rust_loop]
 def shake.fors.fors_sign_loop0
@@ -8570,7 +8580,7 @@ def shake.fors.fors_sign_loop0
     (sig, i1)
 
 /-- [slhdsa::shake::fors::fors_sign]:
-    Source: 'src/shake/fors.rs', lines 28:0-53:1
+    Source: 'src/shake/fors.rs', lines 29:0-54:1
     Visibility: public -/
 def shake.fors.fors_sign
   {N : Std.Usize} (p : params.Params) (md : Slice Std.U8)
@@ -8680,61 +8690,6 @@ def shake.wots.wots_pk_from_sig
     shake.wots.wots_pk_from_sig_loop sig seed adrs.layer adrs.tree adrs.typ
       adrs.keypair adrs.word2 adrs.word3 digits pk 0#usize
   shake.hash.digest N pk1
-
-/-- [slhdsa::shake::xmss::climb]: loop body 0:
-    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
-    Visibility: public -/
-@[rust_loop_body]
-def shake.xmss.climb_loop.body
-  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
-  (index : Std.U32) (k : Std.U32) :
-  Result (ControlFlow ((Array Std.U8 N) × Std.U32 × Std.U32) (Array Std.U8
-    N))
-  := do
-  if k < height
-  then
-    let i ← lift (UScalar.cast .Usize k)
-    let i1 ← first + i
-    let sibling ← util.block N auth i1
-    let parent ← index >>> 1#i32
-    let i2 ← k + 1#u32
-    let a ← address.Adrs.with_word2 adrs i2
-    let a1 ← address.Adrs.with_word3 a parent
-    let i3 ← lift (index &&& 1#u32)
-    let node1 ←
-      if i3 = 0#u32
-      then shake.xmss.hash2 seed a1 node sibling
-      else shake.xmss.hash2 seed a1 sibling node
-    ok (cont (node1, parent, i2))
-  else ok (done node)
-
-/-- [slhdsa::shake::xmss::climb]: loop 0:
-    Source: 'src/shake/../xmss.rs', lines 62:4-73:5
-    Visibility: public -/
-@[rust_loop]
-def shake.xmss.climb_loop
-  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
-  (seed : Array Std.U8 N) (adrs : address.Adrs) (node : Array Std.U8 N)
-  (index : Std.U32) (k : Std.U32) :
-  Result (Array Std.U8 N)
-  := do
-  loop
-    (fun (node1, index1, k1) => shake.xmss.climb_loop.body auth first height
-      seed adrs node1 index1 k1)
-    (node, index, k)
-
-/-- [slhdsa::shake::xmss::climb]:
-    Source: 'src/shake/../xmss.rs', lines 50:0-75:1
-    Visibility: public -/
-@[reducible]
-def shake.xmss.climb
-  {N : Std.Usize} (node : Array Std.U8 N) (idx : Std.U32) (auth : Slice Std.U8)
-  (first : Std.Usize) (height : Std.U32) (seed : Array Std.U8 N)
-  (adrs : address.Adrs) :
-  Result (Array Std.U8 N)
-  := do
-  shake.xmss.climb_loop auth first height seed adrs node idx 0#u32
 
 /-- [slhdsa::shake::xmss::xmss_pk_from_sig]:
     Source: 'src/shake/../xmss.rs', lines 78:0-88:1

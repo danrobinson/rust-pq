@@ -70,6 +70,7 @@ macro_rules
         intro seed adrs
         rw [$l:ident, $o:ident]
         simp only [ct_erase]
+        try (refine bind_congr_ok fun _ _ => bind_congr_ok fun _ _ => ?_)
         split_ifs
         · rfl
         · refine bind_congr_ok fun i1 _ => bind_congr_ok fun i2 h2 => ?_
