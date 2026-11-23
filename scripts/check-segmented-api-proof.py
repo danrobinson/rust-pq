@@ -44,4 +44,11 @@ if __name__ == "__main__":
     for target in ("x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "aarch64-unknown-linux-gnu"):
         with tempfile.TemporaryDirectory() as temp:
             check(Path(temp), target)
-    run(["lake", "build", "Segmentedapi.Funs"], LEAN)
+    run(["lake", "build", "Segmentedapi.Top"], LEAN)
+    statements = ["slhdsa.SegmentedApi." + name for name in ("randomizer_spec", "sign_spec", "verify_spec")]
+    result = run(["lake", "env", "lean", "--stdin"], LEAN, text=True, capture_output=True,
+                 input="import Segmentedapi.Top\n" + "\n".join(f"#print axioms {name}" for name in statements))
+    for name in statements:
+        expected = f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]"
+        if expected not in result.stdout.splitlines():
+            raise ValueError(f"unexpected axioms for {name}\n{result.stdout}")
