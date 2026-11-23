@@ -32,3 +32,15 @@ The two-lane SHA-512 refactor ran the same 36-workload SHA-2 comparison on Apple
 ## Paired x86 SHA-NI
 
 Both builds disabled AVX-512 dispatch to measure public operations using the paired SHA-NI chain kernel. The median of the 36 workload speedups was 1.1973× on EPYC 9R45 and 1.0321× on Xeon 6975P-C. Individual workload medians ranged from 1.0112× to 1.2916× on EPYC and from 1.0001× to 1.0531× on Xeon. Both hosts passed 14 kernel and compression tests. Normal dispatch can select AVX-512 on both hosts. The baseline is commit `3870dab`. The Lean theorem takes any packed chaining state and two arbitrary 64-byte inputs, and verifies both serialized 32-byte results against FIPS 180-4 under the x86 intrinsic model. [Proof](../lean-hw/Slhdsa/Proofs/ShaNi.lean) · [Raw measurements](results/merged/sha-ni.csv.gz) · [72 workload results](results/merged/sha-ni-summary.csv)
+
+## Batched SHA-512 WOTS public-key digests on x86
+
+The selected version retains the masked AVX-512 gather for input and writes digest words through Rust slices. A second candidate replaced input gathers with per-lane loads as well. All three versions used ordinary runtime dispatch. Each EC2 host ran six measured rounds after warming up. Build order rotated each round. The focused benchmark measured 4,096 calls per sample, checked every active output against Python hashlib and checked untouched output rows. It covered batches of one through eight keys and both 24-byte and 32-byte outputs. All three builds passed the 14 kernel and compression tests on all three CPUs.
+
+| CPU | Slice writes, focused kernel | Slice reads and writes, focused kernel | Slice writes, public operations |
+|---|---:|---:|---:|
+| Xeon 8124M | 1.0006× | 1.0020× | 0.9999× |
+| EPYC 9R45 | 1.0015× | 0.9845× | 0.9993× |
+| Xeon 6975P-C | 1.0012× | 1.0013× | 1.0004× |
+
+Each cell is the median of the paired workload speedups, over 16 kernel shapes or 36 public API workloads. The input gather earned its keep on EPYC, where it was faster in all 16 kernel shapes. The slice writes make output updates visible to the Rust proof extractor. [Public API results](results/merged/group-stores-summary.csv) · [All public samples](results/merged/group-stores.csv.gz) · [Kernel samples, ordered by CPU, build, round, digest size, active lanes and nanoseconds](results/merged/group-kernels.csv.gz) · [Three kernel sources, test harness and run script](results/merged/group-experiment.tar.gz)

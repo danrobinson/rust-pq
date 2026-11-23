@@ -174,14 +174,10 @@ fn digest_groups<const N: usize, const L: usize>(
         state = compress(state, words);
     }
     for i in 0..N / 8 {
-        // The mask selects initialized output lanes, each with N/8 words.
-        unsafe {
-            _mm512_mask_i32scatter_epi64::<8>(
-                out.as_mut_ptr().cast::<u8>().add(8 * i).cast(),
-                mask,
-                _mm256_mullo_epi32(lanes, _mm256_set1_epi32((N / 8) as i32)),
-                _mm512_shuffle_epi8(state[i], swap),
-            )
-        };
+        // SAFETY: a vector and eight native-endian words have the same bit representation.
+        let words: [u64; 8] = unsafe { core::mem::transmute(state[i]) };
+        for lane in 0..out.len() {
+            out[lane][8 * i..8 * i + 8].copy_from_slice(&words[lane].to_be_bytes());
+        }
     }
 }
