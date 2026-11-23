@@ -33,7 +33,7 @@ theorem key_words_layout (head tail : Spec.Bytes) (key : Word) (chain : BitVec 1
 def keyAddress (a : Spec.Adrs) (key chain : Word) : Spec.Adrs :=
   { a with keypair := key.toNat, word2 := chain.toNat, word3 := 0 }
 
-private theorem key_packet (a : Spec.Adrs) (key chain : Word) (m : Spec.Bytes) (hm : m.length ≤ 33) :
+theorem key_packet (a : Spec.Adrs) (key chain : Word) (m : Spec.Bytes) (hm : m.length ≤ 33) :
     padFrom 64 ((keyAddress a key chain).compress ++ m) =
       keyPacket (a.compress.take 10) key chain (m ++ padTail m.length) := by
   rw [padFrom_blk _ _ hm]

@@ -65,7 +65,7 @@ theorem advance {N L} (hash : Hash) (before buf after : Rows L) (len pos used : 
         rw [Nat.succ_mul] at fit
         omega
 
-private theorem serialized (hash : Hash) (j : Fin 16) (k n : Nat) (hk : k<n) (hn : n ≤ 32) :
+theorem digest_byte_eq (hash : Hash) (j : Fin 16) (k n : Nat) (hk : k<n) (hn : n ≤ 32) :
     Store.digestByte hash j k = ((ser (stateWords (laneState hash j))).take n)[k]! := by
   rw [List.getElem!_eq_getElem?_getD,List.getElem?_take_of_lt hk,← List.getElem!_eq_getElem?_getD,Digest.ser_byte]
   · unfold Store.digestByte
@@ -124,7 +124,7 @@ theorem batches {N L} (P : Spec.Params) [Fact (P.family = .sha2)] (first : U32)
       have keyFits : first.val+(it.iter.start.val+j.val)/len.val < 2^32 := by
         have : (it.iter.start.val+j.val)/len.val < buf.length := Nat.div_lt_of_lt_mul (by simpa [Nat.mul_comm] using inBounds)
         omega
-      rw [serialized hash j k P.n (by omega) (by omega),hh j]
+      rw [digest_byte_eq hash j k P.n (by omega) (by omega),hh j]
       simp only [expected,endpoint,BitVec.toNat_ofNat,Nat.mod_eq_of_lt keyFits]
     · step with core.iter.adapters.step_by.IteratorStepBy.next_Range_Usize_none_spec it (by omega) as ⟨o,t,ho,_⟩
       simp only [ho,step_simps]
