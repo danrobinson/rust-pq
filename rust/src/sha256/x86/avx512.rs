@@ -99,8 +99,9 @@ pub(super) fn chains<const N: usize>(
     let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
         0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
     ));
-    for (group, batch) in blocks.chunks_mut(16).enumerate() {
-        let offset = group * 16;
+    for offset in (0..blocks.len()).step_by(16) {
+        let len = (blocks.len() - offset).min(16);
+        let batch = &mut blocks[offset..offset + len];
         // A short last batch has too few useful lanes on SHA-NI machines.
         if batch.len() < 8 && super::sha_ni::get() {
             // SAFETY: SHA-NI, SSSE3 and SSE4.1 are present.
@@ -108,7 +109,7 @@ pub(super) fn chains<const N: usize>(
             continue;
         }
         let mask = (u16::MAX >> (16 - batch.len())) as __mmask16;
-        let ptr = batch.as_mut_ptr().cast::<u8>();
+        let ptr = batch.as_ptr().cast::<u8>();
         // SAFETY: each enabled lane addresses a distinct 64-byte block. For
         // the counters the caller checked that both slices cover all blocks.
         let mut counter =
@@ -118,6 +119,9 @@ pub(super) fn chains<const N: usize>(
         if active == 0 {
             continue;
         }
+        // Each active lane contributes exactly its final digest to the output.
+        let original = active;
+        let mut saved = [_mm512_setzero_si512(); 8];
         let mut words: [__m512i; 16] = core::array::from_fn(|i| {
             let v = unsafe {
                 _mm512_mask_i32gather_epi32::<4>(
@@ -137,52 +141,105 @@ pub(super) fn chains<const N: usize>(
             prefix = round(prefix, words[i], super::super::K[i]);
         }
         loop {
-            words[4] = _mm512_or_si512(fixed4, _mm512_srli_epi32::<16>(counter));
-            words[5] = _mm512_or_si512(
-                _mm512_slli_epi32::<16>(counter),
-                _mm512_and_si512(words[5], half),
-            );
+            words = chain_address(words, fixed4, counter, half);
             let hash: [__m512i; 8] = compression!(initial, prefix, words);
             let next = _mm512_add_epi32(counter, _mm512_set1_epi32(1));
             let finished = active & _mm512_cmpeq_epi32_mask(next, ends);
             if finished != 0 {
-                // SAFETY: bytes 18..22 hold the counter and bytes 22..22+N
-                // the digest. Scatter offsets stay inside enabled blocks.
-                unsafe {
-                    _mm512_mask_i32scatter_epi32::<4>(
-                        ptr.add(18).cast(),
-                        finished,
-                        stride,
-                        _mm512_shuffle_epi8(counter, swap),
-                    );
-                    for i in 0..N / 4 {
-                        _mm512_mask_i32scatter_epi32::<4>(
-                            ptr.add(22 + 4 * i).cast(),
-                            finished,
-                            stride,
-                            _mm512_shuffle_epi8(hash[i], swap),
-                        );
-                    }
+                if finished == original {
+                    write_finished::<N>(&hash, batch, &end[offset..], finished);
+                    break;
                 }
+                saved = chain_done::<N>(saved, hash, finished);
                 active &= !finished;
                 if active == 0 {
+                    write_finished::<N>(&saved, batch, &end[offset..], original);
                     break;
                 }
             }
-            // Digest byte zero starts halfway through W5. Preserve the
-            // padding after its last half-word (at W9, W11 or W13).
-            words[5] = _mm512_srli_epi32::<16>(hash[0]);
-            for i in 1..N / 4 {
-                words[5 + i] = _mm512_or_si512(
-                    _mm512_slli_epi32::<16>(hash[i - 1]),
-                    _mm512_srli_epi32::<16>(hash[i]),
-                );
-            }
-            words[5 + N / 4] = _mm512_or_si512(
-                _mm512_slli_epi32::<16>(hash[N / 4 - 1]),
-                _mm512_and_si512(words[5 + N / 4], half),
-            );
+            words = chain_value::<N>(words, hash, half);
             counter = next;
+        }
+    }
+}
+
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw")]
+fn chain_address(
+    mut words: [__m512i; 16],
+    fixed4: __m512i,
+    counter: __m512i,
+    half: __m512i,
+) -> [__m512i; 16] {
+    words[4] = _mm512_or_si512(fixed4, _mm512_srli_epi32::<16>(counter));
+    words[5] = _mm512_or_si512(
+        _mm512_slli_epi32::<16>(counter),
+        _mm512_and_si512(words[5], half),
+    );
+    words
+}
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw")]
+fn chain_value<const N: usize>(
+    mut words: [__m512i; 16],
+    hash: [__m512i; 8],
+    half: __m512i,
+) -> [__m512i; 16] {
+    // Digest byte zero starts halfway through W5. Preserve the
+    // padding after its last half-word (at W9, W11 or W13).
+    words[5] = _mm512_srli_epi32::<16>(hash[0]);
+    for i in 1..N / 4 {
+        words[5 + i] = _mm512_or_si512(
+            _mm512_slli_epi32::<16>(hash[i - 1]),
+            _mm512_srli_epi32::<16>(hash[i]),
+        );
+    }
+    words[5 + N / 4] = _mm512_or_si512(
+        _mm512_slli_epi32::<16>(hash[N / 4 - 1]),
+        _mm512_and_si512(words[5 + N / 4], half),
+    );
+    words
+}
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw")]
+fn chain_done<const N: usize>(
+    mut saved: [__m512i; 8],
+    hash: [__m512i; 8],
+    finished: u16,
+) -> [__m512i; 8] {
+    for i in 0..N / 4 {
+        saved[i] = _mm512_mask_mov_epi32(saved[i], finished, hash[i]);
+    }
+    saved
+}
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw")]
+fn write_finished<const N: usize>(
+    hash: &[__m512i; 8],
+    batch: &mut [[u8; 64]],
+    ends: &[u32],
+    mut lanes: u16,
+) {
+    let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
+        0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
+    ));
+    let mask = lanes;
+    while lanes != 0 {
+        let lane = lanes.trailing_zeros() as usize;
+        batch[lane][18..22].copy_from_slice(&(ends[lane] - 1).to_be_bytes());
+        lanes &= lanes - 1;
+    }
+    for offset in (0..N).step_by(16) {
+        let [a, b, c, d] =
+            core::array::from_fn(|i| _mm512_shuffle_epi8(hash[offset / 4 + i], swap));
+        let rows = transpose_rows(a, b, c, d);
+        let width = (N - offset).min(16);
+        let mut lanes = mask;
+        while lanes != 0 {
+            let lane = lanes.trailing_zeros() as usize;
+            batch[lane][22 + offset..22 + offset + width]
+                .copy_from_slice(&rows[lane % 4][lane / 4][..width]);
+            lanes &= lanes - 1;
         }
     }
 }

@@ -49,7 +49,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure#1}<'_0, '_1, '_2, '_3, '_4, N, L>}::call_mut]:
-    Source: 'src/sha256/x86/avx512.rs', lines 355:41-365:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 412:41-422:9 -/
 def
   sha256.x86.avx512.key_digests.closure_1.Insts.CoreOpsFunctionFnMutTupleUsize__m512i.call_mut
   {N : Std.Usize} {L : Std.Usize}
@@ -71,7 +71,7 @@ def
   ok (mi4, c)
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure#1}<'_0, '_1, '_2, '_3, '_4, N, L>}::call_once]:
-    Source: 'src/sha256/x86/avx512.rs', lines 355:41-365:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 412:41-422:9 -/
 def
   sha256.x86.avx512.key_digests.closure_1.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i.call_once
   {N : Std.Usize} {L : Std.Usize}
@@ -84,7 +84,7 @@ def
   ok mi
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure#1}<'_0, '_1, '_2, '_3, '_4, N, L>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 355:41-365:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 412:41-422:9 -/
 @[reducible]
 def
   sha256.x86.avx512.key_digests.closure_1.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i
@@ -96,7 +96,7 @@ def
 }
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure#1}<'_0, '_1, '_2, '_3, '_4, N, L>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 355:41-365:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 412:41-422:9 -/
 @[reducible]
 def
   sha256.x86.avx512.key_digests.closure_1.Insts.CoreOpsFunctionFnMutTupleUsize__m512i
@@ -111,7 +111,7 @@ def
 }
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnMut<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure}<N, L>}::call_mut]:
-    Source: 'src/sha256/x86/avx512.rs', lines 347:29-347:60 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 404:29-404:60 -/
 def
   sha256.x86.avx512.key_digests.closure.Insts.CoreOpsFunctionFnMutTupleU32__m512i.call_mut
   {N : Std.Usize} {L : Std.Usize}
@@ -124,7 +124,7 @@ def
   ok (mi, c)
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnOnce<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure}<N, L>}::call_once]:
-    Source: 'src/sha256/x86/avx512.rs', lines 347:29-347:60 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 404:29-404:60 -/
 def
   sha256.x86.avx512.key_digests.closure.Insts.CoreOpsFunctionFnOnceTupleU32__m512i.call_once
   {N : Std.Usize} {L : Std.Usize}
@@ -137,7 +137,7 @@ def
   ok mi
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnOnce<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure}<N, L>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 347:29-347:60 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 404:29-404:60 -/
 @[reducible]
 def
   sha256.x86.avx512.key_digests.closure.Insts.CoreOpsFunctionFnOnceTupleU32__m512i
@@ -149,7 +149,7 @@ def
 }
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::key_digests::{impl core::ops::function::FnMut<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::key_digests::{closure}<N, L>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 347:29-347:60 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 404:29-404:60 -/
 @[reducible]
 def
   sha256.x86.avx512.key_digests.closure.Insts.CoreOpsFunctionFnMutTupleU32__m512i
@@ -164,7 +164,7 @@ def
 }
 
 /-- [slhdsa::sha256::x86::avx512::key_digests]: loop body 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 367:8-369:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 424:8-426:9 -/
 @[rust_loop_body]
 def sha256.x86.avx512.key_digests_loop0_loop0.body
   (words : Array core.core_arch.x86.__m512i 16#usize)
@@ -185,7 +185,7 @@ def sha256.x86.avx512.key_digests_loop0_loop0.body
     ok (cont (iter1, prefix1))
 
 /-- [slhdsa::sha256::x86::avx512::key_digests]: loop 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 367:8-369:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 424:8-426:9 -/
 @[rust_loop]
 def sha256.x86.avx512.key_digests_loop0_loop0
   (iter : core.ops.range.Range Std.Usize)
@@ -199,7 +199,7 @@ def sha256.x86.avx512.key_digests_loop0_loop0
     (iter, «prefix»)
 
 /-- [slhdsa::sha256::x86::avx512::key_digests]: loop body 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 354:4-371:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 411:4-428:5 -/
 @[rust_loop_body]
 def sha256.x86.avx512.key_digests_loop0.body
   (N : Std.Usize) {L : Std.Usize} (inputs : Slice (Array Std.U8 L))
@@ -228,7 +228,7 @@ def sha256.x86.avx512.key_digests_loop0.body
     ok (cont (iter1, state1))
 
 /-- [slhdsa::sha256::x86::avx512::key_digests]: loop 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 354:4-371:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 411:4-428:5 -/
 @[rust_loop]
 def sha256.x86.avx512.key_digests_loop0
   (N : Std.Usize) {L : Std.Usize}
@@ -244,7 +244,7 @@ def sha256.x86.avx512.key_digests_loop0
     (iter, state)
 
 /-- [slhdsa::sha256::x86::avx512::key_digests]:
-    Source: 'src/sha256/x86/avx512.rs', lines 342:0-373:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 399:0-430:1 -/
 def sha256.x86.avx512.key_digests
   {N : Std.Usize} {L : Std.Usize} (seed : Array Std.U32 8#usize)
   (inputs : Slice (Array Std.U8 L)) (out : Slice (Array Std.U8 N)) :

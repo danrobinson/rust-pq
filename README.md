@@ -140,6 +140,9 @@ and verified without copying the entire message to prepend its context.
 
 The extracted SHA-NI chain driver refines the portable chain specification for every digest width from 0 through 32 bytes. It accepts arbitrary 64-byte blocks and independent 32-bit start and end indices for each lane, including reversed or empty ranges. Lean checks state packing, every shared iteration, lanes with different remaining lengths, and the odd final block. The theorem compares the entire resulting block for every input and assumes valid range-slice lengths and the modeled SHA-NI, SSSE3 and SSE4.1 operations. [Chain driver theorem](lean-hw/Chainni/Top.lean) · [Two-lane step](lean-hw/Chainni/Pair.lean) · [Unequal-length chains](lean-hw/Chainni/Residual.lean)
 
+The 16-lane AVX-512 chain driver buffers completed lanes and writes their counters and truncated digests together. Lean checks the extracted counter-word update, digest-word packing for each supported width, and masked retention of finished lanes. The complete AVX-512 chain loop and its output writer remain under verification. [Word updates](lean-hw/Chainvectors/Words.lean) · [Masked retention](lean-hw/Chainvectors/Save.lean) · [Three-host comparison](bench/merged.md#avx-512-chain-output-stores)
+
+
 
 On x86-64 and AArch64 the extracted SHA-512 parent-block constructor writes the compressed address, both child nodes and the FIPS padding for a seeded 128-byte prefix. Given those padded blocks and the corresponding seed state, the x86 eight-lane and Arm two-lane routines return the FIPS 205 parent hash H and preserve the entries after the batch. [Parent-block theorem](lean-hw/Parentblock/Proof.lean) · [FIPS parent theorems](lean-hw/Parentblock/Fips.lean)
 

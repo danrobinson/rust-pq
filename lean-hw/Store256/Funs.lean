@@ -26,7 +26,7 @@ noncomputable section
 namespace StoreRust
 
 /-- [slhdsa::sha256::x86::avx512::transpose_rows]:
-    Source: 'src/sha256/x86/avx512.rs', lines 605:0-620:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 662:0-677:1 -/
 def sha256.x86.avx512.transpose_rows
   (a : core.core_arch.x86.__m512i) (b : core.core_arch.x86.__m512i)
   (c : core.core_arch.x86.__m512i) (d : core.core_arch.x86.__m512i) :
@@ -45,7 +45,7 @@ def sha256.x86.avx512.transpose_rows
     core.core_arch.x86.__m512i 4#usize)
 
 /-- [slhdsa::sha256::x86::avx512::write_words::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::write_words::{closure}<'_0, '_1, '_2, N>}::call_mut]:
-    Source: 'src/sha256/x86/avx512.rs', lines 592:33-592:85 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 649:33-649:85 -/
 def
   sha256.x86.avx512.write_words.closure.Insts.CoreOpsFunctionFnMutTupleUsize__m512i.call_mut
   {N : Std.Usize} (c : sha256.x86.avx512.write_words.closure N)
@@ -61,7 +61,7 @@ def
   ok (mi2, c)
 
 /-- [slhdsa::sha256::x86::avx512::write_words::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::write_words::{closure}<'_0, '_1, '_2, N>}::call_once]:
-    Source: 'src/sha256/x86/avx512.rs', lines 592:33-592:85 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 649:33-649:85 -/
 def
   sha256.x86.avx512.write_words.closure.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i.call_once
   {N : Std.Usize} (c : sha256.x86.avx512.write_words.closure N) (i : Std.Usize)
@@ -74,7 +74,7 @@ def
   ok mi
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::write_words::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::write_words::{closure}<'_0, '_1, '_2, N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 592:33-592:85 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 649:33-649:85 -/
 @[reducible]
 def
   sha256.x86.avx512.write_words.closure.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i
@@ -86,7 +86,7 @@ def
 }
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::write_words::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::write_words::{closure}<'_0, '_1, '_2, N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 592:33-592:85 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 649:33-649:85 -/
 @[reducible]
 def
   sha256.x86.avx512.write_words.closure.Insts.CoreOpsFunctionFnMutTupleUsize__m512i
@@ -101,7 +101,7 @@ def
 }
 
 /-- [slhdsa::sha256::x86::avx512::write_words]: loop body 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 596:8-599:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 653:8-656:9 -/
 @[rust_loop_body]
 def sha256.x86.avx512.write_words_loop0_loop0.body
   {N : Std.Usize} (offset : Std.Usize)
@@ -140,7 +140,7 @@ def sha256.x86.avx512.write_words_loop0_loop0.body
                                back im1, j1))
 
 /-- [slhdsa::sha256::x86::avx512::write_words]: loop 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 596:8-599:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 653:8-656:9 -/
 @[rust_loop]
 def sha256.x86.avx512.write_words_loop0_loop0
   {N : Std.Usize} (iter : core.slice.iter.IterMut (Array Std.U8 N))
@@ -158,7 +158,7 @@ def sha256.x86.avx512.write_words_loop0_loop0
     (iter, back, j)
 
 /-- [slhdsa::sha256::x86::avx512::write_words]: loop body 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 590:4-600:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 647:4-657:5 -/
 @[rust_loop_body]
 def sha256.x86.avx512.write_words_loop0.body
   {N : Std.Usize} (state : Array core.core_arch.x86.__m512i 8#usize)
@@ -194,7 +194,7 @@ def sha256.x86.avx512.write_words_loop0.body
     ok (cont (iter1, s))
 
 /-- [slhdsa::sha256::x86::avx512::write_words]: loop 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 590:4-600:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 647:4-657:5 -/
 @[rust_loop]
 def sha256.x86.avx512.write_words_loop0
   {N : Std.Usize}
@@ -209,7 +209,7 @@ def sha256.x86.avx512.write_words_loop0
     (iter, out)
 
 /-- [slhdsa::sha256::x86::avx512::write_words]:
-    Source: 'src/sha256/x86/avx512.rs', lines 586:0-601:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 643:0-658:1 -/
 def sha256.x86.avx512.write_words
   {N : Std.Usize} (state : Array core.core_arch.x86.__m512i 8#usize)
   (out : Slice (Array Std.U8 N)) :

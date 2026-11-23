@@ -91,3 +91,17 @@ The leaf experiment checked zero, full and partial batches at all three digest w
 | Xeon 6975P-C | 0.9978× | 1.0005× | 28.38 ms | 0.931× |
 
 Every raw SHA ratio uses the same host, pinned vCPU and release configuration as its public API sample. Each of six rounds measured independent, general-purpose 16-lane SHA-256 and eight-lane SHA-512 compression, including the schedule, rounds and feed-forward. The reference runs on already transposed words. It charges that round's exact compression count for the benchmark key, message and operation. The three EC2 instances terminated after the experiment. [108 same-host raw SHA ratios](results/merged/leaf-sha-summary.csv) · [Public API speedups](results/merged/leaves-summary.csv) · [API samples](results/merged/leaves.csv.gz) · [66 kernel shapes per CPU](results/merged/leaf-kernels.csv.gz) · [Raw compressor timings](results/merged/leaf-raw.csv.gz) · [Candidate sources and reproduction harness](results/merged/leaf-experiment.tar.gz)
+
+## AVX-512 chain output stores
+
+The adopted kernel keeps finished lane digests in registers and transposes them once to write the output blocks. For a group that finishes together it writes the final compression directly. The benchmark covers all three digest widths, twelve batch sizes from zero to 33, and four chain-length patterns. Each sample checks every byte against the portable implementation before timing. Each build also passed 15 kernel and compression tests per host.
+
+| CPU | Chain kernel speedup | Mixed lengths | Uniform 15 steps | Median public API speedup | 32-byte SHA2-128s sign / raw SHA time |
+|---|---:|---:|---:|---:|---:|
+| Xeon 8275CL | 1.0774× | 1.1077× | 0.9965× | 0.9996× | 0.9726× |
+| EPYC 9R45 | 1.1126× | 1.1439× | 1.0120× | 1.0012× | 0.9146× |
+| Xeon 6975P-C | 1.0553× | 1.0695× | 0.9995× | 1.0009× | 0.9317× |
+
+Kernel speedups are medians over 81 configurations with at least eight lanes and some active work. The other kernel columns restrict that set to mixed or uniform lengths. Public API medians cover 36 workloads per host. The raw SHA time is the sum of exact SHA-256 and SHA-512 block counts times the same-vCPU 16-way and 8-way general compressor times. Each round uses matching inputs and calibration. Round zero is excluded. API workloads also use specialized FORS and WOTS kernels, which limits how much these chain-driver improvements affect public operations. [Adopted kernel measurements](results/merged/chain-stores-fast-kernels.csv) · [API and raw SHA ratios](results/merged/chain-stores-fast.csv) · [Samples, sources and test results](results/merged/chain-stores-fast.tar.gz)
+
+Two earlier runs compared scattering, immediate transposition and deferred transposition. Factoring the compression out of the loop reduced throughput for the common uniform-length case. The adopted version keeps compression inline and extracts the word-packing and finished-lane functions for Lean. [First comparison](results/merged/chain-stores-screen-kernels.csv) · [First run sources and samples](results/merged/chain-stores-screen.tar.gz) · [Independent comparison](results/merged/chain-stores-confirm-kernels.csv) · [Independent run sources and samples](results/merged/chain-stores-confirm.tar.gz)

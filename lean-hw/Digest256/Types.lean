@@ -22,13 +22,13 @@ set_option maxRecDepth 2048
 namespace DigestRust
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{closure#1}]
-    Source: 'src/sha256/x86/avx512.rs', lines 355:41-365:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 412:41-422:9 -/
 def sha256.x86.avx512.key_digests.closure_1 (N : Std.Usize) (L : Std.Usize) :=
   Std.U16 × core.core_arch.x86.__m512i × Slice (Array Std.U8 L) × Std.Usize
   × core.core_arch.x86.__m512i
 
 /-- [slhdsa::sha256::x86::avx512::key_digests::{closure}]
-    Source: 'src/sha256/x86/avx512.rs', lines 347:29-347:60 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 404:29-404:60 -/
 @[reducible]
 def sha256.x86.avx512.key_digests.closure (N : Std.Usize) (L : Std.Usize) :=
 Unit

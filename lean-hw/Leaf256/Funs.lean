@@ -150,7 +150,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnMut<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure#1}<N>}::call_mut]:
-    Source: 'src/sha256/x86/avx512.rs', lines 245:26-245:57 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 302:26-302:57 -/
 def
   sha256.x86.avx512.fors_leaves.closure_1.Insts.CoreOpsFunctionFnMutTupleU32__m512i.call_mut
   {N : Std.Usize} (c : sha256.x86.avx512.fors_leaves.closure_1 N)
@@ -163,7 +163,7 @@ def
   ok (mi, c)
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnOnce<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure#1}<N>}::call_once]:
-    Source: 'src/sha256/x86/avx512.rs', lines 245:26-245:57 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 302:26-302:57 -/
 def
   sha256.x86.avx512.fors_leaves.closure_1.Insts.CoreOpsFunctionFnOnceTupleU32__m512i.call_once
   {N : Std.Usize} (c : sha256.x86.avx512.fors_leaves.closure_1 N) (i : Std.U32)
@@ -176,7 +176,7 @@ def
   ok mi
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnOnce<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure#1}<N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 245:26-245:57 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 302:26-302:57 -/
 @[reducible]
 def
   sha256.x86.avx512.fors_leaves.closure_1.Insts.CoreOpsFunctionFnOnceTupleU32__m512i
@@ -188,7 +188,7 @@ def
 }
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnMut<(u32,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure#1}<N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 245:26-245:57 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 302:26-302:57 -/
 @[reducible]
 def
   sha256.x86.avx512.fors_leaves.closure_1.Insts.CoreOpsFunctionFnMutTupleU32__m512i
@@ -203,7 +203,7 @@ def
 }
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure}<'_0, N>}::call_mut]:
-    Source: 'src/sha256/x86/avx512.rs', lines 240:51-244:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 297:51-301:5 -/
 def
   sha256.x86.avx512.fors_leaves.closure.Insts.CoreOpsFunctionFnMutTupleUsize__m512i.call_mut
   {N : Std.Usize} (c : sha256.x86.avx512.fors_leaves.closure N)
@@ -225,7 +225,7 @@ def
   ok (mi, c)
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure}<'_0, N>}::call_once]:
-    Source: 'src/sha256/x86/avx512.rs', lines 240:51-244:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 297:51-301:5 -/
 def
   sha256.x86.avx512.fors_leaves.closure.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i.call_once
   {N : Std.Usize} (c : sha256.x86.avx512.fors_leaves.closure N) (i : Std.Usize)
@@ -238,7 +238,7 @@ def
   ok mi
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnOnce<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure}<'_0, N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 240:51-244:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 297:51-301:5 -/
 @[reducible]
 def
   sha256.x86.avx512.fors_leaves.closure.Insts.CoreOpsFunctionFnOnceTupleUsize__m512i
@@ -250,7 +250,7 @@ def
 }
 
 /-- Trait implementation: [slhdsa::sha256::x86::avx512::fors_leaves::{impl core::ops::function::FnMut<(usize,), core::core_arch::x86::__m512i> for slhdsa::sha256::x86::avx512::fors_leaves::{closure}<'_0, N>}]
-    Source: 'src/sha256/x86/avx512.rs', lines 240:51-244:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 297:51-301:5 -/
 @[reducible]
 def
   sha256.x86.avx512.fors_leaves.closure.Insts.CoreOpsFunctionFnMutTupleUsize__m512i
@@ -265,7 +265,7 @@ def
 }
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop body 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 249:4-251:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 306:4-308:5 -/
 @[rust_loop_body]
 def sha256.x86.avx512.fors_leaves_loop0.body
   (base : Array core.core_arch.x86.__m512i 16#usize)
@@ -286,7 +286,7 @@ def sha256.x86.avx512.fors_leaves_loop0.body
     ok (cont (iter1, prefix1))
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop 0:
-    Source: 'src/sha256/x86/avx512.rs', lines 249:4-251:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 306:4-308:5 -/
 @[rust_loop]
 def sha256.x86.avx512.fors_leaves_loop0
   (iter : core.ops.range.Range Std.Usize)
@@ -300,7 +300,7 @@ def sha256.x86.avx512.fors_leaves_loop0
     (iter, «prefix»)
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop body 2:
-    Source: 'src/sha256/x86/avx512.rs', lines 279:8-284:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 336:8-341:9 -/
 @[rust_loop_body]
 def sha256.x86.avx512.fors_leaves_loop1_loop0.body
   (prf : Array core.core_arch.x86.__m512i 8#usize)
@@ -326,7 +326,7 @@ def sha256.x86.avx512.fors_leaves_loop1_loop0.body
     ok (cont (iter1, a))
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop 2:
-    Source: 'src/sha256/x86/avx512.rs', lines 279:8-284:9 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 336:8-341:9 -/
 @[rust_loop]
 def sha256.x86.avx512.fors_leaves_loop1_loop0
   (iter : core.ops.range.Range Std.Usize)
@@ -340,7 +340,7 @@ def sha256.x86.avx512.fors_leaves_loop1_loop0
     (iter, w)
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop body 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 268:4-291:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 325:4-348:5 -/
 @[rust_loop_body]
 def sha256.x86.avx512.fors_leaves_loop1.body
   {N : Std.Usize} (first : Std.U32)
@@ -410,7 +410,7 @@ def sha256.x86.avx512.fors_leaves_loop1.body
     ok (cont (iter1, out1))
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]: loop 1:
-    Source: 'src/sha256/x86/avx512.rs', lines 268:4-291:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 325:4-348:5 -/
 @[rust_loop]
 def sha256.x86.avx512.fors_leaves_loop1
   {N : Std.Usize}
@@ -430,7 +430,7 @@ def sha256.x86.avx512.fors_leaves_loop1
     (iter, out)
 
 /-- [slhdsa::sha256::x86::avx512::fors_leaves]:
-    Source: 'src/sha256/x86/avx512.rs', lines 228:0-292:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 285:0-349:1 -/
 def sha256.x86.avx512.fors_leaves
   {N : Std.Usize} (state : Array Std.U32 8#usize) (sk_seed : Array Std.U8 N)
   (adrs : address.Adrs) (first : Std.U32) (out : Slice (Array Std.U8 N)) :

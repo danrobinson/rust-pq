@@ -33,12 +33,12 @@ structure address.Adrs where
   word3 : Std.U32
 
 /-- [slhdsa::sha256::x86::avx512::fors_parents::{closure#1}]
-    Source: 'src/sha256/x86/avx512.rs', lines 309:26-309:57 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 366:26-366:57 -/
 @[reducible]
 def sha256.x86.avx512.fors_parents.closure_1 (N : Std.Usize) := Unit
 
 /-- [slhdsa::sha256::x86::avx512::fors_parents::{closure}]
-    Source: 'src/sha256/x86/avx512.rs', lines 304:51-308:5 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 361:51-365:5 -/
 @[reducible]
 def sha256.x86.avx512.fors_parents.closure (N : Std.Usize) :=
   Array Std.U8 64#usize

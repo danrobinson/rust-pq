@@ -49,7 +49,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::x86::avx512::round]:
-    Source: 'src/sha256/x86/avx512.rs', lines 192:0-219:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 249:0-276:1 -/
 def sha256.x86.avx512.round
   (a : Array core.core_arch.x86.__m512i 8#usize)
   (w : core.core_arch.x86.__m512i) (k : Std.U32) :
@@ -133,7 +133,7 @@ def sha256.x86.avx512.compression_step
   ok (state1, w1)
 
 /-- [slhdsa::sha256::x86::avx512::compress]:
-    Source: 'src/sha256/x86/avx512.rs', lines 223:0-225:1 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 280:0-282:1 -/
 def sha256.x86.avx512.compress
   (initial : Array core.core_arch.x86.__m512i 8#usize)
   (state : Array core.core_arch.x86.__m512i 8#usize)
@@ -276,302 +276,302 @@ def sha256.x86.avx512.compress
   ok (Array.make 8#usize [ mi2, mi5, mi8, mi11, mi14, mi17, mi20, mi23 ])
 
 /-- [slhdsa::sha256::x86::avx512::compress::I]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I : Std.Usize := 4#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#1]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_1 : Result Std.Usize := 4#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#2]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_2 : Result Std.Usize := 4#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#3]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_3 : Result Std.Usize := 4#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#4]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_4 : Std.Usize := 8#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#5]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_5 : Result Std.Usize := 8#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#6]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_6 : Result Std.Usize := 8#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#7]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_7 : Result Std.Usize := 8#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#8]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_8 : Std.Usize := 12#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#9]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_9 : Result Std.Usize := 12#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#10]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_10 : Result Std.Usize := 12#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#11]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_11 : Result Std.Usize := 12#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#12]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_12 : Std.Usize := 16#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#13]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_13 : Result Std.Usize := 16#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#14]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_14 : Result Std.Usize := 16#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#15]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_15 : Result Std.Usize := 16#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#16]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_16 : Std.Usize := 20#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#17]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_17 : Result Std.Usize := 20#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#18]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_18 : Result Std.Usize := 20#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#19]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_19 : Result Std.Usize := 20#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#20]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_20 : Std.Usize := 24#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#21]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_21 : Result Std.Usize := 24#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#22]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_22 : Result Std.Usize := 24#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#23]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_23 : Result Std.Usize := 24#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#24]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_24 : Std.Usize := 28#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#25]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_25 : Result Std.Usize := 28#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#26]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_26 : Result Std.Usize := 28#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#27]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_27 : Result Std.Usize := 28#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#28]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_28 : Std.Usize := 32#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#29]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_29 : Result Std.Usize := 32#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#30]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_30 : Result Std.Usize := 32#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#31]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_31 : Result Std.Usize := 32#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#32]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_32 : Std.Usize := 36#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#33]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_33 : Result Std.Usize := 36#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#34]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_34 : Result Std.Usize := 36#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#35]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_35 : Result Std.Usize := 36#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#36]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_36 : Std.Usize := 40#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#37]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_37 : Result Std.Usize := 40#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#38]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_38 : Result Std.Usize := 40#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#39]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_39 : Result Std.Usize := 40#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#40]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_40 : Std.Usize := 44#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#41]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_41 : Result Std.Usize := 44#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#42]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_42 : Result Std.Usize := 44#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#43]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_43 : Result Std.Usize := 44#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#44]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_44 : Std.Usize := 48#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#45]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_45 : Result Std.Usize := 48#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#46]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_46 : Result Std.Usize := 48#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#47]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_47 : Result Std.Usize := 48#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#48]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_48 : Std.Usize := 52#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#49]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_49 : Result Std.Usize := 52#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#50]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_50 : Result Std.Usize := 52#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#51]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_51 : Result Std.Usize := 52#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#52]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_52 : Std.Usize := 56#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#53]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_53 : Result Std.Usize := 56#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#54]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_54 : Result Std.Usize := 56#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#55]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_55 : Result Std.Usize := 56#usize + 3#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#56]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_56 : Std.Usize := 60#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#57]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_57 : Result Std.Usize := 60#usize + 1#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#58]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_58 : Result Std.Usize := 60#usize + 2#usize
 
 /-- [slhdsa::sha256::x86::avx512::compress::I#59]
-    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 224:4-224:35 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 41:16-41:36; this code is generated from a macro invocation at: 'src/sha256/x86/avx512.rs', lines 281:4-281:35 -/
 @[global_simps, irreducible]
 def sha256.x86.avx512.compress.I_59 : Result Std.Usize := 60#usize + 3#usize
 

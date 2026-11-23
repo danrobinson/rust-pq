@@ -86,3 +86,6 @@ name = "Parent256"
 
 [[lean_lib]]
 name = "Chainni"
+
+[[lean_lib]]
+name = "Chainvectors"

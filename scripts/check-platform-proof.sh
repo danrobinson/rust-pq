@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -401,4 +401,25 @@ LEAN
 )
 for name in chains_spec pack_spec shared_spec group_spec; do
   grep -Fx "'slhdsa.Intel.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainni-axioms.log"
+done
+extract Chainvectors ChainVectorRust chainvectors --start-from 'crate::sha256::x86::avx512::chain_address' \
+  --start-from 'crate::sha256::x86::avx512::chain_value' --start-from 'crate::sha256::x86::avx512::chain_done'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_and_si512
+core.core_arch.x86.avx512f._mm512_mask_mov_epi32
+core.core_arch.x86.avx512f._mm512_or_si512
+core.core_arch.x86.avx512f._mm512_slli_epi32
+core.core_arch.x86.avx512f._mm512_srli_epi32
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainvectors.Words && lake env lean --stdin > "$scratch/chainvectors-axioms.log" <<'LEAN'
+import Chainvectors.Words
+#print axioms slhdsa.X86.Chain.address_spec
+#print axioms slhdsa.X86.Chain.value_spec
+#print axioms slhdsa.X86.Chain.saved_spec
+LEAN
+)
+for name in address_spec value_spec saved_spec; do
+  grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainvectors-axioms.log"
 done
