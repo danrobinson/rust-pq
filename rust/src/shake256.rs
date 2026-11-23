@@ -1,6 +1,13 @@
 //! SHAKE256, the byte-oriented sponge of FIPS 202 §§5–6 with a 1088-bit rate.
 //! Lanes use the index x + 5*y. Within a lane, byte zero is least significant.
 
+#[cfg(all(feature = "platform-sha2", any(
+    all(target_arch = "aarch64", target_endian = "little"),
+    all(target_arch = "x86_64", target_feature = "sse2")
+)))]
+#[allow(unsafe_code)]
+pub(crate) mod parallel;
+
 const RATE: usize = 136;
 const RC: [u64; 24] = [
     0x0000000000000001,
@@ -113,6 +120,11 @@ fn round(a: &[u64; 25], rc: u64) -> [u64; 25] {
 }
 
 fn permute(state: &mut [u64; 25]) {
+    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    if crate::sha512::hw::arm::available() {
+        parallel::single(state);
+        return;
+    }
     let mut i = 0;
     while i < 24 {
         *state = round(state, RC[i]);
@@ -136,6 +148,29 @@ impl Sponge {
 
     pub(crate) fn absorb(&mut self, data: &[u8]) {
         let mut i = 0;
+        #[cfg(feature = "platform-sha2")]
+        {
+            // Reach a lane boundary before reading successive little-endian words.
+            while self.pos % 8 != 0 && i < data.len() {
+                self.lanes[self.pos / 8] ^= (data[i] as u64) << (8 * (self.pos % 8));
+                self.pos += 1;
+                i += 1;
+                if self.pos == RATE {
+                    permute(&mut self.lanes);
+                    self.pos = 0;
+                }
+            }
+            while data.len() - i >= 8 {
+                let word = u64::from_le_bytes(data[i..i + 8].try_into().unwrap());
+                self.lanes[self.pos / 8] ^= word;
+                self.pos += 8;
+                i += 8;
+                if self.pos == RATE {
+                    permute(&mut self.lanes);
+                    self.pos = 0;
+                }
+            }
+        }
         while i < data.len() {
             self.lanes[self.pos / 8] ^= (data[i] as u64) << (8 * (self.pos % 8));
             self.pos += 1;

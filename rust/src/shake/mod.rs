@@ -6,6 +6,10 @@ macro_rules! sha2_only {
     ($($item:tt)*) => {  };
 }
 
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+mod batch;
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+mod fors_batch;
 pub mod hash;
 mod wots;
 mod fors;
