@@ -26,14 +26,14 @@ structure Hashes where
   prfmsg : Bytes
 
 def suite (s : StandardSet) (seed addr secret m1 m2 : Bytes) (rows : List Bytes)
-    (r root key rand : Bytes) (msg : List (List Bytes)) : Hashes :=
+    (r root key rand : Bytes) (msg : List (List Bytes)) (algs : Algorithms := nativeAlgorithms) : Hashes :=
   let (levelOne,n,m) := config s
   if levelOne then
-    ⟨l1_prf_sk n seed addr secret, l1_f n seed addr m1, l1_h n seed addr m1 m2,
-     l1_t n seed addr rows, l1_hmsg m r seed root msg, l1_prfmsg n key rand msg⟩
+    ⟨l1_prf_sk n seed addr secret algs, l1_f n seed addr m1 algs, l1_h n seed addr m1 m2 algs,
+     l1_t n seed addr rows algs, l1_hmsg m r seed root msg algs, l1_prfmsg n key rand msg algs⟩
   else
-    ⟨l35_prf_sk n seed addr secret, l35_f n seed addr m1, l35_h n seed addr m1 m2,
-     l35_t n seed addr rows, l35_hmsg m r seed root msg, l35_prfmsg n key rand msg⟩
+    ⟨l35_prf_sk n seed addr secret algs, l35_f n seed addr m1 algs, l35_h n seed addr m1 m2 algs,
+     l35_t n seed addr rows algs, l35_hmsg m r seed root msg algs, l35_prfmsg n key rand msg algs⟩
 
 def standard (p : Params) (seed : Bytes) (addr : Adrs) (secret m1 m2 : Bytes) (rows : List Bytes)
     (r root key rand : Bytes) (msg : List (List Bytes)) : Hashes :=
@@ -66,7 +66,7 @@ theorem suite_is_fips (s : StandardSet) (seed : Bytes) (addr : Adrs) (secret m1 
   have mc512 := fun msg => mac512 key msg small
   simp only [digest256_eq, digest512_eq] at mg30 mg34 mg39 mg42 mg47 mg49 mc256 mc512
   cases s <;>
-    simp [suite,standard,params,config,suite128s,suite128f,suite192s,suite192f,suite256s,suite256f,
+    simp [suite,nativeAlgorithms,standard,params,config,suite128s,suite128f,suite192s,suite192f,suite256s,suite256f,
       sha2_128s,sha2_128f,sha2_192s,sha2_192f,sha2_256s,sha2_256f, F,H,T,PRF,Hmsg,PRFmsg,
       l1_f,l1_h,l1_t,l1_prf_sk,l1_hmsg,l1_prfmsg,l35_f,l35_h,l35_t,l35_prf_sk,l35_hmsg,l35_prfmsg,
       l1_cached_hasher,l35_cached_hasher_256,l35_cached_hasher_512,compressed_eq,absorb_eq,

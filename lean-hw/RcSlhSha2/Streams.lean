@@ -4,6 +4,12 @@ import RcSlhSha2.Buffer
 namespace slhdsa.RcSlhSha2
 open Spec
 
+structure Algorithms where
+  sha256 : Bytes → Bytes
+  sha512 : Bytes → Bytes
+
+def nativeAlgorithms : Algorithms := ⟨digest256, digest512⟩
+
 def absorb (pre : Bytes) (parts : List Bytes) : Bytes := parts.foldl (· ++ ·) pre
 
 theorem absorb_eq (pre : Bytes) (parts : List Bytes) :
