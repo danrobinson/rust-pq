@@ -1,5 +1,6 @@
 import X86stream.Prefix
 import Streamvector.Top
+import S8driver.Top
 open Aeneas Aeneas.Std Result
 open ChainAvx2Rust (fullChunks remainder)
 namespace slhdsa.X86.Stream
@@ -93,11 +94,7 @@ theorem short256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
     X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ := by
   apply continued256 st pre msg _ aligned space
-  intro selected
-  have required := selected.1
-  rw [group_count] at required
-  change 16 ≤ msg.length/64 at required
-  omega
+  exact fun _ => Eight.prescheduled256 st _
 
 theorem short512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
     (short : msg.length < 1024)
@@ -136,7 +133,7 @@ theorem stream256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
     (aligned : pre.val%64=0) (space : Room (pre.val+msg.length) 72) :
     X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ :=
-  continued256 st pre msg (fun _ => prescheduled256 st _) aligned space
+  continued256 st pre msg (fun _ => Eight.prescheduled256 st _) aligned space
 
 theorem stream512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
     (space : pre.val+msg.length+144 ≤ Usize.max) :

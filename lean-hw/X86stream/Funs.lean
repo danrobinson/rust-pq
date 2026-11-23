@@ -26,11 +26,11 @@ noncomputable section
 namespace X86StreamRust
 
 /-- [slhdsa::sha256::stream::FORCE_SOFT]
-    Source: 'src/sha256/stream.rs', lines 115:0-115:85 -/
+    Source: 'src/sha256/stream.rs', lines 134:0-134:85 -/
 @[global_simps, irreducible] def sha256.stream.FORCE_SOFT : Bool := false
 
 /-- [slhdsa::sha256::stream::prefix]:
-    Source: 'src/sha256/stream.rs', lines 43:0-53:1 -/
+    Source: 'src/sha256/stream.rs', lines 43:0-54:1 -/
 def sha256.stream.prefix
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize)) :
   Result ((Slice (Array Std.U8 64#usize)) × (Array Std.U32 8#usize))
@@ -39,7 +39,7 @@ def sha256.stream.prefix
   then ok (blocks, state)
   else
     let i := Slice.len blocks
-    if i < 16#usize
+    if i < 8#usize
     then ok (blocks, state)
     else
       let b ← sha256.stream.available.get
@@ -49,7 +49,7 @@ def sha256.stream.prefix
         if b1
         then ok (blocks, state)
         else
-          let (groups, tail) ← core.slice.Slice.as_chunks 16#usize blocks
+          let (groups, tail) ← core.slice.Slice.as_chunks 8#usize blocks
           let state1 ← sha256.stream.prescheduled state groups
           ok (tail, state1)
       else ok (blocks, state)
@@ -189,7 +189,7 @@ def sha256.sha256_from
   sha256.digest state3
 
 /-- [slhdsa::sha512::stream::FORCE_SOFT]
-    Source: 'src/sha512/stream.rs', lines 128:0-128:85 -/
+    Source: 'src/sha512/stream.rs', lines 135:0-135:85 -/
 @[global_simps, irreducible] def sha512.stream.FORCE_SOFT : Bool := false
 
 /-- [slhdsa::sha512::stream::prefix]:

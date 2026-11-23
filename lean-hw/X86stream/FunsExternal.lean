@@ -1,6 +1,7 @@
 module
 public import X86stream.Types
 public import X86remainder.Funs
+public import S8driver.Funs
 public import Streamvector.Funs
 @[expose] public section
 open Aeneas Aeneas.Std Result
@@ -15,6 +16,6 @@ opaque vectorAvailable : Bool
 def sha256.stream.available.get : Result Bool := ok vectorAvailable
 abbrev sha512.stream.available.get := sha256.stream.available.get
 
-abbrev sha256.stream.prescheduled := StreamVectorRust.sha256.stream.prescheduled
+abbrev sha256.stream.prescheduled := S8driverRust.sha256.stream.prescheduled
 abbrev sha512.stream.prescheduled := StreamVectorRust.sha512.stream.prescheduled
 end X86StreamRust
