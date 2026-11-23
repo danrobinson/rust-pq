@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1127,6 +1127,22 @@ platform_arch=aarch64-apple-darwin
 extract Kappleone KappleoneRust kappleone --start-from 'crate::shake256::parallel::single' --opaque 'crate::shake256::parallel::sha3::permute'
 echo 'shake256.parallel.sha3.permute' > "$scratch/expected"
 cmp "$scratch/actual" "$scratch/expected"
+extract Kapplebulk KapplebulkRust kapplebulk --start-from 'crate::shake256::parallel::blocks' --opaque 'crate::shake256::parallel::sha3::round'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.arm_shared.neon.generated.vdupq_n_u64
+core.core_arch.arm_shared.neon.generated.veorq_u64
+core.core_arch.arm_shared.neon.generated.vgetq_lane_u64
+core.core_arch.arm_shared.neon.uint64x2_t
+shake256.parallel.sha3.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+extract Kappleouter KappleouterRust kappleouter --start-from 'crate::shake256::shake256' --opaque 'crate::shake256::parallel::blocks' --opaque 'crate::shake256::parallel::single'
+cat > "$scratch/expected" <<'NAMES'
+shake256.parallel.blocks
+shake256.parallel.single
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
 extract Kneonperm KneonpermRust kneonperm --start-from 'crate::shake256::parallel::neon::permute' --opaque 'crate::shake256::parallel::neon::round'
 cat > "$scratch/expected" <<'NAMES'
 core.core_arch.arm_shared.neon.uint64x2_t
@@ -1148,18 +1164,21 @@ shake256.parallel.neon.permute
 shake256.parallel.sha3.permute
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Kxdispatch.Proof Kadisp.Proof Kneonperm.Proof Kappleone.Proof && lake env lean --stdin > "$scratch/parallel-keccak-axioms" <<'LEAN'
+(cd lean-hw && lake build Kxdispatch.Proof Kadisp.Proof Kneonperm.Proof Kappleone.Proof Kappleouter.Top && lake env lean --stdin > "$scratch/parallel-keccak-axioms" <<'LEAN'
 import Kxdispatch.Proof
 import Kadisp.Proof
 import Kneonperm.Proof
 import Kappleone.Proof
+import Kappleouter.Top
+#print axioms slhdsa.PlatformShake.Apple.shake256_fips
+#print axioms slhdsa.Kapplebulk.blocks_fips
 #print axioms slhdsa.Kappleone.single_fips
 #print axioms slhdsa.Kxdispatch.permutation_correct
 #print axioms slhdsa.Kadisp.permutation_correct
 #print axioms slhdsa.Kneonperm.permute_fips
 LEAN
 )
-for name in Kxdispatch.permutation_correct Kadisp.permutation_correct Kneonperm.permute_fips Kappleone.single_fips; do
+for name in Kxdispatch.permutation_correct Kadisp.permutation_correct Kneonperm.permute_fips Kappleone.single_fips PlatformShake.Apple.shake256_fips Kapplebulk.blocks_fips; do
   grep -Fx "'slhdsa.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parallel-keccak-axioms"
 done
 platform_arch=aarch64-unknown-linux-gnu
