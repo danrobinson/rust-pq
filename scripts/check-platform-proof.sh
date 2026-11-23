@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -704,4 +704,27 @@ LEAN
 )
 for name in round256_spec round512_spec read32 read64 expansion256 expansion512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-round-axioms"
+done
+
+platform_arch=aarch64-unknown-linux-gnu
+extract Armstream ArmStreamRust armstream --start-from 'crate::sha256::sha256_from' \
+  --start-from 'crate::sha512::sha512_from' --start-from 'crate::sha512::compress' \
+  --opaque 'sha2::sha256::compress256' --opaque 'sha2::sha512::compress512'
+unset platform_arch
+cat > "$scratch/expected" <<'NAMES'
+core.slice.Slice.as_chunks
+core.slice.raw.from_ref
+sha2.sha256.compress256
+sha2.sha512.compress512
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Armstream.Proof && lake env lean --stdin > "$scratch/arm-stream-axioms" <<'LEAN'
+import Armstream.Proof
+#print axioms slhdsa.PlatformStream.arm256_from
+#print axioms slhdsa.PlatformStream.arm512_from
+#print axioms slhdsa.PlatformStream.arm512_block
+LEAN
+)
+for name in arm256_from arm512_from arm512_block; do
+  grep -Fx "'slhdsa.PlatformStream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/arm-stream-axioms"
 done

@@ -44,15 +44,20 @@ private theorem flatten_prefix {T : Type u} (xs : List T) (n count off : Nat) :
     rw [ih (off+n),← List.drop_drop,← List.take_add]
     congr 1; omega
 
+theorem fullChunks_flatten {T : Type u} (b : Slice T) (n : Usize) :
+    (fullChunks n b).val.flatMap (·.val) = b.val.take (n.val*(b.length/n.val)) := by
+  unfold fullChunks
+  simp only [Slice.from_val]
+  rw [List.flatMap_def,List.map_ofFn]
+  simpa only [Function.comp_def,Array.from_val,Nat.zero_add,List.drop_zero] using flatten_prefix b.val n.val (b.length/n.val) 0
+
+theorem chunk_parts {T : Type u} (b : Slice T) (n : Usize) :
+    (fullChunks n b).val.flatMap (·.val) ++ (remainder n b).val = b.val := by
+  simp only [fullChunks_flatten,remainder,Slice.from_val,List.take_append_drop]
+
 theorem chunks_roundtrip {T : Type u} (b : Slice T) (n : Usize) :
     joinChunks b (fullChunks n b, remainder n b) = b := by
-  have arr : (fullChunks n b).val.flatMap (·.val) = b.val.take (n.val*(b.length/n.val)) := by
-    unfold fullChunks
-    simp only [Slice.from_val]
-    rw [List.flatMap_def,List.map_ofFn]
-    simpa only [Function.comp_def,Array.from_val,Nat.zero_add,List.drop_zero] using flatten_prefix b.val n.val (b.length/n.val) 0
-  have rejoin : (fullChunks n b).val.flatMap (·.val) ++ (remainder n b).val = b.val := by
-    simp only [arr,remainder,Slice.from_val,List.take_append_drop]
+  have rejoin := chunk_parts b n
   apply Slice.ext
   unfold joinChunks
   simp [rejoin,Slice.length]
