@@ -1236,3 +1236,14 @@ import Kspongel.Top
 LEAN
 )
 grep -Fx "'slhdsa.PlatformShake.Linux.shake256_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/linux-shake-axioms"
+
+(cd lean-hw && lake build PeerEquality.Primitives && lake env lean --stdin > "$scratch/peer-equality-axioms" <<'LEAN'
+import PeerEquality.Primitives
+#print axioms slhdsa.PeerEquality.sha256_scalar_rustcrypto
+#print axioms slhdsa.PeerEquality.sha512_scalar_rustcrypto
+#print axioms slhdsa.PeerEquality.shake256_apple_linux
+LEAN
+)
+for name in sha256_scalar_rustcrypto sha512_scalar_rustcrypto shake256_apple_linux; do
+  grep -Fx "'slhdsa.PeerEquality.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/peer-equality-axioms"
+done
