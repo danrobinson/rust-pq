@@ -31,6 +31,8 @@ import Ct.SignFacts
 import Ct.Sign
 import Ct.Theorems
 import Ct.Encoding
+import Ct.ShakeEncoding
+import Ct.ShakeSets
 import Ct.Sets.Sha2_128s
 import Ct.Sets.Sha2_128f
 import Ct.Sets.Sha2_192s
