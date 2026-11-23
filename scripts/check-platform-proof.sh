@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Streamround|Armstream|Streamstep|Streamscalar|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -890,3 +890,20 @@ LEAN
 for name in thash_eq recover_fips; do
   grep -Fx "'slhdsa.X86.Wots.Wide.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wide-axioms"
 done
+
+extract Wotsapi WotsApiRust wotsapi --start-from 'crate::wots::wots_pk_from_sig' \
+  --opaque 'crate::wots::wide::recover' --opaque 'crate::sha256::x86::avx512_available' \
+  --opaque 'crate::sha256::x86::chain_blocks' --opaque 'crate::hash::thash_values'
+cat > "$scratch/expected" <<'NAMES'
+hash.thash_values
+sha256.x86.avx512_available
+sha256.x86.chain_blocks
+wots.wide.recover
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Wotsapi.Fallback && lake env lean --stdin > "$scratch/wotsapi-axioms" <<'LEAN'
+import Wotsapi.Fallback
+#print axioms slhdsa.X86.Wots.Api.recover_fips
+LEAN
+)
+grep -Fx "'slhdsa.X86.Wots.Api.recover_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wotsapi-axioms"

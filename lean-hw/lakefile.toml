@@ -131,3 +131,6 @@ name = "X86stream"
 
 [[lean_lib]]
 name = "Wotswide"
+
+[[lean_lib]]
+name = "Wotsapi"
