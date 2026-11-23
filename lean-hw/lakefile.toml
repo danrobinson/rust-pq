@@ -22,6 +22,9 @@ srcDir = "../lean"
 [[lean_lib]]
 name = "Arm"
 
+[[lean_lib]]
+name = "Shakebatch"
+
 # The Aeneas translation of rust/ built with `hw-sha2` (scripts/extract-hw.sh), and its
 # proofs. Proof files that do not depend on the build, and the headline files, are symbolic
 # links into ../lean/Slhdsa. This package's own files: the wrapper model
