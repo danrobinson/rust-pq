@@ -173,3 +173,9 @@ import Ideal.Direct.CollBudget
 import Ideal.Direct.RomSim
 import Ideal.Direct.RomCompose
 import Ideal.Direct.RomNumerics
+import Ideal.Direct.LRelabel
+import Ideal.Direct.LDefer
+import Ideal.Direct.MDCore
+import Ideal.Direct.MDToy
+import Ideal.Direct.MDSha
+import Ideal.Direct.MDHop

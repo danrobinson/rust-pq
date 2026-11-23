@@ -1219,3 +1219,194 @@ below the 7–9k of the direct route's D4–D8 (§9.2) for a better bound.  `Dag
 tokens, axioms): `CHECK PASSED`, exit 0, no `FAIL` line.  `grep` for `sorry|axiom |native_decide|bv_decide`
 in the three new files: only the `#print axioms` lines.  Every `#print axioms` of the new files:
 `[propext, Classical.choice, Quot.sound]`.
+
+---------------------------------------------------------------------------------------------
+
+## 11. 2026-11-22 (fifth session): H1 and the Merkle–Damgård relabel/deferral core (H2, first half)
+
+Six new files under `Ideal/Direct/` (1738 lines), six `import` lines appended to `Ideal.lean`; no
+existing Lean file changed.
+`lake build Ideal`: success (7443 jobs).  Every `#print axioms` of the new files:
+`[propext, Classical.choice, Quot.sound]`; no `sorry`/`axiom`/`native_decide`/`bv_decide`.
+**`MDHopSuf` / `MDHopEuf` are NOT proved.  They are reduced to four smaller named statements
+(11.3); no unconditional bound on `sufI`/`eufI`/`sufP`/`eufP` beyond tight8's is proved.**
+
+### 11.1 Files
+
+| file | lines | content |
+|---|---|---|
+| `Direct/LRelabel.lean` | 519 | VCVio's `CanonicalGraph` relabelling **without `pt_inj`** (copied from `VCVio/.../RandomOracle/Relabel.lean`, Apache 2.0, and generalised) |
+| `Direct/LDefer.lean` | 334 | VCVio's touch deferral for the same graphs (copied from `.../RandomOracle/Defer.lean`, generalised) |
+| `Direct/MDCore.lean` | 445 | the Merkle–Damgård graph, walks, **`md_core`**, what `Bad` means for MD |
+| `Direct/MDToy.lean` | 49 | the core at `St = Blk = Bool` (small instance) |
+| `Direct/MDSha.lean` | 178 | **H1**: `progS`/`progE` are walk programs answered by compression chains |
+| `Direct/MDHop.lean` | 213 | `sufI ≤ deferred + 2·Bad`; the remaining statements; `MDHopSuf` from them |
+
+Copied code: the graph part of VCVio's `Relabel.lean` (`childVals`…, `merge`, `Conflict`,
+`LabelsComplete`, `relabelImpl`, the four step lemmas, the domination) and of `Defer.lean`
+(`eagerImpl`, `deferredImpl`, `maskedImpl`, run equations, `intertwines_maskedFill`, the
+domination, the deferral theorems).  The graph-independent state-level parts (`RelabelState`,
+`drawCell`, `labelImpl`, `mask`, `revealCell`, `endFill`, `maskedFill`,
+`evalDist_drawCell_bind_maskedFill`) are imported from VCVio, not copied.
+
+### 11.2 Statements proved (file:line)
+
+**Relabelling with non-injective points (generic).**  `LGraph pub X K R` (`LRelabel.lean:39`) is
+`CanonicalGraph` with `pt_inj` replaced by `root_inj` (childless nodes have distinct points).
+`PtColl st` (`:92`): two distinct nodes with drawn children have the same point; `Bad = Conflict ∨
+PtColl` (`:192`), monotone (`Bad.mono :194`), false at `(∅, ∅)` (`not_bad_empty :198`).
+```
+theorem LGraph.dominatedUntilBad_relabelImpl :                                         -- LRelabel.lean:475
+    QueryImpl.DominatedUntilBad G.relabelImpl (SecretEncoding.idealImpl pub X R) G.toSplitCache
+      G.LabelsComplete G.Bad
+theorem LGraph.prEvent_idealImpl_le_relabelImpl (oa) (P) :                            -- :502
+    Pr{let z ← (simulateQ (SecretEncoding.idealImpl pub X R) oa).run (∅, ∅)}[P z] ≤
+      Pr{let z ← (simulateQ G.relabelImpl oa).run (∅, ∅)}[P (z.1, G.toSplitCache z.2) ∨ G.Bad z.2]
+theorem LGraph.intertwines_maskedFill :                                                -- LDefer.lean:144
+    QueryImpl.Intertwines RelabelState.maskedFill G.deferredImpl G.maskedImpl     -- exact, no hypothesis
+theorem LGraph.prEvent_eagerImpl_le_deferredImpl_empty (oa) (P) :                     -- :321
+    Pr{let z ← (simulateQ G.eagerImpl oa).run (∅, ∅)}[P z] ≤
+      Pr{let z ← (simulateQ G.deferredImpl oa).run ((∅, ∅), [])
+         let st ← RelabelState.endFill z.2}[P (z.1, st) ∨ G.Bad st]
+```
+Every use of `pt_inj` in VCVio's proofs is at a state off `PtColl` (the pre-state of a
+`DominatedUntilBad` step, or a post-state restricted to `¬ Bad`).  The intertwining needs no
+injectivity at all: the deferred and masked games choose the node at a point among the nodes
+with drawn children of the same state, hence the same `Classical.choose`.
+
+**The Merkle–Damgård core (H2, first half; generic in `St`, `Blk`, `IV`).**  Program interface
+`OSp St Blk = unifSpec + Cell + WSp` (`MDCore.lean:56`): coins, compression queries, and **walk
+queries** `List Blk →ₒ St` (an honest MD evaluation from `IV`, answered by the full final
+chaining value).  `mdG IV` (`:74`): nodes `(b, rev)` = the block list `rev.reverse ++ [b]`, parent
+`rev`, point `(label of the parent or IV, b)`.  `cellsR` (`:129`): walks by compression chains in
+one lazy table; `labI` (`:140`): walks as label operations (`touch` every proper prefix, `read`
+the full list, `walkL :123`).
+```
+theorem MD.walk_agree … :                                                              -- MDCore.lean:225
+    (in the eager game, from a state off Bad with the walk's parent drawn)
+    Pr{z ← eager-run (walkC c bs)}[Q z ∧ ¬Bad z.2] = Pr{z ← eager-run (walkL IV rev bs)}[Q z ∧ ¬Bad z.2]
+theorem MD.real_eq_ideal (Y) (C D) :                                                  -- :273
+    (simulateQ (SecretEncoding.idealImpl (Cell St Blk) Empty St)
+        (simulateQ ((Cell St Blk).withDerivationsLift Empty St) Y)).run (C, D) =
+      (fun z ↦ (z.1, (z.2, D))) <$> (simulateQ (Cell St Blk).romImpl Y).run C
+theorem MD.md_core (X : OracleComp (OSp St Blk) α) (P : α → Prop) :                  -- :324
+    Pr{let z ← (simulateQ (Cell St Blk).romImpl (simulateQ (cellsR IV) X)).run' ∅}[P z] ≤
+      Pr{let z ← (simulateQ (mdG IV).deferredImpl (simulateQ (labI IV) X)).run ((∅, ∅), [])
+         let _st ← RelabelState.endFill z.2}[P z.1] + 2 *
+      Pr{let z ← (simulateQ (mdG IV).deferredImpl (simulateQ (labI IV) X)).run ((∅, ∅), [])
+         let st ← RelabelState.endFill z.2}[(mdG IV).Bad st]
+theorem MD.ptColl_imp (h : (mdG IV).PtColl st) :                                     -- :407
+    (∃ k k' v, k ≠ k' ∧ st.2 (.inr k) = some v ∧ st.2 (.inr k') = some v) ∨ ∃ k, st.2 (.inr k) = some IV
+theorem MD.conflict_imp (h : (mdG IV).Conflict st) :                                  -- :430
+    (∃ k v b, st.2 (.inr k) = some v ∧ (st.1 (v, b)).isSome) ∨ ∃ b, (st.1 (IV, b)).isSome
+theorem MD.Toy.toy_core : … (md_core at St = Blk = Bool, a two-block honest walk and two
+    forger queries)                                                                    -- MDToy.lean:36
+```
+Proof of `md_core`: real = VCVio's ideal (lazy) game with no derivations; relabelling
+(`LRelabel`); the relabelled run of the compression chains equals the eager run of the label
+operations until a point collision (`walk_agree`, VCVio's `AgreeUntilBad`); touch deferral
+(`LDefer`).  The factor 2: one `Bad` from the agreement step, one from relabel + deferral.  One
+statement covers every honest hash of SLH-DSA-SHA2: a two-stage hash (`H_msg`, HMAC) is a program
+that issues its second walk on a block list computed from the first walk's answer.
+
+**H1 (exact, proved).**
+```
+theorem Rom.progOf_chainA_eq (P : OracleComp (QSpec Rd Dsk) Bool) :                  -- MDSha.lean:140
+    progOf (chainA P) = simulateQ (MD.cellsR IV128) (walkProg P)
+theorem Rom.h1_suf : progS S oR pkSeedDist = simulateQ (MD.cellsR IV128) (XS S oR pkSeedDist)   -- :164
+theorem Rom.h1_euf : progE S oR pkSeedDist = simulateQ (MD.cellsR IV128) (XE S oR pkSeedDist)   -- :170
+```
+An equality of programs (not only of distributions).  `XS` (`:72`) = the realisers' port program
+`PprfS` with the PRF key drawn first and `Thash` = `out16` of the walk `sb128 pk :: tblocks a xs`,
+`H_msg` = `dig30` of the walk `oblocksH R pk s`, `s` the walk `iblocksH R pk root M`, `PRF_msg` =
+`out16` of the walk `[okey k, oblock s]`, `s` the walk `ikey k :: iblocks r M`, the PRF oracle =
+`out16` of the walk `[sb128 pk, blk128 a k]` (`hashW :41`, `prfW :49`, `chainW :60`).
+
+**Composition (proved).**
+```
+theorem Rom.suf_le_deferred (S oR pkSeedDist) :                                       -- MDHop.lean:60
+    sufI S (optRandU oR) pkSeedDist ≤
+      Pr{let w ← defRun (XS S oR pkSeedDist)}[w.1 = true] + 2 * Pr{let w ← defRun (XS …)}[Gs.Bad w.2]
+theorem Rom.euf_le_deferred … (the same with eufI, XE)                                 -- :70
+theorem Rom.epsHalf_add : epsHalf + epsHalf + qs/2^128 = epsHop                         -- :84
+theorem Rom.mdHopSuf_of (hD : DeferSimSuf) (hB : BadSuf) : MDHopSuf                     -- :135
+theorem Rom.mdHopEuf_of (hD : DeferSimEuf) (hB : BadEuf) : MDHopEuf                     -- :145
+theorem Rom.suf_rom_of_parts, euf_rom_of_parts, sufP_rom_of_parts, eufP_rom_of_parts,
+    sufP_rom_2_64_of_parts                                                              -- :157–194
+```
+(`defRun X` (`:40`) = the deferred game of `labI IV128 X` followed by the end fill; `Gs = mdG IV128`.)
+
+### 11.3 Exact remaining statements (named `Prop`s in `Direct/MDHop.lean`, used as hypotheses)
+
+```
+def epsHalf qf qs ℓ := ((QAll qf qs ℓ + 1)^2 : ℕ) / 2^255                               -- MDHop.lean:82
+def DeferSimSuf : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →                     -- :94
+    Pr{let w ← defRun (XS S oR ($ᵗ (Bytes 16)))}[w.1 = true] ≤
+      strongUnforgeableAdvantage (rom (hashSpec Cr)) (simAdv S oR ($ᵗ (Bytes 16)))
+        + epsHalf qf qs ℓ + qs / 2^128
+def BadSuf : Prop := ∀ S oR qf qs ℓ, hqf → hqs → hlong → hout →                          -- :105
+    2 * Pr{let w ← defRun (XS S oR ($ᵗ (Bytes 16)))}[Gs.Bad w.2] ≤ epsHalf qf qs ℓ
+def DeferSimEuf, BadEuf : the same with XE, unforgeableAdvantage, simAdvE              -- :114, :125
+```
+In the decomposition of §10.5: H1 is proved; H2 is proved up to the deferred game (`md_core`);
+what remains of H2 together with H3 is `DeferSimSuf`; H4 is `BadSuf` (collisions) plus the
+`qs/2^128` (`E_root`) and the 256-bit residue inside `DeferSimSuf`.
+
+* **`DeferSimSuf` (G4 + H3)**: the deferred game against VCVio's experiment of `simAdv`.  The
+  deferred game still holds hidden information the ROM game does not: the full labels of
+  honest-**read** nodes (the inner digests `X` of `H_msg` and HMAC, and the 128 / 16 hidden bits
+  of every honest final label).  The forger's compression queries route through such a label
+  (a guess) to a node, where the simulator sees an unrooted cell.  Both answer a fresh value; the
+  correspondence breaks only when an honest walk later extends that node (`Ext`, §10.1: `E_root`,
+  `qs/2^128`) or by a 256-bit coincidence.  The proof needs (i) a fill kernel from the ROM state
+  to the deferred state that samples the hidden tails and inner digests (an `IntertwinesOn`, as
+  in `LDefer`, but with partially revealed labels), (ii) the node ↔ cell correspondence of the
+  simulator's dynamic rootedness (`Rooted.mdC`) with the drawn labels, (iii) the overlay
+  `ovl(O(t), u)` ↔ final label, (iv) VCVio's `GeneralScheme` naturality lemmas for the game
+  match (H3).  The budget `epsHalf + qs/2^128` is an allocation (half of epsHop's 256-bit term),
+  NOT a derived value; the analysis of §10.1 predicts ≤ 2(Q+1)²/2^256 + qs/2^128 for this part.
+* **`BadSuf` (H4, collisions)**: by `ptColl_imp`/`conflict_imp`, `Bad` at the filled state is a
+  label collision, a label equal to `IV`, or a label equal to the chaining input of a cached
+  non-node cell.  Every label is one fresh uniform 256-bit draw (in the deferred run or in the
+  end fill), so the per-draw hazard is ≤ (#labels + #public cells + 1)/2^256 and `Pr[Bad] ≤
+  (N+1)²/2^257` with `N` the number of cells, `2·Pr[Bad] ≤ (N+1)²/2^256 ≤ epsHalf` if `N ≤ QAll`.
+  Needs: the budgeted-hazard engine (`CollBudget.ex_hz_le_of_step_cap`) on `deferredImpl` and on
+  `endFill`, and the count `N ≤ QAll` transferred from `progS` (`Counts.lean`) to `defRun (XS …)`
+  (each walk of `k` blocks draws at most `k` labels).
+
+`epsHop` is unchanged (`epsHop = epsHalf + epsHalf + qs/2^128`, `epsHalf_add`), so
+`RomNumerics.lean` is unchanged; no deviation from the predicted numbers.
+
+### 11.4 Deviations
+
+* H2 is split at the deferred game, not at the ROM game: the generic core is "real ≤ deferred +
+  2·Bad", with `Bad` of the relabelling; the rest of H2 (the deferred game against the
+  simulator) is merged with H3 in `DeferSimSuf`, because both compare the deferred state with the
+  simulator's state `(T, O)`.
+* `md_core` is generic in the honest computation: honest hashes are arbitrary programs over walk
+  queries, so the two-stage `H_msg`/HMAC need no special case (§10.5 item 2 asked for an abstract
+  "relevant final cell" predicate; relevance does not appear until `DeferSimSuf`).
+* No `toy_real` evaluation: the small instance checks that `md_core` instantiates (`MDToy`); an
+  attempted direct computation of the toy's real-game probability was abandoned (support
+  bookkeeping of `randomOracle`, not informative).
+
+### 11.5 Updated estimate
+
+Done this session: 1738 lines (relabel/defer generalisation 853, MD core 445, H1 178,
+composition 213, toy 49).  Remaining: `BadSuf`/`BadEuf` 0.5–0.9k (hazard engine on the deferred
+game and the end fill, cell count transfer); `DeferSimSuf`/`DeferSimEuf` 1.5–3k (fill kernel for
+the partially revealed labels, routing correspondence, overlay, `Ext`/`E_root` bound, game match
+H3): **≈ 2–4k lines**.
+
+### 11.6 Bounds
+
+Unchanged.  Proved unconditional bounds: tight8's (2^-63, 2^-59, 2^-39).  Under `DeferSimSuf` and
+`BadSuf` (instead of `MDHopSuf`): the §10.7 numbers (P20 2^-67 + 2^-107, P40 2^-63 + 2^-87, P64
+2^-63 + 2^-64 + 2^-66 ≈ 2^-62.35), e.g. `sufP_rom_2_64_of_parts` (`MDHop.lean:194`).
+
+### 11.7 Verification (this session)
+
+`lake build Ideal`: success (7443 jobs).  `grep -nE "sorry|axiom |native_decide|bv_decide"` in the
+six new files: only `#print axioms` lines.  All 22 `#print axioms` lines of the new files:
+`[propext, Classical.choice, Quot.sound]`.  `scripts/check.sh` (all default targets, generators, forbidden
+tokens, axioms, headline lists): `CHECK PASSED`, exit 0, no `FAIL` line.
