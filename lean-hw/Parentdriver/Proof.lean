@@ -46,6 +46,16 @@ theorem arm_path_spec {N : Usize} (p : Spec.Params) (pk : Spec.Bytes) (a : addre
   exact path_parents arm Arm.haveSha512 p pk a s v idx sig h off shape rfl
     (fun hw => arm_correct p pk s hw shape fam width hlen hs) (by decide) hi hh bounds
 
+/-- At unsupported widths dispatch returns before reading the state, buffers, or CPU flag. -/
+theorem unsupported_width {G N : Usize} (K : Kernel G) (a : address.Adrs)
+    (s : Array U64 8#usize) (first : U32) (v : Nodes N) (count : Usize)
+    (idx : Slice U32) (sig : Slice U8) (h off : Usize) (h24 : N.val ≠ 24) (h32 : N.val ≠ 32) :
+    treeParents K s a first v count = ok (0#usize,v) ∧
+    pathParents K s a v idx sig h off = ok (0#usize,v,idx) := by
+  constructor <;> first | unfold treeParents | unfold pathParents
+  all_goals split <;> simp_all
+
+#print axioms unsupported_width
 #print axioms x86_tree_spec
 #print axioms x86_path_spec
 #print axioms arm_tree_spec

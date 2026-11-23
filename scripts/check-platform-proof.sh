@@ -288,6 +288,6 @@ for package in Parentx86 Parentarm; do
 done
 unset platform_arch
 (cd lean-hw && lake build Parentdriver.Proof && lake env lean Parentdriver/Proof.lean > "$scratch/driver-axioms.log")
-for name in x86_tree_spec arm_tree_spec x86_path_spec arm_path_spec; do
+for name in unsupported_width x86_tree_spec arm_tree_spec x86_path_spec arm_path_spec; do
   grep -Fx "'slhdsa.PlatformParent.Driver.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/driver-axioms.log"
 done
