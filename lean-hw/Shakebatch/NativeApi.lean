@@ -26,12 +26,20 @@ def shakeBindings (backend sponge : Name) : List (Name × Name) := Id.run do
       (`slhdsa.Shake ++ thm, backend ++ thm) :: bindings
   return bindings
 
-def shakeApi (destination backend sponge : Name) : CoreM Unit := do
+def shakeApiRoots : Array Name := Id.run do
   let mut roots := #[`slhdsa.Shake.xmss_node_spec,`slhdsa.Shake.xmss_sign_spec,`slhdsa.Shake.xmss_pk_from_sig_spec]
   for setName in [`shake_128s,`shake_128f,`shake_192s,`shake_192f,`shake_256s,`shake_256f] do
     for op in [`keygen_spec,`public_key_spec,`sign_spec,`sign_deterministic_spec,`verify_spec,
                `slh_keygen_internal_spec,`slh_sign_internal_spec,`slh_verify_internal_spec,`slh_sign_spec,`slh_verify_spec] do
       roots := roots.push (`slhdsa ++ setName ++ op)
-  replay destination (shakeBindings backend sponge) roots
+  return roots
+
+def shakeApi (destination backend sponge : Name) : CoreM Unit :=
+  replay destination (shakeBindings backend sponge) shakeApiRoots
+
+def shakeUnderRound (destination backend sponge roundLaw : Name) (roots : Array Name) : CoreM Unit := do
+  let (conditional, ordinary) := (shakeBindings backend sponge).partition fun binding =>
+    binding.1.getPrefix == `slhdsa.Shake
+  replayAssuming destination roundLaw ordinary conditional roots
 
 end PlatformProof
