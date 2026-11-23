@@ -2,7 +2,7 @@
 # requires-python = ">=3.11,<3.14"
 # dependencies = ["angr==9.2.213", "bitstring==4.3.1", "pycparser==3.0"]
 # ///
-"""Check the Algorithm 9 recursion equations in three linked SHAKE XMSS node bodies."""
+"""Check the Algorithm 9 recursion equations in all six linked SHA-2 and SHAKE XMSS node bodies."""
 
 import argparse
 import hashlib
@@ -35,11 +35,13 @@ PUBLIC_SEED = KEY + 128
 ADDRESS = KEY + 256
 
 
-def verify_node(image: Image, n):
-    family = b"6slhdsa5shake"
-    suffix = f"Kj{n:x}_EB6_".encode()
+def verify_node(image: Image, n, shake=True):
+    family = b"6slhdsa5shake" if shake else b"6slhdsa"
+    suffix = f"Kj{n:x}_EB{6 if shake else 4}_".encode()
     node, words = image.function(b"4xmss9xmss_node" + suffix, family)
-    keygen, _ = image.function(b"5batch6keygen" + suffix, family)
+    keygen, _ = image.function(
+        (b"5batch6keygen" if shake else b"4wots11wots_pk_gen") + suffix, family
+    )
     pair, _ = image.function(b"4hash10thash_pair" + suffix, family)
     project = angr.load_shellcode(
         bytes(image.data), arch="aarch64", load_address=image.base
@@ -183,7 +185,10 @@ def verify_node(image: Image, n):
         and len(terminals) == 2,
         "missing XMSS recursion equation",
     )
-    print(f"SHAKE-{n * 8} XMSS node: leaf and decreasing recursive case", flush=True)
+    print(
+        f"{'SHAKE' if shake else 'SHA2'}-{n * 8} XMSS node: leaf and decreasing recursive case",
+        flush=True,
+    )
 
 
 def mutations(image):
@@ -213,6 +218,7 @@ if __name__ == "__main__":
     image = Image(data)
     for width in (16, 24, 32):
         verify_node(image, width)
+        verify_node(image, width, shake=False)
     if args.self_test:
         mutations(image)
     print("Mach-O SHA-256", hashlib.sha256(data).hexdigest())
