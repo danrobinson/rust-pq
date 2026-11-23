@@ -32,6 +32,9 @@ class Forest(Machine):
         self.calls = 0
         self.path = 1
 
+    def same_receiver(self, state):
+        return self.read(state, self.n) == self.state
+
     def read(self, p, n, align=1):
         block, sl = self.region(p, n, align)
         values = block[sl]
@@ -155,7 +158,7 @@ class Forest(Machine):
     def sign_child(self, name, args):
         dst, state, seed, addr, index, *heights = args
         if (
-            self.read(state, self.n) != self.state
+            not self.same_receiver(state)
             or self.read(seed, self.n) != self.seed
             or self.read(addr, 32) != self.addr
         ):
@@ -266,7 +269,7 @@ class Forest(Machine):
 
     def recover_child(self, name, args):
         dst, state, addr, *values = args
-        if self.read(state, self.n) != self.state:
+        if not self.same_receiver(state):
             raise ValueError("FORS recovery state")
         tree, level = divmod(self.calls, 1 + self.a)
         if name == "t_observe":
