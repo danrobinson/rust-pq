@@ -184,6 +184,9 @@ name = "S8table"
 name = "S8word"
 
 [[lean_lib]]
+name = "Kmixed"
+
+[[lean_lib]]
 name = "Kneon"
 
 [[lean_lib]]
@@ -194,6 +197,12 @@ name = "Kappleperm"
 
 [[lean_lib]]
 name = "Kneonperm"
+
+[[lean_lib]]
+name = "Kxdispatch"
+
+[[lean_lib]]
+name = "Kadisp"
 
 [[lean_lib]]
 name = "Kavx"

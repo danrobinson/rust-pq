@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kneonperm|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1074,6 +1074,89 @@ import S8table.Top
 LEAN
 )
 grep -Fx "'slhdsa.X86.Stream.Eight.table_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream8-table-axioms"
+platform_arch=x86_64-unknown-linux-gnu
+extract Kavx KavxRust kavx --start-from 'crate::shake256::parallel::avx512::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_rol_epi64
+core.core_arch.x86.avx512f._mm512_set1_epi64
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+core.core_arch.x86.avx512f._mm512_xor_si512
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=aarch64-apple-darwin
+extract Ksha3 Ksha3Rust ksha3 --start-from 'crate::shake256::parallel::sha3::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.aarch64.neon.generated.vbcaxq_u64
+core.core_arch.aarch64.neon.generated.veor3q_u64
+core.core_arch.aarch64.neon.generated.vrax1q_u64
+core.core_arch.aarch64.neon.generated.vxarq_u64
+core.core_arch.arm_shared.neon.generated.vdupq_n_u64
+core.core_arch.arm_shared.neon.generated.veorq_u64
+core.core_arch.arm_shared.neon.uint64x2_t
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=aarch64-apple-darwin
+extract Kneon KneonRust kneon --start-from 'crate::shake256::parallel::neon::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.aarch64.neon.generated.vsriq_n_u64
+core.core_arch.arm_shared.neon.generated.vbicq_u64
+core.core_arch.arm_shared.neon.generated.vdupq_n_u64
+core.core_arch.arm_shared.neon.generated.veorq_u64
+core.core_arch.arm_shared.neon.generated.vshlq_n_u64
+core.core_arch.arm_shared.neon.uint64x2_t
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=x86_64-unknown-linux-gnu
+extract Kavxperm KavxpermRust kavxperm --start-from 'crate::shake256::parallel::avx512::permute' --opaque 'crate::shake256::parallel::avx512::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m512i
+core.intrinsics.transmute
+shake256.parallel.avx512.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=aarch64-apple-darwin
+extract Kappleperm KapplepermRust kappleperm --start-from 'crate::shake256::parallel::sha3::permute' --opaque 'crate::shake256::parallel::sha3::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.arm_shared.neon.uint64x2_t
+core.intrinsics.transmute
+shake256.parallel.sha3.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=aarch64-apple-darwin
+extract Kneonperm KneonpermRust kneonperm --start-from 'crate::shake256::parallel::neon::permute' --opaque 'crate::shake256::parallel::neon::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.arm_shared.neon.uint64x2_t
+core.intrinsics.transmute
+shake256.parallel.neon.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=x86_64-unknown-linux-gnu
+extract Kxdispatch KxdispatchRust kxdispatch --start-from 'crate::shake256::parallel::permute' --opaque 'crate::shake256::parallel::avx512::permute' --opaque 'crate::sha256::x86::avx512_available'
+cat > "$scratch/expected" <<'NAMES'
+sha256.x86.avx512_available
+shake256.parallel.avx512.permute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+platform_arch=aarch64-apple-darwin
+extract Kadisp KadispRust kadisp --start-from 'crate::shake256::parallel::permute' --opaque 'crate::shake256::parallel::sha3::permute' --opaque 'crate::shake256::parallel::neon::permute'
+cat > "$scratch/expected" <<'NAMES'
+shake256.parallel.neon.permute
+shake256.parallel.sha3.permute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kxdispatch.Proof Kadisp.Proof Kneonperm.Proof && lake env lean --stdin > "$scratch/parallel-keccak-axioms" <<'LEAN'
+import Kxdispatch.Proof
+import Kadisp.Proof
+import Kneonperm.Proof
+#print axioms slhdsa.Kxdispatch.permutation_correct
+#print axioms slhdsa.Kadisp.permutation_correct
+#print axioms slhdsa.Kneonperm.permute_fips
+LEAN
+)
+for name in Kxdispatch.permutation_correct Kadisp.permutation_correct Kneonperm.permute_fips; do
+  grep -Fx "'slhdsa.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parallel-keccak-axioms"
+done
 platform_arch=aarch64-unknown-linux-gnu
 extract Koriented KorientedRust koriented --start-from 'crate::shake256::oriented::permute'
 (cd lean-hw && lake build Koriented.Permutation && lake env lean --stdin > "$scratch/oriented-axioms" <<'LEAN'

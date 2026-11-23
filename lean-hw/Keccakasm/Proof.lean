@@ -4,7 +4,7 @@ import Mathlib.Tactic.IntervalCases
 open Spec.Keccak
 namespace slhdsa.KeccakAsm
 
-private theorem chiInstruction (a b c : Lane) : X86.ternary 210 a b c = a ^^^ ((~~~b) &&& c) := by
+theorem chiInstruction (a b c : Lane) : X86.ternary 210 a b c = a ^^^ ((~~~b) &&& c) := by
   change X86.selectWord a (X86.selectWord b (X86.selectWord c (BitVec.allOnes 64) (BitVec.allOnes 64))
     (X86.selectWord c 0#64 (BitVec.allOnes 64))) (X86.selectWord b (X86.selectWord c 0#64 0#64)
     (X86.selectWord c (BitVec.allOnes 64) 0#64)) = _
