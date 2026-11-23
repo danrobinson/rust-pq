@@ -31,6 +31,7 @@ def main():
             "build",
             "Facade.EndToEnd",
             "Spec.ArmRootComparison",
+            "Spec.AppleKeygenWitness",
             "Spec.AppleRateBlocksWitness",
             "Spec.AppleSignRejectWitness",
         ],
@@ -100,6 +101,7 @@ def main():
             "tree_hash",
         ]:
             run(f"linked-signer/{name}.py", *flags)
+        run("linked-signer/sha2_fors.py", "--jobs", "4", *flags)
         run("linked-signer/continued.py", "--jobs", "4", *flags)
         run("linked-signer/sha_from.py", "--jobs", "4", *flags)
         run("linked-signer/fors.py")
