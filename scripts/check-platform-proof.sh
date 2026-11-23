@@ -820,10 +820,14 @@ for name in remainder256 remainder512 single256 single512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-rem-axioms"
 done
 
-(cd lean-hw && lake build Streamvector.Gather Streamvector.Groups Streamscalar.Ordered && lake env lean --stdin > "$scratch/stream-gather-axioms" <<'LEAN'
-import Streamvector.Gather
+(cd lean-hw && lake build Streamvector.Controls Streamvector.Groups Streamscalar.Ordered && lake env lean --stdin > "$scratch/stream-gather-axioms" <<'LEAN'
+import Streamvector.Controls
 import Streamvector.Groups
 import Streamscalar.Ordered
+#print axioms slhdsa.X86.Stream.offsets256
+#print axioms slhdsa.X86.Stream.offsets512
+#print axioms slhdsa.X86.Stream.swap256
+#print axioms slhdsa.X86.Stream.swap512
 #print axioms slhdsa.X86.Stream.gathered256
 #print axioms slhdsa.X86.Stream.gathered512
 #print axioms slhdsa.X86.Stream.ordered_round256
@@ -834,6 +838,6 @@ import Streamscalar.Ordered
 #print axioms slhdsa.X86.Stream.prefix_groups512
 LEAN
 )
-for name in gathered256 gathered512 ordered_round256 ordered_round512 write_ordered256 write_ordered512 prefix_groups256 prefix_groups512; do
+for name in offsets256 offsets512 swap256 swap512 gathered256 gathered512 ordered_round256 ordered_round512 write_ordered256 write_ordered512 prefix_groups256 prefix_groups512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-gather-axioms"
 done
