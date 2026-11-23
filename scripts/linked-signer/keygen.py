@@ -35,13 +35,15 @@ from driver import (
 PK = RESULT + 256
 
 
-def verify(path, image, n, variant, family):
+def verify(path, image, n, variant, family, entry="keygen"):
     row, param, *_ = objects(path, image, n, variant, family)
     shake = family == "shake"
     mono = f"Kj{n:x}_EB{6 if shake else 4}_".encode()
     crate = b"6slhdsa5shake" if shake else b"6slhdsa"
     label = f"{family}_{n * 8}{variant}"
-    public = image.function(f"{len(label)}{label}6keygen".encode(), b"6slhdsa4sets")
+    public = image.function(
+        f"{len(label)}{label}{len(entry)}{entry}".encode(), b"6slhdsa4sets"
+    )
 
     def body(name):
         return image.function(crate + name + mono, crate)
@@ -65,6 +67,10 @@ def verify(path, image, n, variant, family):
     )
     model.start(st)
     st.regs.x0, st.regs.x1, st.regs.x2 = KEY, RESULT, PK
+    pk_out = PK
+    if entry == "slh_keygen_internal":
+        st.regs.x0, st.regs.x1, st.regs.x2 = KEY, KEY + n, KEY + 2 * n
+        pk_out = RESULT + 4 * n
     value = blob("XMSS_root", n)
 
     def access(s, kind):
@@ -72,7 +78,11 @@ def verify(path, image, n, variant, family):
             return
         ptr = integer(s, getattr(s.inspect, f"mem_{kind}_address"))
         size = integer(s, getattr(s.inspect, f"mem_{kind}_length"))
-        regions = [(STACK - 2048, 2048), (RESULT, 4 * n), (PK, 2 * n)]
+        regions = [
+            (STACK - 2048, 2048),
+            (RESULT, 6 * n if entry == "slh_keygen_internal" else 4 * n),
+            (pk_out, 2 * n),
+        ]
         if kind == "read":
             regions.extend([(KEY, 3 * n), (param, 36), image.sections[b"__const"][:2]])
         require(
@@ -103,7 +113,7 @@ def verify(path, image, n, variant, family):
             )
             equal(
                 s,
-                load(s, PK, 2 * n),
+                load(s, pk_out, 2 * n),
                 c.Concat(model.sk[2], value),
                 "serialized public key",
             )
@@ -154,7 +164,7 @@ def verify(path, image, n, variant, family):
         )
         todo.extend((child, trace, steps + 1) for child in nxt.flat_successors)
     require(completed == 1, "missing or duplicate keygen return")
-    print(f"{label} keygen: both complete output keys and ABI checked", flush=True)
+    print(f"{label} {entry}: both complete output keys and ABI checked", flush=True)
 
 
 if __name__ == "__main__":
@@ -170,7 +180,8 @@ if __name__ == "__main__":
         for family in ("sha2", "shake"):
             for n in (16, 24, 32):
                 for variant in "sf":
-                    verify(path, image, n, variant, family)
+                    for entry in ("keygen", "slh_keygen_internal"):
+                        verify(path, image, n, variant, family, entry)
         if args.self_test:
             pc, words = image.function(
                 b"3slh19slh_keygen_internalKj10_EB6_", b"6slhdsa5shake"

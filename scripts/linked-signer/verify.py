@@ -17,6 +17,7 @@ from driver import (
     Driver,
     KEY,
     MESSAGE,
+    CONTEXT,
     RETURN,
     RESULT,
     angr,
@@ -36,14 +37,14 @@ from driver import (
 SIGNATURE = 0x21000000
 
 
-def verify(path, image, n, variant, family):
+def verify(path, image, n, variant, family, entry="slh_verify_internal"):
     row, param, _, _, hooks = objects(path, image, n, variant, family)
     shake = family == "shake"
     mono = f"Kj{n:x}_EB{6 if shake else 4}_".encode()
     crate = b"6slhdsa5shake" if shake else b"6slhdsa"
     label = f"{family}_{n * 8}{variant}"
     public = image.function(
-        f"{len(label)}{label}19slh_verify_internal".encode(), b"6slhdsa4sets"
+        f"{len(label)}{label}{len(entry)}{entry}".encode(), b"6slhdsa4sets"
     )
 
     def body(name):
@@ -51,6 +52,17 @@ def verify(path, image, n, variant, family):
 
     inner = body(b"3slh19slh_verify_internal")
     extents = [public, inner]
+    contextual = entry != "slh_verify_internal"
+    segmented = None
+    if contextual and not shake:
+        extents.append(body(b"3slh10slh_verify"))
+        prefix = b"6slhdsa3slh7message"
+        suffix = f"Kj{n:x}_EB6_".encode()
+        segmented = image.function(prefix + b"6verify" + suffix, prefix)
+        extents.append(segmented)
+        hooks[image.function(prefix + b"6digest" + suffix, prefix)[0]] = (
+            "segmented_digest"
+        )
     if n != 16:
         extents.append(body(b"2ht9ht_verify"))
     base = image.function(b"6slhdsa4util7base_2b", b"6slhdsa")
@@ -58,13 +70,15 @@ def verify(path, image, n, variant, family):
         extents.append(base)
     xmss, _ = body(b"4xmss16xmss_pk_from_sig")
     hooks[xmss] = "verify_layer"
-    model = Driver(row, param, "slh_sign_internal", family)
+    model = Driver(row, param, entry if contextual else "slh_sign_internal", family)
     model.constants_range = image.sections[b"__const"][:2]
     project = angr.load_shellcode(
         bytes(image.data), arch="aarch64", load_address=image.base
     )
     if model.inline_seed:
         model.inline_seed.install(project, *inner)
+        if segmented:
+            model.inline_seed.install(project, *segmented)
     s = project.factory.blank_state(
         addr=public[0],
         add_options={
@@ -82,6 +96,8 @@ def verify(path, image, n, variant, family):
         siglen,
         KEY,
     )
+    if contextual:
+        s.regs.x4, s.regs.x5, s.regs.x6 = CONTEXT, model.ctxlen, KEY
     wrbytes(s, KEY, c.Concat(model.sk[2], model.sk[3]))
     wrbytes(s, SIGNATURE, model.r)
     roots = [model.pkfors] + [blob("recovered_layer", n) for j in range(model.d)]
@@ -125,8 +141,27 @@ def verify(path, image, n, variant, family):
         st.globals["in_driver"] = False
         if pc == st.globals.get("base_ret"):
             model.indices_return(st)
+        if segmented and pc == segmented[0]:
+            st.globals["segmented"] = True
         if pc == RETURN:
-            equal(st, (siglen == model.total), recovered, "signature length branch")
+            valid = c.ULE(model.ctxlen, 255) if contextual else c.BoolV(True)
+            long = (
+                c.And(valid, c.UGE(model.msglen, 1024)) if segmented else c.BoolV(False)
+            )
+            equal(st, long, st.globals.get("segmented", False), "segmented dispatch")
+            if contextual:
+                equal(
+                    st,
+                    c.And(valid, c.Not(long)),
+                    st.globals.get("framed", False),
+                    "verification context framing",
+                )
+            equal(
+                st,
+                c.And(valid, siglen == model.total),
+                recovered,
+                "signature length branch",
+            )
             require(
                 layer == (model.d if recovered else 0)
                 and not st.globals["allocations"],
@@ -155,7 +190,25 @@ def verify(path, image, n, variant, family):
         def buf(i, val):
             equal(st, load(st, x[i], val.size() // 8), val, f"{name}: buffer {i}")
 
-        if name in ("hmsg", "seed", "free", "grow"):
+        if name == "segmented_digest":
+            require(
+                not st.globals["calls"] and st.globals.get("segmented"),
+                "unexpected segmented digest",
+            )
+            reg(1, model.m)
+            buf(2, model.r)
+            buf(3, model.sk[2])
+            buf(4, model.sk[3])
+            reg(5, CONTEXT)
+            reg(6, model.ctxlen)
+            reg(7, MESSAGE)
+            equal(
+                st, unsigned(st, st.regs.sp), model.msglen, "segmented message length"
+            )
+            model.vec(st, integer(st, x[0]), "digest", model.m, 1, [(0, model.digest)])
+            st.globals["calls"] = ("hmsg",)
+            clobber_scratch(st)
+        elif name in ("hmsg", "seed", "free", "grow", "frame"):
             model.call(st, name)
         elif name in ("recover", "sha_recover"):
             require(
@@ -221,9 +274,16 @@ def verify(path, image, n, variant, family):
             continue
         st.regs.pc = st.regs.lr
         todo.append((st, layer, recovered, steps + 1))
-    require(sorted(terminals) == [False, True], "missing verification case")
+    expected_terminals = (
+        [False, True]
+        + ([False] if contextual else [])
+        + ([False, True] if segmented else [])
+    )
+    require(
+        sorted(terminals) == sorted(expected_terminals), "missing verification case"
+    )
     print(
-        f"{label}: invalid length and complete verification through root comparison",
+        f"{label} {entry}: invalid length and complete verification through root comparison",
         flush=True,
     )
 
@@ -241,7 +301,8 @@ if __name__ == "__main__":
         for family in ("shake", "sha2"):
             for n in (16, 24, 32):
                 for variant in "sf":
-                    verify(path, image, n, variant, family)
+                    for entry in ("slh_verify_internal", "verify", "slh_verify"):
+                        verify(path, image, n, variant, family, entry)
         if args.self_test:
             pc, words = image.function(
                 b"3slh19slh_verify_internalKj10_EB6_", b"6slhdsa5shake"
