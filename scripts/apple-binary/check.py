@@ -19,6 +19,7 @@ from permute import decode
 from reject import certificate as rejection_certificate
 from keygen_witness import certificate as keygen_certificate
 from signer_witness import certificate as signer_certificate
+from segmented_frame_witness import certificate as segmented_frame_certificate
 from verify_length_witness import certificate as verify_length_certificate
 from verify_body_witness import certificate as verify_body_certificate
 from pure_sign import (
@@ -341,6 +342,7 @@ if __name__ == "__main__":
             "Spec.ArmKeygen",
             "Spec.ArmInternalSigner",
             "Spec.ArmSha2InternalSigner",
+            "Spec.ArmSegmentedFrame",
             "Spec.ArmVerifyLength",
             "Spec.ArmVerifyBody",
             "Spec.ArmRateBlocks",
@@ -399,6 +401,10 @@ if __name__ == "__main__":
                 text=True,
                 check=True,
             )
+        subprocess.run(
+            ["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean", env=env,
+            input=segmented_frame_certificate(image, snapshot), text=True, check=True,
+        )
         for family in ("shake", "sha2"):
             subprocess.run(
                 ["lake", "env", "lean", "--stdin"],
