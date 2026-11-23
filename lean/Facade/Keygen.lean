@@ -10,7 +10,7 @@ def keyBytes {P Sig : Type} {Sk Vk : Usize}
     (k : signing_key.SigningKey P (Array U8 Sk) (Array U8 Vk) Sig) :=
   (bytes k.bytes.val, bytes k.verifying_key.bytes.val)
 
-private theorem seeded_spec (family : Spec.HashFamily) {P Sig : Type} {Sk Vk N : Usize}
+theorem seeded_spec (family : Spec.HashFamily) {P Sig : Type} {Sk Vk N : Usize}
     (C : params.Core P (Array U8 Sk) (Array U8 Vk) Sig)
     (p : _root_.slhdsa.params.Params) (hp : PN p N) (hsk : Sk.val = 4 * N.val) (hvk : Vk.val = 2 * N.val)
     (storeSk : C.SigningKeyStorageInst.BufferInst = ArrayU8N.Insts.Slh_dsaParamsBuffer Sk)

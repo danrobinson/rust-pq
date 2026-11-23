@@ -1,5 +1,6 @@
 import Facade
 import Platformadapter.Proof
+import Platformadapter.KatSets
 import Armplatform.Replay
 open Lean Elab Command
 
@@ -10,6 +11,8 @@ def roots : Array Name := Id.run do
   for set in ["128s","128f","192s","192f","256s","256f"] do
     for op in ["sign","sign_with_context","verify","verify_with_context","randomized_sign","new","parsers","der"] do
       rs := rs.push (`slh_dsa ++ Name.mkSimple ("sha2_" ++ set ++ "_" ++ op))
+    for op in ["algorithms","errors"] do
+      rs := rs.push (`slh_dsa.Kat ++ Name.mkSimple ("sha2_" ++ set ++ "_" ++ op))
   return rs
 
 end PlatformFacadeProof
@@ -19,4 +22,5 @@ run_cmd liftCoreM do
   PlatformProof.replay `FacadeAdapter [
     (`slhdsa.adapter.sign_into,`slhdsa.PlatformAdapter.adapter.sign_into),
     (`slhdsa.adapter_sign_into_spec,`slhdsa.PlatformAdapter.sign_into_spec),
-    (`slhdsa.adapter_sign_into_long_ctx,`slhdsa.PlatformAdapter.sign_into_long_ctx)] PlatformFacadeProof.roots
+    (`slhdsa.adapter_sign_into_long_ctx,`slhdsa.PlatformAdapter.sign_into_long_ctx),
+    (`slh_dsa.Kat.original_bad_rand,`slhdsa.PlatformAdapter.sign_into_bad_randomness)] PlatformFacadeProof.roots
