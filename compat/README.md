@@ -151,7 +151,9 @@ and the explicit-context APIs. A supplied randomizer has the set's byte length.
 The proofs include parameter dispatch, array and slice conversions on those paths,
 and the result constructed by each method. `SigningKey::new` consumes the three
 n-byte RNG draws in order. Randomized signing uses the supplied bytes on success
-and returns an error on failure. Both proofs account for the resulting RNG state.
+and returns an error on failure. Both proofs account for the resulting RNG state. On arbitrary part boundaries,
+the public multipart signer, randomized multipart signer, and multipart verifier
+return the same results as the single-message methods on the concatenated bytes.
 The three `TryFrom<&[u8]>` proofs establish exact-length acceptance, byte
 preservation, and reconstruction of the embedded verifying key. For all twelve
 sets, the DER import theorems prove the OID check, error selection, and returned

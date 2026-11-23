@@ -32,10 +32,11 @@ for f in Types Funs; do
 done
 for project in lean lean-hw; do
   (cd "$project" && lake build Facade)
-  for file in Multipart Sign Verify Keygen Randomized Parse Der; do
+  for file in Multipart MultipartApi Sign Verify Keygen Randomized Parse Der; do
     (cd "$project" && lake env lean "Facade/$file.lean") > "$scratch/axioms"
     case "$file" in
       Multipart) expected=1 ;;
+      MultipartApi) expected=3 ;;
       Sign|Verify) expected=24 ;;
       Keygen|Randomized|Parse|Der) expected=12 ;;
     esac
