@@ -312,9 +312,9 @@ sha256.x86.avx512.write_words
 sha256.x86.avx512_available
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Leaf256.Prefix Leaf256.Pack && lake env lean --stdin > "$scratch/leaf-axioms.log" <<'LEAN'
-import Leaf256.Pack
-import Leaf256.Prefix
+(cd lean-hw && lake build Leaf256.Top && lake env lean --stdin > "$scratch/leaf-axioms.log" <<'LEAN'
+import Leaf256.Top
+#print axioms slhdsa.X86.Leaf.fors_leaves_spec
 #print axioms slhdsa.X86.Leaf.short_block
 #print axioms slhdsa.X86.Leaf.words_spec
 #print axioms slhdsa.X86.Leaf.initial_spec
@@ -322,6 +322,6 @@ import Leaf256.Prefix
 #print axioms slhdsa.X86.Leaf.pack_words
 LEAN
 )
-for name in short_block words_spec initial_spec first_two pack_words; do
+for name in fors_leaves_spec short_block words_spec initial_spec first_two pack_words; do
   grep -Fx "'slhdsa.X86.Leaf.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/leaf-axioms.log"
 done
