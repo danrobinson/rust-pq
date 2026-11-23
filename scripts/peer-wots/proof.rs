@@ -49,6 +49,13 @@ static mut TRACE: Transcript = Transcript {
     t_calls: 0,
 };
 
+fn same_bytes<const W: usize>(actual: &[u8], expected: &[u8; W]) {
+    assert!(actual.len() == W);
+    for i in 0..W {
+        assert!(actual[i] == expected[i]);
+    }
+}
+
 fn address() -> WotsHash {
     let mut a = WotsHash::default();
     a.layer_adrs.set(kani::any());
@@ -73,9 +80,9 @@ pub(crate) trait Observe: HashSuite {
             assert!(core::ptr::from_ref(self).cast::<()>() == TRACE.hash);
             let mut enc = TRACE.address;
             enc[28..32].copy_from_slice(&(TRACE.start + TRACE.step).to_be_bytes());
-            assert_eq!(addr.as_ref(), &enc);
+            same_bytes(addr.as_ref(), &enc);
             let prev = TRACE.last;
-            assert_eq!(value.as_slice(), &prev);
+            same_bytes(value.as_slice(), &prev);
             let next: [u8; N] = kani::any();
             TRACE.last = next;
             TRACE.step += 1;
@@ -92,7 +99,7 @@ pub(crate) trait Observe: HashSuite {
             enc[16..20].copy_from_slice(&5u32.to_be_bytes());
             enc[24..28].copy_from_slice(&(TRACE.row as u32).to_be_bytes());
             enc[28..32].fill(0);
-            assert_eq!(addr.as_ref(), &enc);
+            same_bytes(addr.as_ref(), &enc);
             let result: [u8; N] = kani::any();
             TRACE.first = result;
             TRACE.prf_calls += 1;
@@ -112,12 +119,12 @@ pub(crate) trait Observe: HashSuite {
             assert!(TRACE.row < LEN);
             let mut enc = TRACE.address;
             enc[24..28].copy_from_slice(&(TRACE.row as u32).to_be_bytes());
-            assert_eq!(addr.as_bytes(), &enc);
+            same_bytes(addr.as_bytes(), &enc);
             if TRACE.mode == 2 {
                 assert_eq!(value.as_ptr(), TRACE.sig_bytes.add(TRACE.row * N));
             } else {
                 let expected = TRACE.first;
-                assert_eq!(value.as_slice(), &expected);
+                same_bytes(value.as_slice(), &expected);
             }
             let digit = TRACE.digits[TRACE.row];
             let expected = match TRACE.mode {
@@ -126,8 +133,7 @@ pub(crate) trait Observe: HashSuite {
                 _ => (digit, 15 - digit),
             };
             assert_eq!((start, count), expected);
-            let result: [u8; N] = kani::any();
-            TRACE.blocks[TRACE.row] = result;
+            let result = TRACE.blocks[TRACE.row];
             TRACE.row += 1;
             result.as_slice().try_into().unwrap()
         }
@@ -144,10 +150,10 @@ pub(crate) trait Observe: HashSuite {
             let mut enc = TRACE.address;
             enc[16..20].copy_from_slice(&1u32.to_be_bytes());
             enc[24..32].fill(0);
-            assert_eq!(addr.as_ref(), &enc);
+            same_bytes(addr.as_ref(), &enc);
             for row in 0..LEN {
                 let expected = TRACE.blocks[row];
-                assert_eq!(values[row].as_slice(), &expected);
+                same_bytes(values[row].as_slice(), &expected);
             }
             let result: [u8; N] = kani::any();
             TRACE.last = result;
@@ -160,7 +166,7 @@ pub(crate) trait Observe: HashSuite {
 impl<S: HashSuite> Observe for S {}
 
 #[kani::proof]
-#[kani::unwind(150)]
+#[kani::unwind(CHAIN_UNWIND)]
 fn check_chain() {
     let p = P::new_from_pk_seed(&PkSeed(Array(kani::any::<[u8; N]>())));
     let a = address();
@@ -177,13 +183,16 @@ fn check_chain() {
     unsafe {
         let last = TRACE.last;
         assert!(TRACE.step == count);
-        assert_eq!(result.as_slice(), &last);
+        same_bytes(result.as_slice(), &last);
     }
 }
 
 fn inputs(p: &P, sk: &SkSeed<<P as HashSuite>::N>, a: &WotsHash, mode: u8) {
     setup(p, a);
     unsafe {
+        // Independent symbolic blocks supply the complete sequence of possible
+        // chain results. Each caller must preserve every byte in row order.
+        TRACE.blocks = kani::any();
         TRACE.mode = mode;
         TRACE.secret = core::ptr::from_ref(sk).cast();
     }
@@ -201,7 +210,7 @@ fn check_keygen() {
     unsafe {
         let expected = TRACE.last;
         assert!(TRACE.row == LEN && TRACE.prf_calls == LEN && TRACE.t_calls == 1);
-        assert_eq!(root.as_slice(), &expected);
+        same_bytes(root.as_slice(), &expected);
     }
 }
 
@@ -225,7 +234,7 @@ fn check_sign() {
         assert!(TRACE.row == LEN && TRACE.prf_calls == LEN);
         for i in 0..LEN {
             let expected = TRACE.blocks[i];
-            assert_eq!(sig.0[i].as_slice(), &expected);
+            same_bytes(sig.0[i].as_slice(), &expected);
         }
     }
 }
@@ -251,7 +260,7 @@ fn check_recover() {
     unsafe {
         let expected = TRACE.last;
         assert!(TRACE.row == LEN && TRACE.t_calls == 1);
-        assert_eq!(root.as_slice(), &expected);
+        same_bytes(root.as_slice(), &expected);
     }
 }
 
