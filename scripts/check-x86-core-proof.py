@@ -35,8 +35,15 @@ CORE_ENTRIES = [(f"sets.{s}.{e}", f"X86Internal.slhdsa.{s}.{e}_spec", f"X86Inter
 CORE_ENTRIES.extend((f"fors.{e}", f"X86Core.slhdsa.{e}_spec", f"X86Core.slhdsa.fors.{e}")
                     for e in ("fors_sign", "fors_pk_from_sig"))
 
+PUBLIC_BINDINGS = {**CORE_BINDINGS,
+                   "slh.message.randomizer": "X86Message.SegmentedApiRust.slh.message.randomizer",
+                   "slh.message.digest": "X86Message.SegmentedApiRust.slh.message.digest"}
+PUBLIC_ENTRIES = [(f"sets.{s}.{e}", f"X86Public.slhdsa.{s}.{e}_spec", f"X86Public.slhdsa.sets.{s}.{e}")
+                  for s in common["SETS"]
+                  for e in ("slh_sign", "slh_verify", "sign", "sign_deterministic", "verify")]
 
-def check(scratch, entries, bindings, module, namespace):
+
+def check(scratch, entries, bindings, module, namespace, rust_target="x86_64-unknown-linux-gnu"):
     llbc = scratch / "slhdsa.llbc"
     target = scratch / "Slhdsa"
     roots = ["crate::" + entry.replace(".", "::") for entry, _, _ in entries]
@@ -45,7 +52,7 @@ def check(scratch, entries, bindings, module, namespace):
          *(arg for name in roots for arg in ("--start-from", name)),
          *(arg for name in opaque for arg in ("--opaque", name)),
          "--dest-file", llbc, "--", "--locked", "--features", "platform-sha2",
-         "--target", "x86_64-unknown-linux-gnu"], ROOT / "rust")
+         "--target", rust_target], ROOT / "rust")
     run([ROOT / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error",
          "-no-progress-bar", "-split-files", "-dest", target, llbc], ROOT)
     bind(target, scratch, entries, bindings, module, namespace)
@@ -93,6 +100,7 @@ if __name__ == "__main__":
     for entries, bindings, module, ns in [
         (TREE_ENTRIES, BINDINGS, "X86platform.Hypertree", "X86Hypertree"),
         (CORE_ENTRIES, CORE_BINDINGS, "X86platform.Sets", "X86InternalTarget"),
+        (PUBLIC_ENTRIES, PUBLIC_BINDINGS, "X86platform.Public", "X86PublicTarget"),
     ]:
         run(["lake", "build", module], LEAN)
         with tempfile.TemporaryDirectory() as temp:
