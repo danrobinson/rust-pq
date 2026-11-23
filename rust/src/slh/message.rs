@@ -2,41 +2,61 @@
 use super::*;
 use crate::{sha256, sha512};
 
-fn continued<const B: usize, T: Copy, R>(
-    mut state: T,
-    pre: usize,
-    prefixes: &[&[u8]],
-    msg: &[u8],
-    compress: impl Fn(&T, &[u8], usize) -> T,
-    finish: impl Fn(&T, usize, &[u8]) -> R,
-) -> R {
-    let mut head = [0u8; B];
-    let mut offset = 0;
-    let mut consumed = pre;
-    for &part in prefixes {
-        let mut rest = part;
-        while !rest.is_empty() {
-            let n = (B - offset).min(rest.len());
-            head[offset..offset + n].copy_from_slice(&rest[..n]);
-            rest = &rest[n..];
-            offset += n;
-            if offset == B {
-                state = compress(&state, &head, 0);
-                consumed += B;
-                offset = 0;
-            }
-        }
+trait MessageHash<const B: usize> {
+    type State: Copy;
+    type Digest;
+    fn compress(state: &Self::State, bytes: &[u8], offset: usize) -> Self::State;
+    fn finish(state: &Self::State, pre: usize, msg: &[u8]) -> Self::Digest;
+}
+
+struct Sha256;
+struct Sha512;
+
+impl MessageHash<64> for Sha256 {
+    type State = [u32; 8];
+    type Digest = [u8; 32];
+    fn compress(state: &Self::State, bytes: &[u8], offset: usize) -> Self::State {
+        sha256::compress(state, bytes, offset)
     }
+    fn finish(state: &Self::State, pre: usize, msg: &[u8]) -> Self::Digest {
+        sha256::sha256_from(state, pre, msg)
+    }
+}
+
+impl MessageHash<128> for Sha512 {
+    type State = [u64; 8];
+    type Digest = [u8; 64];
+    fn compress(state: &Self::State, bytes: &[u8], offset: usize) -> Self::State {
+        sha512::compress(state, bytes, offset)
+    }
+    fn finish(state: &Self::State, pre: usize, msg: &[u8]) -> Self::Digest {
+        sha512::sha512_from(state, pre, msg)
+    }
+}
+
+fn continued<const B: usize, H: MessageHash<B>>(
+    mut state: H::State, pre: usize, prefix: &[u8], msg: &[u8],
+) -> H::Digest {
+    let mut position = 0;
+    while prefix.len() - position >= B {
+        state = H::compress(&state, prefix, position);
+        position += B;
+    }
+    let consumed = pre + position;
+    let tail = &prefix[position..];
+    let offset = tail.len();
     if offset == 0 {
-        return finish(&state, consumed, msg);
+        return H::finish(&state, consumed, msg);
     }
+    let mut head = [0u8; B];
+    head[..offset].copy_from_slice(tail);
     let n = (B - offset).min(msg.len());
     head[offset..offset + n].copy_from_slice(&msg[..n]);
     if offset + n < B {
-        return finish(&state, consumed, &head[..offset + n]);
+        return H::finish(&state, consumed, &head[..offset + n]);
     }
-    state = compress(&state, &head, 0);
-    finish(&state, consumed + B, &msg[n..])
+    state = H::compress(&state, &head, 0);
+    H::finish(&state, consumed + B, &msg[n..])
 }
 
 fn digest<const N: usize>(
@@ -48,30 +68,22 @@ fn digest<const N: usize>(
     msg: &[u8],
 ) -> Vec<u8> {
     let domain = [0, ctx.len() as u8];
-    let parts: [&[u8]; 5] = [r, pk, root, &domain, ctx];
+    let mut prefix = [0; 3 * 32 + 2 + 255];
+    prefix[..N].copy_from_slice(r);
+    prefix[N..2 * N].copy_from_slice(pk);
+    prefix[2 * N..3 * N].copy_from_slice(root);
+    prefix[3 * N..3 * N + 2].copy_from_slice(&domain);
+    let used = 3 * N + 2 + ctx.len();
+    prefix[3 * N + 2..used].copy_from_slice(ctx);
     let mut seed = Vec::with_capacity(2 * N + 64);
     seed.extend_from_slice(r);
     seed.extend_from_slice(pk);
     if N == 16 {
-        let d = continued::<64, _, _>(
-            sha256::H0,
-            0,
-            &parts,
-            msg,
-            sha256::compress,
-            sha256::sha256_from,
-        );
+        let d = continued::<64, Sha256>(sha256::H0, 0, &prefix[..used], msg);
         seed.extend_from_slice(&d);
         crate::hash::mgf1_sha256(&seed, p.m)
     } else {
-        let d = continued::<128, _, _>(
-            sha512::H0,
-            0,
-            &parts,
-            msg,
-            sha512::compress,
-            sha512::sha512_from,
-        );
+        let d = continued::<128, Sha512>(sha512::H0, 0, &prefix[..used], msg);
         seed.extend_from_slice(&d);
         crate::hash::mgf1_sha512(&seed, p.m)
     }
@@ -79,15 +91,19 @@ fn digest<const N: usize>(
 
 fn randomizer<const N: usize>(key: &[u8; N], random: &[u8; N], ctx: &[u8], msg: &[u8]) -> [u8; N] {
     let domain = [0, ctx.len() as u8];
-    let parts: [&[u8]; 3] = [random, &domain, ctx];
+    let mut prefix = [0; 32 + 2 + 255];
+    prefix[..N].copy_from_slice(random);
+    prefix[N..N + 2].copy_from_slice(&domain);
+    let used = N + 2 + ctx.len();
+    prefix[N + 2..used].copy_from_slice(ctx);
     macro_rules! hmac {
-        ($sha:ident,$b:literal,$d:literal,$from:ident) => {{
+        ($sha:ident,$b:literal,$d:literal,$hash:ty) => {{
             let mut pad = [0x36; $b];
             for i in 0..N {
                 pad[i] ^= key[i];
             }
             let state = $sha::compress(&$sha::H0, &pad, 0);
-            let inner = continued::<$b, _, _>(state, $b, &parts, msg, $sha::compress, $sha::$from);
+            let inner = continued::<$b, $hash>(state, $b, &prefix[..used], msg);
             pad.fill(0x5c);
             for i in 0..N {
                 pad[i] ^= key[i];
@@ -104,9 +120,9 @@ fn randomizer<const N: usize>(key: &[u8; N], random: &[u8; N], ctx: &[u8], msg: 
         }};
     }
     if N == 16 {
-        hmac!(sha256, 64, 32, sha256_from)
+        hmac!(sha256, 64, 32, Sha256)
     } else {
-        hmac!(sha512, 128, 64, sha512_from)
+        hmac!(sha512, 128, 64, Sha512)
     }
 }
 
