@@ -244,25 +244,32 @@ pub(super) fn fors_leaves<const N: usize>(
     });
     let state = state.map(|x| _mm512_set1_epi32(x as i32));
     let change = _mm512_set1_epi32(((adrs.typ as u8 ^ FORS_PRF as u8) as i32) << 16);
-    let mut prefix_prf = state;
-    let mut prefix_f = state;
-    for i in 0..4 {
-        prefix_prf = round(prefix_prf, base[i], super::super::K[i]);
-        prefix_f = round(
-            prefix_f,
-            if i == 2 {
-                _mm512_xor_si512(base[i], change)
-            } else {
-                base[i]
-            },
-            super::super::K[i],
-        );
+    // The address type first changes word two. Both hashes share the first two rounds.
+    let mut prefix = state;
+    for i in 0..2 {
+        prefix = round(prefix, base[i], super::super::K[i]);
     }
+    let prefix_prf = round(
+        round(prefix, base[2], super::super::K[2]),
+        base[3],
+        super::super::K[3],
+    );
+    let prefix_f = round(
+        round(
+            prefix,
+            _mm512_xor_si512(base[2], change),
+            super::super::K[2],
+        ),
+        base[3],
+        super::super::K[3],
+    );
     let lanes = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
     let half = _mm512_set1_epi32(0xffff);
-    for (j, batch) in out.chunks_mut(16).enumerate() {
+    for offset in (0..out.len()).step_by(16) {
+        let size = (out.len() - offset).min(16);
+        let batch = &mut out[offset..offset + size];
         let mut w = base;
-        let idx = _mm512_add_epi32(lanes, _mm512_set1_epi32((first + 16 * j as u32) as i32));
+        let idx = _mm512_add_epi32(lanes, _mm512_set1_epi32((first + offset as u32) as i32));
         w[4] = _mm512_or_si512(w[4], _mm512_srli_epi32::<16>(idx));
         let high = _mm512_slli_epi32::<16>(idx);
         w[5] = _mm512_or_si512(high, _mm512_and_si512(w[5], half));

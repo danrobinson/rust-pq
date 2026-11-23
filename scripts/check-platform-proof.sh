@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -290,4 +290,38 @@ unset platform_arch
 (cd lean-hw && lake build Parentdriver.Proof && lake env lean Parentdriver/Proof.lean > "$scratch/driver-axioms.log")
 for name in unsupported_width x86_tree_spec arm_tree_spec x86_path_spec arm_path_spec; do
   grep -Fx "'slhdsa.PlatformParent.Driver.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/driver-axioms.log"
+done
+
+extract Leaf256 LeafRust leaf256 --start-from 'crate::sha256::x86::fors_leaves' \
+  --opaque 'crate::sha256::x86::avx512_available' --opaque 'crate::sha256::x86::avx512::compress' \
+  --opaque 'crate::sha256::x86::avx512::round' --opaque 'crate::sha256::x86::avx512::write_words'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_add_epi32
+core.core_arch.x86.avx512f._mm512_and_si512
+core.core_arch.x86.avx512f._mm512_or_si512
+core.core_arch.x86.avx512f._mm512_set1_epi32
+core.core_arch.x86.avx512f._mm512_set_epi32
+core.core_arch.x86.avx512f._mm512_slli_epi32
+core.core_arch.x86.avx512f._mm512_srli_epi32
+core.core_arch.x86.avx512f._mm512_xor_si512
+sha256.x86.avx512.compress
+sha256.x86.avx512.round
+sha256.x86.avx512.write_words
+sha256.x86.avx512_available
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Leaf256.Prefix Leaf256.Pack && lake env lean --stdin > "$scratch/leaf-axioms.log" <<'LEAN'
+import Leaf256.Pack
+import Leaf256.Prefix
+#print axioms slhdsa.X86.Leaf.short_block
+#print axioms slhdsa.X86.Leaf.words_spec
+#print axioms slhdsa.X86.Leaf.initial_spec
+#print axioms slhdsa.X86.Leaf.first_two
+#print axioms slhdsa.X86.Leaf.pack_words
+LEAN
+)
+for name in short_block words_spec initial_spec first_two pack_words; do
+  grep -Fx "'slhdsa.X86.Leaf.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/leaf-axioms.log"
 done

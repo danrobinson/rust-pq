@@ -77,3 +77,6 @@ name = "Parentx86"
 
 [[lean_lib]]
 name = "Parentarm"
+
+[[lean_lib]]
+name = "Leaf256"

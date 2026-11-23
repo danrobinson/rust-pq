@@ -22,7 +22,7 @@ set_option maxRecDepth 2048
 namespace StoreRust
 
 /-- [slhdsa::sha256::x86::avx512::write_words::{closure}]
-    Source: 'src/sha256/x86/avx512.rs', lines 585:33-585:85 -/
+    Source: 'src/sha256/x86/avx512.rs', lines 592:33-592:85 -/
 def sha256.x86.avx512.write_words.closure (N : Std.Usize) :=
   Array core.core_arch.x86.__m512i 8#usize × Std.Usize ×
   core.core_arch.x86.__m512i
