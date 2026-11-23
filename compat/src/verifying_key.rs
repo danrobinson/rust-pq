@@ -145,7 +145,7 @@ impl<P: Core> MultipartVerifier<Signature<P>> for VerifyingKey<P> {
 }
 
 #[cfg(feature = "alloc")]
-impl<P: ParameterSet> EncodePublicKey for VerifyingKey<P> {
+impl<P: Core> EncodePublicKey for VerifyingKey<P> {
     fn to_public_key_der(&self) -> pkcs8::spki::Result<der::Document> {
         // The encoding is the verified crate's; the `der` crate only checks
         // that it is well formed and takes ownership of it.
