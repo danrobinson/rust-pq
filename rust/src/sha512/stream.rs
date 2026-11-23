@@ -53,6 +53,33 @@ pub(super) fn prefix<'a>(state: &mut [u64; 8], blocks: &'a [[u8; 128]]) -> &'a [
     }
     tail
 }
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw,bmi2")]
+fn schedule_word(w: &mut [core::arch::x86_64::__m512i; 16], i: usize) -> [u64; 8] {
+    use core::arch::x86_64::*;
+    if i >= 16 {
+        let x = w[(i + 1) % 16];
+        let y = w[(i + 14) % 16];
+        let a = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<1>(x),
+            _mm512_ror_epi64::<8>(x),
+            _mm512_srli_epi64::<7>(x),
+        );
+        let b = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<19>(y),
+            _mm512_ror_epi64::<61>(y),
+            _mm512_srli_epi64::<6>(y),
+        );
+        w[i % 16] = _mm512_add_epi64(
+            _mm512_add_epi64(a, b),
+            _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
+        );
+    }
+    let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
+    // SAFETY: the row and the vector have identical size and x86 lane order.
+    unsafe { core::mem::transmute(wk) }
+}
+
 #[target_feature(enable = "avx512f,avx512bw,bmi2")]
 fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
     use core::arch::x86_64::*;
@@ -75,27 +102,7 @@ fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
         macro_rules! expand {
             ($index:expr) => {{
                 let i: usize = $index;
-                if i >= 16 {
-                    let x = w[(i + 1) % 16];
-                    let y = w[(i + 14) % 16];
-                    let a = _mm512_ternarylogic_epi64::<0x96>(
-                        _mm512_ror_epi64::<1>(x),
-                        _mm512_ror_epi64::<8>(x),
-                        _mm512_srli_epi64::<7>(x),
-                    );
-                    let b = _mm512_ternarylogic_epi64::<0x96>(
-                        _mm512_ror_epi64::<19>(y),
-                        _mm512_ror_epi64::<61>(y),
-                        _mm512_srli_epi64::<6>(y),
-                    );
-                    w[i % 16] = _mm512_add_epi64(
-                        _mm512_add_epi64(a, b),
-                        _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
-                    );
-                }
-                let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
-                // SAFETY: the row and the vector have identical size and x86 lane order.
-                ordered[i] = unsafe { core::mem::transmute(wk) };
+                ordered[i] = schedule_word(&mut w, i);
             }};
         }
         rounds!(expand);
