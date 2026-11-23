@@ -25,20 +25,35 @@ noncomputable section
 
 namespace X86RemainderRust
 
+/-- [slhdsa::sha256::stream::FORCE_SOFT]
+    Source: 'src/sha256/stream.rs', lines 115:0-115:85 -/
+@[global_simps, irreducible] def sha256.stream.FORCE_SOFT : Bool := false
+
+/-- [slhdsa::sha256::stream::scalar_bmi2]:
+    Source: 'src/sha256/stream.rs', lines 131:0-133:1 -/
+def sha256.stream.scalar_bmi2
+  (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize)) :
+  Result (Array Std.U32 8#usize)
+  := do
+  sha256.stream.scalar state blocks
+
 /-- [slhdsa::sha256::stream::remainder]:
-    Source: 'src/sha256/stream.rs', lines 112:0-119:1 -/
+    Source: 'src/sha256/stream.rs', lines 117:0-128:1 -/
 def sha256.stream.remainder
   (state : Array Std.U32 8#usize) (blocks : Slice (Array Std.U8 64#usize)) :
   Result (Array Std.U32 8#usize)
   := do
-  let b ← sha256.stream.has_bmi2.get
-  if b
-  then
-    let b1 ← sha256.stream.dedicated.get
-    if b1
+  if sha256.stream.FORCE_SOFT
+  then sha256.stream.scalar state blocks
+  else
+    let b ← sha256.stream.hardware_backend.get
+    if b
     then sha2.sha256.compress256 state blocks
-    else sha256.stream.scalar state blocks
-  else sha2.sha256.compress256 state blocks
+    else
+      let b1 ← sha256.stream.has_bmi2.get
+      if b1
+      then sha256.stream.scalar_bmi2 state blocks
+      else sha256.stream.scalar state blocks
 
 /-- [slhdsa::sha256::compress]:
     Source: 'src/sha256.rs', lines 1022:0-1030:1
@@ -59,20 +74,43 @@ def sha256.compress
   let s2 ← core.slice.raw.from_ref block
   sha256.stream.remainder state s2
 
+/-- [slhdsa::sha512::stream::FORCE_SOFT]
+    Source: 'src/sha512/stream.rs', lines 128:0-128:85 -/
+@[global_simps, irreducible] def sha512.stream.FORCE_SOFT : Bool := false
+
+/-- [slhdsa::sha512::stream::scalar_bmi2]:
+    Source: 'src/sha512/stream.rs', lines 144:0-146:1 -/
+def sha512.stream.scalar_bmi2
+  (state : Array Std.U64 8#usize) (blocks : Slice (Array Std.U8 128#usize)) :
+  Result (Array Std.U64 8#usize)
+  := do
+  sha512.stream.scalar state blocks
+
 /-- [slhdsa::sha512::stream::remainder]:
-    Source: 'src/sha512/stream.rs', lines 112:0-119:1 -/
+    Source: 'src/sha512/stream.rs', lines 130:0-141:1 -/
 def sha512.stream.remainder
   (state : Array Std.U64 8#usize) (blocks : Slice (Array Std.U8 128#usize)) :
   Result (Array Std.U64 8#usize)
   := do
-  let b ← sha512.stream.has_bmi2.get
-  if b
-  then
-    let b1 ← sha512.stream.dedicated.get
-    if b1
-    then sha2.sha512.compress512 state blocks
-    else sha512.stream.scalar state blocks
-  else sha2.sha512.compress512 state blocks
+  if sha512.stream.FORCE_SOFT
+  then sha512.stream.scalar state blocks
+  else
+    let b ← sha512.stream.has_bmi2.get
+    if b
+    then
+      let b1 ← sha512.stream.dedicated.get
+      if b1
+      then
+        let b2 ← sha512.stream.hardware_backend.get
+        if b2
+        then sha2.sha512.compress512 state blocks
+        else sha512.stream.scalar state blocks
+      else sha512.stream.scalar_bmi2 state blocks
+    else
+      let b1 ← sha512.stream.hardware_backend.get
+      if b1
+      then sha2.sha512.compress512 state blocks
+      else sha512.stream.scalar state blocks
 
 /-- [slhdsa::sha512::compress]:
     Source: 'src/sha512.rs', lines 411:0-419:1

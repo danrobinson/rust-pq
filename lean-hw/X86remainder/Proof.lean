@@ -1,4 +1,5 @@
 import X86remainder.Funs
+import Rcni.Top
 import Streamscalar.Top
 import Armstream.Proof
 open Aeneas Aeneas.Std Result
@@ -8,14 +9,15 @@ namespace slhdsa.X86.Stream
 theorem remainder256 (st : Array U32 8#usize) (blocks : Slice (Array U8 64#usize)) :
     X86RemainderRust.sha256.stream.remainder st blocks ⦃ out =>
       slhdsa.wv out.val = fold256 (slhdsa.wv st.val) blocks.val ⦄ := by
-  unfold X86RemainderRust.sha256.stream.remainder
-  change (do let bmi ← ok bmi2Available
-             if bmi then do
-               let sha ← ok ChainWideRust.shaNiAvailable
-               if sha then ArmStreamRust.sha2.sha256.compress256 st blocks else StreamScalarRust.sha256.stream.scalar st blocks
-             else ArmStreamRust.sha2.sha256.compress256 st blocks) ⦃ out => _ ⦄
-  cases bmi2Available <;> cases ChainWideRust.shaNiAvailable <;> simp only [bind_ok,Bool.false_eq_true,ite_false,ite_true] <;>
-    first | exact PlatformStream.bulk256 st blocks | exact scalar256 st blocks
+  simp only [X86RemainderRust.sha256.stream.remainder,X86RemainderRust.sha256.stream.FORCE_SOFT,
+    X86RemainderRust.sha256.stream.scalar_bmi2,sha2.sha256.compress256,
+    RcDispatchRust.sha256.compress256,RcDispatchRust.sha256.compress,sha256.stream.hardware_backend.get,sha256.stream.has_bmi2.get,RcDispatchRust.sha256.shani_cpuid.get,bind_ok]
+  generalize h0 : bmi2Available = bit0; cases bit0
+  all_goals generalize h1 : RcDispatchRust.sha = bit1; cases bit1
+  all_goals generalize h2 : RcDispatchRust.ssse3 = bit2; cases bit2
+  all_goals generalize h3 : RcDispatchRust.sse41 = bit3; cases bit3
+  all_goals simp only [Bool.false_and,Bool.true_and,Bool.and_false,Bool.and_true,Bool.false_eq_true,ite_false,ite_true,bind_ok]
+  all_goals first | exact Intel.RustCrypto.compress_spec st blocks | exact scalar256 st blocks
 
 theorem single256 (st : Array U32 8#usize) (data : Slice U8) (off : Usize) (room : off.val+64 ≤ data.length) :
     X86RemainderRust.sha256.compress st data off ⦃ out =>
@@ -33,14 +35,14 @@ theorem single256 (st : Array U32 8#usize) (data : Slice U8) (off : Usize) (room
 theorem remainder512 (st : Array U64 8#usize) (blocks : Slice (Array U8 128#usize)) :
     X86RemainderRust.sha512.stream.remainder st blocks ⦃ out =>
       slhdsa.S512.wv out.val = fold512 (slhdsa.S512.wv st.val) blocks.val ⦄ := by
-  unfold X86RemainderRust.sha512.stream.remainder
-  change (do let bmi ← ok bmi2Available
-             if bmi then do
-               let sha ← ok ChainWideRust.shaNiAvailable
-               if sha then ArmStreamRust.sha2.sha512.compress512 st blocks else StreamScalarRust.sha512.stream.scalar st blocks
-             else ArmStreamRust.sha2.sha512.compress512 st blocks) ⦃ out => _ ⦄
-  cases bmi2Available <;> cases ChainWideRust.shaNiAvailable <;> simp only [bind_ok,Bool.false_eq_true,ite_false,ite_true] <;>
-    first | exact PlatformStream.bulk512 st blocks | exact scalar512 st blocks
+  simp only [X86RemainderRust.sha512.stream.remainder,X86RemainderRust.sha512.stream.FORCE_SOFT,
+    X86RemainderRust.sha512.stream.scalar_bmi2,sha2.sha512.compress512,
+    RcDispatchRust.sha512.compress512,RcDispatchRust.sha512.compress,sha512.stream.hardware_backend.get,sha512.stream.has_bmi2.get,sha256.stream.has_bmi2.get,sha512.stream.dedicated.get,RcDispatchRust.sha512.avx2_cpuid.get,bind_ok]
+  generalize h0 : bmi2Available = bit0; cases bit0
+  all_goals generalize h1 : RcDispatchRust.sha = bit1; cases bit1
+  all_goals generalize h2 : RcDispatchRust.avx2 = bit2; cases bit2
+  all_goals simp only [Bool.false_and,Bool.true_and,Bool.and_false,Bool.and_true,Bool.false_eq_true,ite_false,ite_true,bind_ok]
+  all_goals first | exact PlatformStream.bulk512 st blocks | exact scalar512 st blocks
 
 theorem single512 (st : Array U64 8#usize) (data : Slice U8) (off : Usize) (room : off.val+128 ≤ data.length) :
     X86RemainderRust.sha512.compress st data off ⦃ out =>

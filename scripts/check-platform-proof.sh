@@ -811,16 +811,18 @@ extract X86remainder X86RemainderRust x86remainder --start-from 'crate::sha256::
   --start-from 'crate::sha512::compress' --opaque 'crate::sha256::stream::scalar' \
   --opaque 'crate::sha512::stream::scalar' --opaque 'crate::sha256::stream::has_bmi2::get' \
   --opaque 'crate::sha512::stream::has_bmi2::get' --opaque 'crate::sha256::stream::dedicated::get' \
-  --opaque 'crate::sha512::stream::dedicated::get' --opaque 'sha2::sha256::compress256' \
+  --opaque 'crate::sha512::stream::dedicated::get' --opaque 'crate::sha256::stream::hardware_backend::get' \
+  --opaque 'crate::sha512::stream::hardware_backend::get' --opaque 'sha2::sha256::compress256' \
   --opaque 'sha2::sha512::compress512'
 cat > "$scratch/expected" <<'NAMES'
 core.slice.raw.from_ref
 sha2.sha256.compress256
 sha2.sha512.compress512
-sha256.stream.dedicated.get
+sha256.stream.hardware_backend.get
 sha256.stream.has_bmi2.get
 sha256.stream.scalar
 sha512.stream.dedicated.get
+sha512.stream.hardware_backend.get
 sha512.stream.has_bmi2.get
 sha512.stream.scalar
 NAMES

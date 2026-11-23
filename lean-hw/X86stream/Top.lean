@@ -113,7 +113,7 @@ theorem short512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
 
 
 theorem fallback256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
-    (fallback : X86StreamRust.vectorAvailable = false ∨ ChainWideRust.shaNiAvailable = true)
+    (fallback : X86StreamRust.vectorAvailable = false ∨ RcDispatchRust.sha = true)
     (aligned : pre.val%64=0) (space : Room (pre.val+msg.length) 72) :
     X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
       bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ := by

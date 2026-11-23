@@ -41,7 +41,7 @@ fn round(v: [u32; 8], wk: u32) -> [u32; 8] {
 }
 
 pub(super) fn prefix<'a>(state: &mut [u32; 8], blocks: &'a [[u8; 64]]) -> &'a [[u8; 64]] {
-    if blocks.len() < 16 || !available::get() || dedicated::get() {
+    if FORCE_SOFT || blocks.len() < 16 || !available::get() || dedicated::get() {
         return blocks;
     }
     let (groups, tail) = blocks.as_chunks::<16>();
@@ -109,15 +109,30 @@ fn prescheduled(state: &mut [u32; 8], groups: &[[[u8; 64]; 16]]) {
 }
 
 cpufeatures::new!(has_bmi2, "bmi2");
+cpufeatures::new!(hardware_backend, "sha", "ssse3", "sse4.1");
+// RustCrypto also honors these build-time overrides before runtime detection.
+#[allow(unexpected_cfgs)]
+const FORCE_SOFT: bool = cfg!(any(sha2_backend = "soft", sha2_256_backend = "soft"));
+
 pub(super) fn remainder(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
-    if has_bmi2::get() && !dedicated::get() {
-        // SAFETY: the scalar rounds require only BMI2.
-        unsafe { scalar(state, blocks) };
-    } else {
+    if FORCE_SOFT {
+        scalar(state, blocks);
+    } else if hardware_backend::get() {
         sha2_platform::block_api::compress256(state, blocks);
+    } else if has_bmi2::get() {
+        // SAFETY: the checked feature enables the BMI2-specialized code generation.
+        unsafe { scalar_bmi2(state, blocks) };
+    } else {
+        scalar(state, blocks);
     }
 }
+
 #[target_feature(enable = "bmi2")]
+fn scalar_bmi2(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
+    scalar(state, blocks);
+}
+
+#[inline(always)]
 fn scalar(state: &mut [u32; 8], blocks: &[[u8; 64]]) {
     for block in blocks {
         let mut w = core::array::from_fn(|i| read_word(block, i));
