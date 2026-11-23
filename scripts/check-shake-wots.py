@@ -38,6 +38,27 @@ def check_program(package, width, module, roots):
     print(f"verified {len(seen)} {module} definitions at width {width}", flush=True)
 
 
+def check_dispatch(package):
+    names = ("wots_pk_gen", "wots_sign", "wots_pk_from_sig")
+    source = (LEAN / "Shakebatch/WotsDispatchProgram.lean").read_text()
+    source = source.replace("(available : Std.Usize → Result Bool) ", "").replace("← available N", "← shake.batch.available N")
+    baseline = dict(body_names(common["body"](LEAN.parent / "lean/Slhdsa/Funs.lean")))
+    seen = set()
+    for name, decl in body_names(common["body"](package / "Funs.lean")):
+        if name in ("shake.wots." + item for item in names):
+            if "\n".join(line.rstrip() for line in decl.split("\n")) not in source:
+                raise ValueError(f"unbound WOTS feature dispatch {name}")
+            seen.add(name)
+        elif name.startswith("shake.wots.") and any(name.startswith("shake.wots."+item+"_loop") for item in names):
+            if baseline.get(name) != decl:
+                raise ValueError(f"unbound scalar WOTS loop {name}")
+            seen.add(name)
+    expected = {"shake.wots."+base+suffix for base in names for suffix in ("","_loop","_loop.body")}
+    if seen != expected:
+        raise ValueError(f"incomplete scalar and dispatch coverage {seen ^ expected}")
+    print(f"verified all {len(seen)} WOTS dispatch and scalar loop definitions", flush=True)
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix="shake-wots-") as d:
         for target, width in WIDTHS.items():
@@ -54,10 +75,21 @@ def main():
             check_program(keys, width, "WotsKeyProgram", ("keygen",))
             order = extract("rust", target, "Wotsorder", scratch, ("crate::shake::batch::chain_order",), ())
             check_program(order, width, "WotsOrderProgram", ("chain_order",))
-        common["run"](["lake", "build", "Shakebatch.WotsKeys", "Shakebatch.WotsScatter"], LEAN)
+            callers = extract("rust", target, "Wotssign", scratch, ("crate::shake::batch::sign", "crate::shake::batch::recover"),
+                              (*cuts, "crate::shake::batch::chain_order", "crate::util::block"))
+            check_program(callers, width, "WotsSignProgram", ("sign", "recover"))
+            entrypoints = ("wots_pk_gen", "wots_sign", "wots_pk_from_sig")
+            entrycuts = ("crate::shake::batch::available", "crate::shake::batch::keygen", "crate::shake::batch::sign",
+                         "crate::shake::batch::recover", "crate::wots::wots_digits", "crate::shake::wots::secret",
+                         "crate::shake::wots::chain", "crate::shake::hash::start", "crate::shake::hash::digest",
+                         "crate::util::block", "crate::shake256::Sponge::absorb")
+            dispatch = extract("rust", target, "Wotsdispatch", scratch, tuple("crate::shake::wots::"+f for f in entrypoints), entrycuts)
+            check_dispatch(dispatch)
+        common["run"](["lake", "build", "Shakebatch.WotsKeys", "Shakebatch.WotsScatter", "Shakebatch.WotsDispatch"], LEAN)
         check = Path(d) / "Check.lean"
-        theorems = ("wots_secrets", "wots_chains", "keygen_spec", "WotsOrder.order_spec")
-        check.write_text("import Shakebatch.WotsKeys\nimport Shakebatch.WotsScatter\n" +
+        theorems = ("wots_secrets", "wots_chains", "keygen_spec", "WotsOrder.order_spec", "sign_batches", "recover_batches",
+                    "sign_spec", "recover_spec", "wots_pk_gen_spec", "wots_sign_spec", "wots_pk_from_sig_spec")
+        check.write_text("import Shakebatch.WotsKeys\nimport Shakebatch.WotsScatter\nimport Shakebatch.WotsDispatch\n" +
                          "".join(f"#print axioms slhdsa.ShakeBatch.{t}\n" for t in theorems))
         output = common["run"](["lake", "env", "lean", check], LEAN, text=True, capture_output=True).stdout
         for theorem in theorems:
