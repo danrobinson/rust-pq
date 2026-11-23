@@ -585,8 +585,10 @@ fn write_words<const N: usize>(state: &[__m512i; 8], out: &mut [[u8; N]]) {
             core::array::from_fn(|i| _mm512_shuffle_epi8(state[offset / 4 + i], swap));
         let rows = transpose_rows(a, b, c, d);
         let width = (N - offset).min(16);
-        for (j, row) in out.iter_mut().enumerate() {
+        let mut j = 0;
+        for row in out.iter_mut() {
             row[offset..offset + width].copy_from_slice(&rows[j % 4][j / 4][..width]);
+            j += 1;
         }
     }
 }

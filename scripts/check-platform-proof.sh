@@ -19,7 +19,7 @@ extract() {
     opaque=slhdsa::sha512::hw::arm
     proofdir=lean-hw
   fi
-  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ] || [ "$package" = Keypadding ]; then
+  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ] || [ "$package" = Keypadding ] || [ "$package" = Store256 ]; then
     proofdir=lean-hw
   fi
   mkdir "$scratch/$package"
@@ -195,3 +195,24 @@ LEAN
 for name in prepare_message_spec padded_endpoints; do
   grep -Fx "'slhdsa.X86.Keypadding.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/keypadding-axioms.log"
 done
+
+extract Store256 StoreRust store256 --start-from 'crate::sha256::x86::avx512::write_words'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_unpackhi_epi32
+core.core_arch.x86.avx512f._mm512_unpackhi_epi64
+core.core_arch.x86.avx512f._mm512_unpacklo_epi32
+core.core_arch.x86.avx512f._mm512_unpacklo_epi64
+core.core_arch.x86.sse2._mm_set_epi32
+core.intrinsics.transmute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Store256.Proof && lake env lean --stdin > "$scratch/store256-axioms.log" <<'LEAN'
+import Store256.Proof
+#print axioms slhdsa.X86.Store.write_words_spec
+LEAN
+)
+grep -Fx "'slhdsa.X86.Store.write_words_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/store256-axioms.log"

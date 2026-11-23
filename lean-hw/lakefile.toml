@@ -59,3 +59,6 @@ name = "Gather512"
 
 [[lean_lib]]
 name = "Keypadding"
+
+[[lean_lib]]
+name = "Store256"
