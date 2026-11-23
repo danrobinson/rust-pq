@@ -95,3 +95,6 @@ name = "Chainwrite"
 
 [[lean_lib]]
 name = "Chainwide"
+
+[[lean_lib]]
+name = "Chainavx2"

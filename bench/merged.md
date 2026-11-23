@@ -107,3 +107,15 @@ Kernel speedups are medians over 81 configurations with at least eight lanes and
 Two earlier runs compared scattering, immediate transposition and deferred transposition. Factoring the compression out of the loop reduced throughput for the common uniform-length case. The adopted version keeps compression inline and extracts the word-packing and finished-lane functions for Lean. [First comparison](results/merged/chain-stores-screen-kernels.csv) · [First run sources and samples](results/merged/chain-stores-screen.tar.gz) · [Independent comparison](results/merged/chain-stores-confirm-kernels.csv) · [Independent run sources and samples](results/merged/chain-stores-confirm.tar.gz)
 
 The adopted Rust source passed 134 core and 54 compatibility tests per CPU with normal dispatch. EPYC and Xeon 6975P-C also passed all 188 tests with AVX-512 dispatch disabled for the SHA-256 driver, exercising the SHA-NI path. The older Xeon lacks SHA-NI. All three instances terminated. [Per-host counts](results/merged/chain-stores-validation.csv) · [Full logs, CPU identification and source hashes](results/merged/chain-stores-validation.tar.gz)
+
+## Eight-lane AVX2 chain stores
+
+On x86 machines that select the AVX2 fallback, the chain driver now checks each lane once before storing its digest words. Previously it repeated that check for each word. Each measurement used a pinned vCPU, release builds, rotating candidate order, and six paired rounds after warm-up. The public-operation columns show the median speedup over six SHA2 parameter sets and two message sizes.
+
+| CPU, forced AVX2 | Key generation | Signing | Verification | 32-byte SHA2-128s signing | Signing time / raw AVX2 SHA time |
+|---|---:|---:|---:|---:|---:|
+| Older Xeon, c5.large | 1.028× | 1.023× | 1.024× | 162.56 ms | 1.285× |
+| AMD EPYC, c8a.large | 1.013× | 1.011× | 1.004× | 81.08 ms | 1.091× |
+| Newer Xeon, c8i.large | 1.014× | 1.015× | 1.020× | 94.75 ms | 1.045× |
+
+These figures isolate the fallback by disabling SHA-NI and AVX-512 dispatch for both the baseline and candidates. The raw reference times eight independent full SHA-256 compressions on pretransposed inputs and checks each output against scalar SHA. Each signing ratio uses the exact compression count for its inputs. Only workloads that use SHA-256 exclusively have a raw ratio in the data. [Paired API measurements](results/merged/avx2-chain-stores.csv) · [144 chain shapes per host](results/merged/avx2-chain-stores-kernels.csv) · [Candidate sources, CPU details, tests and raw samples](results/merged/avx2-chain-stores.tar.gz)

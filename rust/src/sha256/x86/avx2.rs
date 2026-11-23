@@ -12,26 +12,32 @@ pub(super) fn chains<const N: usize>(
     let initial = state.map(|x| _mm256_set1_epi32(x as i32));
     let (groups, tail) = blocks.as_chunks_mut::<8>();
     let consumed = 8 * groups.len();
-    for (group, batch) in groups.iter_mut().enumerate() {
+    for group in 0..groups.len() {
+        let batch = &mut groups[group];
         let offset = group * 8;
         let lengths: [u32; 8] =
             core::array::from_fn(|i| end[offset + i].saturating_sub(start[offset + i]));
-        for step in 0..*lengths.iter().max().unwrap() {
-            for (lane, block) in batch.iter_mut().enumerate() {
+        let mut longest = 0;
+        for lane in 0..8 {
+            longest = longest.max(lengths[lane]);
+        }
+        for step in 0..longest {
+            for lane in 0..8 {
                 if step < lengths[lane] {
-                    block[18..22].copy_from_slice(&(start[offset + lane] + step).to_be_bytes());
+                    batch[lane][18..22]
+                        .copy_from_slice(&(start[offset + lane] + step).to_be_bytes());
                 }
             }
             let hash = compress8(initial, batch);
-            for (word, values) in hash.iter().take(N.div_ceil(4)).enumerate() {
-                // SAFETY: an AVX2 integer vector holds eight native-endian u32s.
-                let lanes: [u32; 8] = unsafe { core::mem::transmute(*values) };
-                let count = 4.min(N - 4 * word);
-                let pos = 22 + 4 * word;
-                for (lane, block) in batch.iter_mut().enumerate() {
-                    if step < lengths[lane] {
-                        block[pos..pos + count]
-                            .copy_from_slice(&lanes[lane].to_be_bytes()[..count]);
+            // SAFETY: each AVX2 register contains eight native-endian u32 lanes.
+            let digest: [[u32; 8]; 8] = unsafe { core::mem::transmute(hash) };
+            for lane in 0..8 {
+                if step < lengths[lane] {
+                    for word in 0..N.div_ceil(4).min(8) {
+                        let count = 4.min(N - 4 * word);
+                        let pos = 22 + 4 * word;
+                        batch[lane][pos..pos + count]
+                            .copy_from_slice(&digest[word][lane].to_be_bytes()[..count]);
                     }
                 }
             }

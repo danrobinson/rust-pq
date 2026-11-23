@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -502,4 +502,32 @@ LEAN
 )
 for name in chains_spec input_words broadcast_spec prefix_spec compression_step_spec start_mask end_mask load_ranges_spec iteration_spec active_has_budget; do
   grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwide-axioms.log"
+done
+
+
+extract Chainavx2 ChainAvx2Rust chainavx2 --start-from 'crate::sha256::x86::avx2::chains' \
+  --opaque 'crate::sha256::x86::avx2::compress8' --opaque 'crate::hash::chain_blocks_portable'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m256i
+core.core_arch.x86.avx._mm256_set1_epi32
+core.intrinsics.transmute
+core.slice.Slice.as_chunks_mut
+hash.chain_blocks_portable
+sha256.x86.avx2.compress8
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainavx2.Digest && lake env lean --stdin > "$scratch/avx2-chain-axioms" <<'LEAN'
+import Chainavx2.Digest
+#print axioms slhdsa.Avx2.Chain.longest_spec
+#print axioms slhdsa.Avx2.Chain.range_lengths_spec
+#print axioms slhdsa.Avx2.Chain.addresses_spec
+#print axioms slhdsa.Avx2.Chain.broadcast_spec
+#print axioms slhdsa.Avx2.Chain.digest_lanes_spec
+#print axioms slhdsa.Avx2.Chain.word_store_spec
+#print axioms ChainAvx2Rust.chunks_roundtrip
+LEAN
+)
+for name in slhdsa.Avx2.Chain.longest_spec slhdsa.Avx2.Chain.range_lengths_spec slhdsa.Avx2.Chain.addresses_spec slhdsa.Avx2.Chain.broadcast_spec slhdsa.Avx2.Chain.digest_lanes_spec slhdsa.Avx2.Chain.word_store_spec ChainAvx2Rust.chunks_roundtrip; do
+  grep -Fx "'$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/avx2-chain-axioms"
 done

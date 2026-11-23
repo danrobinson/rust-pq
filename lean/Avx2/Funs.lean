@@ -59,7 +59,7 @@ def sha256.K : Array Std.U32 64#usize :=
     ]
 
 /-- [slhdsa::sha256::x86::avx2::compression_step]:
-    Source: 'src/sha256/x86/avx2.rs', lines 95:0-145:1 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 101:0-151:1 -/
 def sha256.x86.avx2.compression_step
   (i : Std.Usize) (state : Array core.core_arch.x86.__m256i 8#usize)
   (w : Array core.core_arch.x86.__m256i 16#usize) :
@@ -155,7 +155,7 @@ def sha256.x86.avx2.compression_step
   ok (Array.make 8#usize [ mi29, a, b, c, mi30, e, f, g ], w1)
 
 /-- [slhdsa::sha256::x86::avx2::compress_words]: loop body 0:
-    Source: 'src/sha256/x86/avx2.rs', lines 75:4-79:5 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 81:4-85:5 -/
 @[rust_loop_body]
 def sha256.x86.avx2.compress_words_loop.body
   (w : Array core.core_arch.x86.__m256i 16#usize)
@@ -172,7 +172,7 @@ def sha256.x86.avx2.compress_words_loop.body
   else ok (done state)
 
 /-- [slhdsa::sha256::x86::avx2::compress_words]: loop 0:
-    Source: 'src/sha256/x86/avx2.rs', lines 75:4-79:5 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 81:4-85:5 -/
 @[rust_loop]
 def sha256.x86.avx2.compress_words_loop
   (w : Array core.core_arch.x86.__m256i 16#usize)
@@ -185,7 +185,7 @@ def sha256.x86.avx2.compress_words_loop
     (w, state, i)
 
 /-- [slhdsa::sha256::x86::avx2::compress_words]:
-    Source: 'src/sha256/x86/avx2.rs', lines 72:0-91:1 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 78:0-97:1 -/
 def sha256.x86.avx2.compress_words
   (initial : Array core.core_arch.x86.__m256i 8#usize)
   (w : Array core.core_arch.x86.__m256i 16#usize) :
@@ -219,7 +219,7 @@ def sha256.x86.avx2.compress_words
   ok (Array.make 8#usize [ mi1, mi3, mi5, mi7, mi9, mi11, mi13, mi15 ])
 
 /-- [slhdsa::sha256::x86::avx2::read_word]:
-    Source: 'src/sha256/x86/avx2.rs', lines 66:0-68:1 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 72:0-74:1 -/
 def sha256.x86.avx2.read_word
   (block : Array Std.U8 64#usize) (pos : Std.Usize) : Result Std.U32 := do
   let i ← Array.index_usize block pos
@@ -232,7 +232,7 @@ def sha256.x86.avx2.read_word
   ok (core.num.U32.from_be_bytes (Array.make 4#usize [ i, i2, i4, i6 ]))
 
 /-- [slhdsa::sha256::x86::avx2::compress8]: loop body 0:
-    Source: 'src/sha256/x86/avx2.rs', lines 48:4-61:5 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 54:4-67:5 -/
 @[rust_loop_body]
 def sha256.x86.avx2.compress8_loop.body
   (blocks : Array (Array Std.U8 64#usize) 8#usize)
@@ -275,7 +275,7 @@ def sha256.x86.avx2.compress8_loop.body
   else ok (done w)
 
 /-- [slhdsa::sha256::x86::avx2::compress8]: loop 0:
-    Source: 'src/sha256/x86/avx2.rs', lines 48:4-61:5 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 54:4-67:5 -/
 @[rust_loop]
 def sha256.x86.avx2.compress8_loop
   (blocks : Array (Array Std.U8 64#usize) 8#usize)
@@ -287,7 +287,7 @@ def sha256.x86.avx2.compress8_loop
     (w, i)
 
 /-- [slhdsa::sha256::x86::avx2::compress8]:
-    Source: 'src/sha256/x86/avx2.rs', lines 45:0-63:1 -/
+    Source: 'src/sha256/x86/avx2.rs', lines 51:0-69:1 -/
 def sha256.x86.avx2.compress8
   (initial : Array core.core_arch.x86.__m256i 8#usize)
   (blocks : Array (Array Std.U8 64#usize) 8#usize) :
