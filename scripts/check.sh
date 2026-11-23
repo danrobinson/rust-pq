@@ -45,7 +45,7 @@ fi
 if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean/Slhdsa/Funs.lean lean/Slhdsa/Types.lean; then
   echo "FOUND an axiom or opaque declaration in the extraction"; exit 1
 fi
-(cd lean && lake build Slhdsa Spec spectest)
+(cd lean && lake build Slhdsa Spec spectest Spec.AppleKeccakWitness)
 
 # No sorry, axiom, native_decide or bv_decide anywhere in the Lean sources.
 if grep -rnwE "sorry|admit|native_decide|bv_decide" lean/Slhdsa lean/Spec lean/Spec.lean lean/Slhdsa.lean \
@@ -83,7 +83,7 @@ fi
 
 # The model of the wrappers on the cases recorded from a processor
 # (vectors/arm-wrappers.txt).
-(cd lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers \
+(cd lean-hw && lake build Keccakasm.ReleaseWitness Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers \
    && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
 
 # No sorry, axiom, native_decide or bv_decide in any Lean source the hw-sha2
