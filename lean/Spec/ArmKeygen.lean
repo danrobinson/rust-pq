@@ -31,6 +31,12 @@ def write (m : Memory) (a : Nat) (v : Cells) : Memory :=
   (v.zipIdx).foldl (fun t (w,i) => t.insert (a+4*i) w) m
 def read (m : Memory) (a k : Nat) := (List.range (k/4)).mapM (fun i => m[a+4*i]?)
 
+inductive Seed where
+  | shake
+  | external (entry : Nat)
+  | inlined (entry : Nat) (words iv rounds : List Nat)
+deriving Repr, DecidableEq
+
 structure Config where
   n : Nat
   d : Nat
@@ -40,6 +46,7 @@ structure Config where
   param : Nat
   params : List Nat -- 36 actual bytes at the linked parameter address
   internal : Bool
+  seed : Seed := .shake
 
 /-- Native parameter layout in the measured artifact, with no reads of trailing padding. -/
 def parameterBytes (p : Spec.Params) : List Nat :=
@@ -54,6 +61,7 @@ structure State where
   m : Memory := {}
   ls : Option Bool := none
   called : Bool := false
+  seeded : Bool := false
 
 def unknown (r k : Nat) := (List.range k).map (fun j => 2*radix + 8*r+j)
 def g (s : State) (r : Nat) := s.g.getD r (unknown r 2)
@@ -117,7 +125,7 @@ def step (c : Config) (s : State) (w : Nat) : Option State := do
     guard (d < 31)
     let pages := signExt (((w/32)%2^19)*4 + (w/2^29)%4) 21
     return put s d (num (addr (pc/4096*4096) (4096*pages)))
-  else if mask 0xffe00000 == 0x52800000 then
+  else if mask 0xffe00000 == 0x52800000 || mask 0xffe00000 == 0xd2800000 then
     guard (d < 31)
     return put s d (num (w/32%65536))
   else if mask 0xffc00000 == 0x51000000 then
@@ -157,28 +165,79 @@ def step (c : Config) (s : State) (w : Nat) : Option State := do
       let off := if scaled then (imm*k : Int) else signExt (w/4096%512) 9
       transfer c s ld (k==16) d (addr a off) k
 
-/-- The single opaque call checks all five XMSS arguments and its indirect result slot.
+def seedContext (c : Config) := match c.seed with
+  | .shake => block c.n 2
+  | .external _ => block (96+c.n) 4
+  | .inlined .. => List.replicate 16 0 ++ block 32 4 ++ block c.n 2
+
+def clobber (s : State) (epoch : Nat) : State := Id.run do
+  let regs := (List.range 18 ++ [30]).foldl (fun t r => t.insert r (unknown (epoch+r) 2)) s.g
+  let simd := (List.range 32).foldl (fun t r =>
+    let fresh := unknown (epoch+32+r) 4
+    t.insert r (if 8 ≤ r && r < 16 then (q s r).take 2 ++ fresh.drop 2 else fresh)) s.q
+  return {s with g := regs, q := simd, ls := none}
+
+/-- ABI contract of a linked SHA-2 seed_ctx call: consume PK.seed, produce its
+    context in the disjoint output slot, preserve caller state per the ABI. -/
+def externalSeed (c : Config) (s : State) : Option State := do
+  guard (!s.seeded && !s.called)
+  let a ← natVal (g s 0)
+  let out ← natVal (g s 8)
+  let k := 96+c.n
+  guard (readable c s a c.n && region out k s.sp (stack-s.sp) && out%4 == 0 && disjoint a c.n out k)
+  guard ((← read s.m a c.n) == block c.n 2)
+  let ret ← natVal (g s 30)
+  return {clobber s 128 with pc := ret, m := write s.m out (seedContext c), seeded := true}
+
+/-- Exact straight-line extent, including both loop branches, of the summarized SHA2-128
+    region in the pinned link image. PC-relative instructions fix its constant addresses. -/
+def inlineWords : List Nat := [0x6e200800, 0x6f00e401, 0xad0107e0, 0xad0207e1, 0xf00002c9, 0x3dc3cd20,
+  0xf00002ca, 0x3dc3d141, 0x910083eb, 0xd000030c, 0x9111c18c, 0x1400000a,
+  0x3ce87983, 0x4ea28463, 0x4ea11c22, 0x5e034002, 0x5e035020, 0x4ea21c41,
+  0xaa0d03e8, 0xf10041bf, 0x54000240, 0x9240050e, 0x3cee7962, 0x9100050d,
+  0xf100311f, 0x54fffe62, 0x924005af, 0x3cef7963, 0x4ea21c44, 0x5e282864,
+  0x5100050f, 0xd27f01d0, 0x3cf07963, 0x924005ef, 0x3cef7965, 0x5e056064,
+  0x3cae7964, 0x17ffffe7, 0x3dc3d141, 0x4ea18441, 0x3dc3cd22, 0x4ea28400]
+
+/-- SHA2-128 internal block contract. Entry Q0 supplies the 16 seed bytes. The
+    bounded block returns the two digest vectors in Q1,Q0, in state-word order.
+    The context's zero prefix and final copy of the seed are executed outside this
+    contract. The separate native SMT gate checks this block's complete round circuit.
+    Its scratch register and stack effects are forgotten before continuing. -/
+def inlineSeed (c : Config) (s : State) (words iv rounds : List Nat) : Option State := do
+  guard (c.n == 16 && !s.seeded && !s.called && q s 0 == block c.n 2 && (← natVal (g s 8)) == 0)
+  let h0 := Spec.SHA256.H0.map BitVec.toNat
+  -- The load into Q0 reads EFGH. The adjacent literal loaded into Q1 holds ABCD.
+  guard (s.pc == 0x10007ad1c && words == inlineWords &&
+    iv == (h0.drop 4 ++ h0.take 4) && rounds == Spec.SHA256.K.map BitVec.toNat)
+  let out := s.sp+32
+  guard (region out 64 s.sp (stack-s.sp))
+  let regs := (List.range 9).foldl (fun t i => t.insert (8+i) (unknown (128+i) 2)) s.g
+  let simd := (List.range 6).foldl (fun t i => t.insert i (unknown (160+i) 4)) s.q
+  let digest := block 32 4
+  let ring := (List.range 16).map (fun j => token 5 j)
+  return {s with g := regs, q := (simd.insert 1 (digest.take 4)).insert 0 (digest.drop 4),
+                 m := write s.m out ring, pc := s.pc+4*words.length, ls := none, seeded := true}
+
+/-- The subtree call checks all five XMSS arguments and its indirect result slot.
     The caller receives distinct fresh unknown values for volatile register cells. -/
 def subtree (c : Config) (s : State) : Option State := do
-  guard (!s.called)
+  guard (!s.called && s.seeded == (c.seed != .shake))
+  let context := seedContext c
+  let k := context.length*4
   let arg := fun r => natVal (g s r)
   let a ← arg 0
   let seed ← arg 3
   let adrs ← arg 4
   let out ← arg 8
-  guard (readable c s a c.n && readable c s seed c.n && readable c s adrs 28 &&
+  guard (readable c s a c.n && readable c s seed k && readable c s adrs 28 &&
     region out c.n s.sp (stack-s.sp) && out%4 == 0 &&
-    disjoint out c.n a c.n && disjoint out c.n seed c.n && disjoint out c.n adrs 28)
-  guard ((← read s.m a c.n) == block c.n 0 && (← read s.m seed c.n) == block c.n 2)
+    disjoint out c.n a c.n && disjoint out c.n seed k && disjoint out c.n adrs 28)
+  guard ((← read s.m a c.n) == block c.n 0 && (← read s.m seed k) == context)
   guard ((← arg 1) == 0 && (← arg 2) == c.hp &&
     (← read s.m adrs 28) == [0,0,c.d-1,0,0,0,0])
   let ret ← arg 30
-  let regs := (List.range 18 ++ [30]).foldl (fun t r => t.insert r (unknown (64+r) 2)) s.g
-  let simd := (List.range 32).foldl (fun t r =>
-    let fresh := unknown (96+r) 4
-    t.insert r (if 8 ≤ r && r < 16 then (q s r).take 2 ++ fresh.drop 2 else fresh)) s.q
-  return {s with m := write s.m out (block c.n 3), pc := ret, g := regs, q := simd,
-                 called := true, ls := none}
+  return {clobber s 64 with m := write s.m out (block c.n 3), pc := ret, called := true}
 
 /-- Every candidate instruction includes its linked address. A return, branch, or
     call that disagrees with the next PC invalidates the complete witness. -/
@@ -186,6 +245,10 @@ def run (c : Config) (path : List (Nat × Nat)) : Option (Cells × Cells) := do
   guard (c.params.length == 36 && c.params.all (· < 256) && [16,24,32].contains c.n)
   let start := init c
   let s ← path.foldlM (fun s (pc,w) => do
+    let s ← match c.seed with
+      | .external entry => if s.pc == entry then externalSeed c s else some s
+      | .inlined entry words iv k => if s.pc == entry then inlineSeed c s words iv k else some s
+      | .shake => some s
     let s ← if s.pc == c.root then subtree c s else some s
     guard (s.pc == pc && pc%4 == 0)
     step c s w) start
