@@ -28,3 +28,7 @@ The older Xeon also ran both AVX2 implementations with AVX-512 chain and tree di
 ## Paired Arm SHA-512
 
 The two-lane SHA-512 refactor ran the same 36-workload SHA-2 comparison on Apple M5 Ultra. The median paired speedup was 1.0001× and the workload medians ranged from 0.9921× to 1.0062×. Sixteen kernel and differential tests passed with platform acceleration enabled. The proof follows the production routine from input bytes through both 40-step instruction sequences to the truncated outputs. It assumes the Arm SHA-512 instructions are available and uses the same instruction model as the verified single-block path. [Proof](../lean-hw/Paired/Proof.lean) · [Raw measurements](results/merged/arm-pair.csv.gz) · [36 workload results](results/merged/arm-pair-summary.csv)
+
+## Paired x86 SHA-NI
+
+Both builds disabled AVX-512 dispatch to measure public operations using the paired SHA-NI chain kernel. The median of the 36 workload speedups was 1.1973× on EPYC 9R45 and 1.0321× on Xeon 6975P-C. Individual workload medians ranged from 1.0112× to 1.2916× on EPYC and from 1.0001× to 1.0531× on Xeon. Both hosts passed 14 kernel and compression tests. Normal dispatch can select AVX-512 on both hosts. The baseline is commit `3870dab`. The Lean theorem takes any packed chaining state and two arbitrary 64-byte inputs, and verifies both serialized 32-byte results against FIPS 180-4 under the x86 intrinsic model. [Proof](../lean-hw/Slhdsa/Proofs/ShaNi.lean) · [Raw measurements](results/merged/sha-ni.csv.gz) · [72 workload results](results/merged/sha-ni-summary.csv)

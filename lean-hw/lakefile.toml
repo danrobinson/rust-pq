@@ -46,3 +46,7 @@ srcDir = "../lean"
 
 [[lean_lib]]
 name = "Paired"
+
+[[lean_lib]]
+name = "Shani"
+srcDir = "../lean"

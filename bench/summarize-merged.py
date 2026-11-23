@@ -35,3 +35,4 @@ if __name__ == "__main__":
     summarize("wide-refactor", "current", "refined", ("c5", "c8i", "c8a"))
     summarize("avx2", "current", "refined", ("c5",))
     summarize("arm-pair", "current", "refined", ("apple",))
+    summarize("sha-ni", "current", "refined", ("c8a", "c8i"))

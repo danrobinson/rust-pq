@@ -96,3 +96,22 @@ import Paired.Proof
 LEAN
 )
 grep -Fx "'slhdsa.H512.Paired.parents_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/paired-axioms.log"
+extract Shani ShaNiRust shani --start-from 'crate::sha256::x86::compress_pair'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.sha._mm_sha256msg1_epu32
+core.core_arch.x86.sha._mm_sha256msg2_epu32
+core.core_arch.x86.sha._mm_sha256rnds2_epu32
+core.core_arch.x86.sse2._mm_add_epi32
+core.core_arch.x86.sse2._mm_set_epi32
+core.core_arch.x86.sse2._mm_shuffle_epi32
+core.core_arch.x86.sse41._mm_extract_epi32
+core.core_arch.x86.ssse3._mm_alignr_epi8
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Slhdsa.Proofs.ShaNi && lake env lean --stdin > "$scratch/shani-axioms.log" <<'LEAN'
+import Slhdsa.Proofs.ShaNi
+#print axioms slhdsa.Intel.compress_pair_spec
+LEAN
+)
+grep -Fx "'slhdsa.Intel.compress_pair_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/shani-axioms.log"

@@ -77,35 +77,26 @@ fn chains<const N: usize>(state: &[u32; 8], blocks: &mut [[u8; 64]], start: &[u3
 #[inline]
 #[target_feature(enable = "sha,ssse3,sse4.1")]
 fn compress_pair(initial: [__m128i; 2], left: &[u8; 64], right: &[u8; 64]) -> [[u8; 32]; 2] {
-    let swap = _mm_set_epi64x(0x0c0d0e0f08090a0b, 0x0405060700010203);
-    let mut result = [[0u8; 32]; 2];
-    let mut work = [initial; 2];
-    let mut schedule = [[_mm_setzero_si128(); 4]; 2];
-    for (lane, block) in [left, right].into_iter().enumerate() {
-        for (slot, bytes) in schedule[lane].iter_mut().zip(block.as_chunks::<16>().0) {
-            // SAFETY: bytes contains exactly 16 bytes.
-            *slot = _mm_shuffle_epi8(unsafe { _mm_loadu_si128(bytes.as_ptr().cast()) }, swap);
-        }
-    }
-    // Expand these fixed groups at compile time. This keeps the two rolling
-    // message schedules in registers and exposes independent SHA instructions.
+    let load = |block: &[u8; 64]| {
+        [
+            load_group(block, 0),
+            load_group(block, 16),
+            load_group(block, 32),
+            load_group(block, 48),
+        ]
+    };
+    let mut a = ShaLane {
+        work: initial,
+        words: load(left),
+    };
+    let mut b = ShaLane {
+        work: initial,
+        words: load(right),
+    };
     macro_rules! group {
         ($r:literal) => {{
-            const I: usize = $r % 4;
-            // SAFETY: four constants per group, from offsets 0 through 60.
-            let k = unsafe { _mm_loadu_si128(super::K[4 * $r..].as_ptr().cast()) };
-            for lane in 0..2 {
-                let w = &mut schedule[lane];
-                if $r >= 4 {
-                    let sum = _mm_sha256msg1_epu32(w[I], w[(I + 1) % 4]);
-                    let cross = _mm_alignr_epi8::<4>(w[(I + 3) % 4], w[(I + 2) % 4]);
-                    w[I] = _mm_sha256msg2_epu32(_mm_add_epi32(sum, cross), w[(I + 3) % 4]);
-                }
-                let wk = _mm_add_epi32(w[I], k);
-                let [abef, cdgh] = &mut work[lane];
-                *cdgh = _mm_sha256rnds2_epu32(*cdgh, *abef, wk);
-                *abef = _mm_sha256rnds2_epu32(*abef, *cdgh, _mm_shuffle_epi32::<0x0e>(wk));
-            }
+            // SAFETY: the enclosing function enables SHA-NI, SSSE3 and SSE4.1.
+            unsafe { pair_group::<$r>(&mut a, &mut b) };
         }};
     }
     group!(0);
@@ -124,19 +115,73 @@ fn compress_pair(initial: [__m128i; 2], left: &[u8; 64], right: &[u8; 64]) -> [[
     group!(13);
     group!(14);
     group!(15);
-    for (dst, [abef, cdgh]) in result.iter_mut().zip(work) {
-        let feba = _mm_shuffle_epi32::<0x1b>(_mm_add_epi32(abef, initial[0]));
-        let dchg = _mm_shuffle_epi32::<0xb1>(_mm_add_epi32(cdgh, initial[1]));
-        let lo = _mm_shuffle_epi8(_mm_blend_epi16::<0xf0>(feba, dchg), swap);
-        let hi = _mm_shuffle_epi8(_mm_alignr_epi8::<8>(dchg, feba), swap);
-        // SAFETY: two unaligned 16-byte stores fill this 32-byte digest.
-        let ptr = dst.as_mut_ptr().cast::<__m128i>();
-        unsafe {
-            _mm_storeu_si128(ptr, lo);
-            _mm_storeu_si128(ptr.add(1), hi);
-        }
+    [digest_pair(initial, a.work), digest_pair(initial, b.work)]
+}
+
+struct ShaLane {
+    work: [__m128i; 2],
+    words: [__m128i; 4],
+}
+
+#[inline(always)]
+unsafe fn pair_group<const R: usize>(a: &mut ShaLane, b: &mut ShaLane) {
+    unsafe {
+        let k = _mm_set_epi32(
+            super::K[4 * R + 3] as i32,
+            super::K[4 * R + 2] as i32,
+            super::K[4 * R + 1] as i32,
+            super::K[4 * R] as i32,
+        );
+        lane_group::<R>(a, k);
+        lane_group::<R>(b, k);
     }
-    result
+}
+
+#[inline(always)]
+unsafe fn lane_group<const R: usize>(lane: &mut ShaLane, k: __m128i) {
+    unsafe {
+        let i = R % 4;
+        let w = &mut lane.words;
+        if R >= 4 {
+            let sum = _mm_sha256msg1_epu32(w[i], w[(i + 1) % 4]);
+            let cross = _mm_alignr_epi8::<4>(w[(i + 3) % 4], w[(i + 2) % 4]);
+            w[i] = _mm_sha256msg2_epu32(_mm_add_epi32(sum, cross), w[(i + 3) % 4]);
+        }
+        let wk = _mm_add_epi32(w[i], k);
+        let [abef, cdgh] = lane.work;
+        let cdgh = _mm_sha256rnds2_epu32(cdgh, abef, wk);
+        lane.work = [
+            _mm_sha256rnds2_epu32(abef, cdgh, _mm_shuffle_epi32::<0x0e>(wk)),
+            cdgh,
+        ];
+    }
+}
+
+#[inline]
+#[target_feature(enable = "sse2")]
+fn load_group(b: &[u8; 64], i: usize) -> __m128i {
+    #[inline(always)]
+    fn word(b: &[u8; 64], i: usize) -> i32 {
+        i32::from_be_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]])
+    }
+    _mm_set_epi32(word(b, i + 12), word(b, i + 8), word(b, i + 4), word(b, i))
+}
+
+#[inline]
+#[target_feature(enable = "sse4.1")]
+fn digest_pair(initial: [__m128i; 2], work: [__m128i; 2]) -> [u8; 32] {
+    let abef = _mm_add_epi32(initial[0], work[0]);
+    let cdgh = _mm_add_epi32(initial[1], work[1]);
+    let mut dst = [0; 32];
+    dst[0..4].copy_from_slice(&_mm_extract_epi32::<3>(abef).to_be_bytes());
+    dst[4..8].copy_from_slice(&_mm_extract_epi32::<2>(abef).to_be_bytes());
+    dst[8..12].copy_from_slice(&_mm_extract_epi32::<3>(cdgh).to_be_bytes());
+    dst[12..16].copy_from_slice(&_mm_extract_epi32::<2>(cdgh).to_be_bytes());
+    dst[16..20].copy_from_slice(&_mm_extract_epi32::<1>(abef).to_be_bytes());
+    dst[20..24].copy_from_slice(&_mm_extract_epi32::<0>(abef).to_be_bytes());
+    dst[24..28].copy_from_slice(&_mm_extract_epi32::<1>(cdgh).to_be_bytes());
+    dst[28..32].copy_from_slice(&_mm_extract_epi32::<0>(cdgh).to_be_bytes());
+    dst
 }
 
 pub(crate) fn fors_leaves<const N: usize>(

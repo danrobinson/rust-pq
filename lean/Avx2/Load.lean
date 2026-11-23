@@ -5,7 +5,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.Avx2
 open Spec.SHA256 Avx2Rust.sha256.x86.avx2 core.core_arch.x86.avx
 
-private theorem be_four (a b c d : U8) :
+theorem be_four (a b c d : U8) :
     (core.num.U32.from_be_bytes (Array.make 4#usize [a,b,c,d])).bv = a.bv ++ b.bv ++ c.bv ++ d.bv := by
   change (BitVec.fromLEBytes [d.bv,c.bv,b.bv,a.bv]).cast (by rfl) = _
   simp only [BitVec.fromLEBytes, List.length_cons, List.length_nil, Nat.reduceAdd, Nat.reduceMul, BitVec.cast_eq]
