@@ -19,9 +19,9 @@ extract() {
     opaque=slhdsa::sha512::hw::arm
     proofdir=lean-hw
   fi
-  if [ "$package" = Parent512 ] || [ "$package" = Gather512 ] || [ "$package" = Keypadding ] || [ "$package" = Store256 ]; then
-    proofdir=lean-hw
-  fi
+  case "$package" in
+    Parent512|Gather512|Keypadding|Store256|Digest256) proofdir=lean-hw ;;
+  esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
     --opaque "$opaque" --dest-file "$scratch/$llbc.llbc" -- \
@@ -216,3 +216,37 @@ import Store256.Proof
 LEAN
 )
 grep -Fx "'slhdsa.X86.Store.write_words_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/store256-axioms.log"
+
+extract Digest256 DigestRust digest256 --start-from 'crate::sha256::x86::key_digests' \
+  --opaque 'crate::sha256::x86::avx512_available' --opaque 'crate::sha256::x86::avx512::compress' \
+  --opaque 'crate::sha256::x86::avx512::round' --opaque 'crate::sha256::x86::avx512::write_words'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_mask_i32gather_epi32
+core.core_arch.x86.avx512f._mm512_mullo_epi32
+core.core_arch.x86.avx512f._mm512_set1_epi32
+core.core_arch.x86.avx512f._mm512_set_epi32
+core.core_arch.x86.avx512f._mm512_setzero_si512
+core.core_arch.x86.sse2._mm_set_epi32
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.x86.avx512.compress
+sha256.x86.avx512.round
+sha256.x86.avx512.write_words
+sha256.x86.avx512_available
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Digest256.Fips && lake env lean --stdin > "$scratch/digest256-axioms.log" <<'LEAN'
+import Digest256.Fips
+#print axioms slhdsa.X86.Digest.key_digests_spec
+#print axioms slhdsa.X86.Digest.tweakable_digest_spec
+LEAN
+)
+for name in key_digests_spec tweakable_digest_spec; do
+  grep -Fx "'slhdsa.X86.Digest.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/digest256-axioms.log"
+done

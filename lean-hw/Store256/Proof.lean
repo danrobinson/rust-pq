@@ -4,9 +4,9 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Store
 open StoreRust StoreRust.sha256.x86.avx512
 
-private def control : Reg512 := fun j => slhdsa.Intel.get ⟨0x00010203,0x04050607,0x08090a0b,0x0c0d0e0f⟩ j.val
-private def reverse32 := S512.Gather.rev32
-private theorem shuffle (v : Reg512) :
+def control : Reg512 := fun j => slhdsa.Intel.get ⟨0x00010203,0x04050607,0x08090a0b,0x0c0d0e0f⟩ j.val
+abbrev reverse32 := S512.Gather.rev32
+theorem shuffle (v : Reg512) :
     StoreRust.core.core_arch.x86.avx512bw._mm512_shuffle_epi8 v control ⦃ r =>
       ∀ j, r j = reverse32 (v j) ⦄ := by
   simp only [StoreRust.core.core_arch.x86.avx512bw._mm512_shuffle_epi8,

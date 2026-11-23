@@ -62,3 +62,6 @@ name = "Keypadding"
 
 [[lean_lib]]
 name = "Store256"
+
+[[lean_lib]]
+name = "Digest256"
