@@ -92,9 +92,13 @@ theorem kernel_fips (impl : Implementation) (a : State) : kernel impl a = permut
   · exact PeerKeccak.SoftLinux.permute_fips a
   · exact PeerKeccak.Indexed.permute_fips a
 
+/-- Equality of the entire buffered interface, including intermediate update states. -/
+theorem provider_eq (impl : Implementation) : xof (kernel impl) = Buffer.provider := by
+  rw [show kernel impl = permute from funext (kernel_fips impl), xof_fips]
+
 /-- Byte-level correctness of the published provider with its concrete permutation backend. -/
 def correct (impl : Implementation) : Correct (xof (kernel impl)) := by
-  rw [show kernel impl = permute from funext (kernel_fips impl), xof_fips]
+  rw [provider_eq impl]
   exact Buffer.providerCorrect
 
 #print axioms correct

@@ -38,18 +38,19 @@ def source(platform, sha_model):
             params = "Spec." + suite
             selector = "." + shape[-1] + shape[:-1]
             peer = (f"(Providers.sha2 {selector} RcSlhSha2.nativeAlgorithms)" if family == "sha2"
-                    else f"(Providers.shake {params})")
-            route = " (route : RcSlhSha2.Routing)" if family == "sha2" else ""
+                    else f"(Providers.nativeShake impl {params})")
+            route = " (route : RcSlhSha2.Routing)" if family == "sha2" else " (impl : PeerShake.Backend.Implementation)"
             lines += [f"theorem {comparison}{route} : SameFacade {core} {params} {slack} {peer} := by"]
             if family == "sha2":
                 lines.append(f"  apply (fun f => (sha2_link {selector} route f).2)")
             else:
+                lines.append("  rw [Providers.nativeShake_eq]")
                 lines.append(f"  apply shake_link (by constructor <;> decide : {params}.Valid) (by rfl)")
             lines += [f"  apply facades_of_specs _ _ _ (by decide) {owner}_new",
                       f"  · intro k m ctx rnd hr hm; cases rnd <;> exact {owner}_sign_with_context _ _ _ _ hr hm",
                       f"  · exact {owner}_verify_with_context",
                       f"theorem {comparison}_wire{route} : WireFacade {core} {params} {slack} {peer} := by",
-                      f"  apply wireFacade _ _ _ ({comparison}{' route' if route else ''})",
+                      f"  apply wireFacade _ _ _ ({comparison}{' route' if family == 'sha2' else ' impl'})",
                       f"  · exact {owner}_parsers",
                       *(["  · decide"] * 4),
                       f"#print axioms {comparison}", f"#print axioms {comparison}_wire"]

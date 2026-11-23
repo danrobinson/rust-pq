@@ -12,7 +12,9 @@ import z3
 locked = runpy.run_path(str(Path(__file__).with_name("peer-lock.py")))
 ROOT = locked["ROOT"]
 PROOFS = ROOT / "scripts/peer-xof"
-TARGETS = ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu")
+TARGETS = ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+           "powerpc64-unknown-linux-gnu", "i686-unknown-linux-gnu", "wasm32-unknown-unknown",
+           "x86_64-unknown-none")
 FEATURES = ["--no-default-features", "--features", "digest/alloc,digest/block-api,digest/mac,digest/oid"]
 
 
@@ -31,6 +33,7 @@ def main():
     reader = runpy.run_path(str(PROOFS / "reader.py"))
     wire = runpy.run_path(str(PROOFS / "wiring.py"))
     parts = runpy.run_path(str(PROOFS / "parts.py"))
+    words = runpy.run_path(str(PROOFS / "words.py"))
     cert = runpy.run_path(str(PROOFS / "certificates.py"))["Certificates"]()
     with tempfile.TemporaryDirectory(prefix="peer-stream-") as d:
         root = Path(d)
@@ -38,6 +41,9 @@ def main():
         buffer.mkdir()
         sha.mkdir()
         peer.mkdir()
+        word_core=root/"word-core"
+        word_core.mkdir()
+        words["prepare"](word_core, locked)
         locked["unpack"](peer, "slh-dsa", "0.2.0-rc.5")
         parts["append_roots"](peer / "src/lib.rs", locked["common"]["append"])
         locked["unpack"](buffer, "block-buffer", "0.12.1")
@@ -51,17 +57,22 @@ def main():
         lib.write_text(before.replace("#![forbid(unsafe_code)]","#![deny(unsafe_code)]"))
         locked["common"]["append"](lib, (PROOFS / "roots.rs").read_text())
         for target in TARGETS:
-            parts["inspect"](compiled(peer, "slh_dsa", target, []))
+            wasm = target.startswith("wasm32")
+            bits = 32 if wasm or target.startswith("i686") else 64
+            max_bytes = 2**(bits-1)-1
+            words["inspect"](compiled(word_core, "sha3", target, FEATURES), bits)
+            parts["inspect"](compiled(peer, "slh_dsa", target, []), bits, wasm)
             data = compiled(buffer, "block_buffer", target, [])
-            eager["inspect"](data, cert.record)
-            reader["inspect"](data, cert.record)
+            eager["inspect"](data, cert.record, bits)
+            reader["inspect"](data, cert.record, bits)
             provider = compiled(sha, "sha3", target, FEATURES)
             it = reader["canonical"](provider, "proof_iterate_sha3_blocks", ("%blocks.0","%blocks.1","%process"))
-            if it != (PROOFS / "iterate.ll").read_text().strip():
+            expected = (PROOFS / ("iterate-wasm.ll" if wasm else "iterate.ll")).read_text().strip()
+            if it != expected.replace("i64",f"i{bits}"):
                 raise ValueError("unexpected block iterator SSA")
             n,k=z3.Ints("blocks iteration")
-            domain={"guard":[n>=0,n<67818912035696881,k>=0,k<n]}
-            cert.record(domain,z3.And((k+1)*136<=n*136,n*136<=2**63-1,
+            domain={"guard":[n>=0,n<=max_bytes//136,k>=0,k<n]}
+            cert.record(domain,z3.And((k+1)*136<=n*136,n*136<=max_bytes,
                          ((k+1)*136==n*136)==(k+1==n),n-(k+1)<n-k),"block iterator bounds/termination")
             file = sha / (target+".llbc")
             subprocess.run([ROOT / ".tools/aeneas/charon/bin/charon", "cargo", "--monomorphize",
@@ -77,9 +88,11 @@ def main():
         obligations, names = cert.program()
         if obligations != (ROOT / "lean-hw/Peerarmkeccak/BufferVcs.lean").read_text():
             raise ValueError("fresh LLVM verification obligations differ from checked Lean declarations")
-        audit(root, ["Peerarmkeccak.Provider","Peerarmkeccak.BufferVcs"], [*names,"PeerShake.Backend.correct","PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
+        audit(root, ["Peerarmkeccak.Provider","Peerarmkeccak.BufferVcs","Peerarmkeccak.IteratorProof","Peerarmkeccak.WordBytes"], [*names,"PeerShake.Backend.correct","PeerShake.Backend.provider_eq","PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
                "PeerShake.Buffer.updateView","PeerShake.Buffer.padView","PeerShake.Buffer.readView",
-               "PeerShake.Buffer.descriptorStep","PeerShake.Buffer.foldParts"])
+               "PeerShake.Buffer.descriptorStep","PeerShake.Buffer.foldParts","PeerShake.Buffer.descriptorStep32",
+               "PeerShake.Buffer.descriptorMask","PeerShake.Buffer.blockMask","PeerShake.Buffer.descriptorFour",
+               "PeerShake.Buffer.descriptorTail","PeerShake.Buffer.blockEight","PeerShake.Buffer.blockPrefix","PeerShake.WordBytes.xor_byte","PeerShake.WordBytes.swap_byte"])
 
 
 if __name__=="__main__":

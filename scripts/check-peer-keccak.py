@@ -55,12 +55,16 @@ def audit(path, modules, names):
                  + "".join(f"#print axioms {name}\n" for name in names))
     output = subprocess.check_output(["lake", "env", "lean", f], cwd=LEAN, text=True)
     for name in names:
-        line, = [line for line in output.splitlines() if f"'{name}'" in line]
-        if "does not depend on any axioms" in line:
+        reports = re.findall(r"^'"+re.escape(name)+r"' (does not depend on any axioms|depends on axioms: \[[^\]]*\])",output,re.M)
+        if len(reports) != 1:
+            raise ValueError(f"missing or duplicate axiom report for {name}")
+        report = reports[0]
+        if report.startswith("does not depend"):
             continue
-        match = re.search(r"depends on axioms: \[(.*?)\]", line)
-        if not match or set(match[1].split(", ")) - {"propext", "Classical.choice", "Quot.sound"}:
-            raise ValueError(line)
+        axioms = {item.strip() for item in report[report.index("[")+1:-1].split(",")}
+        unsupported = axioms - {"propext", "Classical.choice", "Quot.sound"}
+        if unsupported:
+            raise ValueError(f"{name} depends on unsupported axioms: {sorted(unsupported)}")
 
 
 def main():

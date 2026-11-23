@@ -28,18 +28,19 @@ def canonical(text, entry="proof_read_output", args=("%out.0","%out.1","%0")):
     return "\n".join(lines)
 
 
-def inspect(text, prove=check):
+def inspect(text, prove=check, pointer_bits=64):
     ir=canonical(text)
     # Track the local array's known alignment; it must suffice for the store
     # to its first byte. All external source and destination bytes are align 1.
     align=int(re.search(r"alloca \[136 x i8\], align (\d+)",ir)[1])
     if align not in (1,2,4,8,16):raise ValueError(align)
     expected=(Path(__file__).with_name("reader.ll")).read_text().strip().replace("$ALIGN",str(align))
+    expected=expected.replace("i64",f"i{pointer_bits}").replace("-9223372036854775808",str(-(2**(pointer_bits-1))))
     if ir!=expected:
         raise ValueError("unexpected LLVM operations in read buffer\n"+ir)
     n,k,j=z3.Ints("output_len completed_blocks index")
     q,r=n/136,n%136
-    env={"guard":[n>=0,n<=2**63-1]}
+    env={"guard":[n>=0,n<=2**(pointer_bits-1)-1]}
     prove(env,z3.And(n==q*136+r,r>=0,r<136,(n<136)==(q==0)), "read entry and tail arithmetic")
     step={"guard":[*env["guard"],k>=0,k<q]}
     # Every iteration starts one pointer-width-aligned rate block after its

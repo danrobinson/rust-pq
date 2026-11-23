@@ -54,13 +54,74 @@ private theorem later_is_fold (c : Xmss) (p : Params) (sk pk : Bytes) (js : List
     | cons k ks =>
       exact ih _ _ _
 
-theorem ht_fips (p : Params) (positive : p.d > 0) (msg sk pk : Bytes) (tree leaf : Nat) :
-    ht (xmssSpec p) p msg sk pk tree leaf = htSign p msg sk pk tree leaf := by
+/-- The root component after the final layer is a mathematical observation;
+the peer's signing routine only demands the accumulated signature at that point. -/
+def signPrefix (c : Xmss) (p : Params) (msg sk pk : Bytes) (tree leaf k : Nat) :=
+  (List.range k).foldl (step c p sk pk) ([],msg,tree,leaf)
+
+/-- State at a nonfinal cut of the peer's later-layer loop. Its index is
+the tree just used. The next iteration splits that index on entry. -/
+def peerSignStep (c : Xmss) (p : Params) (sk pk : Bytes)
+    (st : Bytes × Bytes × Nat) (j : Nat) : Bytes × Bytes × Nat :=
+  let (acc,root,tree) := st
+  let leaf := tree % 2^p.hp
+  let next := tree >>> p.hp
+  let a := layer j next
+  let sig := c.sign root sk leaf pk a
+  (acc ++ sig, c.recover leaf sig root pk a, next)
+
+/-- Splitting the source loop at any nonfinal cut consumes exactly this
+prefix of peer transitions, for every remaining layer and arbitrary children. -/
+theorem later_cut (c : Xmss) (p : Params) (sk pk : Bytes) (js : List Nat)
+    (j : Nat) (rest : List Nat) (acc root : Bytes) (tree : Nat) :
+    later c p sk pk (js ++ j :: rest) acc root tree =
+      let st := js.foldl (peerSignStep c p sk pk) (acc,root,tree)
+      later c p sk pk (j :: rest) st.1 st.2.1 st.2.2 := by
+  induction js generalizing acc root tree with
+  | nil => rfl
+  | cons k ks ih =>
+    cases ks with
+    | nil => rfl
+    | cons l ls => exact ih _ _ _
+
+private def alignSign (p : Params) (st : Bytes × Bytes × Nat) :=
+  (st.1,st.2.1,st.2.2 >>> p.hp,st.2.2 % 2^p.hp)
+
+private theorem alignSign_fold (c : Xmss) (p : Params) (sk pk : Bytes) (js : List Nat)
+    (st : Bytes × Bytes × Nat) :
+    alignSign p (js.foldl (peerSignStep c p sk pk) st) =
+      js.foldl (step c p sk pk) (alignSign p st) := by
+  induction js generalizing st with
+  | nil => rfl
+  | cons j js ih => exact ih _
+
+/-- After the first signature and k further recoveries, all live peer
+fields determine exactly the local signing prefix, including both next indices.
+At the final layer only the signature component is demanded by the peer. -/
+theorem signPrefix_peer_state (c : Xmss) (p : Params) (msg sk pk : Bytes)
+    (tree leaf k : Nat) :
+    let sig := c.sign msg sk leaf pk (layer 0 tree)
+    let root := c.recover leaf sig msg pk (layer 0 tree)
+    let st := (List.range' 1 k).foldl (peerSignStep c p sk pk) (sig,root,tree)
+    (st.1,st.2.1,st.2.2 >>> p.hp,st.2.2 % 2^p.hp) =
+      signPrefix c p msg sk pk tree leaf (k+1) := by
+  dsimp only
+  change alignSign p _ = _
+  rw [alignSign_fold,signPrefix,List.range_eq_range',List.range'_succ,List.foldl_cons]
+  rfl
+
+theorem signPrefix_complete (c : Xmss) (p : Params) (positive : 0 < p.d)
+    (msg sk pk : Bytes) (tree leaf : Nat) :
+    ht c p msg sk pk tree leaf = (signPrefix c p msg sk pk tree leaf p.d).1 := by
   have split : List.range p.d = 0 :: List.range' 1 (p.d-1) := by
     obtain ⟨k,hk⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt positive)
     rw [hk,List.range_eq_range']; rfl
-  unfold ht htSign
+  unfold ht signPrefix
   rw [split,later_is_fold]
   rfl
+
+theorem ht_fips (p : Params) (positive : p.d > 0) (msg sk pk : Bytes) (tree leaf : Nat) :
+    ht (xmssSpec p) p msg sk pk tree leaf = htSign p msg sk pk tree leaf := by
+  exact signPrefix_complete (xmssSpec p) p positive msg sk pk tree leaf
 
 end slhdsa.PeerCall

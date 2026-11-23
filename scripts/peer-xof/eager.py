@@ -12,7 +12,6 @@ BYTE = INT  # Data bytes are opaque here; unrestricted values strengthen the cop
 N, P, I = z3.Ints("n pos byte_index")
 STATE = z3.Function("state", INT, BYTE)
 INPUT = z3.Function("message", INT, BYTE)
-MAX = 2**63-1
 
 
 def requires(env, goal, label):
@@ -25,11 +24,19 @@ def requires(env, goal, label):
         raise ValueError(f"{label}: {status} {detail}")
 
 
-def inspect(text, prove=requires):
+def inspect(text, prove=requires, pointer_bits=64):
+    if pointer_bits not in (32,64):
+        raise ValueError(pointer_bits)
+    maximum = 2**(pointer_bits-1)-1
+    def match(pattern, line):
+        pattern = pattern.replace("i64",f"i{pointer_bits}").replace("|64)",f"|{pointer_bits})").replace("(64|",f"({pointer_bits}|")
+        pattern = pattern.replace("-9223372036854775808",str(-maximum-1))
+        return re.fullmatch(pattern,line)
+
     graph = D["blocks"](D["body"](text, "proof_eager_update"))
-    signature = re.search(r"^define void @proof_eager_update\(([^\n]*)\) unnamed_addr", text, re.M)
+    signature = re.search(r"^define (?:dso_local )?void @proof_eager_update\(([^\n]*)\) unnamed_addr", text, re.M)
     names = re.findall(REG, signature[1])
-    if len(names)!=4:
+    if len(names)!=4 or not re.search(r"i"+str(pointer_bits)+r" noundef (?:range\([^)]*\) )?"+re.escape(names[2])+r",",signature[1]):
         raise ValueError(signature[0])
     registers = dict(zip(names, (("state",0), ("input",0), N, "consumer")))
     paths = set()
@@ -54,28 +61,28 @@ def inspect(text, prove=requires):
             return env["buf"](at) if region=="state" else INPUT(at)
 
         for line in graph[bb]:
-            if (m:=re.fullmatch(r"("+REG+r") = (getelementptr inbounds(?: nuw)? i8), ptr ("+REG+r"), i64 ("+REG+r"|\d+)",line)):
+            if (m:=match(r"("+REG+r") = (getelementptr inbounds(?: nuw)? i8), ptr ("+REG+r"), i64 ("+REG+r"|\d+)",line)):
                 q,_,base,off=m.groups()
-                region,ptr=regs[base]; new=ptr+scalar(off,64)
+                region,ptr=regs[base]; new=ptr+scalar(off,pointer_bits)
                 prove(env,z3.And(0<=new,new<=limit(region)),line)
                 regs[q]=region,new
-            elif (m:=re.fullmatch(r"("+REG+r") = load i8, ptr ("+REG+r"), align 1",line)):
+            elif (m:=match(r"("+REG+r") = load i8, ptr ("+REG+r"), align 1",line)):
                 q,p=m.groups();region,ptr=regs[p]
                 prove(env,z3.And(0<=ptr,ptr<limit(region)),line)
                 regs[q]=load(region,ptr)
-            elif (m:=re.fullmatch(r"("+REG+r") = (zext i8|trunc(?: nuw)? i64) ("+REG+r") to i(64|8)",line)):
+            elif (m:=match(r"("+REG+r") = (zext i8|trunc(?: nuw)? i64) ("+REG+r") to i(64|8)",line)):
                 q,op,v,bits=m.groups();x=regs[v]
                 if "nuw" in op:
                     prove(env,x<256,line)
-                regs[q]=x if bits=="64" else x%256
-            elif (m:=re.fullmatch(r"("+REG+r") = (icmp(?: samesign)? (?:ult|eq)) i(8|64) ("+REG+r"|-?\d+), ("+REG+r"|-?\d+)",line)):
+                regs[q]=x if bits!="8" else x%256
+            elif (m:=match(r"("+REG+r") = (icmp(?: samesign)? (?:ult|eq)) i(8|64) ("+REG+r"|-?\d+), ("+REG+r"|-?\d+)",line)):
                 q,op,bits,a,b=m.groups();a,b=scalar(a,int(bits)),scalar(b,int(bits))
                 if "samesign" in op:
                     prove(env,(a<2**(int(bits)-1))==(b<2**(int(bits)-1)),line)
                 regs[q]=a<b if op.endswith("ult") else a==b
-            elif (m:=re.fullmatch(r"tail call void @llvm.assume\(i1 ("+REG+r")\)",line)):
+            elif (m:=match(r"tail call void @llvm.assume\(i1 ("+REG+r")\)",line)):
                 prove(env,regs[m[1]],line)
-            elif (m:=re.fullmatch(r"("+REG+r") = (add|sub|mul|udiv|urem)((?: nuw| nsw)*) i(8|64) ("+REG+r"|\d+), ("+REG+r"|\d+)",line)):
+            elif (m:=match(r"("+REG+r") = (add|sub|mul|udiv|urem)((?: nuw| nsw)*) i(8|64) ("+REG+r"|\d+), ("+REG+r"|\d+)",line)):
                 q,op,flags,bits,a,b=m.groups();bits=int(bits);a,b=scalar(a,bits),scalar(b,bits)
                 x={"add":lambda:a+b, "sub":lambda:a-b, "mul":lambda:a*b, "udiv":lambda:a/b,"urem":lambda:a%b}[op]()
                 if op in ("udiv","urem"):
@@ -87,35 +94,38 @@ def inspect(text, prove=requires):
                     regs[q]=x
                 else:
                     regs[q]=x%(1<<bits)
-            elif (m:=re.fullmatch(r"("+REG+r") = phi (?:i64|ptr) (.*)",line)):
+            elif (m:=match(r"("+REG+r") = phi (?:i64|ptr) (.*)",line)):
                 choices = re.findall(r"\[ ("+REG+r"), %([\w.]+) \]",m[2])
                 if len(choices)!=2 or m[2] != ", ".join(f"[ {v}, %{b} ]" for v,b in choices):
                     raise ValueError(line)
                 regs[m[1]]=regs[{b:v for v,b in choices}[prev]]
-            elif (m:=re.fullmatch(r"tail call void @llvm.memcpy.p0.p0.i64\(ptr ([^,]+), ptr ([^,]+), i64 (?:range\(i64 0, -9223372036854775808\) )?("+REG+r"), i1 false\)",line)):
+            elif (m:=match(r"tail call void @llvm.memcpy.p0.p0.i64\(ptr ([^,]+), ptr ([^,]+), i64 (?:range\(i64 0, -9223372036854775808\) )?("+REG+r"), i1 false\)",line)):
                 dest,src,count=m.groups(); dest,d=regs[dest.split()[-1]];src,s=regs[src.split()[-1]];n=regs[count]
                 if dest!="state" or src!="input":
                     raise ValueError("unexpected aliasing in "+line)
                 prove(env,z3.And(0<=s,0<=d,0<=n,s+n<=N,d+n<=136),line)
                 old=env["buf"]
                 env["buf"]=lambda i,d=d,s=s,n=n,old=old:z3.If(z3.And(d<=i,i<d+n),INPUT(s+i-d),old(i))
-            elif (m:=re.fullmatch(r"store i8 ("+REG+r"|0), ptr ("+REG+r"), align 1",line)):
+            elif (m:=match(r"store i8 ("+REG+r"|0), ptr ("+REG+r"), align 1",line)):
                 value,p=m.groups();region,d=regs[p];x=scalar(value,8)
                 if region!="state":raise ValueError(line)
                 prove(env,z3.And(0<=d,d<136),line)
                 old=env["buf"]
                 env["buf"]=lambda i,d=d,x=x,old=old:z3.If(i==d,x,old(i))
-            elif (m:=re.fullmatch(r"tail call void ("+REG+r")\(ptr ([^,]+), i64 noundef (?:range\(i64 1, \d+\) )?("+REG+r"|1)\) #\d+",line)):
-                callback,addr,count=m.groups(); region,d=regs[addr.split()[-1]];count=scalar(count,64)
+            elif (m:=match(r"tail call void ("+REG+r")\(ptr ([^,]+), i64 noundef (?:range\(i64 1, \d+\) )?("+REG+r"|1)\) #\d+",line)):
+                callback,addr,count=m.groups(); region,d=regs[addr.split()[-1]];count=scalar(count,pointer_bits)
                 if regs[callback]!="consumer":raise ValueError(line)
+                upper = re.search(r"range\(i(?:32|64) 1, (\d+)\)",line)
+                if upper:
+                    prove(env,count<int(upper[1]),"callback range "+line)
                 prove(env,z3.And(count>0,d>=0,d+136*count<=limit(region)),line)
                 env["events"].append((count,d,env["buf"] if region=="state" else INPUT))
-            elif (m:=re.fullmatch(r"br i1 ("+REG+r"), label %([\w.]+), label %([\w.]+)",line)):
+            elif (m:=match(r"br i1 ("+REG+r"), label %([\w.]+), label %([\w.]+)",line)):
                 cond=regs[m[1]]
                 for child,c in [(m[2],cond), (m[3],z3.Not(cond))]:
                     execute(child,bb,{**env,"guard":env["guard"]+[c]},seen+[bb])
                 return
-            elif (m:=re.fullmatch(r"br label %([\w.]+)",line)):
+            elif (m:=match(r"br label %([\w.]+)",line)):
                 execute(m[1],bb,env,seen+[bb])
                 return
             elif line=="ret void":
@@ -135,7 +145,7 @@ def inspect(text, prove=requires):
                 raise ValueError(line)
         raise ValueError("missing terminator: "+bb)
 
-    execute("start",None,{"regs":registers,"buf":STATE,"guard":[N>=0,N<=MAX,P>=0,P<136,STATE(135)==P],"events":[]},[])
+    execute("start",None,{"regs":registers,"buf":STATE,"guard":[N>=0,N<=maximum,P>=0,P<136,STATE(135)==P],"events":[]},[])
     if set(graph)!=visited or len(paths)!=5:
         raise ValueError(f"unverified control flow: {visited}, {len(paths)} paths")
     return len(paths)

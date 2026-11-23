@@ -1,6 +1,6 @@
 import PeerEquality.CallerSha2
 import PeerEquality.Wots
-import Peerarmkeccak.Xof
+import Peerarmkeccak.Provider
 import PeerEquality.ForsProvider
 
 namespace slhdsa.PeerCall.Providers
@@ -29,15 +29,16 @@ theorem sha2Rows_fips (s : RcSlhSha2.StandardSet) (route : RcSlhSha2.Routing)
   · funext pk ad rows; exact congrArg RcSlhSha2.Hashes.t (eq pk ad [] [] [] rows)
   · funext pk ad l r; exact congrArg RcSlhSha2.Hashes.h (eq pk ad [] l r [])
 
-def shakeRows (p : Params) : PeerWots.Hashes :=
-  let x := PeerShake.Buffer.provider
+private def shakeRowsWith (p : Params) (x : PeerShake.Xof PeerShake.Buffer.Buffered) : PeerWots.Hashes :=
   ⟨fun pk sk a => PeerShake.prf_sk x p.n (PeerShake.new_from_pk_seed x pk) a.bytes sk,
    fun pk a m => PeerShake.f x p.n (PeerShake.new_from_pk_seed x pk) a.bytes m,
    fun pk a rows => PeerShake.t x p.n (PeerShake.new_from_pk_seed x pk) a.bytes rows,
    fun pk a l r => PeerShake.h x p.n (PeerShake.new_from_pk_seed x pk) a.bytes l r⟩
 
+abbrev shakeRows (p : Params) := shakeRowsWith p PeerShake.Buffer.provider
+
 theorem shakeRows_fips (p : Params) (family : p.family=.shake) : shakeRows p = PeerWots.hashes p := by
-  dsimp only [shakeRows,PeerWots.hashes]
+  dsimp only [shakeRows,shakeRowsWith,PeerWots.hashes]
   congr 1
   · funext pk sk a; exact PeerShake.prf_fips PeerShake.Buffer.providerCorrect p family pk sk a
   · funext pk a m; exact PeerShake.f_fips PeerShake.Buffer.providerCorrect p family pk m a
@@ -51,6 +52,15 @@ private def children (p : Params) (w : PeerWots.Hashes) (prf : Bytes → Bytes �
 def shake (p : Params) : Children :=
   children p (shakeRows p) (PeerShake.prf_msg PeerShake.Buffer.provider p.n)
     (PeerShake.h_msg PeerShake.Buffer.provider p.m)
+
+/-- The same concrete backend is used by message hashing, chain hashing, and both tree recursions. -/
+noncomputable def nativeShake (impl : PeerShake.Backend.Implementation) (p : Params) : Children :=
+  let x := PeerShake.Backend.xof (PeerShake.Backend.kernel impl)
+  children p (shakeRowsWith p x) (PeerShake.prf_msg x p.n) (PeerShake.h_msg x p.m)
+
+theorem nativeShake_eq (impl : PeerShake.Backend.Implementation) (p : Params) :
+    nativeShake impl p = shake p := by
+  simp only [nativeShake, PeerShake.Backend.provider_eq, shake, shakeRows]
 
 def sha2 (s : RcSlhSha2.StandardSet) (a : RcSlhSha2.Algorithms) : Children :=
   let p := RcSlhSha2.params s
