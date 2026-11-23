@@ -39,7 +39,7 @@ SEED, ADDRESS, MESSAGE, SIG, DIGITS, OUT = (
 )
 
 
-def verify(path, image, n, mode):
+def verify(path, image, n, mode, *, move_allocations=True):
     env = ImageEnv(path, image, n)
     row, param, _, _, hooks = objects(path, image, n, "s", "sha2")
     model = Driver(row, param, "slh_sign_internal", "sha2")
@@ -125,7 +125,7 @@ def verify(path, image, n, mode):
         size = integer(st, getattr(st.inspect, f"mem_{kind}_length"))
         ranges = [(STACK - 12288, 12288), (RESULT, 24 if mode == "sign" else n)]
         if st.globals.get("out_capacity", 0):
-            ranges.append((OUT, st.globals["out_capacity"]))
+            ranges.append((st.globals["out_pointer"], st.globals["out_capacity"]))
         if kind == "read":
             ranges.extend([(SEED, 96 + n), (ADDRESS, 32), env.const])
             if mode != "recover":
@@ -291,14 +291,19 @@ def verify(path, image, n, mode):
             agrees(
                 s,
                 unsigned(s, desc + 8),
-                OUT if old else 1,
+                s.globals.get("out_pointer", 1),
                 "signature allocation identity",
             )
             agrees(s, unsigned(s, desc + 16), used, "reserve live bytes")
             require(0 <= used <= old < used + n <= count * n, "reserve size")
             new = max(2 * old, used + n, 8)
             put(s, desc, new, 8)
-            put(s, desc + 8, OUT, 8)
+            previous = s.globals.get("out_pointer", OUT)
+            dest = previous + 8192 if old and move_allocations else previous
+            if old and dest != previous:
+                wrbytes(s, dest, load(s, previous, used))
+            put(s, desc + 8, dest, 8)
+            s.globals["out_pointer"] = dest
             s.globals["out_capacity"] = new
         else:
             require(
@@ -322,12 +327,13 @@ def verify(path, image, n, mode):
         "WOTS return",
     )
     if mode == "sign":
-        for off, val in [(0, s.globals["out_capacity"]), (8, OUT), (16, n * count)]:
+        pointer = s.globals["out_pointer"]
+        for off, val in [(0, s.globals["out_capacity"]), (8, pointer), (16, n * count)]:
             agrees(s, unsigned(s, RESULT + off), val, "returned signature Vec")
         for i in range(count):
             agrees(
                 s,
-                load(s, OUT + i * n, n),
+                load(s, pointer + i * n, n),
                 c.If(ds[i] == 0, secrets[i], ends[i]),
                 "signature chain bytes",
             )
@@ -349,6 +355,8 @@ if __name__ == "__main__":
     for n in [args.width] if args.width else (16, 24, 32):
         for mode in [args.mode] if args.mode else ("keygen", "sign", "recover"):
             verify(args.executable, image, n, mode)
+            if mode == "sign":
+                verify(args.executable, image, n, mode, move_allocations=False)
 
     if args.self_test:
         tests = [
