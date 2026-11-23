@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -981,3 +981,17 @@ LEAN
 for name in Wots.keyBatch_fips Wots.endpoint_payload XmssKeys.keys_fips XmssKeys.tree_leaves; do
   grep -Fx "'slhdsa.X86.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmsskeys-axioms"
 done
+
+extract Treehash TreeHashRust treehash --start-from 'crate::xmss::hash2' \
+  --opaque 'crate::sha256::compress' --opaque 'crate::sha512::compress'
+cat > "$scratch/expected" <<'NAMES'
+sha256.compress
+sha512.compress
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Treehash.Proof && lake env lean --stdin > "$scratch/treehash-axioms" <<'LEAN'
+import Treehash.Proof
+#print axioms slhdsa.X86.TreeHash.hash2_fips
+LEAN
+)
+grep -Fx "'slhdsa.X86.TreeHash.hash2_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/treehash-axioms"

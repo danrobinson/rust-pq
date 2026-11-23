@@ -137,3 +137,6 @@ name = "Wotsapi"
 
 [[lean_lib]]
 name = "Xmsskeys"
+
+[[lean_lib]]
+name = "Treehash"
