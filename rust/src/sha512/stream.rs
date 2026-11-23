@@ -70,29 +70,35 @@ fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
                 swap,
             )
         });
-        for i in 0..80 {
-            if i >= 16 {
-                let x = w[(i + 1) % 16];
-                let y = w[(i + 14) % 16];
-                let a = _mm512_ternarylogic_epi64::<0x96>(
-                    _mm512_ror_epi64::<1>(x),
-                    _mm512_ror_epi64::<8>(x),
-                    _mm512_srli_epi64::<7>(x),
-                );
-                let b = _mm512_ternarylogic_epi64::<0x96>(
-                    _mm512_ror_epi64::<19>(y),
-                    _mm512_ror_epi64::<61>(y),
-                    _mm512_srli_epi64::<6>(y),
-                );
-                w[i % 16] = _mm512_add_epi64(
-                    _mm512_add_epi64(a, b),
-                    _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
-                );
-            }
-            let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
-            // SAFETY: the row and the vector have identical size and x86 lane order.
-            ordered[i] = unsafe { core::mem::transmute(wk) };
+        // Expand in round order with fixed ring-buffer indices. Dynamic indices
+        // spill the sixteen-word sliding window on some AVX-512 processors.
+        macro_rules! expand {
+            ($index:expr) => {{
+                let i: usize = $index;
+                if i >= 16 {
+                    let x = w[(i + 1) % 16];
+                    let y = w[(i + 14) % 16];
+                    let a = _mm512_ternarylogic_epi64::<0x96>(
+                        _mm512_ror_epi64::<1>(x),
+                        _mm512_ror_epi64::<8>(x),
+                        _mm512_srli_epi64::<7>(x),
+                    );
+                    let b = _mm512_ternarylogic_epi64::<0x96>(
+                        _mm512_ror_epi64::<19>(y),
+                        _mm512_ror_epi64::<61>(y),
+                        _mm512_srli_epi64::<6>(y),
+                    );
+                    w[i % 16] = _mm512_add_epi64(
+                        _mm512_add_epi64(a, b),
+                        _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
+                    );
+                }
+                let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
+                // SAFETY: the row and the vector have identical size and x86 lane order.
+                ordered[i] = unsafe { core::mem::transmute(wk) };
+            }};
         }
+        rounds!(expand);
         for lane in 0..8 {
             let mut v = *state;
             macro_rules! step {
