@@ -36,6 +36,14 @@ The crate distributes Rust code. Downstream linking selects and can transform th
 
 The machine-code results assume that the loader preserves the measured bytes, that the CPU implements the modeled ISA and enabled features, and that pointers, stack, alignment and non-aliasing satisfy the function's ABI. The Apple gate also trusts the Mach-O reader, LLVM disassembly for the SHA-2 and hypertree checks, and the restricted Python checkers. The mathematical certificates are checked by Lean. Whole-program dispatch, other machine-code routines, allocator/runtime behavior, speculation, physical timing and fault resistance remain open.
 
+### Apple SHA-256 batch scheduler
+
+The WOTS driver and the FORS subtree and recovery drivers call the same three linked `hash::chain_blocks` functions. The common prefix assumption applies to bytes 0–15 of each 64-byte compression block within one call. The seed chaining state, remaining address bytes, message and trailing bytes are symbolic. WOTS permits an arbitrary interval from 0 through 15 for each of at most 67 chains. The FORS check permits up to 128 chains with independent 20-bit tree indices, each advanced once. This includes the second child stored after the 16-byte value in a SHA-256 FORS parent block.
+
+The initialization and refill checks execute the scheduler’s prologue, cached four SHA rounds, input scan and 160-byte slot packing. The dispatch check starts with unconstrained scratch registers and memory outside the explicitly recorded loop invariant. It follows every feasible retirement subset, checks the complete updated blocks against sequential compression, and checks that each unfinished lane reaches the next refill in its original order. Every native access must stay within its frame and the designated input or output region. The argument arrays use the existing disjoint symbolic-ABI memory model. The only external function on this path clears the slot buffer.
+
+The Lean theorem composes the resulting per-chain transitions and proves termination by counting unread jobs and unfinished rounds. Every completed execution has the same final block at every original index as a scalar sequence of steps. Translation of the measured instructions and delivery of the local obligations to Lean remain in the trusted Python/VEX/SMT checker. Replay the scheduler with `uv run --script scripts/linked-signer/sha2_chain_scheduler.py EXECUTABLE --self-test` and the theorem with `cd lean && lake build Spec.AppleChainScheduler`. [Refill checks](../scripts/linked-signer/sha2_chain_refill.py) · [Dispatch checks](../scripts/linked-signer/sha2_chain_episode.py) · [Compositional proof](../lean/Spec/AppleChainScheduler.lean)
+
 ## Replaying the checks
 
 On Apple Silicon, with the repository's Lean and Rust dependencies and the Apple command-line tools installed, run from the repository root:
