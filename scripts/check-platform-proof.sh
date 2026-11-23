@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -325,4 +325,44 @@ LEAN
 )
 for name in fors_node_spec fors_leaves_spec short_block words_spec initial_spec first_two pack_words; do
   grep -Fx "'slhdsa.X86.Leaf.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/leaf-axioms.log"
+done
+extract Parent256 TreeRust parent256 --start-from 'crate::sha256::x86::fors_parents' \
+  --opaque 'crate::sha256::x86::avx512_available' --opaque 'crate::sha256::x86::avx512::compress' \
+  --opaque 'crate::sha256::x86::avx512::round' --opaque 'crate::sha256::x86::avx512::write_words'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_add_epi32
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_mask_i32gather_epi32
+core.core_arch.x86.avx512f._mm512_or_si512
+core.core_arch.x86.avx512f._mm512_set1_epi32
+core.core_arch.x86.avx512f._mm512_set_epi32
+core.core_arch.x86.avx512f._mm512_setzero_si512
+core.core_arch.x86.avx512f._mm512_slli_epi32
+core.core_arch.x86.avx512f._mm512_srli_epi32
+core.core_arch.x86.sse2._mm_set_epi32
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.x86.avx512.compress
+sha256.x86.avx512.round
+sha256.x86.avx512.write_words
+sha256.x86.avx512_available
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Parent256.Gather && lake env lean --stdin > "$scratch/tree-axioms.log" <<'LEAN'
+import Parent256.Gather
+#print axioms slhdsa.X86.Parent.pair_block
+#print axioms slhdsa.X86.Parent.words_spec
+#print axioms slhdsa.X86.Parent.initial_spec
+#print axioms slhdsa.X86.Parent.first_four
+#print axioms slhdsa.X86.Parent.gather_pairs
+#print axioms slhdsa.X86.Parent.shuffled_pairs
+LEAN
+)
+for name in pair_block words_spec initial_spec first_four gather_pairs shuffled_pairs; do
+  grep -Fx "'slhdsa.X86.Parent.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/tree-axioms.log"
 done

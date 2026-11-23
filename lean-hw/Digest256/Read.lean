@@ -12,7 +12,7 @@ def active (mask : U16) (j : Fin 16) := mask.bv.getLsbD j.val
 def Mask (mask : U16) (n : Nat) := ∀ j : Fin 16, active mask j = true ↔ j.val < n
 def Stride (v : __m512i) (L : Nat) := ∀ j : Fin 16, (v j).toInt * 4 = (j.val*L : Nat)
 
-private theorem big_after_little (a : List U8) (pos : Nat) (h : pos+4 ≤ a.length) :
+theorem big_after_little (a : List U8) (pos : Nat) (h : pos+4 ≤ a.length) :
     Store.reverse32 (little a pos) = Spec.SHA256.word (bytes a) pos := by
   unfold little Spec.SHA256.word
   repeat rw [bytes_getElem! _ _ (by omega)]
@@ -24,7 +24,7 @@ private theorem big_after_little (a : List U8) (pos : Nat) (h : pos+4 ≤ a.leng
   unfold Store.reverse32 S512.Gather.rev32
   bv_decide
 
-private theorem flat_word {L : Usize} (rows : List (Array U8 L)) (j off : Nat) (hj : j < rows.length) (ho : off+4 ≤ L.val) :
+theorem flat_word {L : Usize} (rows : List (Array U8 L)) (j off : Nat) (hj : j < rows.length) (ho : off+4 ≤ L.val) :
     Spec.SHA256.word (bytes (flat rows)) (j*L.val+off) = Spec.SHA256.word (bytes rows[j]!.val) off := by
   unfold Spec.SHA256.word
   have hlen : j*L.val+off+4 ≤ (flat rows).length := by
