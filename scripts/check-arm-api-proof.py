@@ -11,7 +11,8 @@ LEAN = ROOT / "lean-hw"
 SETS = tuple(f"sha2_{bits}{speed}" for bits in (128, 192, 256) for speed in ("s", "f"))
 KEY_OPERATIONS = ("keygen", "public_key", "slh_keygen_internal")
 INTERNAL = ("slh_sign_internal", "slh_verify_internal")
-OPERATIONS = KEY_OPERATIONS + INTERNAL
+CONTEXT = ("sign", "sign_deterministic", "verify", "slh_sign", "slh_verify")
+OPERATIONS = KEY_OPERATIONS + INTERNAL + CONTEXT
 TARGETS = {"aarch64-apple-darwin": "ArmApple", "aarch64-unknown-linux-gnu": "ArmLinuxTarget"}
 os.environ["PATH"] = os.pathsep.join(str(Path.home() / tool / "bin") for tool in (".elan", ".cargo")) + os.pathsep + os.environ["PATH"]
 
@@ -69,7 +70,6 @@ def check_target(target, namespace, scratch):
     package = scratch / "Slhdsa"
     package.mkdir()
     roots = [f"crate::sets::{s}::{f}" for s in SETS for f in OPERATIONS]
-    roots.append("crate::slh::message::digest")
     charon = ROOT / ".tools/aeneas/charon/bin/charon"
     run([charon, "cargo", "--preset=aeneas", *(a for r in roots for a in ("--start-from", r)),
          "--opaque", "crate::sha256::hw::arm", "--opaque", "crate::sha512::hw::arm",
@@ -100,6 +100,7 @@ def check_extraction(package, namespace, scratch):
         aliases.append(f"abbrev {name} := {message_types[item]}.{name}")
     source = f"""import Armplatform.Keygen
 import Armplatform.LinuxMessageDigest
+import Armplatform.LinuxContext
 open Aeneas Aeneas.Std Result ControlFlow Error
 open slhdsa
 set_option maxRecDepth 65536
@@ -118,7 +119,13 @@ end {namespace}
         for op in OPERATIONS:
             fips_proof = f"slhdsa.{s}.{op}_spec"
             entry = f"slhdsa.sets.{s}.{op}"
-            if op in INTERNAL:
+            if op in CONTEXT:
+                owner = "AppleContext.SegmentedSdk."
+                if namespace == "ArmLinuxTarget":
+                    owner = "LinuxContext." + owner
+                fips_proof = owner + fips_proof
+                entry = owner + entry
+            elif op in INTERNAL:
                 owner = "LinuxInternal.AppleInternal." if namespace == "ArmLinuxTarget" else "AppleInternal."
                 fips_proof = owner + fips_proof
                 entry = owner + entry
@@ -145,7 +152,7 @@ end {namespace}
 
 
 if __name__ == "__main__":
-    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest"], LEAN)
+    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest", "Armplatform.LinuxContext"], LEAN)
     for arch, namespace in TARGETS.items():
         with tempfile.TemporaryDirectory() as temp:
             check_target(arch, namespace, Path(temp))
