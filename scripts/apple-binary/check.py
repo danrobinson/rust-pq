@@ -19,6 +19,7 @@ from permute import decode
 from reject import certificate as rejection_certificate
 from pure_wrapper_witness import certificate as pure_wrapper_certificate
 from pure_frame_witness import certificate as pure_frame_certificate
+from sha2_public_sign_witness import certificate as sha2_public_sign
 from sha2_public_verify_witness import certificate as sha2_public_verify
 from sha2_verify_witness import gate as sha2_verify_length, body as sha2_verify_body
 from keygen_witness import certificate as keygen_certificate
@@ -408,6 +409,7 @@ if __name__ == "__main__":
             "AppleSha2VerifyLengthWitness": sha2_verify_length(image),
             "AppleSha2VerifyWitness": sha2_verify_body(image),
             "AppleSha2PublicVerifyWitness": sha2_public_verify(image),
+            "AppleSha2PublicSignWitness": sha2_public_sign(image),
             "AppleSegmentedFrameWitness": segmented_frame_certificate(image, snapshot),
             "ApplePureFrameWitness": pure_frame_certificate(image, snapshot),
             "ApplePureWrapperWitness": pure_wrapper_certificate(image),
