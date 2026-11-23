@@ -68,7 +68,7 @@ def Processed {N : Usize} (s : VecState) (base : VecBlock) (first : U32) (change
         computed s base first change N.val (k/16*16) (k%16) i ⟨k%16,by omega⟩
       else after.val[k]! = before.val[k]!
 
-private theorem next (it : Iter) (hlt : it.iter.start.val < it.iter.end.val) (hs : it.step_by = 16#usize) :
+theorem next (it : Iter) (hlt : it.iter.start.val < it.iter.end.val) (hs : it.step_by = 16#usize) :
     core.iter.adapters.step_by.IteratorStepBy.next
       (core.iter.traits.iterator.IteratorRange core.iter.range.StepUsize) it ⦃ o t =>
       o = some it.iter.start ∧ t.iter.start.val = min (it.iter.start.val+16) it.iter.end.val ∧

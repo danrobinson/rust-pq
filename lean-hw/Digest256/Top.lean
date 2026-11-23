@@ -32,7 +32,7 @@ private theorem initial_words (a : Array Reg 8#usize) (st : Array U32 8#usize)
 private def mkStride (s : Usize) : Reg := fun j =>
   ([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] : List (BitVec 32))[j.val]! * (show BitVec 32 from (UScalar.hcast .I32 s).bv)
 
-private theorem mask_ok (n : Fin 17) (j : Fin 16) :
+theorem mask_ok (n : Fin 17) (j : Fin 16) :
     ((65535#16) >>> (16-n.val)).getLsbD j.val = true ↔ j.val < n.val := by
   revert n j; decide +kernel
 
