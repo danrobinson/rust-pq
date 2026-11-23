@@ -44,6 +44,15 @@ def main():
             cuts = tuple("crate::shake::batch::" + op for op in ("short", "header", "put"))
             package = extract("rust", target, "Chains", scratch, roots, (*cuts, "crate::shake256::parallel::permute"))
             check_chains(package, width)
+        common["run"](["lake", "build", "Shakebatch.WotsChains"], LEAN)
+        check = Path(d) / "Check.lean"
+        theorems = ("wots_secrets", "wots_chains")
+        check.write_text("import Shakebatch.WotsChains\n" +
+                         "".join(f"#print axioms slhdsa.ShakeBatch.{t}\n" for t in theorems))
+        output = common["run"](["lake", "env", "lean", check], LEAN, text=True, capture_output=True).stdout
+        for theorem in theorems:
+            if f"'slhdsa.ShakeBatch.{theorem}' depends on axioms: [propext, Classical.choice, Quot.sound]" not in output:
+                raise ValueError(output)
 
 
 if __name__ == "__main__":
