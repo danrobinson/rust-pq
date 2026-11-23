@@ -248,3 +248,6 @@ name = "Rcavx"
 
 [[lean_lib]]
 name = "PeerEquality"
+
+[[lean_lib]]
+name = "Rcarmcode"
