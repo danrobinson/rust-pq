@@ -73,3 +73,15 @@ Three builds prepared the same parent blocks using an iterator, an indexed loop,
 Fresh raw SHA uses this run’s fastest complete dedicated-instruction or bulk kernel for each hash width, falling back to the fastest measured C implementation on processors without that instruction. The previous fastest rate also admits the Rust transposed SIMD kernels on x86. Ratios use measured rounds 1–6, which have matching compression counts for the exact keys and messages. Latencies and paired speedups use all eight timed rounds. A ratio of 1.099× means 9.9% more time than the counted general-purpose SHA work. The library can share fixed message-prefix rounds. ¹ AWS assigned a Xeon 8275CL this time. The historical C5 reference used a Xeon 8124M, so only the fresh C5 comparison is on the same processor.
 
 The CSV includes key generation, signing and verification for both message sizes and all six SHA-2 parameter sets. Regenerate it with `python3 bench/sha-cost/summarize-parents.py`. [216 workloads](results/merged/parent-driver-summary.csv) · [API samples](results/merged/parent-driver-samples.csv.gz) · [Fresh raw SHA samples](results/merged/parent-driver-raw.csv.gz) · [Candidate source and Linux runner](results/merged/parent-driver-experiment.tar.gz) · [Compression counts and baseline methodology](headroom.md)
+
+## FORS leaf generation and same-host raw SHA on x86
+
+The leaf experiment checked zero, full and partial batches at all three digest widths against the portable implementation, including untouched output slots. It compared the shipping chunk iterator, an indexed loop, and an indexed loop that shares the first two SHA-256 rounds between the PRF and leaf hash. The shared-prefix build took essentially the same public API time as the original. Its focused kernel medians were slightly slower on the two Xeons. Each build passed all 15 core kernel and compression tests on each host.
+
+| CPU | Shared-prefix kernel speedup | Public API speedup | SHA2-128s signing, 32 B | Signing time / raw SHA time |
+|---|---:|---:|---:|---:|
+| Xeon 8275CL | 0.9960× | 0.9992× | 32.52 ms | 0.971× |
+| EPYC 9R45 | 1.0000× | 1.0010× | 21.78 ms | 0.912× |
+| Xeon 6975P-C | 0.9978× | 1.0005× | 28.38 ms | 0.931× |
+
+Every raw SHA ratio uses the same host, pinned vCPU and release configuration as its public API sample. Each of six rounds measured independent, general-purpose 16-lane SHA-256 and eight-lane SHA-512 compression, including the schedule, rounds and feed-forward. The reference runs on already transposed words. It charges that round's exact compression count for the benchmark key, message and operation. The three EC2 instances terminated after the experiment. [108 same-host raw SHA ratios](results/merged/leaf-sha-summary.csv) · [Public API speedups](results/merged/leaves-summary.csv) · [API samples](results/merged/leaves.csv.gz) · [66 kernel shapes per CPU](results/merged/leaf-kernels.csv.gz) · [Raw compressor timings](results/merged/leaf-raw.csv.gz) · [Candidate sources and reproduction harness](results/merged/leaf-experiment.tar.gz)
