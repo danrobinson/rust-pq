@@ -864,8 +864,10 @@ import X86stream.Top
 #print axioms slhdsa.X86.Stream.continued512
 #print axioms slhdsa.X86.Stream.short256
 #print axioms slhdsa.X86.Stream.short512
+#print axioms slhdsa.X86.Stream.fallback256
+#print axioms slhdsa.X86.Stream.fallback512
 LEAN
 )
-for name in continued256 continued512 short256 short512; do
+for name in continued256 continued512 short256 short512 fallback256 fallback512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-stream-top-axioms"
 done

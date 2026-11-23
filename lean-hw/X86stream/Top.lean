@@ -110,4 +110,25 @@ theorem short512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
   change 8 ≤ msg.length/128 at required
   omega
 
+
+theorem fallback256 (st : Array U32 8#usize) (pre : Usize) (msg : Slice U8)
+    (fallback : X86StreamRust.vectorAvailable = false ∨ ChainWideRust.shaNiAvailable = true)
+    (aligned : pre.val%64=0) (space : Room (pre.val+msg.length) 72) :
+    X86StreamRust.sha256.sha256_from st pre msg ⦃ out =>
+      bytes out.val = slhdsa.ser (slhdsa.hashFrom (slhdsa.wv st.val) (slhdsa.padFrom pre.val (bytes msg.val))) ⦄ := by
+  apply continued256 st pre msg _ aligned space
+  intro selected
+  rcases selected with ⟨_,vector,dedicated⟩
+  rcases fallback with noVector | shaNi <;> simp_all
+
+theorem fallback512 (st : Array U64 8#usize) (pre : Usize) (msg : Slice U8)
+    (fallback : X86StreamRust.vectorAvailable = false)
+    (space : pre.val+msg.length+144 ≤ Usize.max) :
+    X86StreamRust.sha512.sha512_from st pre msg ⦃ out =>
+      bytes out.val = slhdsa.S512.ser (slhdsa.S512.hashFrom (slhdsa.S512.wv st.val) (slhdsa.S512.padFrom pre.val (bytes msg.val))) ⦄ := by
+  apply continued512 st pre msg _ space
+  intro selected
+  obtain ⟨_,vector⟩ := selected
+  simp_all
+
 end slhdsa.X86.Stream
