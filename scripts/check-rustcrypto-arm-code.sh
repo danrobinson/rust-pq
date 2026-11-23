@@ -19,6 +19,9 @@ import sys
 source, dest = map(Path, sys.argv[1:])
 assembly, = source.rglob("sha2-*.s")
 shutil.copyfile(assembly, dest)
+if dest.stem == "aarch64-unknown-linux-gnu":
+    probe, = source.rglob("cpufeatures-*.s")
+    shutil.copyfile(probe, dest.with_name("cpufeatures.s"))
 PY
 done
 python3 scripts/check-rustcrypto-arm-code.py "$scratch/aarch64-unknown-linux-gnu.s" \
@@ -27,13 +30,18 @@ cmp "$scratch/Code.lean" lean-hw/Rcarmcode/Code.lean
 python3 scripts/check-rustcrypto-arm-code.py --bits 512 "$scratch/aarch64-unknown-linux-gnu.s" \
   "$scratch/aarch64-apple-darwin.s" "$scratch/Code512.lean"
 cmp "$scratch/Code512.lean" lean-hw/Rcarmcode/Code512.lean
+python3 scripts/check-rustcrypto-arm-dispatch.py "$scratch/aarch64-unknown-linux-gnu.s" "$scratch/cpufeatures.s"
 cd "$root/lean-hw"
-lake build Rcarmcode.Proof Rcarmcode.Proof512
+lake build Rcarmcode.Dispatch
 lake env lean --stdin >"$scratch/axioms" <<'LEAN'
 import Rcarmcode.Proof
-import Rcarmcode.Proof512
+import Rcarmcode.Dispatch
+#print axioms slhdsa.RcArmCode.Linux.dispatch256
+#print axioms slhdsa.RcArmCode.Linux.dispatch512
 #print axioms slhdsa.RcArmCode.S512.armstream_contract
 #print axioms slhdsa.RcArmCode.armstream_contract
 LEAN
 grep -Fx "'slhdsa.RcArmCode.armstream_contract' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
 grep -Fx "'slhdsa.RcArmCode.S512.armstream_contract' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
+grep -Fx "'slhdsa.RcArmCode.Linux.dispatch256' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
+grep -Fx "'slhdsa.RcArmCode.Linux.dispatch512' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
