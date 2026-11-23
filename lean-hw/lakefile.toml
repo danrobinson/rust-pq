@@ -205,6 +205,9 @@ name = "Kneonperm"
 name = "Kxdispatch"
 
 [[lean_lib]]
+name = "Kdiag"
+
+[[lean_lib]]
 name = "Kappleouter"
 
 [[lean_lib]]
