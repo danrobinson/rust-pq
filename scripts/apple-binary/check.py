@@ -22,6 +22,7 @@ from pure_frame_witness import certificate as pure_frame_certificate
 from sha2_verify_witness import gate as sha2_verify_length, body as sha2_verify_body
 from keygen_witness import certificate as keygen_certificate
 from signer_witness import certificate as signer_certificate
+from segmented_frame_witness import certificate as segmented_frame_certificate
 from verify_length_witness import certificate as verify_length_certificate
 from verify_body_witness import certificate as verify_body_certificate
 from pure_sign import (
@@ -344,6 +345,7 @@ if __name__ == "__main__":
             "Spec.ArmKeygen",
             "Spec.ArmInternalSigner",
             "Spec.ArmSha2InternalSigner",
+            "Spec.ArmSegmentedFrame",
             "Spec.ArmVerifyLength",
             "Spec.ArmVerifyBody",
             "Spec.ArmRateBlocks",
@@ -400,6 +402,7 @@ if __name__ == "__main__":
             "AppleVerifyBodyWitness": verify_body_certificate(image),
             "AppleSha2VerifyLengthWitness": sha2_verify_length(image),
             "AppleSha2VerifyWitness": sha2_verify_body(image),
+            "AppleSegmentedFrameWitness": segmented_frame_certificate(image, snapshot),
             "ApplePureFrameWitness": pure_frame_certificate(image, snapshot),
             "ApplePureWrapperWitness": pure_wrapper_certificate(image),
             "AppleInternalSignerWitness": signer_certificate(image, snapshot, family="shake"),
