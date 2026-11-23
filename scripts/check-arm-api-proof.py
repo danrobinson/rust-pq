@@ -210,7 +210,10 @@ end {namespace}
     result = subprocess.run(["lake", "env", "lean", proof], cwd=LEAN, stdout=subprocess.PIPE, text=True)
     if result.returncode:
         raise RuntimeError(result.stdout)
-    output = result.stdout
+    # Lean wraps long qualified names' axiom lists across multiple lines.
+    # Normalize only bracketed audit records and retain every axiom name.
+    output = re.sub(r"(?m)^('[^'\n]+' depends on axioms: )\[([^\]]*)\]",
+                    lambda m: m[1] + "[" + " ".join(m[2].split()) + "]", result.stdout)
     for _, _, fresh in bindings:
         expected = f"'{fresh}_fips' depends on axioms: [propext, Classical.choice, Quot.sound]"
         if expected not in output.splitlines():
