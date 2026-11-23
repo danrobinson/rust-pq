@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -668,4 +668,24 @@ LEAN
 )
 for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words stage_spec flatten_spec copy_rows_spec destination_spec key_prf_fips batch_body_eq batch_fips entry_spec endpoints_fips placed_lane batch_frame write_batch_spec store_batch_eq histogram_spec offsets_spec order_spec order_partition bypass_spec preparation_spec recover_eq refill_spec load_lanes_spec signature_words refill_load_spec retire_spec finish_spec pack_high_spec recovery_f_spec compress_round_spec cycle_body_eq refill_owns finish_owned recovery_descent recovery_terminates run_recovery_entry recover_total loaded_chain advance_chain change_chain_word load_chains cycle_chains account_retirement loop_endpoints recover_fips; do
   grep -Fx "'slhdsa.X86.Wots.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-axioms"
+done
+
+extract Wotsx86 WotsX86Rust wotsx86 --start-from 'crate::sha256::x86::wots_endpoints' \
+  --start-from 'crate::sha256::x86::recover' --opaque 'crate::sha256::x86::avx512::wots_endpoints' \
+  --opaque 'crate::sha256::x86::avx512::recover' --opaque 'crate::sha256::x86::has_avx512::get'
+cat > "$scratch/expected" <<'NAMES'
+sha256.x86.avx512.recover
+sha256.x86.avx512.wots_endpoints
+sha256.x86.has_avx512.get
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Wotsx86.Proof && lake env lean --stdin > "$scratch/wots-wrapper-axioms" <<'LEAN'
+import Wotsx86.Proof
+#print axioms slhdsa.X86.Wots.Checked.endpoints_fips
+#print axioms slhdsa.X86.Wots.Checked.recover_fips
+#print axioms slhdsa.X86.Wots.Checked.no_cpu
+LEAN
+)
+for name in endpoints_fips recover_fips no_cpu; do
+  grep -Fx "'slhdsa.X86.Wots.Checked.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-wrapper-axioms"
 done

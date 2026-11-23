@@ -104,3 +104,6 @@ name = "Chainx86"
 
 [[lean_lib]]
 name = "Wots"
+
+[[lean_lib]]
+name = "Wotsx86"
