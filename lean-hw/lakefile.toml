@@ -250,6 +250,9 @@ name = "Rcni"
 name = "Rcdispatch"
 
 [[lean_lib]]
+name = "Peerarmkeccak"
+
+[[lean_lib]]
 name = "Rcavx"
 
 [[lean_lib]]

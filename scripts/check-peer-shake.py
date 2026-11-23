@@ -5,12 +5,11 @@ from pathlib import Path
 import os
 import re
 import runpy
-import shutil
 import subprocess
 import tempfile
 
-common = runpy.run_path(str(Path(__file__).with_name("check-peer-digest.py")))
-ROOT = common["ROOT"]
+locked = runpy.run_path(str(Path(__file__).with_name("peer-lock.py")))
+ROOT, common = locked["ROOT"], locked["common"]
 source = ROOT / "scripts/peer-shake"
 lower = runpy.run_path(str(source / "lower.py"))
 SHAPES = {"128s":(16,14,30), "128f":(16,33,34), "192s":(24,17,39),
@@ -46,31 +45,9 @@ variable {S : Type} (x : Xof S)
     return result + "\nend PeerShake\n"
 
 
-def extract(p, peer, deps):
+def extract(p):
     import json
-    common["unpack_peer"](peer, p, deps[peer["name"], peer["version"], peer["source"]])
-    manifest = p / "Cargo.toml"
-    manifest.write_text(re.sub(r"(?ms)^\[dev-dependencies\.[^\]]+\]\n.*?(?=^\[|\Z)", "", manifest.read_text()))
-    shutil.copy2(ROOT / "bench/Cargo.lock", p / "Cargo.lock")
-    subprocess.run(["cargo", "metadata", "--offline", "--format-version", "1"],
-                   cwd=p, stdout=subprocess.DEVNULL, check=True)
-    normal = common["metadata"](manifest)
-    ids = {n["id"]: n for n in normal["resolve"]["nodes"]}
-    packages = {v["id"]: v for v in normal["packages"]}
-    current = common["registry_checksums"](p / "Cargo.lock")
-    seen = set()
-    pending = [normal["resolve"]["root"]]
-    while pending:
-        i = pending.pop()
-        if i in seen:
-            continue
-        seen.add(i)
-        v = packages[i]
-        if v["source"]:
-            k = v["name"], v["version"], v["source"]
-            if deps.get(k) != current[k]:
-                raise ValueError(f"dependency outside benchmark lock: {k}")
-        pending.extend(d["pkg"] for d in ids[i]["deps"] if any(m["kind"]!="dev" for m in d["dep_kinds"]))
+    manifest = locked["unpack"](p, "slh-dsa", "0.2.0-rc.5")
     recipe = {}
     for shape,(n,k,m) in SHAPES.items():
         entry = "peer_shake_"+shape
@@ -110,10 +87,8 @@ def extract(p, peer, deps):
 
 def main():
     os.environ["PATH"] = os.pathsep.join(str(Path.home()/tool/"bin") for tool in (".elan",".cargo"))+os.pathsep+os.environ["PATH"]
-    graph = common["metadata"](ROOT/"bench/Cargo.toml")
-    peer, = [p for p in graph["packages"] if p["name"]=="slh-dsa" and p["version"]=="0.2.0-rc.5"]
     with tempfile.TemporaryDirectory(prefix="peer-hash-shake-") as d:
-        content = extract(Path(d),peer,common["registry_checksums"](ROOT/"bench/Cargo.lock"))
+        content = extract(Path(d))
     lean = ROOT/"lean-hw"
     if (lean/"Shakebatch/PeerHashProgram.lean").read_text() != content:
         raise ValueError("fresh RustCrypto SHAKE MIR differs from the verified Lean program")
