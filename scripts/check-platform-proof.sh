@@ -1041,9 +1041,9 @@ python3 "$root/scripts/check-portable-shake.py"
 sh "$root/scripts/check-keccak-assembly.sh"
 platform_arch=aarch64-unknown-linux-gnu
 extract Koriented KorientedRust koriented --start-from 'crate::shake256::oriented::permute'
-(cd lean-hw && lake build Koriented.Fips && lake env lean --stdin > "$scratch/oriented-axioms" <<'LEAN'
-import Koriented.Fips
-#print axioms slhdsa.Oriented.round_fips
+(cd lean-hw && lake build Koriented.Permutation && lake env lean --stdin > "$scratch/oriented-axioms" <<'LEAN'
+import Koriented.Permutation
+#print axioms slhdsa.Oriented.permute_fips
 LEAN
 )
-grep -Fx "'slhdsa.Oriented.round_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/oriented-axioms"
+grep -Fx "'slhdsa.Oriented.permute_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/oriented-axioms"
