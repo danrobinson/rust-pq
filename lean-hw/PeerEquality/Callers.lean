@@ -62,6 +62,9 @@ private theorem key_blocks (p : Params) (k : Key) (h : k.Shape p) :
     List.take_of_length_le h.prf.le,List.take_of_length_le h.publicSeed.le,
     List.take_of_length_le h.root.le]
 
+theorem key_public_block (p : Params) (k : Key) (h : k.Shape p) : block p k.bytes 2 = k.publicSeed :=
+  (key_blocks p k h).2.2.1
+
 private theorem public_blocks (p : Params) (k : PublicKey) (h : k.Shape p) :
     block p k.bytes 0 = k.seed ∧ block p k.bytes 1 = k.root := by
   simp [block,PublicKey.bytes,List.take_append,List.drop_append,h.seed,

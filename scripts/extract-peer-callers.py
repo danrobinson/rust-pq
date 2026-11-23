@@ -122,6 +122,78 @@ def main():
                 method(file, name) == compact(expected), f"unsupported {file}::{name}"
             )
 
+        def scoped(file, impl, name, expected):
+            source = UPSTREAM["extract_body"](tar, peer, file + ".rs")
+            actual = compact(body(body(source, impl), rf"\bfn {name}\b"))
+            require(actual == compact(expected), f"unsupported {file}::{impl}::{name}")
+
+        for file, ty in [
+            ("signing_key", "SkSeed"),
+            ("signing_key", "SkPrf"),
+            ("verifying_key", "PkSeed"),
+        ]:
+            scoped(
+                file,
+                rf"impl<N: ArraySize> From<&\[u8\]> for {ty}<N>",
+                "from",
+                "#[allow(deprecated)] Self(Array::clone_from_slice(slice))",
+            )
+            scoped(
+                file,
+                rf"impl<N: ArraySize> {ty}<N>",
+                "new",
+                "let mut bytes=Array::<u8,N>::default();rng.fill_bytes(bytes.as_mut_slice());Self(bytes)",
+            )
+        scoped(
+            "signing_key",
+            r"impl<P: ParameterSet> SigningKey<P>",
+            "new",
+            "let sk_seed=SkSeed::new(rng);let sk_prf=SkPrf::new(rng);let pk_seed=PkSeed::new(rng);Self::from_seed(sk_seed,sk_prf,pk_seed)",
+        )
+        scoped(
+            "address",
+            r"impl ForsTree(?=\s*\{)",
+            "new",
+            """
+            ForsTree{layer_adrs:0.into(),tree_adrs_low:tree_adrs_low.into(),tree_adrs_high:0.into(),
+            type_const:ForsTree::TYPE_CONST.into(),key_pair_adrs:key_pair_adrs.into(),tree_height:0.into(),tree_index:0.into(),}
+        """,
+        )
+        scoped(
+            "address",
+            r"impl Default for WotsHash",
+            "default",
+            """
+            WotsHash{layer_adrs:0.into(),tree_adrs_low:0.into(),tree_adrs_high:0.into(),type_const:0.into(),
+            key_pair_adrs:0.into(),chain_adrs:0.into(),hash_adrs:0.into(),}
+        """,
+        )
+        exact(
+            "signing_key",
+            "to_bytes",
+            """
+           let mut bytes=Array::<u8,P::SkLen>::default();bytes[..P::N::USIZE].copy_from_slice(&self.sk_seed.0);
+           bytes[P::N::USIZE..2*P::N::USIZE].copy_from_slice(&self.sk_prf.0);
+           bytes[2*P::N::USIZE..].copy_from_slice(&self.verifying_key.to_bytes());bytes
+        """,
+        )
+        exact(
+            "verifying_key",
+            "to_bytes",
+            """
+           let mut bytes=Array::<u8,P::VkLen>::default();debug_assert!(P::N::USIZE*2==P::VkLen::USIZE);
+           bytes[..P::N::USIZE].copy_from_slice(&self.pk_seed.0);bytes[P::N::USIZE..].copy_from_slice(&self.pk_root);bytes
+        """,
+        )
+        exact(
+            "signature_encoding",
+            "to_bytes",
+            """
+           let mut bytes=Array::<u8,P::SigLen>::default();let r_size=P::N::USIZE;let fors_size=ForsSignature::<P>::SIZE;
+           bytes[..r_size].copy_from_slice(&self.randomizer);self.fors_sig.write_to(&mut bytes[r_size..r_size+fors_size]);
+           self.ht_sig.write_to(&mut bytes[r_size+fors_size..]);bytes
+        """,
+        )
         exact(
             "hypertree",
             "ht_sign",
