@@ -37,20 +37,19 @@ def check(package, width):
     print(f"checked width {width} batch header, loads, writes and short hash calls", flush=True)
 
 
-def check_nodes(package, width):
+def check_calls(package, width, filename, models, uses_width):
     literal = f"{width}#usize"
-    program = (LEAN / "Shakebatch/NodesProgram.lean").read_text().replace("machine.width", literal)
+    program = (LEAN / "Shakebatch" / filename).read_text().replace("machine.width", literal)
     for name in ("Types.lean", "Funs.lean"):
         shared = set(common["declarations"](common["body"](LEAN / "Slhdsa" / name)))
         for decl in common["declarations"](common["body"](package / name)):
-            if decl not in shared and decl not in program:
+            if uses_width and decl == f"@[global_simps, irreducible] def shake256.parallel.WIDTH : Std.Usize := {literal}":
+                continue
+            if decl not in shared and decl.replace("shake256.parallel.WIDTH", literal) not in program:
                 raise ValueError(f"unmatched FORS declaration for width {width}: {decl}")
     template = (package / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1]
-    source = ["import Shakebatch.ForsNodes", "open Aeneas Aeneas.Std Result slhdsa", "open slhdsa.ShakeBatch",
+    source = ["import Shakebatch.Sign", "open Aeneas Aeneas.Std Result slhdsa", "open slhdsa.ShakeBatch",
               "variable [m : ShakeBatch.Machine]"]
-    models = {"core.array.Array.map": "@_root_.core.array.Array.map",
-              "shake.batch.short": "@ShakeBatch.shake.batch.short m",
-              "shake.batch.pair": "@ShakeBatch.shake.batch.pair m"}
     seen = set()
     for decl in common["declarations"](template):
         match = re.fullmatch(r"(?:@\[.*?\]\s*)?axiom ([^\s]+)\s*(.*)", decl, re.DOTALL)
@@ -68,17 +67,18 @@ def check_nodes(package, width):
     if seen != set(models):
         raise ValueError(f"missing FORS input at width {width}: {seen}")
     common["run"](["lake", "env", "lean", "--stdin"], LEAN, input="\n".join(source), text=True)
-    print(f"checked width {width} recursive FORS nodes and bindings", flush=True)
+    print(f"checked width {width} {filename} and bindings", flush=True)
 
 
 if __name__ == "__main__":
-    common["run"](["lake", "build", "Shakebatch.ForsNodes"], LEAN)
+    common["run"](["lake", "build", "Shakebatch.Sign"], LEAN)
     facade["audit_theorems"]("Shakebatch.Header", ["slhdsa.ShakeBatch." + name for name in
         ("word_spec", "seed_rows", "put_spec", "address_rows", "high_bit", "header_spec")])
     facade["audit_theorems"]("Shakebatch.Read", ["slhdsa.ShakeBatch.read_spec"])
     facade["audit_theorems"]("Shakebatch.Pair", ["slhdsa.ShakeBatch.short_fips", "slhdsa.ShakeBatch.pair_fips",
         "Spec.Keccak.padded_fips"])
     facade["audit_theorems"]("Shakebatch.ForsNodes", ["slhdsa.ShakeBatch.fors_secrets", "slhdsa.ShakeBatch.fors_nodes"])
+    facade["audit_theorems"]("Shakebatch.Sign", ["slhdsa.ShakeBatch.sign_fors_trees"])
     for target, width in WIDTHS.items():
         with tempfile.TemporaryDirectory() as folder:
             package = facade["extract"]("rust", target, "Header", Path(folder),
@@ -87,4 +87,13 @@ if __name__ == "__main__":
             check(package, width)
             nodes = facade["extract"]("rust", target, "Nodes", Path(folder),
                 ("crate::shake::fors_batch::nodes",), ("crate::shake::batch::short", "crate::shake::batch::pair"))
-            check_nodes(nodes, width)
+            check_calls(nodes, width, "NodesProgram.lean", {
+                "core.array.Array.map": "@_root_.core.array.Array.map",
+                "shake.batch.short": "@ShakeBatch.shake.batch.short m",
+                "shake.batch.pair": "@ShakeBatch.shake.batch.pair m"}, False)
+            sign = facade["extract"]("rust", target, "Sign", Path(folder),
+                ("crate::shake::fors_batch::sign",), ("crate::shake::fors_batch::nodes", "crate::shake::fors_batch::secrets"))
+            check_calls(sign, width, "SignProgram.lean", {
+                "core.array.Array.map": "@_root_.core.array.Array.map",
+                "shake.fors_batch.secrets": "@ShakeBatch.shake.fors_batch.secrets m",
+                "shake.fors_batch.nodes": "@ShakeBatch.shake.fors_batch.nodes m"}, True)
