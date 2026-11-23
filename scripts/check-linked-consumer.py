@@ -30,6 +30,7 @@ def main():
             "lake",
             "build",
             "Spec.AppleEndToEnd",
+            "Spec.ArmRootComparison",
             "Spec.AppleRateBlocksWitness",
             "Spec.AppleSignRejectWitness",
         ],
@@ -76,6 +77,7 @@ def main():
         for name in [
             "apple-binary/check.py",
             "apple-binary/check_digest.py",
+            "apple-binary/root_compare.py",
             "apple-binary/absorb.py",
         ]:
             run(name, *flags)
