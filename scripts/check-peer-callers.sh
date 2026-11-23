@@ -7,13 +7,15 @@ trap 'rm -rf "$scratch"' EXIT
 python3 scripts/extract-peer-callers.py "$scratch/CallGraph.lean"
 cmp "$scratch/CallGraph.lean" lean-hw/PeerEquality/CallGraph.lean
 cd lean-hw
-lake build PeerEquality.CallerFacade PeerEquality.CallerComplete PeerEquality.CallerSha2 PeerEquality.Slots PeerEquality.VerifyLayers
+lake build PeerEquality.CallerFacade PeerEquality.CallerComplete PeerEquality.CallerSha2 PeerEquality.Slots PeerEquality.VerifyLayers PeerEquality.Xmss
 lake env lean --stdin >"$scratch/axioms" <<'LEAN'
+import PeerEquality.Xmss
 import PeerEquality.CallerFacade
 import PeerEquality.CallerComplete
 import PeerEquality.Slots
 import PeerEquality.VerifyLayers
 import PeerEquality.CallerSha2
+#print axioms slhdsa.PeerCall.PeerXmss.operations_fips
 #print axioms slhdsa.PeerCall.htVerifyWith_fips
 #print axioms slhdsa.PeerCall.split_correct
 #print axioms slhdsa.PeerCall.sha2_128s_facades
@@ -44,9 +46,9 @@ import sys
 from pathlib import Path
 import re
 lines=Path(sys.argv[1]).read_text().splitlines()
-if len(lines)!=24: raise SystemExit("missing proof audit")
+if len(lines)!=25: raise SystemExit("missing proof audit")
 for line in lines:
-    if not re.fullmatch(r"'slhdsa\.PeerCall\.\w+' (?:does not depend on any axioms|depends on axioms: \[(?:propext|Classical\.choice|Quot\.sound)(?:, (?:propext|Classical\.choice|Quot\.sound))*\])",line):
+    if not re.fullmatch(r"'slhdsa\.PeerCall\.[\w.]+' (?:does not depend on any axioms|depends on axioms: \[(?:propext|Classical\.choice|Quot\.sound)(?:, (?:propext|Classical\.choice|Quot\.sound))*\])",line):
         raise SystemExit(line)
     print(line)
 PY

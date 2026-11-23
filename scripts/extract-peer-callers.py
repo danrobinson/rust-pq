@@ -242,6 +242,39 @@ def main():
            self.ht_sig.write_to(&mut bytes[r_size+fors_size..]);bytes
         """,
         )
+        exact("address", "tree_adrs", """
+            HashTree { layer_adrs:self.layer_adrs, tree_adrs_low:self.tree_adrs_low,
+            tree_adrs_high:self.tree_adrs_high, type_const:HashTree::TYPE_CONST.into(),
+            padding:0.into(), tree_height:0.into(), tree_index:0.into(), }
+        """)
+        exact("xmss", "xmss_node", """
+            debug_assert!(height<=Self::HPrime::U32);
+            debug_assert!(node<(1<<(Self::HPrime::U32-height)));
+            if height==0 {let mut adrs=adrs.clone(); adrs.key_pair_adrs.set(node);
+            self.wots_pk_gen(sk_seed,&adrs)} else {
+            let lnode=self.xmss_node(sk_seed,2*node,height-1,adrs);
+            let rnode=self.xmss_node(sk_seed,2*node+1,height-1,adrs);
+            let mut adrs=adrs.tree_adrs(); adrs.tree_height.set(height);
+            adrs.tree_index.set(node);self.h(&adrs,&lnode,&rnode)}
+        """)
+        exact("xmss", "xmss_sign", """
+            let mut adrs=adrs.clone(); adrs.key_pair_adrs.set(idx);
+            let sig=self.wots_sign(m,sk_seed,&adrs);
+            let mut auth=Array::<Array<u8,Self::N>,Self::HPrime>::default();
+            let mut idx=idx;for j in 0..Self::HPrime::U32{
+            let node=self.xmss_node(sk_seed,idx^1,j,&adrs);idx>>=1;auth[j as usize]=node;}
+            XmssSig{sig,auth}
+        """)
+        exact("xmss", "xmss_pk_from_sig", """
+            let mut adrs=adrs.clone(); adrs.key_pair_adrs.set(idx);
+            let mut node=self.wots_pk_from_sig(&sig.sig,m,&adrs);
+            let mut adrs=adrs.tree_adrs();let mut idx=idx;let mut rem;
+            for j in 0..Self::HPrime::U32{adrs.tree_height.set(j+1);
+            (idx,rem)=(idx>>1,idx&1);adrs.tree_index.set(idx);
+            if rem==0{node=self.h(&adrs,&node,&sig.auth[j as usize]);}
+            else{node=self.h(&adrs,&sig.auth[j as usize],&node);}}
+            node
+        """)
         exact(
             "hypertree",
             "ht_sign",
