@@ -118,7 +118,7 @@ impl<P: ParameterSet> From<Array<u8, P::VkLen>> for VerifyingKey<P> {
     }
 }
 
-impl<P: ParameterSet> TryFrom<&[u8]> for VerifyingKey<P> {
+impl<P: Core> TryFrom<&[u8]> for VerifyingKey<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {

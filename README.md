@@ -206,25 +206,14 @@ dependency line:
 slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
 ```
 
-- **Inside the proofs:** every decision the adapter makes is made by a verified function: key
-  generation, signing, verification, which bytes are accepted as keys and signatures and which
-  part of a private key is its public key, the comparisons of keys, signatures and algorithm
-  identifiers, the order of the argument checks, the randomness of deterministic signatures,
-  appending the parts of a message, and the PKCS#8 and SubjectPublicKeyInfo encodings. Since
-  2026-11-22 the decisions the adapter used to make itself are in
-  [rust/src/adapter.rs](rust/src/adapter.rs), proved in
-  [lean/Slhdsa/Proofs/Adapter.lean](lean/Slhdsa/Proofs/Adapter.lean) (headline list
-  [lean/Slhdsa/AdapterTheorems.lean](lean/Slhdsa/AdapterTheorems.lean), 14 theorems).
-- **Not (the exact surface, `compat/src`: 6 files, 941 lines, 598 of code):** forwarding calls
-  and the trait and type plumbing around them; three small pieces of logic that Aeneas or the
-  constant-time library cannot take (the loop over the parts of a message, `&[&[u8]]`: nested
-  borrows; the conversion of `Option<&[u8]>` to a flag and bytes; which buffer ranges the random
-  source fills); drawing random bytes; the `pkcs8`/`spki`/`der` crates' parsing of an encoded key
-  and well-formedness check of the verified encodings; allocation and the wiping (tested, not
-  proved, and not of processor registers). Listed line by line in
-  [compat/README.md](compat/README.md), "The exact remaining unproved surface".
+The public SHA-2 proofs follow the production signer and verifier through message
+assembly, parameter dispatch, and construction of the result. They also cover
+caller-supplied RNG key generation, randomized signing on successful and failed
+draws, and the three raw byte parsers. The portable and accelerated builds use
+the same public statements. [Public API proofs](lean/Facade.lean)
 
-Details: [compat/README.md](compat/README.md).
+External DER parsing, operating-system entropy, allocation, and physical memory
+wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#public-api-proofs)
 
 ## What is not proven
 

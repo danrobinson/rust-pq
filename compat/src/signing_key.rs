@@ -80,11 +80,34 @@ impl<P: ParameterSet> ZeroizeOnDrop for SigningKey<P> {}
 impl<P: Core> SigningKey<P> {
     /// Create a new `SigningKey` from a cryptographic random number generator
     pub fn new<R: CryptoRng + ?Sized>(rng: &mut R) -> Self {
-        let Ok(key) = Self::try_new(rng);
+        // Each supported family uses at most 32 bytes per seed. Give the
+        // RNG three independent n-byte slices in the order of Algorithm 21.
+        let mut sk_seed = [0u8; 32];
+        let mut sk_prf = [0u8; 32];
+        let mut pk_seed = [0u8; 32];
+        let key = Self::key_from_rng_parts(
+            rng,
+            &mut sk_seed[..P::N],
+            &mut sk_prf[..P::N],
+            &mut pk_seed[..P::N],
+        );
+        sk_seed.zeroize();
+        sk_prf.zeroize();
+        pk_seed.zeroize();
         key
     }
 
+    fn key_from_rng_parts<R: CryptoRng + ?Sized>(
+        rng: &mut R, sk_seed: &mut [u8], sk_prf: &mut [u8], pk_seed: &mut [u8],
+    ) -> Self {
+        rng.fill_bytes(sk_seed);
+        rng.fill_bytes(sk_prf);
+        rng.fill_bytes(pk_seed);
+        Self::slh_keygen_internal(sk_seed, sk_prf, pk_seed)
+    }
+
     /// Draw `SK.seed`, `SK.prf` and `PK.seed`, in that order, and derive the key.
+    #[cfg(feature = "getrandom")]
     fn try_new<R: TryCryptoRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let n = P::N;
         let mut seeds = P::Sk::zeroed();
@@ -197,14 +220,19 @@ impl<P: Core> SigningKey<P> {
         msg: &[&[u8]],
         ctx: &[u8],
     ) -> Result<Signature<P>, Error> {
-        let n = P::N;
-        let mut randomizer = P::Vk::zeroed();
-        let sig = match rng.try_fill_bytes(&mut randomizer.as_mut_slice()[..n]) {
-            Ok(()) => self.raw_try_sign_with_context(msg, ctx, Some(&randomizer.as_slice()[..n])),
+        let mut randomizer = [0u8; 32];
+        let result = self.sign_with_rng_buffer(rng, msg, ctx, &mut randomizer[..P::N]);
+        randomizer.zeroize();
+        result
+    }
+
+    fn sign_with_rng_buffer<R: TryCryptoRng + ?Sized>(
+        &self, rng: &mut R, msg: &[&[u8]], ctx: &[u8], randomizer: &mut [u8],
+    ) -> Result<Signature<P>, Error> {
+        match rng.try_fill_bytes(randomizer) {
+            Ok(()) => self.raw_try_sign_with_context(msg, ctx, Some(randomizer)),
             Err(_) => Err(Error::new()),
-        };
-        randomizer.as_mut_slice().zeroize();
-        sig
+        }
     }
 
 }
@@ -224,7 +252,7 @@ impl<P: ParameterSet> SigningKey<P> {
     }
 }
 
-impl<P: ParameterSet> TryFrom<&[u8]> for SigningKey<P> {
+impl<P: Core> TryFrom<&[u8]> for SigningKey<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {

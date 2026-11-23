@@ -150,7 +150,11 @@ SHA-2 set the caller-visible signature bytes and verifier verdict agree with
 the executable specification through the deterministic `Signer`, `Verifier`,
 and the explicit-context APIs. A supplied randomizer has the set's byte length.
 The proofs include parameter dispatch, array and slice conversions on those paths,
-and the result constructed by each method.
+and the result constructed by each method. `SigningKey::new` consumes the three
+n-byte RNG draws in order. Randomized signing uses the supplied bytes on success
+and returns an error on failure. Both proofs account for the resulting RNG state.
+The three `TryFrom<&[u8]>` proofs establish exact-length acceptance, byte
+preservation, and reconstruction of the embedded verifying key.
 
 The adapter uses native fixed-size arrays internally. Rust's associated-type
 equalities make each array the storage of its RustCrypto serialization type.
@@ -160,7 +164,7 @@ equalities make each array the storage of its RustCrypto serialization type.
 
 The `Facade` theorems concern functional results. The existing core theorems
 continue to cover key generation, core codecs, and source-level trace behavior.
-The adapter RNG paths, general serialization traits, and DER decoding require
+General serialization traits, operating-system RNG convenience methods, and DER decoding require
 separate reasoning.
 
 - **The random source** (`rand_core`'s `try_fill_bytes`, `getrandom::SysRng`): randomness is

@@ -21,6 +21,51 @@ set_option maxRecDepth 2048
 
 namespace slh_dsa
 
+/-- Trait declaration: [rand_core::TryRng]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.10.1/src/lib.rs', lines 189:0-189:16
+    Name pattern: [rand_core::TryRng]
+    Visibility: public -/
+@[rust_trait "rand_core::TryRng" (parentClauses := ["coreerrorErrorInst"])]
+structure rand_core.TryRng (Self : Type _) (Self_Error : Type _) where
+  coreerrorErrorInst : core.error.Error Self_Error
+  try_next_u32 : Self → Result ((core.result.Result Std.U32 Self_Error) ×
+    Self)
+  try_next_u64 : Self → Result ((core.result.Result Std.U64 Self_Error) ×
+    Self)
+  try_fill_bytes : Self → Slice Std.U8 → Result ((core.result.Result Unit
+    Self_Error) × Self × (Slice Std.U8))
+
+/-- Trait declaration: [rand_core::Rng]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.10.1/src/lib.rs', lines 49:0-49:41
+    Name pattern: [rand_core::Rng]
+    Visibility: public -/
+@[rust_trait "rand_core::Rng" (parentClauses := ["TryRngSelfNeverInst"])]
+structure rand_core.Rng (Self : Type _) where
+  TryRngSelfNeverInst : rand_core.TryRng Self Never
+  next_u32 : Self → Result (Std.U32 × Self)
+  next_u64 : Self → Result (Std.U64 × Self)
+  fill_bytes : Self → Slice Std.U8 → Result (Self × (Slice Std.U8))
+
+/-- Trait declaration: [rand_core::TryCryptoRng]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.10.1/src/lib.rs', lines 249:0-249:30
+    Name pattern: [rand_core::TryCryptoRng]
+    Visibility: public -/
+@[rust_trait "rand_core::TryCryptoRng" (parentClauses := ["TryRngInst"])]
+structure rand_core.TryCryptoRng (Self : Type _) (Self_Clause0_Error : Type _)
+  where
+  TryRngInst : rand_core.TryRng Self Self_Clause0_Error
+
+/-- Trait declaration: [rand_core::CryptoRng]
+    Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.10.1/src/lib.rs', lines 95:0-95:59
+    Name pattern: [rand_core::CryptoRng]
+    Visibility: public -/
+@[rust_trait "rand_core::CryptoRng"
+  (parentClauses := ["RngInst", "TryCryptoRngInst"])]
+structure rand_core.CryptoRng (Self : Type _) (Self_Clause1_Clause0_Error :
+  Type _) where
+  RngInst : rand_core.Rng Self
+  TryCryptoRngInst : rand_core.TryCryptoRng Self Self_Clause1_Clause0_Error
+
 /-- [signature::error::Error]
     Source: '/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/signature-3.0.0/src/error.rs', lines 25:0-25:16
     Name pattern: [signature::error::Error]

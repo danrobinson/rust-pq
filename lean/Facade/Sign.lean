@@ -6,7 +6,7 @@ open Aeneas Aeneas.Std Result
 open slhdsa (bytes paramsS PN Room msgSlack)
 namespace slh_dsa
 
-private theorem scrub_returns : scrub.scrub_stack = ok () := by
+theorem scrub_returns : scrub.scrub_stack = ok () := by
   unfold scrub.scrub_stack Array.Insts.ZeroizeZeroize.zeroize
   have h := List.mapM_with_length_spec (post := fun _ (_ : U8) => True)
     (l := (Array.repeat 65536#usize 0#u8).val)

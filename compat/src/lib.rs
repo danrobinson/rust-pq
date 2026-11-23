@@ -29,7 +29,8 @@
 //! `Signer::try_sign`, `Verifier::verify`, `try_sign_with_context`, and
 //! `try_verify_with_context` at each SHA-2 parameter set. They include
 //! argument forwarding, message assembly, and the returned bytes or verdict.
-//! The underlying core has separate proofs for key generation and encodings.
+//! Public proofs also cover key generation from caller-supplied randomness,
+//! randomized signing including failure, and raw key and signature parsing.
 //! External randomness, DER parsing, allocation, and physical memory wiping
 //! have separate trust assumptions, described in the adapter README.
 //!

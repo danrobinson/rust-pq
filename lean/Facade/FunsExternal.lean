@@ -13,6 +13,11 @@ def signature.error.Error.new : Result signature.error.Error := ok ()
 def zeroize.Zeroize.Blanket.zeroize {Z : Type} (z : zeroize.DefaultIsZeroes Z) (_ : Z) :
     Result Z := z.coredefaultDefaultInst.default
 
+def Slice.Insts.ZeroizeZeroize.zeroize {Z : Type} (z : zeroize.DefaultIsZeroes Z)
+    (s : Slice Z) : Result (Slice Z) := do
+  let value ← z.coredefaultDefaultInst.default
+  ok (Slice.from (List.replicate s.val.length value) (by simpa using s.property))
+
 def Array.Insts.ZeroizeZeroize.zeroize {Z : Type} {N : Usize} (z : zeroize.Zeroize Z)
     (a : Std.Array Z N) : Result (Std.Array Z N) := do
   let xs ← List.mapM_with_length z.zeroize a.val

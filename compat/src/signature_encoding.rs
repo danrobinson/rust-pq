@@ -69,7 +69,7 @@ impl<P: ParameterSet> Signature<P> {
     }
 }
 
-impl<P: ParameterSet> TryFrom<&[u8]> for Signature<P> {
+impl<P: Core> TryFrom<&[u8]> for Signature<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {

@@ -1439,8 +1439,140 @@ def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
+/-- [slh_dsa::signature_encoding::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
+    Source: 'src/signature_encoding.rs', lines 75:4-81:5
+    Visibility: public -/
+def
+  signature_encoding.Signature.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (bytes : Slice Std.U8) :
+  Result (core.result.Result (signature_encoding.Signature P Clause0_Clause0_Sk
+    Clause0_Clause1_Vk Clause0_Clause2_Sig) signature.error.Error)
+  := do
+  let sig ← paramsCoreInst.SignatureStorageInst.BufferInst.zeroed
+  let (s, as_mut_slice_back) ←
+    paramsCoreInst.SignatureStorageInst.BufferInst.as_mut_slice sig
+  let (b, s1) ← paramsCoreInst.sig_from bytes s
+  if b
+  then
+    let sig1 := as_mut_slice_back s1
+    ok (core.result.Result.Ok { bytes := sig1 })
+  else let e ← signature.error.Error.new
+       ok (core.result.Result.Err e)
+
+/-- [slh_dsa::signing_key::{impl core::ops::drop::Drop for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::drop]:
+    Source: 'src/signing_key.rs', lines 72:4-74:5
+    Visibility: public -/
+def signing_key.SigningKey.Insts.CoreOpsDropDrop.drop
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (self : signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) :
+  Result (signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+    Clause0_Clause2_Sig)
+  := do
+  let (s, as_mut_slice_back) ←
+    paramsCoreInst.SigningKeyStorageInst.BufferInst.as_mut_slice self.bytes
+  let s1 ←
+    Slice.Insts.ZeroizeZeroize.zeroize U8.Insts.ZeroizeDefaultIsZeroes s
+  let t := as_mut_slice_back s1
+  ok { self with bytes := t }
+
+/-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::slh_keygen_internal]:
+    Source: 'src/signing_key.rs', lines 151:4-159:5
+    Visibility: public -/
+def signing_key.SigningKey.slh_keygen_internal
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8) :
+  Result (signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+    Clause0_Clause2_Sig)
+  := do
+  let t ← paramsCoreInst.SigningKeyStorageInst.BufferInst.zeroed
+  let pk ← paramsCoreInst.VerifyingKeyStorageInst.BufferInst.zeroed
+  let (s, as_mut_slice_back) ←
+    paramsCoreInst.SigningKeyStorageInst.BufferInst.as_mut_slice t
+  let (s1, as_mut_slice_back1) ←
+    paramsCoreInst.VerifyingKeyStorageInst.BufferInst.as_mut_slice pk
+  let (s2, s3) ← paramsCoreInst.keygen_seeds sk_seed sk_prf pk_seed s s1
+  let bytes := as_mut_slice_back s2
+  let pk1 := as_mut_slice_back1 s3
+  ok { bytes, verifying_key := { bytes := pk1 } }
+
+/-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::key_from_rng_parts]:
+    Source: 'src/signing_key.rs', lines 100:4-107:5 -/
+def signing_key.SigningKey.key_from_rng_parts
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause1_Clause0_Error :
+  Type _} (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreCryptoRngInst : rand_core.CryptoRng R
+  Clause1_Clause1_Clause0_Error) (rng : R) (sk_seed : Slice Std.U8)
+  (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8) :
+  Result ((signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+    Clause0_Clause2_Sig) × R × (Slice Std.U8) × (Slice Std.U8) × (Slice
+    Std.U8))
+  := do
+  let (rng1, sk_seed1) ←
+    rand_coreCryptoRngInst.RngInst.fill_bytes rng sk_seed
+  let (rng2, sk_prf1) ← rand_coreCryptoRngInst.RngInst.fill_bytes rng1 sk_prf
+  let (rng3, pk_seed1) ←
+    rand_coreCryptoRngInst.RngInst.fill_bytes rng2 pk_seed
+  let sk ←
+    signing_key.SigningKey.slh_keygen_internal paramsCoreInst sk_seed1 sk_prf1
+      pk_seed1
+  ok (sk, rng3, sk_seed1, sk_prf1, pk_seed1)
+
+/-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::new]:
+    Source: 'src/signing_key.rs', lines 82:4-98:5
+    Visibility: public -/
+def signing_key.SigningKey.new
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause1_Clause0_Error :
+  Type _} (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreCryptoRngInst : rand_core.CryptoRng R
+  Clause1_Clause1_Clause0_Error) (rng : R) :
+  Result ((signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+    Clause0_Clause2_Sig) × R)
+  := do
+  let sk_seed := Array.repeat 32#usize 0#u8
+  let sk_prf := Array.repeat 32#usize 0#u8
+  let pk_seed := Array.repeat 32#usize 0#u8
+  let i ← paramsCoreInst.N
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8)) sk_seed
+      { «end» := i }
+  let (s1, index_mut_back1) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8)) sk_prf
+      { «end» := i }
+  let (s2, index_mut_back2) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8)) pk_seed
+      { «end» := i }
+  let (key, rng1, s3, s4, s5) ←
+    signing_key.SigningKey.key_from_rng_parts paramsCoreInst
+      rand_coreCryptoRngInst rng s s1 s2
+  let sk_seed1 := index_mut_back s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) sk_seed1
+  let sk_prf1 := index_mut_back1 s4
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) sk_prf1
+  let pk_seed1 := index_mut_back2 s5
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) pk_seed1
+  ok (key, rng1)
+
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_sign_with_context]:
-    Source: 'src/signing_key.rs', lines 179:4-192:5 -/
+    Source: 'src/signing_key.rs', lines 202:4-215:5 -/
 def signing_key.SigningKey.raw_try_sign_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
   {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
@@ -1467,7 +1599,7 @@ def signing_key.SigningKey.raw_try_sign_with_context
        ok (core.result.Result.Err e)
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign_with_context]:
-    Source: 'src/signing_key.rs', lines 158:4-165:5
+    Source: 'src/signing_key.rs', lines 181:4-188:5
     Visibility: public -/
 def signing_key.SigningKey.try_sign_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1483,8 +1615,92 @@ def signing_key.SigningKey.try_sign_with_context
   signing_key.SigningKey.raw_try_sign_with_context paramsCoreInst self s ctx
     opt_rand
 
+/-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::sign_with_rng_buffer]:
+    Source: 'src/signing_key.rs', lines 229:4-236:5 -/
+def signing_key.SigningKey.sign_with_rng_buffer
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
+  (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreTryCryptoRngInst : rand_core.TryCryptoRng R
+  Clause1_Clause0_Error)
+  (self : signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rng : R) (msg : Slice (Slice Std.U8))
+  (ctx : Slice Std.U8) (randomizer : Slice Std.U8) :
+  Result ((core.result.Result (signature_encoding.Signature P
+    Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+    signature.error.Error) × R × (Slice Std.U8))
+  := do
+  let (r, rng1, randomizer1) ←
+    rand_coreTryCryptoRngInst.TryRngInst.try_fill_bytes rng randomizer
+  match r with
+  | core.result.Result.Ok _ =>
+    let r1 ←
+      signing_key.SigningKey.raw_try_sign_with_context paramsCoreInst self msg
+        ctx (some randomizer1)
+    ok (r1, rng1, randomizer1)
+  | core.result.Result.Err _ =>
+    let e ← signature.error.Error.new
+    ok (core.result.Result.Err e, rng1, randomizer1)
+
+/-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_sign_with_rng]:
+    Source: 'src/signing_key.rs', lines 217:4-227:5 -/
+def signing_key.SigningKey.raw_try_sign_with_rng
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
+  (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreTryCryptoRngInst : rand_core.TryCryptoRng R
+  Clause1_Clause0_Error)
+  (self : signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rng : R) (msg : Slice (Slice Std.U8))
+  (ctx : Slice Std.U8) :
+  Result ((core.result.Result (signature_encoding.Signature P
+    Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+    signature.error.Error) × R)
+  := do
+  let randomizer := Array.repeat 32#usize 0#u8
+  let i ← paramsCoreInst.N
+  let (s, index_mut_back) ←
+    core.array.Array.index_mut (core.ops.index.IndexMutSlice
+      (core.slice.index.SliceIndexRangeToUsizeSlice Std.U8)) randomizer
+      { «end» := i }
+  let (result, rng1, s1) ←
+    signing_key.SigningKey.sign_with_rng_buffer paramsCoreInst
+      rand_coreTryCryptoRngInst self rng msg ctx s
+  let randomizer1 := index_mut_back s1
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) randomizer1
+  ok (result, rng1)
+
+/-- [slh_dsa::signing_key::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
+    Source: 'src/signing_key.rs', lines 258:4-268:5
+    Visibility: public -/
+def signing_key.SigningKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (bytes : Slice Std.U8) :
+  Result (core.result.Result (signing_key.SigningKey P Clause0_Clause0_Sk
+    Clause0_Clause1_Vk Clause0_Clause2_Sig) signature.error.Error)
+  := do
+  let t ← paramsCoreInst.SigningKeyStorageInst.BufferInst.zeroed
+  let pk ← paramsCoreInst.VerifyingKeyStorageInst.BufferInst.zeroed
+  let (s, as_mut_slice_back) ←
+    paramsCoreInst.SigningKeyStorageInst.BufferInst.as_mut_slice t
+  let (s1, as_mut_slice_back1) ←
+    paramsCoreInst.VerifyingKeyStorageInst.BufferInst.as_mut_slice pk
+  let (b, s2, s3) ← paramsCoreInst.sk_from bytes s s1
+  if b
+  then
+    let sk := as_mut_slice_back s2
+    let pk1 := as_mut_slice_back1 s3
+    ok (core.result.Result.Ok
+      { bytes := sk, verifying_key := { bytes := pk1 } })
+  else let e ← signature.error.Error.new
+       ok (core.result.Result.Err e)
+
 /-- [slh_dsa::signing_key::{impl signature::signer::MultipartSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_multipart_sign]:
-    Source: 'src/signing_key.rs', lines 250:4-252:5
+    Source: 'src/signing_key.rs', lines 278:4-280:5
     Visibility: public -/
 def
   signing_key.SigningKey.Insts.SignatureSignerMultipartSignerSignature.try_multipart_sign
@@ -1501,7 +1717,7 @@ def
     none
 
 /-- [slh_dsa::signing_key::{impl signature::signer::Signer<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign]:
-    Source: 'src/signing_key.rs', lines 244:4-246:5
+    Source: 'src/signing_key.rs', lines 272:4-274:5
     Visibility: public -/
 def signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1515,6 +1731,46 @@ def signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign
   let s ← lift (Array.to_slice (Array.make 1#usize [ msg ]))
   signing_key.SigningKey.Insts.SignatureSignerMultipartSignerSignature.try_multipart_sign
     paramsCoreInst self s
+
+/-- [slh_dsa::signing_key::{impl signature::signer::RandomizedMultipartSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_multipart_sign_with_rng]:
+    Source: 'src/signing_key.rs', lines 294:4-300:5
+    Visibility: public -/
+def
+  signing_key.SigningKey.Insts.SignatureSignerRandomizedMultipartSignerSignature.try_multipart_sign_with_rng
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
+  (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreTryCryptoRngInst : rand_core.TryCryptoRng R
+  Clause1_Clause0_Error)
+  (self : signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rng : R) (msg : Slice (Slice Std.U8)) :
+  Result ((core.result.Result (signature_encoding.Signature P
+    Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+    signature.error.Error) × R)
+  := do
+  let s ← lift (Array.to_slice (Std.Array.empty Std.U8))
+  signing_key.SigningKey.raw_try_sign_with_rng paramsCoreInst
+    rand_coreTryCryptoRngInst self rng msg s
+
+/-- [slh_dsa::signing_key::{impl signature::signer::RandomizedSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign_with_rng]:
+    Source: 'src/signing_key.rs', lines 284:4-290:5
+    Visibility: public -/
+def
+  signing_key.SigningKey.Insts.SignatureSignerRandomizedSignerSignature.try_sign_with_rng
+  {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
+  Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
+  (paramsCoreInst : params.Core P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rand_coreTryCryptoRngInst : rand_core.TryCryptoRng R
+  Clause1_Clause0_Error)
+  (self : signing_key.SigningKey P Clause0_Clause0_Sk Clause0_Clause1_Vk
+  Clause0_Clause2_Sig) (rng : R) (msg : Slice Std.U8) :
+  Result ((core.result.Result (signature_encoding.Signature P
+    Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+    signature.error.Error) × R)
+  := do
+  let s ← lift (Array.to_slice (Array.make 1#usize [ msg ]))
+  signing_key.SigningKey.Insts.SignatureSignerRandomizedMultipartSignerSignature.try_multipart_sign_with_rng
+    paramsCoreInst rand_coreTryCryptoRngInst self rng s
 
 /-- [slh_dsa::verifying_key::{slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_verify_with_context]:
     Source: 'src/verifying_key.rs', lines 74:4-84:5 -/
@@ -1554,6 +1810,29 @@ def verifying_key.VerifyingKey.try_verify_with_context
   let s ← lift (Array.to_slice (Array.make 1#usize [ msg ]))
   verifying_key.VerifyingKey.raw_try_verify_with_context paramsCoreInst self s
     ctx sig
+
+/-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
+    Source: 'src/verifying_key.rs', lines 124:4-131:5
+    Visibility: public -/
+def
+  verifying_key.VerifyingKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
+  {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
+  {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
+  Clause0_Clause0_Sk Clause0_Clause1_Vk Clause0_Clause2_Sig)
+  (bytes : Slice Std.U8) :
+  Result (core.result.Result (verifying_key.VerifyingKey P Clause0_Clause0_Sk
+    Clause0_Clause1_Vk Clause0_Clause2_Sig) signature.error.Error)
+  := do
+  let vk ← paramsCoreInst.VerifyingKeyStorageInst.BufferInst.zeroed
+  let (s, as_mut_slice_back) ←
+    paramsCoreInst.VerifyingKeyStorageInst.BufferInst.as_mut_slice vk
+  let (b, s1) ← paramsCoreInst.pk_from bytes s
+  if b
+  then
+    let vk1 := as_mut_slice_back s1
+    ok (core.result.Result.Ok { bytes := vk1 })
+  else let e ← signature.error.Error.new
+       ok (core.result.Result.Err e)
 
 /-- [slh_dsa::verifying_key::{impl signature::verifier::MultipartVerifier<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::multipart_verify]:
     Source: 'src/verifying_key.rs', lines 141:4-143:5
