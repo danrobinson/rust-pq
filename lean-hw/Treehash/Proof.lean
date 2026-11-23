@@ -7,7 +7,7 @@ set_option maxHeartbeats 2000000
 def addr (a : TreeHashRust.address.Adrs) : address.Adrs := ⟨a.layer,a.tree,a.typ,a.keypair,a.word2,a.word3⟩
 def seedOf {N} (s : TreeHashRust.hash.Seed N) : hash.Seed N := ⟨s.pk_seed,s.state,s.state512⟩
 
-private theorem block256 (st : Array U32 8#usize) (blk : Array U8 64#usize) :
+theorem block256 (st : Array U32 8#usize) (blk : Array U8 64#usize) :
     TreeHashRust.sha256.compress st blk.to_slice 0#usize = sha256.compress st blk.to_slice 0#usize := by
   have room : (0#usize).val+64≤blk.to_slice.length := by simp
   obtain ⟨x,hx,sx⟩ := spec_imp_exists (Stream.single256 st _ _ room)
@@ -18,7 +18,7 @@ private theorem block256 (st : Array U32 8#usize) (blk : Array U8 64#usize) :
   have words := congrArg (List.map (fun v : BitVec 32 => (⟨v⟩ : U32))) (sx.trans sy.symm)
   simpa [wv,List.map_map,Function.comp_def] using words
 
-private theorem block512 (st : Array U64 8#usize) (blk : Array U8 128#usize) :
+theorem block512 (st : Array U64 8#usize) (blk : Array U8 128#usize) :
     TreeHashRust.sha512.compress st blk.to_slice 0#usize = sha512.compress st blk.to_slice 0#usize := by
   have room : (0#usize).val+128≤blk.to_slice.length := by simp
   obtain ⟨x,hx,sx⟩ := spec_imp_exists (Stream.single512 st _ _ room)

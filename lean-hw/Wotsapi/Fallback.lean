@@ -4,7 +4,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Wots.Api
 open Wide
 
-private theorem chain_eq (N : Usize) (st : Array U32 8#usize) (blocks : Intel.Chain.Rows) (starts ends : Slice U32) :
+theorem chain_eq (N : Usize) (st : Array U32 8#usize) (blocks : Intel.Chain.Rows) (starts ends : Slice U32) :
     WotsApiRust.sha256.x86.chain_blocks N st blocks starts ends = hash.chain_blocks N st blocks starts ends := by
   by_cases bad : N.val > 32 ∨ starts.length < blocks.length ∨ ends.length < blocks.length
   · rw [show WotsApiRust.sha256.x86.chain_blocks N st blocks starts ends = _ from Dispatch.fallback_eq N st blocks starts ends bad]
