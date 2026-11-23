@@ -254,3 +254,6 @@ name = "Rcarmcode"
 
 [[lean_lib]]
 name = "Kgridbulk"
+
+[[lean_lib]]
+name = "Rcsoft"
