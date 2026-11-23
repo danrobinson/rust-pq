@@ -14,7 +14,7 @@ theorem shuffle (v : Reg512) :
   intro j
   fin_cases j <;> rfl
 
-private theorem words (N : Usize) (s : Array Reg512 8#usize) (o : Usize) (ho : o.val ≤ 16) :
+theorem words (N : Usize) (s : Array Reg512 8#usize) (o : Usize) (ho : o.val ≤ 16) :
     core.array.from_fn 4#usize (write_words.closure.Insts.CoreOpsFunctionFnMutTupleUsize__m512i N)
       (s,o,control) ⦃ a => ∀ k, k < 4 → ∀ j, a.val[k]! j = reverse32 (s.val[o.val/4+k]! j) ⦄ := by
   apply WP.spec_mono (core.array.from_fn.spec_stateless_getElem! 4#usize
@@ -33,7 +33,7 @@ private theorem words (N : Usize) (s : Array Reg512 8#usize) (o : Usize) (ho : o
     rw [hout,hv, ← getElem!_pos, hu,hi]
 
 private abbrev Iter := core.iter.adapters.step_by.StepBy (core.ops.range.Range Usize)
-private theorem next (it : Iter) (hlt : it.iter.start.val < it.iter.end.val) (hs : it.step_by = 16#usize) :
+theorem next (it : Iter) (hlt : it.iter.start.val < it.iter.end.val) (hs : it.step_by = 16#usize) :
     core.iter.adapters.step_by.IteratorStepBy.next
       (core.iter.traits.iterator.IteratorRange core.iter.range.StepUsize) it ⦃ o t =>
       o = some it.iter.start ∧ t.iter.start.val = min (it.iter.start.val+16) it.iter.end.val ∧
@@ -47,13 +47,13 @@ private theorem next (it : Iter) (hlt : it.iter.start.val < it.iter.end.val) (hs
 def digestByte (s : Array Reg512 8#usize) (j : Fin 16) (k : Nat) :=
   (s.val[k/4]! j).extractLsb' (8*(3-k%4)) 8
 
-private theorem reversed_byte (v : BitVec 32) (k : Nat) :
+theorem reversed_byte (v : BitVec 32) (k : Nat) :
     (reverse32 v).extractLsb' (8*(k%4)) 8 = v.extractLsb' (8*(3-k%4)) 8 := by
   have h : k%4 < 4 := Nat.mod_lt _ (by decide)
   generalize k%4 = n at *
   interval_cases n <;> unfold reverse32 S512.Gather.rev32 <;> bv_decide
 
-private theorem choose {a : Array Reg512 4#usize} (i : Nat) (hi : i < 4) :
+theorem choose {a : Array Reg512 4#usize} (i : Nat) (hi : i < 4) :
     chooseWord a.val[0]! a.val[1]! a.val[2]! a.val[3]! i = a.val[i]! := by
   interval_cases i <;> rfl
 

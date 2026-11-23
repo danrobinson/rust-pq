@@ -436,12 +436,13 @@ core.num.U16.trailing_zeros
 sha256.x86.avx512.transpose_rows
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Chainwrite.Chunk && lake env lean --stdin > "$scratch/chainwrite-axioms.log" <<'LEAN'
-import Chainwrite.Chunk
+(cd lean-hw && lake build Chainwrite.Top && lake env lean --stdin > "$scratch/chainwrite-axioms.log" <<'LEAN'
+import Chainwrite.Top
+#print axioms slhdsa.X86.Chain.write_finished_spec
 #print axioms slhdsa.X86.Chain.write_index_spec
 #print axioms slhdsa.X86.Chain.write_chunk_spec
 LEAN
 )
-for name in write_index_spec write_chunk_spec; do
+for name in write_finished_spec write_index_spec write_chunk_spec; do
   grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwrite-axioms.log"
 done
