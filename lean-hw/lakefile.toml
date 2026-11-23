@@ -39,3 +39,7 @@ name = "Ct"
 
 [[lean_lib]]
 name = "Facade"
+
+[[lean_lib]]
+name = "Avx2"
+srcDir = "../lean"

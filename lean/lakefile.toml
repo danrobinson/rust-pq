@@ -23,3 +23,6 @@ name = "Facade"
 
 [[lean_lib]]
 name = "Platform"
+
+[[lean_lib]]
+name = "Avx2"

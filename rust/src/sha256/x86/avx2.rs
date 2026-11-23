@@ -43,24 +43,67 @@ pub(super) fn chains<const N: usize>(
 #[inline]
 #[target_feature(enable = "avx2")]
 fn compress8(initial: [__m256i; 8], blocks: &[[u8; 64]; 8]) -> [__m256i; 8] {
-    macro_rules! ror {
-        ($x:expr, $n:literal) => {
-            _mm256_or_si256(
-                _mm256_srli_epi32::<$n>($x),
-                _mm256_slli_epi32::<{ 32 - $n }>($x),
-            )
-        };
-    }
     let mut w = [_mm256_setzero_si256(); 16];
-    for (i, word) in w.iter_mut().enumerate() {
-        let lanes: [u32; 8] = core::array::from_fn(|lane| {
-            u32::from_be_bytes(blocks[lane][4 * i..4 * i + 4].try_into().unwrap())
-        });
-        // SAFETY: all bit patterns are valid, and lane order is little-endian x86.
-        *word = unsafe { core::mem::transmute::<[u32; 8], __m256i>(lanes) };
+    let mut i = 0;
+    while i < 16 {
+        let pos = 4 * i;
+        w[i] = _mm256_set_epi32(
+            read_word(&blocks[7], pos) as i32,
+            read_word(&blocks[6], pos) as i32,
+            read_word(&blocks[5], pos) as i32,
+            read_word(&blocks[4], pos) as i32,
+            read_word(&blocks[3], pos) as i32,
+            read_word(&blocks[2], pos) as i32,
+            read_word(&blocks[1], pos) as i32,
+            read_word(&blocks[0], pos) as i32,
+        );
+        i += 1;
     }
-    let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = initial;
-    for (i, &k) in super::super::K.iter().enumerate() {
+    compress_words(initial, w)
+}
+
+#[inline(always)]
+fn read_word(block: &[u8; 64], pos: usize) -> u32 {
+    u32::from_be_bytes([block[pos], block[pos + 1], block[pos + 2], block[pos + 3]])
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
+fn compress_words(initial: [__m256i; 8], mut w: [__m256i; 16]) -> [__m256i; 8] {
+    let mut state = initial;
+    let mut i = 0;
+    while i < 64 {
+        // SAFETY: the caller has AVX2 enabled.
+        unsafe { compression_step(i, &mut state, &mut w) };
+        i += 1;
+    }
+    let [a, b, c, d, e, f, g, h] = state;
+    [
+        _mm256_add_epi32(initial[0], a),
+        _mm256_add_epi32(initial[1], b),
+        _mm256_add_epi32(initial[2], c),
+        _mm256_add_epi32(initial[3], d),
+        _mm256_add_epi32(initial[4], e),
+        _mm256_add_epi32(initial[5], f),
+        _mm256_add_epi32(initial[6], g),
+        _mm256_add_epi32(initial[7], h),
+    ]
+}
+
+// Called from the AVX2 kernel with round indices in 0..64.
+#[inline(always)]
+unsafe fn compression_step(i: usize, state: &mut [__m256i; 8], w: &mut [__m256i; 16]) {
+    unsafe {
+        macro_rules! ror {
+            ($x:expr, $n:literal) => {
+                _mm256_or_si256(
+                    _mm256_srli_epi32::<$n>($x),
+                    _mm256_slli_epi32::<{ 32 - $n }>($x),
+                )
+            };
+        }
+        let [a, b, c, d, e, f, g, h] = *state;
+        let k = super::super::K[i];
         let slot = i % 16;
         if i >= 16 {
             let x = w[(i + 1) % 16];
@@ -88,7 +131,7 @@ fn compress8(initial: [__m256i; 8], blocks: &[[u8; 64]; 8]) -> [__m256i; 8] {
             _mm256_and_si256(c, _mm256_xor_si256(a, b)),
         );
         let t2 = _mm256_add_epi32(sum0, maj);
-        [a, b, c, d, e, f, g, h] = [
+        *state = [
             _mm256_add_epi32(t1, t2),
             a,
             b,
@@ -99,6 +142,4 @@ fn compress8(initial: [__m256i; 8], blocks: &[[u8; 64]; 8]) -> [__m256i; 8] {
             g,
         ];
     }
-    let rounds = [a, b, c, d, e, f, g, h];
-    core::array::from_fn(|i| _mm256_add_epi32(initial[i], rounds[i]))
 }

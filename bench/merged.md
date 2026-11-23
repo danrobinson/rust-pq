@@ -17,4 +17,9 @@ Each CPU ran a warm-up pair and six timed pairs of the public APIs, alternating 
 
 The AVX-512 kernels now expose a round-and-schedule step to the proof extractor while preserving their unrolled calls. The median paired speedups across the 36 SHA-2 workloads were 0.9994× on the older Xeon, 0.9999× on EPYC and 0.9986× on the newer Xeon. Individual workload medians ranged from 0.9812× to 1.0278×. The same three platforms passed the compression differential suite after the refactor. The merged platform builds also passed the full core and adapter suites on all five EC2 CPUs. [Raw measurements](results/merged/wide-refactor.csv.gz) · [108 workload results](results/merged/wide-refactor-summary.csv) · [Test counts](results/merged/validation.csv)
 
-Run `python3 bench/summarize-merged.py` from the checkout to regenerate both summary tables from the raw samples.
+Run `python3 bench/summarize-merged.py` from the checkout to regenerate the summary tables from the raw samples.
+
+
+## Eight-lane AVX2 fallback
+
+The older Xeon also ran both AVX2 implementations with AVX-512 chain and tree dispatch disabled in both benchmark executables. It has no SHA-NI. Across the same 36 SHA-2 workloads, the median paired speedup was 1.0000×, with individual medians from 0.9864× to 1.0125×. The candidate passed 14 kernel and compression tests in that configuration. Its Lean theorem includes loading the eight 64-byte blocks, transposing their words, computing the full schedule and 64 rounds, and adding back the initial state in every lane. [Raw measurements](results/merged/avx2.csv.gz) · [36 workload results](results/merged/avx2-summary.csv)

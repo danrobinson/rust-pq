@@ -33,3 +33,4 @@ def summarize(name, baseline, candidate, hosts):
 if __name__ == "__main__":
     summarize("shake", "before", "current", ("apple", "c5", "c8i", "c8a", "c6g", "c8g"))
     summarize("wide-refactor", "current", "refined", ("c5", "c8i", "c8a"))
+    summarize("avx2", "current", "refined", ("c5",))
