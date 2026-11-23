@@ -66,4 +66,26 @@ theorem feedWord (a : State) (lane : Nat) (input : Bytes) (eight : input.length=
       · simp (disch := simp_all) [Array.getElem_setIfInBounds,eq,Ne.symm eq]
   · simp only [if_neg last]
     simpa [eight] using feedWithin a lane 0 input valid (by omega) (by omega)
+theorem ofFnAt (f : Fin 25 → Lane) (i : Nat) (hi : i < 25) :
+    (Array.ofFn f)[i]! = f ⟨i,hi⟩ := by
+  rw [getElem!_pos _ i (by simpa using hi)]
+  exact Array.getElem_ofFn ..
+
+theorem roundAt (a : State) (rc : Lane) (i : Nat) (hi : i < 25) :
+    (round a rc)[i]! =
+      let f := fun j => rhoPi a j
+      let row := i/5*5
+      let z := f i ^^^ ((~~~f (row+(i+1)%5)) &&& f (row+(i+2)%5))
+      if i = 0 then z ^^^ rc else z := by
+  simp only [round, Id.run, pure]
+  rw [ofFnAt _ _ hi]
+  simp only [chi]
+  simp (disch := omega) only [ofFnAt]
+
+theorem ext25 (x y : State) (hx : x.size = 25) (hy : y.size = 25)
+    (cell : ∀ i, i < 25 → x[i]! = y[i]!) : x = y := by
+  apply Array.ext (hx.trans hy.symm)
+  intro i hi hj
+  simpa only [getElem!_pos x i hi, getElem!_pos y i hj] using cell i (hx ▸ hi)
+
 end Spec.Keccak

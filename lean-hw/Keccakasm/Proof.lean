@@ -1,4 +1,5 @@
 import Keccakasm.Code
+import Spec.ShakeWords
 import Mathlib.Tactic.IntervalCases
 open Spec.Keccak
 namespace slhdsa.KeccakAsm
@@ -14,22 +15,6 @@ private theorem chiInstruction (a b c : Lane) : X86.ternary 210 a b c = a ^^^ ((
 
 set_option maxRecDepth 65536
 set_option maxHeartbeats 800000
-private theorem ofFnAt (f : Fin 25 → Lane) (i : Nat) (hi : i < 25) :
-    (Array.ofFn f)[i]! = f ⟨i,hi⟩ := by
-  rw [getElem!_pos _ i (by simpa using hi)]
-  exact Array.getElem_ofFn ..
-
-private theorem roundAt (a : State) (rc : Lane) (i : Nat) (hi : i < 25) :
-    (round a rc)[i]! =
-      let f := fun j => rhoPi a j
-      let row := i/5*5
-      let z := f i ^^^ ((~~~f (row+(i+1)%5)) &&& f (row+(i+2)%5))
-      if i = 0 then z ^^^ rc else z := by
-  simp only [round, Id.run, pure]
-  rw [ofFnAt _ _ hi]
-  simp only [chi]
-  simp (disch := omega) only [ofFnAt]
-
 private theorem rotzero (x : Lane) : x.rotateLeft 0 = x := by
   simp [BitVec.rotateLeft_def, BitVec.ushiftRight_eq_zero]
 
@@ -182,12 +167,6 @@ private theorem cell24 (a : State) (rc : Lane) : word24 a rc = (round a rc)[24]!
   change word24 a rc = ((a[21]! ^^^ ((a[0]! ^^^ a[5]! ^^^ a[10]! ^^^ a[15]! ^^^ a[20]!) ^^^ (a[2]! ^^^ a[7]! ^^^ a[12]! ^^^ a[17]! ^^^ a[22]!).rotateLeft 1)).rotateLeft 2 ^^^ ((~~~(a[2]! ^^^ ((a[1]! ^^^ a[6]! ^^^ a[11]! ^^^ a[16]! ^^^ a[21]!) ^^^ (a[3]! ^^^ a[8]! ^^^ a[13]! ^^^ a[18]! ^^^ a[23]!).rotateLeft 1)).rotateLeft 62) &&& (a[8]! ^^^ ((a[2]! ^^^ a[7]! ^^^ a[12]! ^^^ a[17]! ^^^ a[22]!) ^^^ (a[4]! ^^^ a[9]! ^^^ a[14]! ^^^ a[19]! ^^^ a[24]!).rotateLeft 1)).rotateLeft 55))
   simp only [word24, chiInstruction, X86.xor3]
   ac_rfl
-
-private theorem ext25 (x y : State) (hx : x.size = 25) (hy : y.size = 25)
-    (cell : ∀ i, i < 25 → x[i]! = y[i]!) : x = y := by
-  apply Array.ext (hx.trans hy.symm)
-  intro i hi hj
-  simpa only [getElem!_pos x i hi, getElem!_pos y i hj] using cell i (hx ▸ hi)
 
 theorem round_fips (a : State) (rc : Lane) : roundCode a rc = round a rc := by
   apply ext25

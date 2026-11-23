@@ -170,3 +170,6 @@ name = "Segmentedapi"
 
 [[lean_lib]]
 name = "Keccakasm"
+
+[[lean_lib]]
+name = "Koriented"

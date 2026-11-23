@@ -6,6 +6,18 @@ root=$PWD
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
+same_translation() {
+  # Source positions move when an unrelated function changes size. Compare
+  # every declaration, type, term, source path and macro origin.
+  for side in 1 2; do
+    case $side in 1) input=$1 ;; 2) input=$2 ;; esac
+    sed -E "/^[[:space:]]+Source: '/s/lines [0-9]+:[0-9]+-[0-9]+:[0-9]+/lines <span>/g" "$input" > "$scratch/translation-$side"
+  done
+  cmp "$scratch/translation-1" "$scratch/translation-2" || {
+    echo "Translation changed: $1 versus $2" >&2
+    return 1
+  }
+}
 extract() {
   package=$1
   namespace=$2
@@ -20,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -31,15 +43,15 @@ extract() {
   if [ "$package" = Armstream ] && [ "$arch" = aarch64-apple-darwin ]; then
     # Apple uses a separate SHA-512 single-block implementation. All definitions
     # reachable from both streaming entry points must match the Linux proof.
-    cmp "$scratch/$package/Types.lean" "$proofdir/$package/Types.lean"
+    same_translation "$scratch/$package/Types.lean" "$proofdir/$package/Types.lean"
     sed '/^\/-- \[slhdsa::sha512::compress\]:$/,/^$/d' "$proofdir/$package/Funs.lean" > "$scratch/shared-arm-stream"
-    cmp "$scratch/$package/Funs.lean" "$scratch/shared-arm-stream"
+    same_translation "$scratch/$package/Funs.lean" "$scratch/shared-arm-stream"
   else
     for name in Types Funs; do
-      cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
+      same_translation "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
     done
   fi
-  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ] || [ "$package" = Keccakscalar ]; then
+  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ] || [ "$package" = Keccakscalar ] || [ "$package" = Koriented ]; then
     # All operations in this extraction are implemented by Aeneas.
     for template in "$scratch/$package/"*External_Template.lean; do
       test ! -e "$template"
@@ -1027,3 +1039,11 @@ python3 "$root/scripts/check-arm-api-proof.py"
 python3 "$root/scripts/check-platform-encoding.py"
 python3 "$root/scripts/check-portable-shake.py"
 sh "$root/scripts/check-keccak-assembly.sh"
+platform_arch=aarch64-unknown-linux-gnu
+extract Koriented KorientedRust koriented --start-from 'crate::shake256::oriented::permute'
+(cd lean-hw && lake build Koriented.Fips && lake env lean --stdin > "$scratch/oriented-axioms" <<'LEAN'
+import Koriented.Fips
+#print axioms slhdsa.Oriented.round_fips
+LEAN
+)
+grep -Fx "'slhdsa.Oriented.round_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/oriented-axioms"
