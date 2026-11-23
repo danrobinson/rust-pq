@@ -259,10 +259,6 @@ pub(super) fn fors_leaves<const N: usize>(
         );
     }
     let lanes = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-    let stride = _mm512_mullo_epi32(lanes, _mm512_set1_epi32((N / 4) as i32));
-    let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
-        0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
-    ));
     let half = _mm512_set1_epi32(0xffff);
     for (j, batch) in out.chunks_mut(16).enumerate() {
         let mut w = base;
@@ -284,18 +280,7 @@ pub(super) fn fors_leaves<const N: usize>(
             _mm512_and_si512(w[5 + N / 4], half),
         );
         let leaf = compress(state, prefix_f, w);
-        let mask = u16::MAX >> (16 - batch.len());
-        for k in 0..N / 4 {
-            // SAFETY: each active lane writes one word within a distinct N-byte output.
-            unsafe {
-                _mm512_mask_i32scatter_epi32::<4>(
-                    batch.as_mut_ptr().cast::<u8>().add(4 * k).cast(),
-                    mask,
-                    stride,
-                    _mm512_shuffle_epi8(leaf[k], swap),
-                );
-            }
-        }
+        write_words(&leaf, batch);
     }
 }
 
@@ -321,7 +306,6 @@ pub(super) fn fors_parents<const N: usize>(
     }
     let lanes = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
     let children = _mm512_slli_epi32::<3>(lanes);
-    let parents = _mm512_slli_epi32::<2>(lanes);
     let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
         0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
     ));
@@ -343,17 +327,7 @@ pub(super) fn fors_parents<const N: usize>(
         }
         w[13] = _mm512_or_si512(high, w[13]);
         let output = compress(state, prefix, w);
-        for k in 0..4 {
-            // SAFETY: each active lane stores one word in its own 16-byte parent.
-            unsafe {
-                _mm512_mask_i32scatter_epi32::<4>(
-                    values.as_mut_ptr().cast::<u8>().add(j * 16 + 4 * k).cast(),
-                    mask,
-                    parents,
-                    _mm512_shuffle_epi8(output[k], swap),
-                );
-            }
-        }
+        write_words(&output, &mut values[j..count.min(j + 16)]);
     }
 }
 
@@ -388,16 +362,7 @@ pub(super) fn key_digests<const N: usize, const L: usize>(
         }
         state = compress(state, prefix, words);
     }
-    for i in 0..4 {
-        unsafe {
-            _mm512_mask_i32scatter_epi32::<4>(
-                out.as_mut_ptr().cast::<u8>().add(i * 4).cast(),
-                mask,
-                _mm512_slli_epi32::<2>(lanes),
-                _mm512_shuffle_epi8(state[i], swap),
-            )
-        };
-    }
+    write_words(&state, out);
 }
 
 #[target_feature(enable = "avx512f,avx512bw")]
@@ -608,4 +573,39 @@ pub(super) fn recover<const N: usize>(
             active &= !finished;
         }
     }
+}
+
+#[target_feature(enable = "avx512f,avx512bw")]
+fn write_words<const N: usize>(state: &[__m512i; 8], out: &mut [[u8; N]]) {
+    let swap = _mm512_broadcast_i32x4(_mm_set_epi32(
+        0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203,
+    ));
+    for offset in (0..N).step_by(16) {
+        let [a, b, c, d] =
+            core::array::from_fn(|i| _mm512_shuffle_epi8(state[offset / 4 + i], swap));
+        let rows = transpose_rows(a, b, c, d);
+        let width = (N - offset).min(16);
+        for (j, row) in out.iter_mut().enumerate() {
+            row[offset..offset + width].copy_from_slice(&rows[j % 4][j / 4][..width]);
+        }
+    }
+}
+
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw")]
+fn transpose_rows(a: __m512i, b: __m512i, c: __m512i, d: __m512i) -> [[[u8; 16]; 4]; 4] {
+    let ab0 = _mm512_unpacklo_epi32(a, b);
+    let ab1 = _mm512_unpackhi_epi32(a, b);
+    let cd0 = _mm512_unpacklo_epi32(c, d);
+    let cd1 = _mm512_unpackhi_epi32(c, d);
+    let groups = [
+        _mm512_unpacklo_epi64(ab0, cd0),
+        _mm512_unpackhi_epi64(ab0, cd0),
+        _mm512_unpacklo_epi64(ab1, cd1),
+        _mm512_unpackhi_epi64(ab1, cd1),
+    ];
+    // Each group holds four 16-byte rows. The first group holds lanes
+    // 0, 4, 8 and 12, the second lanes 1, 5, 9 and 13, and so on.
+    // SAFETY: both layouts contain the same 256 bytes with no padding.
+    unsafe { core::mem::transmute(groups) }
 }

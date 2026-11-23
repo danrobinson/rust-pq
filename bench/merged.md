@@ -44,3 +44,15 @@ The selected version retains the masked AVX-512 gather for input and writes dige
 | Xeon 6975P-C | 1.0012× | 1.0013× | 1.0004× |
 
 Each cell is the median of the paired workload speedups, over 16 kernel shapes or 36 public API workloads. The input gather earned its keep on EPYC, where it was faster in all 16 kernel shapes. The slice writes make output updates visible to the Rust proof extractor. [Public API results](results/merged/group-stores-summary.csv) · [All public samples](results/merged/group-stores.csv.gz) · [Kernel samples, ordered by CPU, build, round, digest size, active lanes and nanoseconds](results/merged/group-kernels.csv.gz) · [Three kernel sources, test harness and run script](results/merged/group-experiment.tar.gz)
+
+## AVX-512 SHA-256 output stores
+
+The FORS leaf, FORS parent and WOTS public-key kernels now transpose four digest words at a time, then write consecutive bytes to each output. The experiment rotated three builds on the same pinned vCPU for one warm-up and six measured rounds. The table reports the median paired speedup across workloads. The last two columns use SHA2-128s signing with a 32-byte message and the previously measured mixed raw SHA reference on the same CPU model.
+
+| CPU | Kernel speedup | Public API speedup | Signing time | Signing time / raw reference |
+|---|---:|---:|---:|---:|
+| Xeon 8124M | 1.0393× | 1.0002× | 34.51 ms | 0.973× |
+| EPYC 9R45 | 1.0635× | 1.0025× | 21.65 ms | 0.920× |
+| Xeon 6975P-C | 1.0283× | 0.9994× | 28.33 ms | 0.930× |
+
+The transposed stores improved all 94 recorded kernel workloads on each CPU. Scalar per-word stores slowed full-width FORS batches on both Xeons. Each build passed 15 tests per CPU, including a differential against portable SHA-256 for truncated leaves, overlapping parent batches, partial batches, untouched outputs and ten-block WOTS digests. All 95 kernel shapes passed the differential. The libtest output prefix obscured the first timing line for 16-byte leaves with one active lane, so that shape is excluded from the timing summaries. The raw reference charges general SHA compression for each required block. The library reuses common round prefixes across lanes. [Public API results](results/merged/transpose-stores-summary.csv) · [Public samples](results/merged/transpose-stores.csv.gz) · [Kernel samples](results/merged/transpose-kernels.csv.gz) · [Kernels and reproduction harness](results/merged/transpose-experiment.tar.gz) · [Raw reference methodology](headroom.md)
