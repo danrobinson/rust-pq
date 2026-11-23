@@ -6,3 +6,6 @@ import MReduction.HeadlineOld
 import MReduction.Resources
 import MReduction.Audit
 import MReduction.Check128s
+import MReduction.Shake
+import MReduction.ShakeIdeal
+import MReduction.ShakeOracle

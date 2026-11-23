@@ -41,11 +41,13 @@ def wireCodec (p : SLHDSA.Params) : CoreWireCodec p (primitives p).core where
   y := WireCodec.bytes p.n
   y_toBytes := fun _ => rfl
 
+theorem byteLaws (p : SLHDSA.Params) : (primitives p).core.ByteLaws := ⟨fun _ _ h => h⟩
+
 variable (S : Sha2Set)
 
 /-- Byte laws, injective full addresses, and canonical address bounds. -/
 theorem structural : Reduction.Structural S.vp (prims S) :=
-  ⟨⟨fun _ _ h => h⟩, Concrete.keyInjective_shakePrimitives _,
+  ⟨byteLaws _, Concrete.keyInjective_shakePrimitives _,
    (SLHDSA.Security.fipsApprovedAddressBounds S.fips).toCanonicalAddressBounds⟩
 
 theorem F_eq (pk : S.Node) (a : Adrs) (_ : Dom a) (y : S.Node) :

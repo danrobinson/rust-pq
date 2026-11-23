@@ -1,8 +1,6 @@
 import MLink.ShakePrimitives
 
 namespace ShakeSecurity
-set_option maxHeartbeats 1600000
-
 open OracleComp OracleSpec SLHDSA SLHDSA.Security ENNReal MLink Reduction TweakableHash
 
 instance (p : Params) : SampleableType (primitives p).PkSeed :=

@@ -12,19 +12,19 @@ private def substitute (names : Renaming) (e : Expr) : Expr :=
     | .const n us => (names.get? n).map (fun target => .const target us)
     | _ => none
 
-private partial def rebuild (destination : Name) (source : Name) (names : IO.Ref Renaming) :
+private partial def rebuild (modules : List Name) (destination : Name) (source : Name) (names : IO.Ref Renaming) :
     CoreM Name := do
   if let some target := (← names.get).get? source then return target
   let env ← getEnv
   -- VCVio provides the same parameterized scheme and reduction for both families.
   let some idx := env.getModuleIdxFor? source | return source
   let origin := env.header.moduleNames[idx]!
-  unless [`MLink, `ME2E, `MReduction].any (·.isPrefixOf origin) do return source
+  unless modules.any (·.isPrefixOf origin) do return source
   let info ← getConstInfo source
   let some body := info.value? true | return source
   let mut changed := false
   for n in info.type.getUsedConstants ++ body.getUsedConstants do
-    if (← rebuild destination n names) != n then changed := true
+    if (← rebuild modules destination n names) != n then changed := true
   unless changed do
     names.modify (·.insert source source)
     return source
@@ -37,15 +37,18 @@ private partial def rebuild (destination : Name) (source : Name) (names : IO.Ref
     | .thmInfo t => pure <| .thmDecl {t with name := target, type, value, all := [target]}
     | _ => throwError "unsupported declaration in proof replay: {source}"
   try addDecl decl catch ex => throwError "{source}: {ex.toMessageData}"
+  if info.isDefinition then enableRealizationsForConst target
+
   names.modify (·.insert source target)
   return target
 
 /-- Rebuild all declarations needed by the specified roots with the specified
 substitutions. Unaffected roots receive a checked alias under the new namespace. -/
-def replay (destination : Name) (replacements : List (Name × Name)) (roots : Array Name) : CoreM Unit := do
+def replay (destination : Name) (replacements : List (Name × Name)) (roots : Array Name)
+    (modules : List Name := [`MLink, `ME2E, `MReduction]) : CoreM Unit := do
   let names ← IO.mkRef (Std.HashMap.ofList replacements)
   for root in roots do
-    let target ← rebuild destination root names
+    let target ← rebuild modules destination root names
     if target == root then
       let info ← getConstInfo root
       let value := mkConst root (info.levelParams.map Level.param)
