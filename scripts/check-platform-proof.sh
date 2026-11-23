@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -445,4 +445,54 @@ LEAN
 )
 for name in write_finished_spec write_index_spec write_chunk_spec; do
   grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwrite-axioms.log"
+done
+
+extract Chainwide ChainWideRust chainwide --start-from 'crate::sha256::x86::avx512::chains' \
+  --opaque 'crate::sha256::x86::chains' \
+  --opaque 'crate::sha256::x86::avx512::compression_step' \
+  --opaque 'crate::sha256::x86::avx512::round' \
+  --opaque 'crate::sha256::x86::avx512::write_finished' \
+  --opaque 'crate::sha256::x86::avx512::chain_address' \
+  --opaque 'crate::sha256::x86::avx512::chain_value' \
+  --opaque 'crate::sha256::x86::avx512::chain_done' \
+  --opaque 'crate::sha256::x86::sha_ni::get'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.__m512i.Insts.CoreCloneClone.clone
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_add_epi32
+core.core_arch.x86.avx512f._mm512_and_si512
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_cmpeq_epi32_mask
+core.core_arch.x86.avx512f._mm512_cmplt_epu32_mask
+core.core_arch.x86.avx512f._mm512_mask_i32gather_epi32
+core.core_arch.x86.avx512f._mm512_maskz_loadu_epi32
+core.core_arch.x86.avx512f._mm512_set1_epi32
+core.core_arch.x86.avx512f._mm512_set_epi32
+core.core_arch.x86.avx512f._mm512_setzero_si512
+core.core_arch.x86.sse2._mm_set_epi32
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.x86.avx512.chain_address
+sha256.x86.avx512.chain_done
+sha256.x86.avx512.chain_value
+sha256.x86.avx512.compression_step
+sha256.x86.avx512.round
+sha256.x86.avx512.write_finished
+sha256.x86.chains
+sha256.x86.sha_ni.get
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainwide.Prefix && lake env lean --stdin > "$scratch/chainwide-axioms.log" <<'LEAN'
+import Chainwide.Prefix
+#print axioms slhdsa.X86.Chain.input_words
+#print axioms slhdsa.X86.Chain.broadcast_spec
+#print axioms slhdsa.X86.Chain.prefix_spec
+LEAN
+)
+for name in input_words broadcast_spec prefix_spec; do
+  grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwide-axioms.log"
 done

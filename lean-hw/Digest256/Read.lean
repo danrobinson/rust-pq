@@ -36,7 +36,7 @@ theorem flat_word {L : Usize} (rows : List (Array U8 L)) (j off : Nat) (hj : j <
   simp (disch := scalar_tac) only [← getElem!_pos, Nat.add_assoc, flat_byte]
 
 theorem gather_spec {L : Usize} (rows : Slice (Array U8 L)) (pos : Nat)
-    (mask : U16) (v : __m512i) (hm : Mask mask rows.length) (hs : Stride v L.val) (hp : pos+4 ≤ L.val) :
+    (mask : U16) (v : __m512i) (hm : ∀ j, active mask j = true → j.val < rows.length) (hs : Stride v L.val) (hp : pos+4 ≤ L.val) :
     DigestRust.core.core_arch.x86.avx512f._mm512_mask_i32gather_epi32 4#i32 (fun _ => 0) mask v
       ⟨flat rows.val,pos⟩ ⦃ out => ∀ j,
         out j = if active mask j then little (flat rows.val) (j.val*L.val+pos) else 0 ⦄ := by
@@ -47,7 +47,7 @@ theorem gather_spec {L : Usize} (rows : Slice (Array U8 L)) (pos : Nat)
     omega
   have range (j : Fin 16) (h : mask.bv.getLsbD j.val = true) :
       0 ≤ address p 4#i32 v j ∧ address p 4#i32 v j + 4 ≤ (p.allocation.length : Int) := by
-    have bound := (hm j).1 h
+    have bound := hm j h
     have hbound : (j.val+1)*L.val ≤ rows.val.length*L.val := Nat.mul_le_mul_right _ bound
     rw [Nat.add_mul, Nat.one_mul] at hbound
     rw [ea]
@@ -86,7 +86,7 @@ theorem read_spec (N L : Usize) (rows : Slice (Array U8 L)) (mask : U16) (v : __
   simp only [GatherRust.core.ptr.const_ptr.RawPtrConstT.add, Nat.zero_add, hb, ↓reduceIte,
     GatherRust.core.ptr.const_ptr.RawPtrConstT.cast, bind_ok]
   rw [← show flat rows.val = rows.val.flatMap (·.val) from rfl]
-  apply WP.spec_bind (gather_spec rows at'.val mask v hm hs hp)
+  apply WP.spec_bind (gather_spec rows at'.val mask v (fun j => (hm j).1) hs hp)
   intro ws hw
   step with Store.shuffle ws as ⟨r,hr⟩
   refine ⟨?_,rfl⟩

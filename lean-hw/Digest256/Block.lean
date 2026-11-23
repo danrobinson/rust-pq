@@ -36,7 +36,7 @@ private theorem constants : ∀ i : Fin 64, (DigestRust.sha256.K.val[i.val]!).bv
   decide
 
 theorem first_four (iv : Array Reg 8#usize) (w : Array Reg 16#usize) (blocks : Fin 16 → Spec.Bytes)
-    (hw : ∀ k, k < 16 → ∀ j, w.val[k]! j = Spec.SHA256.word (blocks j) (4*k)) :
+    (hw : ∀ k, k < 4 → ∀ j, w.val[k]! j = Spec.SHA256.word (blocks j) (4*k)) :
     key_digests_loop0_loop0 ⟨0#usize,4#usize⟩ w iv ⦃ s =>
       Trace s (fun j => Spec.SHA256.schedule (blocks j)) (laneState iv) 4 ⦄ := by
   unfold key_digests_loop0_loop0

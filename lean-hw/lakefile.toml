@@ -92,3 +92,6 @@ name = "Chainvectors"
 
 [[lean_lib]]
 name = "Chainwrite"
+
+[[lean_lib]]
+name = "Chainwide"

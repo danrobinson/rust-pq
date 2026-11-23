@@ -31,7 +31,7 @@ theorem hash_spec (N L : Usize) (rows : Slice (Array U8 L)) (mask : U16) (stride
         (by rw [hstep]; decide) (by rw [he,hstep]; exact hoff) as ⟨o,it',ho,hstart,hend,hstride⟩
       simp only [ho]
       step with words_spec N L rows mask stride it.iter.start hm hs hn hoff as ⟨w,hw⟩
-      step with first_four state w _ hw as ⟨pr,hpr⟩
+      step with first_four state w _ (fun k hk => hw k (by omega)) as ⟨pr,hpr⟩
       step with compress_block_spec state pr w _ hpr hw as ⟨r,hr⟩
       have hinc : it'.iter.start.val = it.iter.start.val+64 := by rw [hstart,hstep]; rfl
       refine ⟨hend.trans he,hstride.trans hstep,by omega,by omega,?_,by omega⟩
