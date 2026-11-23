@@ -29,7 +29,7 @@ def main():
         [
             "lake",
             "build",
-            "Facade.EndToEnd",
+            "Facade.PublicSession",
             "Spec.ArmRootComparison",
             "Spec.AppleKeygenWitness",
             "Spec.AppleVerifyLengthWitness",
