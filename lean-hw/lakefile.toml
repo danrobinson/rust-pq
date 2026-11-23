@@ -107,3 +107,6 @@ name = "Wots"
 
 [[lean_lib]]
 name = "Wotsx86"
+
+[[lean_lib]]
+name = "Streamround"

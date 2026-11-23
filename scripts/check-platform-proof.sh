@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -31,7 +31,7 @@ extract() {
   for name in Types Funs; do
     cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
   done
-  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ]; then
+  if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ]; then
     # All operations in this extraction are implemented by Aeneas.
     for template in "$scratch/$package/"*External_Template.lean; do
       test ! -e "$template"
@@ -688,4 +688,16 @@ LEAN
 )
 for name in endpoints_fips recover_fips no_cpu; do
   grep -Fx "'slhdsa.X86.Wots.Checked.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-wrapper-axioms"
+done
+
+extract Streamround StreamRoundRust streamround --start-from 'crate::sha256::stream::round' \
+  --start-from 'crate::sha512::stream::round'
+(cd lean-hw && lake build Streamround.Proof && lake env lean --stdin > "$scratch/stream-round-axioms" <<'LEAN'
+import Streamround.Proof
+#print axioms slhdsa.X86.Stream.round256_spec
+#print axioms slhdsa.X86.Stream.round512_spec
+LEAN
+)
+for name in round256_spec round512_spec; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-round-axioms"
 done
