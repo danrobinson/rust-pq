@@ -257,3 +257,6 @@ name = "Kgridbulk"
 
 [[lean_lib]]
 name = "Rcsoft"
+
+[[lean_lib]]
+name = "Rcsoft256"
