@@ -3,7 +3,7 @@ import Spec.ArmSignCoordinates
 namespace Spec.ArmInternalSigner
 open ArmKeygen
 inductive Op where
-  | absorb | finish | hmsg | digits | fors | recover | ht | reserve | copy | free
+  | absorb | finish | prf | seed | hmsg | digits | fors | recover | ht | reserve | copy | free
 deriving DecidableEq, Repr
 structure Image where
   cfg : Config
@@ -32,6 +32,11 @@ structure Control where
   coord : Bool := false
 
 def schedule := [Op.absorb,.absorb,.absorb,.finish,.hmsg,.digits,.fors,.digits,.recover,.ht]
+def sha2Schedule := [Op.prf,.hmsg,.seed,.fors,.recover,.ht]
+def seedData (p : Params) :=
+  if p.n == 16 then List.replicate 16 0 ++ ArmKeygen.block 32 15 ++ ArmKeygen.block p.n 2
+  else ArmKeygen.block (96+p.n) 15
+
 def rand := 0x600000
 def msg := 0x700000
 def msgSize := unknown 220 2 -- arbitrary slice length, passed through both consumers
@@ -83,12 +88,26 @@ def call (im : Image) (profile : Nat) (c : Control) (op : Op) : Option Control :
   let s := c.machine
   let ret ← arg s 30
   let a := arg s
+  let sha2 := p.family == .sha2
   let old := c.crypto.length
   let mut c := c
   if !([Op.reserve,.copy,.free].contains op) then
-    guard (schedule[old]? == some op)
+    guard ((if sha2 then sha2Schedule else schedule)[old]? == some op)
     c := {c with crypto := c.crypto ++ [op]}
   let s ← match op with
+    | .prf => do
+      let dst ← a 8
+      guard (stackOK s dst n && inputHas p s (← a 0) (ArmKeygen.block n 1) &&
+        inputHas p s (← a 1) (ArmKeygen.block n 4) && (← a 2) == msg && g s 3 == msgSize)
+      pure {s with m := write s.m dst (randomizer n)}
+    | .seed => do
+      let .external entry := im.cfg.seed | none
+      let dst ← a 8
+      let src ← a 0
+      let len := 96+n
+      guard (s.pc == entry && !s.seeded && c.coord && stackOK s dst len &&
+        disjoint dst len src n && inputHas p s src (ArmKeygen.block n 2))
+      pure {s with m := write s.m dst (seedData p), seeded := true}
     | .absorb => do
       let dst ← a 0
       guard (stackOK s dst 208 && has s dst (if old == 0 then List.replicate 52 0 else spongeState old))
@@ -112,23 +131,30 @@ def call (im : Image) (profile : Nat) (c : Control) (op : Op) : Option Control :
       c ← newVec c 2 p.k 4
       pure c.machine
     | .fors | .recover => do
-      let ds ← heap c 2
-      guard ((← a 0) == im.cfg.param && (← a 1) == ds.ptr && (← a 2) == p.k)
       let signing := op == .fors
+      guard ((← a 0) == im.cfg.param)
       let ad ← a (if signing then 5 else 6)
       guard (stackOK s ad 28 && has s ad (tree ++ [0,3] ++ [leaf.head!,0,0]))
+      if sha2 then
+        let dg ← heap c digestID
+        let r := if signing then 1 else 3
+        guard (s.seeded && (← a r) == dg.ptr && (← a (r+1)) == p.mdBytes)
+      else
+        let ds ← heap c 2
+        guard ((← a 1) == ds.ptr && (← a 2) == p.k)
       if signing then
-        guard (inputHas p s (← a 3) (ArmKeygen.block n 0) && inputHas p s (← a 4) (ArmKeygen.block n 2))
+        guard (inputHas p s (← a 3) (ArmKeygen.block n 0) && inputHas p s (← a 4) (if sha2 then seedData p else ArmKeygen.block n 2))
         c ← newVec c forsID p.forsSigBytes 1
         pure c.machine
       else
         let f ← heap c forsID
         let dst ← a 8
-        guard ((← a 3) == f.ptr && (← a 4) == f.count && inputHas p s (← a 5) (ArmKeygen.block n 2) && stackOK s dst n)
+        let r := if sha2 then 1 else 3
+        guard ((← a r) == f.ptr && (← a (r+1)) == f.count && inputHas p s (← a 5) (if sha2 then seedData p else ArmKeygen.block n 2) && stackOK s dst n)
         pure {s with m := write s.m dst (root n)}
     | .ht => do
       guard ((← a 0) == im.cfg.param && inputHas p s (← a 1) (root n) && inputHas p s (← a 2) (ArmKeygen.block n 0) &&
-        inputHas p s (← a 3) (ArmKeygen.block n 2) && g s 4 == tree && g s 5 == leaf)
+        inputHas p s (← a 3) (if sha2 then seedData p else ArmKeygen.block n 2) && g s 4 == tree && g s 5 == leaf)
       c ← newVec c htID (htLen p) 1
       pure c.machine
     | .reserve => do
@@ -212,20 +238,41 @@ def coord (im : Image) (c : Control) : Option Control := do
   let s := c.machine
   let p := im.p
   let dg ← heap c digestID
-  guard (!c.coord && c.crypto == schedule.take 5 && (← arg s 19) == dg.ptr && (← arg s 2) == p.m &&
-    (← arg s 21) == im.cfg.param && (← arg s 25) == p.a && (← arg s 24) == p.k &&
-    (← arg s 8) == p.hp && (← arg s 9) == 7)
+  let sha2 := p.family == .sha2
+  let narrow := sha2 && p.n == 16
+  let wide := sha2 && !narrow
+  let seq := if sha2 then sha2Schedule.take 2 else schedule.take 5
+  guard (!c.coord && c.crypto == seq && (← arg s 19) == dg.ptr && (← arg s 2) == p.m &&
+    (← arg s (if wide then 22 else 21)) == im.cfg.param &&
+    (← arg s (if sha2 then 11 else 25)) == p.a && (← arg s (if sha2 then 9 else 24)) == p.k &&
+    (← arg s 8) == p.hp && (← arg s (if sha2 then 10 else 9)) == 7)
   let j := (s.pc-im.body)/4
-  guard (ArmSignCoordinates.result p (im.bodyWords.extract j (j+37)) == some (ArmSignCoordinates.expected p))
-  -- All live scalar outputs are recovered below. Forget the other modified
-  -- registers and flags, so no subsequent proof may silently rely on stale data.
+  let count := if wide then 39 else if narrow then 38 else 37
+  guard (ArmSignCoordinates.result p (im.bodyWords.extract j (j+count)) sha2 == some (ArmSignCoordinates.expected p))
+  -- All remaining modified registers are dead. Preserve just the certified outputs.
   let dead := [1,8,9,10,11,12,13,14]
   let s := dead.foldl (fun st r => put st r (unknown (1500+r) 2)) s
-  let s := put (put (put s 23 (num p.mdBytes)) 26 tree) 28 leaf
-  return {c with machine := {s with pc := s.pc+4*37, ls := none}, coord := true}
+  let tr := if narrow then 24 else if wide then 25 else 26
+  let lr := if narrow then 25 else if wide then 26 else 28
+  let mut s := put (put (put s 23 (num p.mdBytes)) tr tree) lr leaf
+  if narrow then s := put s 9 (num 0)
+  if wide then
+    let dst := addr (← arg s 29) (-112)
+    guard (stackOK s dst 16)
+    -- The coordinate interpreter checks the effective FP displacement, source
+    -- registers, relative ordering, and contents of the single paired store.
+    s := {s with m := write s.m dst (tree ++ num (3*2^32))}
+  return {c with machine := {s with pc := s.pc+4*count, ls := none}, coord := true}
 
 def tick (im : Image) (profile : Nat) (c : Control) : Option Control := do
   let pc := c.machine.pc
+  if let .inlined entry words iv rounds := im.cfg.seed then
+    if pc == entry then
+      guard (im.p.family == .sha2 && c.coord && c.crypto == sha2Schedule.take 2)
+      let j := (pc-im.body)/4
+      guard ((im.bodyWords.extract j (j+words.length)).toList == words)
+      let s ← inlineSeed im.cfg c.machine words iv rounds true
+      return {c with machine := s, crypto := c.crypto ++ [.seed]}
   if let some op := im.hooks.lookup pc then call im profile c op
   else if pc == im.coordinates then coord im c
   else

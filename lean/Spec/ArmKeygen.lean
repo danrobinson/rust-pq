@@ -208,22 +208,33 @@ def inlineWords : List Nat := [0x6e200800, 0x6f00e401, 0xad0107e0, 0xad0207e1, 0
   0x5100050f, 0xd27f01d0, 0x3cf07963, 0x924005ef, 0x3cef7965, 0x5e056064,
   0x3cae7964, 0x17ffffe7, 0x3dc3d141, 0x4ea18441, 0x3dc3cd22, 0x4ea28400]
 
+/-- The internal signer's inlined seed-compression region uses X9 as its counter
+    and SP+112 for its message schedule. Its digest vectors have the keygen layout. -/
+def signInlineWords : List Nat := [0x6e200800, 0x6f00e401, 0xad0387e0, 0xad0487e1, 0xf00002c8, 0x3dc3cd00,
+  0xf00002ca, 0x3dc3d141, 0x9101c3eb, 0xd000030c, 0x9111c18c, 0x1400000a,
+  0x3ce97983, 0x4ea28463, 0x4ea11c22, 0x5e034002, 0x5e035020, 0x4ea21c41,
+  0xaa0d03e9, 0xf10041bf, 0x54000240, 0x9240052e, 0x3cee7962, 0x9100052d,
+  0xf100313f, 0x54fffe62, 0x924005af, 0x3cef7963, 0x4ea21c44, 0x5e282864,
+  0x5100052f, 0xd27f01d0, 0x3cf07963, 0x924005ef, 0x3cef7965, 0x5e056064,
+  0x3cae7964, 0x17ffffe7, 0x3dc3d141, 0x4ea18441, 0x3dc3cd02, 0x4ea28400]
+
 /-- SHA2-128 internal block contract. Entry Q0 supplies the 16 seed bytes. The
     bounded block returns the two digest vectors in Q1,Q0, in state-word order.
     The context's zero prefix and final copy of the seed are executed outside this
     contract. The separate native SMT gate checks this block's complete round circuit.
     Its scratch register and stack effects are forgotten before continuing. -/
-def inlineSeed (c : Config) (s : State) (words iv rounds : List Nat) : Option State := do
-  guard (c.n == 16 && !s.seeded && !s.called && q s 0 == block c.n 2 && (← natVal (g s 8)) == 0)
+def inlineSeed (c : Config) (s : State) (words iv rounds : List Nat) (signer : Bool := false) : Option State := do
+  guard (c.n == 16 && !s.seeded && !s.called && q s 0 == block c.n 2 && (← natVal (g s (if signer then 9 else 8))) == 0)
   let h0 := Spec.SHA256.H0.map BitVec.toNat
   -- The load into Q0 reads EFGH. The adjacent literal loaded into Q1 holds ABCD.
-  guard (s.pc == 0x10007ad1c && words == inlineWords &&
+  guard (s.pc == (if signer then 0x10007a0e8 else 0x10007ad1c) &&
+    words == (if signer then signInlineWords else inlineWords) &&
     iv == (h0.drop 4 ++ h0.take 4) && rounds == Spec.SHA256.K.map BitVec.toNat)
-  let out := s.sp+32
+  let out := s.sp+(if signer then 112 else 32)
   guard (region out 64 s.sp (stack-s.sp))
   let regs := (List.range 9).foldl (fun t i => t.insert (8+i) (unknown (128+i) 2)) s.g
   let simd := (List.range 6).foldl (fun t i => t.insert i (unknown (160+i) 4)) s.q
-  let digest := block 32 4
+  let digest := block 32 (if signer then 15 else 4)
   let ring := (List.range 16).map (fun j => token 5 j)
   return {s with g := regs, q := (simd.insert 1 (digest.take 4)).insert 0 (digest.drop 4),
                  m := write s.m out ring, pc := s.pc+4*words.length, ls := none, seeded := true}

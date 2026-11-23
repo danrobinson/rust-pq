@@ -339,6 +339,7 @@ if __name__ == "__main__":
             "Spec.ArmSignReject",
             "Spec.ArmKeygen",
             "Spec.ArmInternalSigner",
+            "Spec.ArmSha2InternalSigner",
             "Spec.ArmVerifyLength",
             "Spec.ArmRateBlocks",
             "Spec.SlhDsa",
@@ -387,12 +388,21 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
-        for witness in (rejection_certificate, keygen_certificate, signer_certificate, verify_length_certificate):
+        for witness in (rejection_certificate, keygen_certificate, verify_length_certificate):
             subprocess.run(
                 ["lake", "env", "lean", "--stdin"],
                 cwd=ROOT / "lean",
                 env=env,
                 input=witness(image),
+                text=True,
+                check=True,
+            )
+        for family in ("shake", "sha2"):
+            subprocess.run(
+                ["lake", "env", "lean", "--stdin"],
+                cwd=ROOT / "lean",
+                env=env,
+                input=signer_certificate(image, snapshot, family=family),
                 text=True,
                 check=True,
             )
@@ -421,6 +431,7 @@ if __name__ == "__main__":
             bulk_mutation_tests(image)
     if args.self_test:
         print("Rejected seventeen mutations in the linked image")
+    print("Verified twelve internal SHAKE and SHA-2 signers across four allocator profiles and twelve mutations")
     print("Verified 24 SHAKE and SHA-2 keygen replays and seven negative keygen controls")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
     print(
