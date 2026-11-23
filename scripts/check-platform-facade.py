@@ -71,16 +71,39 @@ def check(target, scratch):
     for file in ("Types.lean", "Funs.lean"):
         if (facade / file).read_bytes() != (LEAN / "Facade" / file).read_bytes():
             raise ValueError(f"facade {file} differs on {target}")
-    cuts = ("crate::adapter::randomizer", "crate::slh::slh_sign", "crate::slh::with_context",
-            "crate::slh::slh_sign_internal")
-    adapter = extract("rust", target, "Adapter", scratch, ("crate::adapter::sign_into",), cuts)
-    text = common["body"](adapter / "Funs.lean").strip()
-    if text not in (LEAN / "Platformadapter/Program.lean").read_text():
-        raise ValueError(f"signing adapter differs on {target}")
+    roots = tuple("crate::adapter::" + name for name in ("append", "sign_into", "sign_internal_into",
+                  "keygen_seeds", "signing_key_from", "signature_from", "bytes_equal"))
+    cuts = tuple("crate::slh::" + name for name in ("slh_sign", "slh_sign_internal", "slh_keygen_internal", "with_context"))
+    adapter = extract("rust", target, "Adapter", scratch, roots, cuts)
+    shared = set(common["declarations"](common["body"](LEAN / "Slhdsa/Funs.lean")))
+    program = (LEAN / "Platformadapter/Program.lean").read_text()
+    for declaration in common["declarations"](common["body"](adapter / "Funs.lean")):
+        if declaration not in shared and declaration not in program:
+            raise ValueError(f"unmatched signing adapter function on {target}: {declaration}")
+    shared_types = set(common["declarations"](common["body"](LEAN / "Slhdsa/Types.lean")))
+    if set(common["declarations"](common["body"](adapter / "Types.lean"))) - shared_types:
+        raise ValueError(f"unmatched signing adapter type on {target}")
     external = set(common["declarations"]((adapter / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1]))
     reference = set(common["declarations"]((LEAN / "Platformadapter/Bindings.lean.txt").read_text()))
     if external != reference:
         raise ValueError(f"unexpected signing adapter inputs on {target}")
+    kat = extract("compat", target, "Kat", scratch,
+                  ("crate::signing_key::SigningKey::slh_keygen_internal", "crate::signing_key::SigningKey::slh_sign_internal",
+                   "crate::verifying_key::VerifyingKey::slh_verify_internal"), ("crate::multipart::join", "slhdsa::params::Params"))
+    shared_kat_types = set(common["declarations"](common["body"](LEAN / "Facade/Types.lean", "slh_dsa")))
+    if set(common["declarations"](common["body"](kat / "Types.lean", "slh_dsa"))) - shared_kat_types:
+        raise ValueError(f"unmatched KAT nominal types on {target}")
+    kat_source = (LEAN / "Platformadapter/KatProgram.lean").read_text()
+    for declaration in common["declarations"](common["body"](kat / "Funs.lean", "slh_dsa")):
+        if declaration not in kat_source:
+            raise ValueError(f"unmatched KAT wrapper implementation on {target}: {declaration}")
+    kat_inputs = set(common["declarations"]((kat / "FunsExternal_Template.lean").read_text().split("open slh_dsa", 1)[1]))
+    if kat_inputs != {
+        '@[rust_fun "core::bool::{bool}::then_some"]\naxiom core.bool.Bool.then_some {T : Type _} : Bool → T → Result (Option T)',
+        '@[rust_fun "signature::error::{signature::error::Error}::new"]\naxiom signature.error.Error.new : Result signature.error.Error',
+        'axiom multipart.join : Slice (Slice Std.U8) → Result (alloc.vec.Vec Std.U8)',
+    }:
+        raise ValueError(f"unexpected KAT wrapper dependencies on {target}: {kat_inputs}")
     check_exports(target, scratch)
     print(f"{target}: matched facade, signing adapter, and DER exporters", flush=True)
 
@@ -98,6 +121,8 @@ def audit_theorems(module, theorems):
 def audit(model, module):
     names = [f"sha2_{bits}{speed}_{op}" for bits in (128, 192, 256) for speed in ("s", "f")
              for op in ("sign", "sign_with_context", "verify", "verify_with_context", "randomized_sign", "new", "parsers", "der")]
+    names.extend(f"Kat.sha2_{bits}{speed}_{op}" for bits in (128, 192, 256) for speed in ("s", "f")
+                 for op in ("algorithms", "errors"))
     names.extend(("multipart_sign_eq", "multipart_verify_eq", "multipart_randomized_eq"))
     theorems = [f"{model}.FacadeContext.FacadeAdapter.slh_dsa.{name}" for name in names]
     audit_theorems(module, theorems)

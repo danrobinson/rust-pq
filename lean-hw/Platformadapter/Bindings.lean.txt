@@ -1,9 +1,3 @@
-/-- [slhdsa::adapter::randomizer]:
-    Source: 'src/adapter.rs', lines 37:0-44:1 -/
-axiom adapter.randomizer
-  (N : Std.Usize) :
-  Slice Std.U8 → Bool → Slice Std.U8 → Result (Array Std.U8 N)
-
 /-- [slhdsa::slh::slh_sign]:
     Source: 'src/slh.rs', lines 123:0-135:1
     Visibility: public -/
@@ -24,3 +18,11 @@ axiom slh.slh_sign_internal
   {N : Std.Usize} :
   params.Params → Slice Std.U8 → Slice Std.U8 → Array Std.U8 N → Result
     (alloc.vec.Vec Std.U8)
+
+/-- [slhdsa::slh::slh_keygen_internal]:
+    Source: 'src/slh.rs', lines 22:0-39:1
+    Visibility: public -/
+axiom slh.slh_keygen_internal
+  {N : Std.Usize} :
+  params.Params → Array Std.U8 N → Array Std.U8 N → Array Std.U8 N →
+    Slice Std.U8 → Slice Std.U8 → Result ((Slice Std.U8) × (Slice Std.U8))
