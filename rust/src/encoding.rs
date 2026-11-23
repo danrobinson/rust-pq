@@ -16,6 +16,7 @@ use crate::params::Params;
 
 /// A private key from its bytes: any `4n` bytes (the length of `sk`), and
 /// nothing else. `false`, with `sk` untouched, if the length is wrong.
+#[inline]
 pub fn secret_key_from(bytes: &[u8], sk: &mut [u8]) -> bool {
     if bytes.len() != sk.len() {
         return false;
@@ -26,6 +27,7 @@ pub fn secret_key_from(bytes: &[u8], sk: &mut [u8]) -> bool {
 
 /// A public key from its bytes: any `2n` bytes (the length of `pk`), and
 /// nothing else.
+#[inline]
 pub fn public_key_from(bytes: &[u8], pk: &mut [u8]) -> bool {
     if bytes.len() != pk.len() {
         return false;
