@@ -37,10 +37,12 @@ def check(package, width):
 
 
 if __name__ == "__main__":
-    common["run"](["lake", "build", "Shakebatch.Header", "Shakebatch.Read"], LEAN)
+    common["run"](["lake", "build", "Shakebatch.Pair"], LEAN)
     facade["audit_theorems"]("Shakebatch.Header", ["slhdsa.ShakeBatch." + name for name in
         ("word_spec", "seed_rows", "put_spec", "address_rows", "high_bit", "header_spec")])
     facade["audit_theorems"]("Shakebatch.Read", ["slhdsa.ShakeBatch.read_spec"])
+    facade["audit_theorems"]("Shakebatch.Pair", ["slhdsa.ShakeBatch.short_fips", "slhdsa.ShakeBatch.pair_fips",
+        "Spec.Keccak.padded_fips"])
     for target, width in WIDTHS.items():
         with tempfile.TemporaryDirectory() as folder:
             package = facade["extract"]("rust", target, "Header", Path(folder),
