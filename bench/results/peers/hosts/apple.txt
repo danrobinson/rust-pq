@@ -1,0 +1,27 @@
+ProductName:		macOS
+ProductVersion:		27.2
+BuildVersion:		26B118
+Apple M5 Ultra
+OpenSSL 4.1.0 23 Oct 2026 (Library: OpenSSL 4.1.0 23 Oct 2026)
+built on: Fri Oct 23 12:16:44 2026 UTC
+platform: darwin64-arm64-cc
+options:  bn(64,64)
+compiler: clang -fPIC -arch arm64 -O3 -Wall -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DNDEBUG
+OPENSSLDIR: "/opt/homebrew/etc/openssl@4"
+MODULESDIR: "/opt/homebrew/Cellar/openssl@4/4.1.0/lib/ossl-modules"
+Seeding source: os-specific
+CPUINFO: OPENSSL_armcap=0x987d
+peer-openssl:
+	/opt/homebrew/opt/openssl@4/lib/libcrypto.4.dylib (compatibility version 4.0.0, current version 4.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1359.40.3)
+rustc 1.100.0 (0ef1bc386 2026-11-09)
+binary: rustc
+commit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a
+commit-date: 2026-11-09
+host: aarch64-apple-darwin
+release: 1.100.0
+LLVM version: 23.1.5
+Apple clang version 21.0.0 (clang-2100.4.1.1)
+Target: arm64-apple-darwin27.2.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
