@@ -281,3 +281,29 @@ pub fn shake256(input: &[u8], output: &mut [u8]) {
     sponge.absorb(input);
     sponge.finish(output);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Sponge, RATE};
+    use sha3::digest::{ExtendableOutput, Update};
+
+    #[test]
+    fn streaming_absorption_matches_shake256_at_every_rate_offset() {
+        let message: [u8; 6 * RATE] = core::array::from_fn(|i| (i * 37 + 11) as u8);
+        for prefix in 0..RATE {
+            for tail in [2 * RATE - 1, 2 * RATE, 2 * RATE + 1, 4 * RATE + 7] {
+                let end = prefix + tail;
+                let mut expected = [0u8; RATE + 1];
+                sha3::Shake256::default()
+                    .chain(&message[..end])
+                    .finalize_xof_into(&mut expected);
+                let mut sponge = Sponge::new();
+                sponge.absorb(&message[..prefix]);
+                sponge.absorb(&message[prefix..end]);
+                let mut actual = [0u8; RATE + 1];
+                sponge.finish(&mut actual);
+                assert_eq!(actual, expected, "prefix {prefix}, tail {tail}");
+            }
+        }
+    }
+}
