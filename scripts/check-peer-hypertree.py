@@ -20,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--set", choices=[f"{f}_{s}" for f in ("sha2","shake") for s in SHAPES])
     parser.add_argument("--operation", choices=["hypertree","xmss"], default="hypertree")
-    parser.add_argument("--harness", choices=["sign","recover","verify_layers"])
+    parser.add_argument("--harness", choices=["sign","recover","node","verify_layers"])
     args = parser.parse_args()
     if args.harness and (args.harness == "verify_layers") != (args.operation == "hypertree"):
         parser.error("harness does not belong to the selected operation")
@@ -32,6 +32,17 @@ def main():
         common["unpack_peer"](peer, p, pins[peer["name"], peer["version"], peer["source"]])
         template_name = "peer-hypertree/verify.rs" if args.operation == "hypertree" else "peer-xmss/recover.rs"
         template = (ROOT/"scripts"/template_name).read_text()
+        if args.operation == "xmss":
+            # Rename only the entry so that recursive calls in the original
+            # body dispatch to the arbitrary children observed by the harness.
+            module = p / "src/xmss.rs"
+            source = module.read_text()
+            end = source.index("    fn xmss_sign(")
+            node = source[source.index("    fn xmss_node("):end]
+            if node.count("fn xmss_node(") != 1 or node.count("self.xmss_node(") != 2:
+                raise ValueError("unexpected XMSS recursion")
+            clone = node.replace("fn xmss_node(", "fn proof_one_node(", 1)
+            module.write_text(source[:end] + "    #[cfg(kani)]\n" + clone + source[end:])
         for shape, (n,d,hp) in SHAPES.items():
             for family, ty in (("sha2","Sha2_"), ("shake","Shake")):
                 name = family+"_"+shape

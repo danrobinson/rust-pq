@@ -1,9 +1,9 @@
 // Included inside the pinned peer's hypertree module, once per concrete suite.
 use super::{HypertreeParams, HypertreeSig};
+use crate::PkSeed;
 use crate::address::WotsHash;
 use crate::hashes::HashSuite;
 use crate::xmss::{XmssParams, XmssSig};
-use crate::PkSeed;
 use hybrid_array::Array;
 use zerocopy::IntoBytes;
 
@@ -20,8 +20,13 @@ static mut SIGS: [*const (); D] = [core::ptr::null(); D];
 static mut HASH: *const () = core::ptr::null();
 
 trait ObserveXmss: XmssParams {
-    fn checked_pk_from_sig(&self, index: u32, sig: &XmssSig<Self>, message: &Array<u8, Self::N>,
-                           address: &WotsHash) -> Array<u8, Self::N> {
+    fn checked_pk_from_sig(
+        &self,
+        index: u32,
+        sig: &XmssSig<Self>,
+        message: &Array<u8, Self::N>,
+        address: &WotsHash,
+    ) -> Array<u8, Self::N> {
         unsafe {
             let j = LAYER;
             assert!(j < D);
@@ -29,8 +34,12 @@ trait ObserveXmss: XmssParams {
             assert!(core::ptr::from_ref(sig).cast::<()>() == SIGS[j]);
             let previous = PREVIOUS;
             assert_eq!(message.as_slice(), &previous);
-            let tree = (u128::from(TREE) >> (HP*j)) as u64;
-            let leaf = if j == 0 { LEAF } else { ((TREE >> (HP*(j-1))) & ((1u64 << HP)-1)) as u32 };
+            let tree = (u128::from(TREE) >> (HP * j)) as u64;
+            let leaf = if j == 0 {
+                LEAF
+            } else {
+                ((TREE >> (HP * (j - 1))) & ((1u64 << HP) - 1)) as u32
+            };
             assert_eq!(index, leaf);
             let mut encoded = [0u8; 32];
             encoded[..4].copy_from_slice(&(j as u32).to_be_bytes());
@@ -38,7 +47,7 @@ trait ObserveXmss: XmssParams {
             assert_eq!(address.as_bytes(), &encoded);
             let next: [u8; N] = kani::any();
             PREVIOUS = next;
-            LAYER = j+1;
+            LAYER = j + 1;
             next.as_slice().try_into().unwrap()
         }
     }
@@ -47,7 +56,10 @@ impl<S: XmssParams> ObserveXmss for S {}
 
 #[kani::proof]
 #[kani::unwind(72)]
-#[kani::stub(crate::xmss::XmssParams::xmss_pk_from_sig, ObserveXmss::checked_pk_from_sig)]
+#[kani::stub(
+    crate::xmss::XmssParams::xmss_pk_from_sig,
+    ObserveXmss::checked_pk_from_sig
+)]
 fn verify_layers() {
     let seed = PkSeed(Array(kani::any::<[u8; N]>()));
     let hash = P::new_from_pk_seed(&seed);
