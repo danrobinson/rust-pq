@@ -2,6 +2,7 @@ import Kappleouter.Top
 import Shakeabs.Api
 import Shakebatch.ScalarStream
 import Shakebatch.ForsDispatch
+import Shakebatch.WotsDispatch
 open Aeneas Aeneas.Std Result
 namespace slhdsa.ShakeBatch.Apple
 abbrev view (s : KappleouterRust.shake256.Sponge) := (Keccak.words s.lanes,s.pos.val)
@@ -38,4 +39,5 @@ run_cmd liftCoreM do
     (`slhdsa.Keccak.new_spec, `slhdsa.ShakeBatch.Apple.new_spec),
     (`slhdsa.Keccak.absorb_spec, `slhdsa.ShakeBatch.Apple.absorb_spec),
     (`slhdsa.Keccak.finish_spec, `slhdsa.ShakeBatch.Apple.finish_spec)]
-    #[`slhdsa.ShakeBatch.scalarStreamCorrect,`slhdsa.ShakeBatch.sign_dispatched,`slhdsa.ShakeBatch.recover_dispatched]
+    #[`slhdsa.ShakeBatch.scalarStreamCorrect,`slhdsa.ShakeBatch.sign_dispatched,`slhdsa.ShakeBatch.recover_dispatched,
+      `slhdsa.ShakeBatch.wots_pk_gen_spec,`slhdsa.ShakeBatch.wots_sign_spec,`slhdsa.ShakeBatch.wots_pk_from_sig_spec]

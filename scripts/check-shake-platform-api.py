@@ -12,12 +12,27 @@ SETS = tuple(s.replace("sha2_", "shake_") for s in common["SETS"])
 OPS = common["OPERATIONS"]
 
 # Every crate function not listed as a cut is emitted by Charon and Aeneas.
-CUTS = ("crate::shake::fors::fors_sign", "crate::shake::fors::fors_pk_from_sig",
-        "crate::shake::wots::wots_pk_gen", "crate::shake::wots::wots_sign", "crate::shake::wots::wots_pk_from_sig",
-        "crate::shake::hash", "crate::shake256")
-BASE = {"shake.hash.seed_ctx", "shake.hash.h_msg", "shake.hash.prf_msg", "shake.hash.thash_pair",
-        "shake.fors.fors_sign", "shake.fors.fors_pk_from_sig",
-        "shake.wots.wots_pk_gen", "shake.wots.wots_sign", "shake.wots.wots_pk_from_sig"}
+CUTS = ("crate::shake::batch", "crate::shake::fors_batch", "crate::shake256")
+BASE = {"shake256.Sponge.new", "shake256.Sponge.absorb", "shake256.Sponge.finish",
+        "shake.batch.available", "shake.batch.keygen", "shake.batch.sign", "shake.batch.recover",
+        "shake.fors_batch.sign", "shake.fors_batch.recover"}
+
+
+def native_models(platform, raw, permutation):
+    stream = f"ShakeForest{platform}.slhdsa.ShakeBatch.scalarStream"
+    machine = f"slhdsa.{permutation}.machine"
+    batch = "slhdsa.ShakeBatch.shake"
+    return {
+        "shake256.Sponge.new": f"{raw}.shake256.Sponge.new",
+        "shake256.Sponge.absorb": f"{raw}.shake256.Sponge.absorb",
+        "shake256.Sponge.finish": f"{raw}.shake256.Sponge.finish",
+        "shake.batch.available": f"slhdsa.ShakeBatch.{platform}.available",
+        "shake.batch.keygen": f"{batch}.batch.keygen {machine} {stream}",
+        "shake.batch.sign": f"{batch}.batch.sign {machine}",
+        "shake.batch.recover": f"{batch}.batch.recover {machine} {stream}",
+        "shake.fors_batch.sign": f"{batch}.fors_batch.sign {machine}",
+        "shake.fors_batch.recover": f"{batch}.fors_batch.recover {machine} {stream}",
+    }
 
 
 def extraction(target, folder):
@@ -25,11 +40,14 @@ def extraction(target, folder):
     return facade["extract"]("rust", target, "Public", folder, roots, CUTS)
 
 
-def proof(package, imports, bindings, target_namespace, scratch):
+def proof(package, imports, bindings, target_namespace, raw, scratch):
     types = set(common["declarations"](common["body"](LEAN / "Slhdsa/Types.lean")))
     fresh = set(common["declarations"](common["body"](package / "Types.lean")))
     if fresh - types:
         raise ValueError(f"unmatched data types: {fresh - types}")
+    external_types = (package / "TypesExternal_Template.lean").read_text()
+    if list(common["declarations"](external_types[external_types.index("/-- "):])) != ["axiom shake256.Sponge : Type"]:
+        raise ValueError("unexpected public sponge state type")
     provided = (package / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1]
     aliases = []
     seen = set()
@@ -46,7 +64,7 @@ def proof(package, imports, bindings, target_namespace, scratch):
         raise ValueError("one or more of the nine algorithm bindings is missing")
     code = [*(f"import {name}" for name in imports), "open Aeneas Aeneas.Std Result ControlFlow Error",
             "set_option maxRecDepth 65536", "set_option maxHeartbeats 0", "noncomputable section",
-            "open slhdsa", "namespace FreshSDK", *aliases, common["body"](package / "Funs.lean"), "end FreshSDK"]
+            "open slhdsa", "namespace FreshSDK", f"abbrev shake256.Sponge := {raw}.shake256.Sponge", *aliases, common["body"](package / "Funs.lean"), "end FreshSDK"]
     for s in SETS:
         for op in OPS:
             old = f"slhdsa.sets.{s}.{op}"
@@ -128,10 +146,13 @@ def forest(package, platform, scratch):
 
 
 if __name__ == "__main__":
-    common["run"](["lake","build","Shakebatch.AppleFors"],LEAN)
+    common["run"](["lake","build","Shakebatch.AppleApi"],LEAN)
     with tempfile.TemporaryDirectory() as folder:
         p=Path(folder)
         dispatch=facade["extract"]("rust","aarch64-apple-darwin","Dispatch",p,
             ("crate::shake::fors::fors_sign","crate::shake::fors::fors_pk_from_sig"),
             ("crate::shake::batch","crate::shake::fors_batch","crate::shake::hash","crate::shake::xmss","crate::shake256"))
         forest(dispatch,"Apple",p)
+        public = extraction("aarch64-apple-darwin",p)
+        proof(public,["Shakebatch.AppleApi"],native_models("Apple", "KappleouterRust", "Kadisp"),
+              "NativeShakeApple", "KappleouterRust", p)
