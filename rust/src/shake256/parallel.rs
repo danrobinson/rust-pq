@@ -240,49 +240,72 @@ mod mixed {
         pair: uint64x2_t,
         scalar: u64,
     }
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn xor3(a: V, b: V, c: V) -> V {
+        V {
+            pair: veorq_u64(a.pair, veorq_u64(b.pair, c.pair)),
+            scalar: a.scalar ^ b.scalar ^ c.scalar,
+        }
+    }
     macro_rules! xor3 {
-        ($a:expr,$b:expr,$c:expr) => {{
-            let c = $c;
-            V {
-                pair: veorq_u64($a.pair, veorq_u64($b.pair, c.pair)),
-                scalar: $a.scalar ^ $b.scalar ^ c.scalar,
-            }
-        }};
+        ($a:expr, $b:expr, $c:expr) => {
+            unsafe { xor3($a, $b, $c) }
+        };
+    }
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn theta(a: V, b: V) -> V {
+        V {
+            pair: veorq_u64(a.pair, vsriq_n_u64::<63>(vshlq_n_u64::<1>(b.pair), b.pair)),
+            scalar: a.scalar ^ b.scalar.rotate_left(1),
+        }
     }
     macro_rules! theta {
-        ($a:expr,$b:expr) => {
-            V {
-                pair: veorq_u64(
-                    $a.pair,
-                    vsriq_n_u64::<63>(vshlq_n_u64::<1>($b.pair), $b.pair),
-                ),
-                scalar: $a.scalar ^ $b.scalar.rotate_left(1),
-            }
+        ($a:expr, $b:expr) => {
+            unsafe { theta($a, $b) }
         };
+    }
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn rho<const R: i32, const S: i32>(a: V, d: V) -> V {
+        {
+            let x = veorq_u64(a.pair, d.pair);
+            V {
+                pair: vsriq_n_u64::<S>(vshlq_n_u64::<R>(x), x),
+                scalar: (a.scalar ^ d.scalar).rotate_left(R as u32),
+            }
+        }
     }
     macro_rules! rho {
-        ($a:expr,$d:expr,$r:literal) => {{
-            let x = veorq_u64($a.pair, $d.pair);
-            V {
-                pair: vsriq_n_u64::<{ 64 - $r }>(vshlq_n_u64::<$r>(x), x),
-                scalar: ($a.scalar ^ $d.scalar).rotate_left($r),
-            }
-        }};
-    }
-    macro_rules! chi {
-        ($a:expr,$b:expr,$c:expr) => {
-            V {
-                pair: veorq_u64($a.pair, vbicq_u64($c.pair, $b.pair)),
-                scalar: $a.scalar ^ (!$b.scalar & $c.scalar),
-            }
+        ($a:expr, $d:expr, $r:literal) => {
+            unsafe { rho::<$r, { 64 - $r }>($a, $d) }
         };
     }
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn chi(a: V, b: V, c: V) -> V {
+        V {
+            pair: veorq_u64(a.pair, vbicq_u64(c.pair, b.pair)),
+            scalar: a.scalar ^ (!b.scalar & c.scalar),
+        }
+    }
+    macro_rules! chi {
+        ($a:expr, $b:expr, $c:expr) => {
+            unsafe { chi($a, $b, $c) }
+        };
+    }
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn iota(a: V, rc: u64) -> V {
+        V {
+            pair: veorq_u64(a.pair, vdupq_n_u64(rc)),
+            scalar: a.scalar ^ rc,
+        }
+    }
     macro_rules! iota {
-        ($a:expr,$rc:expr) => {
-            V {
-                pair: veorq_u64($a.pair, vdupq_n_u64($rc)),
-                scalar: $a.scalar ^ $rc,
-            }
+        ($a:expr, $rc:expr) => {
+            unsafe { iota($a, $rc) }
         };
     }
     round_function!("neon");

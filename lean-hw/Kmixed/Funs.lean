@@ -25,4293 +25,626 @@ noncomputable section
 
 namespace KmixedRust
 
+/-- [slhdsa::shake256::parallel::mixed::xor3]:
+    Source: 'src/shake256/parallel.rs', lines 245:4-250:5 -/
+def shake256.parallel.mixed.xor3
+  (a : shake256.parallel.mixed.V) (b : shake256.parallel.mixed.V)
+  (c : shake256.parallel.mixed.V) :
+  Result shake256.parallel.mixed.V
+  := do
+  let uxt ← core.core_arch.arm_shared.neon.generated.veorq_u64 b.pair c.pair
+  let uxt1 ← core.core_arch.arm_shared.neon.generated.veorq_u64 a.pair uxt
+  let i ← lift (a.scalar ^^^ b.scalar)
+  let i1 ← lift (i ^^^ c.scalar)
+  ok { pair := uxt1, scalar := i1 }
+
+/-- [slhdsa::shake256::parallel::mixed::theta]:
+    Source: 'src/shake256/parallel.rs', lines 258:4-263:5 -/
+def shake256.parallel.mixed.theta
+  (a : shake256.parallel.mixed.V) (b : shake256.parallel.mixed.V) :
+  Result shake256.parallel.mixed.V
+  := do
+  let uxt ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 b.pair
+  let uxt1 ←
+    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt b.pair
+  let uxt2 ← core.core_arch.arm_shared.neon.generated.veorq_u64 a.pair uxt1
+  let i ← lift (core.num.U64.rotate_left b.scalar 1#u32)
+  let i1 ← lift (a.scalar ^^^ i)
+  ok { pair := uxt2, scalar := i1 }
+
+/-- [slhdsa::shake256::parallel::mixed::rho]:
+    Source: 'src/shake256/parallel.rs', lines 271:4-279:5 -/
+def shake256.parallel.mixed.rho
+  (R : Std.I32) (S : Std.I32) (a : shake256.parallel.mixed.V)
+  (d : shake256.parallel.mixed.V) :
+  Result shake256.parallel.mixed.V
+  := do
+  let x ← core.core_arch.arm_shared.neon.generated.veorq_u64 a.pair d.pair
+  let uxt ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 R x
+  let uxt1 ← core.core_arch.aarch64.neon.generated.vsriq_n_u64 S uxt x
+  let i ← lift (a.scalar ^^^ d.scalar)
+  let i1 ← lift (IScalar.hcast .U32 R)
+  let i2 ← lift (core.num.U64.rotate_left i i1)
+  ok { pair := uxt1, scalar := i2 }
+
+/-- [slhdsa::shake256::parallel::mixed::chi]:
+    Source: 'src/shake256/parallel.rs', lines 287:4-292:5 -/
+def shake256.parallel.mixed.chi
+  (a : shake256.parallel.mixed.V) (b : shake256.parallel.mixed.V)
+  (c : shake256.parallel.mixed.V) :
+  Result shake256.parallel.mixed.V
+  := do
+  let uxt ← core.core_arch.arm_shared.neon.generated.vbicq_u64 c.pair b.pair
+  let uxt1 ← core.core_arch.arm_shared.neon.generated.veorq_u64 a.pair uxt
+  let i ← lift (~~~ b.scalar)
+  let i1 ← lift (i &&& c.scalar)
+  let i2 ← lift (a.scalar ^^^ i1)
+  ok { pair := uxt1, scalar := i2 }
+
+/-- [slhdsa::shake256::parallel::mixed::iota]:
+    Source: 'src/shake256/parallel.rs', lines 300:4-305:5 -/
+def shake256.parallel.mixed.iota
+  (a : shake256.parallel.mixed.V) (rc : Std.U64) :
+  Result shake256.parallel.mixed.V
+  := do
+  let uxt ← core.core_arch.arm_shared.neon.generated.vdupq_n_u64 rc
+  let uxt1 ← core.core_arch.arm_shared.neon.generated.veorq_u64 a.pair uxt
+  let i ← lift (a.scalar ^^^ rc)
+  ok { pair := uxt1, scalar := i }
+
 /-- [slhdsa::shake256::parallel::mixed::round]:
-    Source: 'src/shake256/parallel.rs', lines 18:8-77:9; this code is generated from a macro invocation at: 'src/shake256/parallel.rs', lines 288:4-288:27 -/
+    Source: 'src/shake256/parallel.rs', lines 18:8-77:9; this code is generated from a macro invocation at: 'src/shake256/parallel.rs', lines 311:4-311:27 -/
 def shake256.parallel.mixed.round
   (a : Array shake256.parallel.mixed.V 25#usize) (rc : Std.U64) :
   Result (Array shake256.parallel.mixed.V 25#usize)
   := do
-  let c ← Array.index_usize a 20#usize
-  let v ← Array.index_usize a 10#usize
-  let v1 ← Array.index_usize a 15#usize
-  let uxt ← core.core_arch.arm_shared.neon.generated.veorq_u64 v1.pair c.pair
-  let uxt1 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v.pair uxt
-  let i ← lift (v.scalar ^^^ v1.scalar)
-  let i1 ← lift (i ^^^ c.scalar)
-  let v2 ← Array.index_usize a 0#usize
-  let v3 ← Array.index_usize a 5#usize
-  let uxt2 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v3.pair uxt1
-  let uxt3 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v2.pair uxt2
-  let i2 ← lift (v2.scalar ^^^ v3.scalar)
-  let i3 ← lift (i2 ^^^ i1)
-  let c1 ← Array.index_usize a 21#usize
-  let v4 ← Array.index_usize a 11#usize
-  let v5 ← Array.index_usize a 16#usize
-  let uxt4 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v5.pair c1.pair
-  let uxt5 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v4.pair uxt4
-  let i4 ← lift (v4.scalar ^^^ v5.scalar)
-  let i5 ← lift (i4 ^^^ c1.scalar)
-  let v6 ← Array.index_usize a 1#usize
-  let v7 ← Array.index_usize a 6#usize
-  let uxt6 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v7.pair uxt5
-  let uxt7 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v6.pair uxt6
-  let i6 ← lift (v6.scalar ^^^ v7.scalar)
-  let i7 ← lift (i6 ^^^ i5)
-  let c2 ← Array.index_usize a 22#usize
-  let v8 ← Array.index_usize a 12#usize
-  let v9 ← Array.index_usize a 17#usize
-  let uxt8 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v9.pair c2.pair
-  let uxt9 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v8.pair uxt8
-  let i8 ← lift (v8.scalar ^^^ v9.scalar)
-  let i9 ← lift (i8 ^^^ c2.scalar)
-  let v10 ← Array.index_usize a 2#usize
-  let v11 ← Array.index_usize a 7#usize
-  let uxt10 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v11.pair uxt9
-  let uxt11 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v10.pair uxt10
-  let i10 ← lift (v10.scalar ^^^ v11.scalar)
-  let i11 ← lift (i10 ^^^ i9)
-  let c3 ← Array.index_usize a 23#usize
-  let v12 ← Array.index_usize a 13#usize
-  let v13 ← Array.index_usize a 18#usize
-  let uxt12 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v13.pair c3.pair
-  let uxt13 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v12.pair uxt12
-  let i12 ← lift (v12.scalar ^^^ v13.scalar)
-  let i13 ← lift (i12 ^^^ c3.scalar)
-  let v14 ← Array.index_usize a 3#usize
-  let v15 ← Array.index_usize a 8#usize
-  let uxt14 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v15.pair uxt13
-  let uxt15 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v14.pair uxt14
-  let i14 ← lift (v14.scalar ^^^ v15.scalar)
-  let i15 ← lift (i14 ^^^ i13)
-  let c4 ← Array.index_usize a 24#usize
-  let v16 ← Array.index_usize a 14#usize
-  let v17 ← Array.index_usize a 19#usize
-  let uxt16 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v17.pair c4.pair
-  let uxt17 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v16.pair uxt16
-  let i16 ← lift (v16.scalar ^^^ v17.scalar)
-  let i17 ← lift (i16 ^^^ c4.scalar)
-  let v18 ← Array.index_usize a 4#usize
-  let v19 ← Array.index_usize a 9#usize
-  let uxt18 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v19.pair uxt17
-  let uxt19 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v18.pair uxt18
-  let i18 ← lift (v18.scalar ^^^ v19.scalar)
-  let i19 ← lift (i18 ^^^ i17)
-  let v20 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt3, scalar := i3 } : shake256.parallel.mixed.V),
-        ({ pair := uxt7, scalar := i7 } : shake256.parallel.mixed.V),
-        ({ pair := uxt11, scalar := i11 } : shake256.parallel.mixed.V),
-        ({ pair := uxt15, scalar := i15 } : shake256.parallel.mixed.V),
-        ({ pair := uxt19, scalar := i19 } : shake256.parallel.mixed.V)
-        ]) 4#usize
-  let v21 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt3, scalar := i3 } : shake256.parallel.mixed.V),
-        ({ pair := uxt7, scalar := i7 } : shake256.parallel.mixed.V),
-        ({ pair := uxt11, scalar := i11 } : shake256.parallel.mixed.V),
-        ({ pair := uxt15, scalar := i15 } : shake256.parallel.mixed.V),
-        ({ pair := uxt19, scalar := i19 } : shake256.parallel.mixed.V)
-        ]) 1#usize
-  let uxt20 ←
-    core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 v21.pair
-  let uxt21 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt20 v21.pair
-  let uxt22 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v20.pair uxt21
-  let i20 ← lift (core.num.U64.rotate_left v21.scalar 1#u32)
-  let i21 ← lift (v20.scalar ^^^ i20)
-  let v22 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt3, scalar := i3 } : shake256.parallel.mixed.V),
-        ({ pair := uxt7, scalar := i7 } : shake256.parallel.mixed.V),
-        ({ pair := uxt11, scalar := i11 } : shake256.parallel.mixed.V),
-        ({ pair := uxt15, scalar := i15 } : shake256.parallel.mixed.V),
-        ({ pair := uxt19, scalar := i19 } : shake256.parallel.mixed.V)
-        ]) 0#usize
-  let v23 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt3, scalar := i3 } : shake256.parallel.mixed.V),
-        ({ pair := uxt7, scalar := i7 } : shake256.parallel.mixed.V),
-        ({ pair := uxt11, scalar := i11 } : shake256.parallel.mixed.V),
-        ({ pair := uxt15, scalar := i15 } : shake256.parallel.mixed.V),
-        ({ pair := uxt19, scalar := i19 } : shake256.parallel.mixed.V)
-        ]) 2#usize
-  let uxt23 ←
-    core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 v23.pair
-  let uxt24 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt23 v23.pair
-  let uxt25 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v22.pair uxt24
-  let i22 ← lift (core.num.U64.rotate_left v23.scalar 1#u32)
-  let i23 ← lift (v22.scalar ^^^ i22)
-  let v24 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt3, scalar := i3 } : shake256.parallel.mixed.V),
-        ({ pair := uxt7, scalar := i7 } : shake256.parallel.mixed.V),
-        ({ pair := uxt11, scalar := i11 } : shake256.parallel.mixed.V),
-        ({ pair := uxt15, scalar := i15 } : shake256.parallel.mixed.V),
-        ({ pair := uxt19, scalar := i19 } : shake256.parallel.mixed.V)
-        ]) 3#usize
-  let uxt26 ←
-    core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 v24.pair
-  let uxt27 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt26 v24.pair
-  let uxt28 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v21.pair uxt27
-  let i24 ← lift (core.num.U64.rotate_left v24.scalar 1#u32)
-  let i25 ← lift (v21.scalar ^^^ i24)
-  let uxt29 ←
-    core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 v20.pair
-  let uxt30 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt29 v20.pair
-  let uxt31 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v23.pair uxt30
-  let i26 ← lift (core.num.U64.rotate_left v20.scalar 1#u32)
-  let i27 ← lift (v23.scalar ^^^ i26)
-  let uxt32 ←
-    core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 v22.pair
-  let uxt33 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt32 v22.pair
-  let uxt34 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v24.pair uxt33
-  let i28 ← lift (core.num.U64.rotate_left v22.scalar 1#u32)
-  let i29 ← lift (v24.scalar ^^^ i28)
-  let v25 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt22, scalar := i21 } : shake256.parallel.mixed.V),
-        ({ pair := uxt25, scalar := i23 } : shake256.parallel.mixed.V),
-        ({ pair := uxt28, scalar := i25 } : shake256.parallel.mixed.V),
-        ({ pair := uxt31, scalar := i27 } : shake256.parallel.mixed.V),
-        ({ pair := uxt34, scalar := i29 } : shake256.parallel.mixed.V)
-        ]) 0#usize
-  let x ← core.core_arch.arm_shared.neon.generated.veorq_u64 v2.pair v25.pair
-  let uxt35 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 0#i32 x
-  let uxt36 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 64#i32 uxt35 x
-  let i30 ← lift (v2.scalar ^^^ v25.scalar)
-  let i31 ← lift (core.num.U64.rotate_left i30 0#u32)
-  let v26 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt22, scalar := i21 } : shake256.parallel.mixed.V),
-        ({ pair := uxt25, scalar := i23 } : shake256.parallel.mixed.V),
-        ({ pair := uxt28, scalar := i25 } : shake256.parallel.mixed.V),
-        ({ pair := uxt31, scalar := i27 } : shake256.parallel.mixed.V),
-        ({ pair := uxt34, scalar := i29 } : shake256.parallel.mixed.V)
-        ]) 1#usize
-  let x1 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v7.pair v26.pair
-  let uxt37 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 44#i32 x1
-  let uxt38 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 20#i32 uxt37 x1
-  let i32 ← lift (v7.scalar ^^^ v26.scalar)
-  let i33 ← lift (core.num.U64.rotate_left i32 44#u32)
-  let v27 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt22, scalar := i21 } : shake256.parallel.mixed.V),
-        ({ pair := uxt25, scalar := i23 } : shake256.parallel.mixed.V),
-        ({ pair := uxt28, scalar := i25 } : shake256.parallel.mixed.V),
-        ({ pair := uxt31, scalar := i27 } : shake256.parallel.mixed.V),
-        ({ pair := uxt34, scalar := i29 } : shake256.parallel.mixed.V)
-        ]) 2#usize
-  let x2 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v8.pair v27.pair
-  let uxt39 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 43#i32 x2
-  let uxt40 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 21#i32 uxt39 x2
-  let i34 ← lift (v8.scalar ^^^ v27.scalar)
-  let i35 ← lift (core.num.U64.rotate_left i34 43#u32)
-  let v28 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt22, scalar := i21 } : shake256.parallel.mixed.V),
-        ({ pair := uxt25, scalar := i23 } : shake256.parallel.mixed.V),
-        ({ pair := uxt28, scalar := i25 } : shake256.parallel.mixed.V),
-        ({ pair := uxt31, scalar := i27 } : shake256.parallel.mixed.V),
-        ({ pair := uxt34, scalar := i29 } : shake256.parallel.mixed.V)
-        ]) 3#usize
-  let x3 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v13.pair v28.pair
-  let uxt41 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 21#i32 x3
-  let uxt42 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 43#i32 uxt41 x3
-  let i36 ← lift (v13.scalar ^^^ v28.scalar)
-  let i37 ← lift (core.num.U64.rotate_left i36 21#u32)
-  let v29 ←
-    Array.index_usize
-      (Array.make 5#usize [
-        ({ pair := uxt22, scalar := i21 } : shake256.parallel.mixed.V),
-        ({ pair := uxt25, scalar := i23 } : shake256.parallel.mixed.V),
-        ({ pair := uxt28, scalar := i25 } : shake256.parallel.mixed.V),
-        ({ pair := uxt31, scalar := i27 } : shake256.parallel.mixed.V),
-        ({ pair := uxt34, scalar := i29 } : shake256.parallel.mixed.V)
-        ]) 4#usize
-  let x4 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 c4.pair v29.pair
-  let uxt43 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 14#i32 x4
-  let uxt44 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 50#i32 uxt43 x4
-  let i38 ← lift (c4.scalar ^^^ v29.scalar)
-  let i39 ← lift (core.num.U64.rotate_left i38 14#u32)
-  let x5 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v14.pair v28.pair
-  let uxt45 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 28#i32 x5
-  let uxt46 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 36#i32 uxt45 x5
-  let i40 ← lift (v14.scalar ^^^ v28.scalar)
-  let i41 ← lift (core.num.U64.rotate_left i40 28#u32)
-  let x6 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v19.pair v29.pair
-  let uxt47 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 20#i32 x6
-  let uxt48 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 44#i32 uxt47 x6
-  let i42 ← lift (v19.scalar ^^^ v29.scalar)
-  let i43 ← lift (core.num.U64.rotate_left i42 20#u32)
-  let x7 ← core.core_arch.arm_shared.neon.generated.veorq_u64 v.pair v25.pair
-  let uxt49 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 3#i32 x7
-  let uxt50 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 61#i32 uxt49 x7
-  let i44 ← lift (v.scalar ^^^ v25.scalar)
-  let i45 ← lift (core.num.U64.rotate_left i44 3#u32)
-  let x8 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v5.pair v26.pair
-  let uxt51 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 45#i32 x8
-  let uxt52 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 19#i32 uxt51 x8
-  let i46 ← lift (v5.scalar ^^^ v26.scalar)
-  let i47 ← lift (core.num.U64.rotate_left i46 45#u32)
-  let x9 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 c2.pair v27.pair
-  let uxt53 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 61#i32 x9
-  let uxt54 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 3#i32 uxt53 x9
-  let i48 ← lift (c2.scalar ^^^ v27.scalar)
-  let i49 ← lift (core.num.U64.rotate_left i48 61#u32)
-  let x10 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v6.pair v26.pair
-  let uxt55 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 1#i32 x10
-  let uxt56 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 63#i32 uxt55 x10
-  let i50 ← lift (v6.scalar ^^^ v26.scalar)
-  let i51 ← lift (core.num.U64.rotate_left i50 1#u32)
-  let x11 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v11.pair v27.pair
-  let uxt57 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 6#i32 x11
-  let uxt58 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 58#i32 uxt57 x11
-  let i52 ← lift (v11.scalar ^^^ v27.scalar)
-  let i53 ← lift (core.num.U64.rotate_left i52 6#u32)
-  let x12 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v12.pair v28.pair
-  let uxt59 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 25#i32 x12
-  let uxt60 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 39#i32 uxt59 x12
-  let i54 ← lift (v12.scalar ^^^ v28.scalar)
-  let i55 ← lift (core.num.U64.rotate_left i54 25#u32)
-  let x13 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v17.pair v29.pair
-  let uxt61 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 8#i32 x13
-  let uxt62 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 56#i32 uxt61 x13
-  let i56 ← lift (v17.scalar ^^^ v29.scalar)
-  let i57 ← lift (core.num.U64.rotate_left i56 8#u32)
-  let x14 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 c.pair v25.pair
-  let uxt63 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 18#i32 x14
-  let uxt64 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 46#i32 uxt63 x14
-  let i58 ← lift (c.scalar ^^^ v25.scalar)
-  let i59 ← lift (core.num.U64.rotate_left i58 18#u32)
-  let x15 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v18.pair v29.pair
-  let uxt65 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 27#i32 x15
-  let uxt66 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 37#i32 uxt65 x15
-  let i60 ← lift (v18.scalar ^^^ v29.scalar)
-  let i61 ← lift (core.num.U64.rotate_left i60 27#u32)
-  let x16 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v3.pair v25.pair
-  let uxt67 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 36#i32 x16
-  let uxt68 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 28#i32 uxt67 x16
-  let i62 ← lift (v3.scalar ^^^ v25.scalar)
-  let i63 ← lift (core.num.U64.rotate_left i62 36#u32)
-  let x17 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v4.pair v26.pair
-  let uxt69 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 10#i32 x17
-  let uxt70 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 54#i32 uxt69 x17
-  let i64 ← lift (v4.scalar ^^^ v26.scalar)
-  let i65 ← lift (core.num.U64.rotate_left i64 10#u32)
-  let x18 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v9.pair v27.pair
-  let uxt71 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 15#i32 x18
-  let uxt72 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 49#i32 uxt71 x18
-  let i66 ← lift (v9.scalar ^^^ v27.scalar)
-  let i67 ← lift (core.num.U64.rotate_left i66 15#u32)
-  let x19 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 c3.pair v28.pair
-  let uxt73 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 56#i32 x19
-  let uxt74 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 8#i32 uxt73 x19
-  let i68 ← lift (c3.scalar ^^^ v28.scalar)
-  let i69 ← lift (core.num.U64.rotate_left i68 56#u32)
-  let x20 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v10.pair v27.pair
-  let uxt75 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 62#i32 x20
-  let uxt76 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 2#i32 uxt75 x20
-  let i70 ← lift (v10.scalar ^^^ v27.scalar)
-  let i71 ← lift (core.num.U64.rotate_left i70 62#u32)
-  let x21 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v15.pair v28.pair
-  let uxt77 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 55#i32 x21
-  let uxt78 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 9#i32 uxt77 x21
-  let i72 ← lift (v15.scalar ^^^ v28.scalar)
-  let i73 ← lift (core.num.U64.rotate_left i72 55#u32)
-  let x22 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v16.pair v29.pair
-  let uxt79 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 39#i32 x22
-  let uxt80 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 25#i32 uxt79 x22
-  let i74 ← lift (v16.scalar ^^^ v29.scalar)
-  let i75 ← lift (core.num.U64.rotate_left i74 39#u32)
-  let x23 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v1.pair v25.pair
-  let uxt81 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 41#i32 x23
-  let uxt82 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 23#i32 uxt81 x23
-  let i76 ← lift (v1.scalar ^^^ v25.scalar)
-  let i77 ← lift (core.num.U64.rotate_left i76 41#u32)
-  let x24 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 c1.pair v26.pair
-  let uxt83 ← core.core_arch.arm_shared.neon.generated.vshlq_n_u64 2#i32 x24
-  let uxt84 ←
-    core.core_arch.aarch64.neon.generated.vsriq_n_u64 62#i32 uxt83 x24
-  let i78 ← lift (c1.scalar ^^^ v26.scalar)
-  let i79 ← lift (core.num.U64.rotate_left i78 2#u32)
-  let v30 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) 0#usize
-  let i80 ← 0#usize + 2#usize
-  let v31 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
-  let i81 ← 0#usize + 1#usize
-  let v32 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
-  let uxt85 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v31.pair v32.pair
-  let uxt86 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v30.pair uxt85
-  let v33 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
-  let i82 ← lift (~~~ v33.scalar)
-  let v34 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
-  let i83 ← lift (i82 &&& v34.scalar)
-  let i84 ← lift (v30.scalar ^^^ i83)
-  let a1 ←
-    Array.update a 0#usize ({ pair := uxt86, scalar := i84 } :
-      shake256.parallel.mixed.V)
+  let v ← Array.index_usize a 0#usize
+  let v1 ← Array.index_usize a 5#usize
+  let v2 ← Array.index_usize a 10#usize
+  let v3 ← Array.index_usize a 15#usize
+  let v4 ← Array.index_usize a 20#usize
+  let v5 ← shake256.parallel.mixed.xor3 v2 v3 v4
+  let v6 ← shake256.parallel.mixed.xor3 v v1 v5
+  let v7 ← Array.index_usize a 1#usize
+  let v8 ← Array.index_usize a 6#usize
+  let v9 ← Array.index_usize a 11#usize
+  let v10 ← Array.index_usize a 16#usize
+  let v11 ← Array.index_usize a 21#usize
+  let v12 ← shake256.parallel.mixed.xor3 v9 v10 v11
+  let v13 ← shake256.parallel.mixed.xor3 v7 v8 v12
+  let v14 ← Array.index_usize a 2#usize
+  let v15 ← Array.index_usize a 7#usize
+  let v16 ← Array.index_usize a 12#usize
+  let v17 ← Array.index_usize a 17#usize
+  let v18 ← Array.index_usize a 22#usize
+  let v19 ← shake256.parallel.mixed.xor3 v16 v17 v18
+  let v20 ← shake256.parallel.mixed.xor3 v14 v15 v19
+  let v21 ← Array.index_usize a 3#usize
+  let v22 ← Array.index_usize a 8#usize
+  let v23 ← Array.index_usize a 13#usize
+  let v24 ← Array.index_usize a 18#usize
+  let v25 ← Array.index_usize a 23#usize
+  let v26 ← shake256.parallel.mixed.xor3 v23 v24 v25
+  let v27 ← shake256.parallel.mixed.xor3 v21 v22 v26
+  let v28 ← Array.index_usize a 4#usize
+  let v29 ← Array.index_usize a 9#usize
+  let v30 ← Array.index_usize a 14#usize
+  let v31 ← Array.index_usize a 19#usize
+  let v32 ← Array.index_usize a 24#usize
+  let v33 ← shake256.parallel.mixed.xor3 v30 v31 v32
+  let v34 ← shake256.parallel.mixed.xor3 v28 v29 v33
   let v35 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
-  let i85 ← 0#usize + 3#usize
+    Array.index_usize (Array.make 5#usize [ v6, v13, v20, v27, v34 ]) 4#usize
   let v36 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let v37 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
-  let uxt87 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v36.pair v37.pair
-  let uxt88 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v35.pair uxt87
+    Array.index_usize (Array.make 5#usize [ v6, v13, v20, v27, v34 ]) 1#usize
+  let v37 ← shake256.parallel.mixed.theta v35 v36
   let v38 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
+    Array.index_usize (Array.make 5#usize [ v6, v13, v20, v27, v34 ]) 0#usize
   let v39 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
-  let i86 ← lift (~~~ v39.scalar)
-  let v40 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let i87 ← lift (i86 &&& v40.scalar)
-  let i88 ← lift (v38.scalar ^^^ i87)
-  let a2 ←
-    Array.update a1 i81 ({ pair := uxt88, scalar := i88 } :
-      shake256.parallel.mixed.V)
+    Array.index_usize (Array.make 5#usize [ v6, v13, v20, v27, v34 ]) 2#usize
+  let v40 ← shake256.parallel.mixed.theta v38 v39
   let v41 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
-  let i89 ← 0#usize + 4#usize
-  let v42 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let v43 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let uxt89 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v42.pair v43.pair
-  let uxt90 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v41.pair uxt89
-  let v44 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i80
+    Array.index_usize (Array.make 5#usize [ v6, v13, v20, v27, v34 ]) 3#usize
+  let v42 ← shake256.parallel.mixed.theta v36 v41
+  let v43 ← shake256.parallel.mixed.theta v39 v35
+  let v44 ← shake256.parallel.mixed.theta v41 v38
   let v45 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let i90 ← lift (~~~ v45.scalar)
-  let v46 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let i91 ← lift (i90 &&& v46.scalar)
-  let i92 ← lift (v44.scalar ^^^ i91)
-  let a3 ←
-    Array.update a2 i80 ({ pair := uxt90, scalar := i92 } :
-      shake256.parallel.mixed.V)
+    Array.index_usize (Array.make 5#usize [ v37, v40, v42, v43, v44 ]) 0#usize
+  let v46 ← shake256.parallel.mixed.rho 0#i32 64#i32 v v45
   let v47 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let v48 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let uxt91 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v30.pair v48.pair
-  let uxt92 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v47.pair uxt91
+    Array.index_usize (Array.make 5#usize [ v37, v40, v42, v43, v44 ]) 1#usize
+  let v48 ← shake256.parallel.mixed.rho 44#i32 20#i32 v8 v47
   let v49 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i85
-  let v50 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let i93 ← lift (~~~ v50.scalar)
-  let i94 ← lift (i93 &&& v30.scalar)
-  let i95 ← lift (v49.scalar ^^^ i94)
-  let a4 ←
-    Array.update a3 i85 ({ pair := uxt92, scalar := i95 } :
-      shake256.parallel.mixed.V)
+    Array.index_usize (Array.make 5#usize [ v37, v40, v42, v43, v44 ]) 2#usize
+  let v50 ← shake256.parallel.mixed.rho 43#i32 21#i32 v16 v49
   let v51 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let v52 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
-  let uxt93 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v52.pair v30.pair
-  let uxt94 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v51.pair uxt93
+    Array.index_usize (Array.make 5#usize [ v37, v40, v42, v43, v44 ]) 3#usize
+  let v52 ← shake256.parallel.mixed.rho 21#i32 43#i32 v24 v51
   let v53 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i89
-  let i96 ← lift (~~~ v30.scalar)
-  let v54 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i81
-  let i97 ← lift (i96 &&& v54.scalar)
-  let i98 ← lift (v53.scalar ^^^ i97)
-  let a5 ←
-    Array.update a4 i89 ({ pair := uxt94, scalar := i98 } :
-      shake256.parallel.mixed.V)
-  let v55 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) 5#usize
-  let i99 ← 5#usize + 2#usize
-  let v56 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let i100 ← 5#usize + 1#usize
-  let v57 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let uxt95 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v56.pair v57.pair
-  let uxt96 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v55.pair uxt95
-  let v58 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let i101 ← lift (~~~ v58.scalar)
-  let v59 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let i102 ← lift (i101 &&& v59.scalar)
-  let i103 ← lift (v55.scalar ^^^ i102)
-  let a6 ←
-    Array.update a5 5#usize ({ pair := uxt96, scalar := i103 } :
-      shake256.parallel.mixed.V)
-  let v60 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let i104 ← 5#usize + 3#usize
-  let v61 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
-  let v62 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let uxt97 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v61.pair v62.pair
-  let uxt98 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v60.pair uxt97
-  let v63 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let v64 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let i105 ← lift (~~~ v64.scalar)
-  let v65 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
-  let i106 ← lift (i105 &&& v65.scalar)
-  let i107 ← lift (v63.scalar ^^^ i106)
-  let a7 ←
-    Array.update a6 i100 ({ pair := uxt98, scalar := i107 } :
-      shake256.parallel.mixed.V)
-  let v66 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let i108 ← 5#usize + 4#usize
-  let v67 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
-  let v68 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
-  let uxt99 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v67.pair v68.pair
-  let uxt100 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v66.pair uxt99
-  let v69 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i99
-  let v70 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
-  let i109 ← lift (~~~ v70.scalar)
-  let v71 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
-  let i110 ← lift (i109 &&& v71.scalar)
-  let i111 ← lift (v69.scalar ^^^ i110)
-  let a8 ←
-    Array.update a7 i99 ({ pair := uxt100, scalar := i111 } :
-      shake256.parallel.mixed.V)
-  let v72 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
-  let v73 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
-  let uxt101 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v55.pair v73.pair
-  let uxt102 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v72.pair uxt101
-  let v74 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i104
+    Array.index_usize (Array.make 5#usize [ v37, v40, v42, v43, v44 ]) 4#usize
+  let v54 ← shake256.parallel.mixed.rho 14#i32 50#i32 v32 v53
+  let v55 ← shake256.parallel.mixed.rho 28#i32 36#i32 v21 v51
+  let v56 ← shake256.parallel.mixed.rho 20#i32 44#i32 v29 v53
+  let v57 ← shake256.parallel.mixed.rho 3#i32 61#i32 v2 v45
+  let v58 ← shake256.parallel.mixed.rho 45#i32 19#i32 v10 v47
+  let v59 ← shake256.parallel.mixed.rho 61#i32 3#i32 v18 v49
+  let v60 ← shake256.parallel.mixed.rho 1#i32 63#i32 v7 v47
+  let v61 ← shake256.parallel.mixed.rho 6#i32 58#i32 v15 v49
+  let v62 ← shake256.parallel.mixed.rho 25#i32 39#i32 v23 v51
+  let v63 ← shake256.parallel.mixed.rho 8#i32 56#i32 v31 v53
+  let v64 ← shake256.parallel.mixed.rho 18#i32 46#i32 v4 v45
+  let v65 ← shake256.parallel.mixed.rho 27#i32 37#i32 v28 v53
+  let v66 ← shake256.parallel.mixed.rho 36#i32 28#i32 v1 v45
+  let v67 ← shake256.parallel.mixed.rho 10#i32 54#i32 v9 v47
+  let v68 ← shake256.parallel.mixed.rho 15#i32 49#i32 v17 v49
+  let v69 ← shake256.parallel.mixed.rho 56#i32 8#i32 v25 v51
+  let v70 ← shake256.parallel.mixed.rho 62#i32 2#i32 v14 v49
+  let v71 ← shake256.parallel.mixed.rho 55#i32 9#i32 v22 v51
+  let v72 ← shake256.parallel.mixed.rho 39#i32 25#i32 v30 v53
+  let v73 ← shake256.parallel.mixed.rho 41#i32 23#i32 v3 v45
+  let v74 ← shake256.parallel.mixed.rho 2#i32 62#i32 v11 v47
   let v75 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
-  let i112 ← lift (~~~ v75.scalar)
-  let i113 ← lift (i112 &&& v55.scalar)
-  let i114 ← lift (v74.scalar ^^^ i113)
-  let a9 ←
-    Array.update a8 i104 ({ pair := uxt102, scalar := i114 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) 0#usize
+  let i ← 0#usize + 1#usize
   let v76 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i
+  let i1 ← 0#usize + 2#usize
   let v77 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let uxt103 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v77.pair v55.pair
-  let uxt104 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v76.pair uxt103
-  let v78 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i108
-  let i115 ← lift (~~~ v55.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i1
+  let v78 ← shake256.parallel.mixed.chi v75 v76 v77
+  let a1 ← Array.update a 0#usize v78
   let v79 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i100
-  let i116 ← lift (i115 &&& v79.scalar)
-  let i117 ← lift (v78.scalar ^^^ i116)
-  let a10 ←
-    Array.update a9 i108 ({ pair := uxt104, scalar := i117 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i
   let v80 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) 10#usize
-  let i118 ← 10#usize + 2#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i1
+  let i2 ← 0#usize + 3#usize
   let v81 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
-  let i119 ← 10#usize + 1#usize
-  let v82 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let uxt105 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v81.pair v82.pair
-  let uxt106 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v80.pair uxt105
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i2
+  let v82 ← shake256.parallel.mixed.chi v79 v80 v81
+  let a2 ← Array.update a1 i v82
   let v83 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let i120 ← lift (~~~ v83.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i1
   let v84 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
-  let i121 ← lift (i120 &&& v84.scalar)
-  let i122 ← lift (v80.scalar ^^^ i121)
-  let a11 ←
-    Array.update a10 10#usize ({ pair := uxt106, scalar := i122 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i2
+  let i3 ← 0#usize + 4#usize
   let v85 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let i123 ← 10#usize + 3#usize
-  let v86 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i3
+  let v86 ← shake256.parallel.mixed.chi v83 v84 v85
+  let a3 ← Array.update a2 i1 v86
   let v87 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
-  let uxt107 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v86.pair v87.pair
-  let uxt108 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v85.pair uxt107
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i2
   let v88 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let v89 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
-  let i124 ← lift (~~~ v89.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i3
+  let v89 ← shake256.parallel.mixed.chi v87 v88 v75
+  let a4 ← Array.update a3 i2 v89
   let v90 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
-  let i125 ← lift (i124 &&& v90.scalar)
-  let i126 ← lift (v88.scalar ^^^ i125)
-  let a12 ←
-    Array.update a11 i119 ({ pair := uxt108, scalar := i126 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i3
   let v91 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
-  let i127 ← 10#usize + 4#usize
-  let v92 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i
+  let v92 ← shake256.parallel.mixed.chi v90 v75 v91
+  let a5 ← Array.update a4 i3 v92
   let v93 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
-  let uxt109 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v92.pair v93.pair
-  let uxt110 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v91.pair uxt109
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) 5#usize
+  let i4 ← 5#usize + 1#usize
   let v94 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i118
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i4
+  let i5 ← 5#usize + 2#usize
   let v95 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
-  let i128 ← lift (~~~ v95.scalar)
-  let v96 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
-  let i129 ← lift (i128 &&& v96.scalar)
-  let i130 ← lift (v94.scalar ^^^ i129)
-  let a13 ←
-    Array.update a12 i118 ({ pair := uxt110, scalar := i130 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i5
+  let v96 ← shake256.parallel.mixed.chi v93 v94 v95
+  let a6 ← Array.update a5 5#usize v96
   let v97 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i4
   let v98 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
-  let uxt111 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v80.pair v98.pair
-  let uxt112 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v97.pair uxt111
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i5
+  let i6 ← 5#usize + 3#usize
   let v99 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i123
-  let v100 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
-  let i131 ← lift (~~~ v100.scalar)
-  let i132 ← lift (i131 &&& v80.scalar)
-  let i133 ← lift (v99.scalar ^^^ i132)
-  let a14 ←
-    Array.update a13 i123 ({ pair := uxt112, scalar := i133 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i6
+  let v100 ← shake256.parallel.mixed.chi v97 v98 v99
+  let a7 ← Array.update a6 i4 v100
   let v101 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i5
   let v102 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let uxt113 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v102.pair v80.pair
-  let uxt114 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v101.pair uxt113
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i6
+  let i7 ← 5#usize + 4#usize
   let v103 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i127
-  let i134 ← lift (~~~ v80.scalar)
-  let v104 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i119
-  let i135 ← lift (i134 &&& v104.scalar)
-  let i136 ← lift (v103.scalar ^^^ i135)
-  let a15 ←
-    Array.update a14 i127 ({ pair := uxt114, scalar := i136 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i7
+  let v104 ← shake256.parallel.mixed.chi v101 v102 v103
+  let a8 ← Array.update a7 i5 v104
   let v105 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) 15#usize
-  let i137 ← 15#usize + 2#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i6
   let v106 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
-  let i138 ← 15#usize + 1#usize
-  let v107 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let uxt115 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v106.pair v107.pair
-  let uxt116 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v105.pair uxt115
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i7
+  let v107 ← shake256.parallel.mixed.chi v105 v106 v93
+  let a9 ← Array.update a8 i6 v107
   let v108 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let i139 ← lift (~~~ v108.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i7
   let v109 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
-  let i140 ← lift (i139 &&& v109.scalar)
-  let i141 ← lift (v105.scalar ^^^ i140)
-  let a16 ←
-    Array.update a15 15#usize ({ pair := uxt116, scalar := i141 } :
-      shake256.parallel.mixed.V)
-  let v110 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let i142 ← 15#usize + 3#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i4
+  let v110 ← shake256.parallel.mixed.chi v108 v93 v109
+  let a10 ← Array.update a9 i7 v110
   let v111 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) 10#usize
+  let i8 ← 10#usize + 1#usize
   let v112 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
-  let uxt117 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v111.pair v112.pair
-  let uxt118 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v110.pair uxt117
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i8
+  let i9 ← 10#usize + 2#usize
   let v113 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let v114 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
-  let i143 ← lift (~~~ v114.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i9
+  let v114 ← shake256.parallel.mixed.chi v111 v112 v113
+  let a11 ← Array.update a10 10#usize v114
   let v115 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
-  let i144 ← lift (i143 &&& v115.scalar)
-  let i145 ← lift (v113.scalar ^^^ i144)
-  let a17 ←
-    Array.update a16 i138 ({ pair := uxt118, scalar := i145 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i8
   let v116 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
-  let i146 ← 15#usize + 4#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i9
+  let i10 ← 10#usize + 3#usize
   let v117 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
-  let v118 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
-  let uxt119 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v117.pair v118.pair
-  let uxt120 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v116.pair uxt119
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i10
+  let v118 ← shake256.parallel.mixed.chi v115 v116 v117
+  let a12 ← Array.update a11 i8 v118
   let v119 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i137
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i9
   let v120 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
-  let i147 ← lift (~~~ v120.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i10
+  let i11 ← 10#usize + 4#usize
   let v121 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
-  let i148 ← lift (i147 &&& v121.scalar)
-  let i149 ← lift (v119.scalar ^^^ i148)
-  let a18 ←
-    Array.update a17 i137 ({ pair := uxt120, scalar := i149 } :
-      shake256.parallel.mixed.V)
-  let v122 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i11
+  let v122 ← shake256.parallel.mixed.chi v119 v120 v121
+  let a13 ← Array.update a12 i9 v122
   let v123 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
-  let uxt121 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v105.pair v123.pair
-  let uxt122 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v122.pair uxt121
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i10
   let v124 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i142
-  let v125 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
-  let i150 ← lift (~~~ v125.scalar)
-  let i151 ← lift (i150 &&& v105.scalar)
-  let i152 ← lift (v124.scalar ^^^ i151)
-  let a19 ←
-    Array.update a18 i142 ({ pair := uxt122, scalar := i152 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i11
+  let v125 ← shake256.parallel.mixed.chi v123 v124 v111
+  let a14 ← Array.update a13 i10 v125
   let v126 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i11
   let v127 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let uxt123 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v127.pair v105.pair
-  let uxt124 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v126.pair uxt123
-  let v128 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i146
-  let i153 ← lift (~~~ v105.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i8
+  let v128 ← shake256.parallel.mixed.chi v126 v111 v127
+  let a15 ← Array.update a14 i11 v128
   let v129 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i138
-  let i154 ← lift (i153 &&& v129.scalar)
-  let i155 ← lift (v128.scalar ^^^ i154)
-  let a20 ←
-    Array.update a19 i146 ({ pair := uxt124, scalar := i155 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) 15#usize
+  let i12 ← 15#usize + 1#usize
   let v130 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) 20#usize
-  let i156 ← 20#usize + 2#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i12
+  let i13 ← 15#usize + 2#usize
   let v131 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
-  let i157 ← 20#usize + 1#usize
-  let v132 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
-  let uxt125 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v131.pair v132.pair
-  let uxt126 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v130.pair uxt125
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i13
+  let v132 ← shake256.parallel.mixed.chi v129 v130 v131
+  let a16 ← Array.update a15 15#usize v132
   let v133 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
-  let i158 ← lift (~~~ v133.scalar)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i12
   let v134 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
-  let i159 ← lift (i158 &&& v134.scalar)
-  let i160 ← lift (v130.scalar ^^^ i159)
-  let a21 ←
-    Array.update a20 20#usize ({ pair := uxt126, scalar := i160 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i13
+  let i14 ← 15#usize + 3#usize
   let v135 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
-  let i161 ← 20#usize + 3#usize
-  let v136 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i14
+  let v136 ← shake256.parallel.mixed.chi v133 v134 v135
+  let a17 ← Array.update a16 i12 v136
   let v137 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
-  let uxt127 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v136.pair v137.pair
-  let uxt128 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v135.pair uxt127
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i13
   let v138 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i14
+  let i15 ← 15#usize + 4#usize
   let v139 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
-  let i162 ← lift (~~~ v139.scalar)
-  let v140 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
-  let i163 ← lift (i162 &&& v140.scalar)
-  let i164 ← lift (v138.scalar ^^^ i163)
-  let a22 ←
-    Array.update a21 i157 ({ pair := uxt128, scalar := i164 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i15
+  let v140 ← shake256.parallel.mixed.chi v137 v138 v139
+  let a18 ← Array.update a17 i13 v140
   let v141 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
-  let i165 ← 20#usize + 4#usize
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i14
   let v142 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
-  let v143 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
-  let uxt129 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v142.pair v143.pair
-  let uxt130 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v141.pair uxt129
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i15
+  let v143 ← shake256.parallel.mixed.chi v141 v142 v129
+  let a19 ← Array.update a18 i14 v143
   let v144 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i156
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i15
   let v145 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
-  let i166 ← lift (~~~ v145.scalar)
-  let v146 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
-  let i167 ← lift (i166 &&& v146.scalar)
-  let i168 ← lift (v144.scalar ^^^ i167)
-  let a23 ←
-    Array.update a22 i156 ({ pair := uxt130, scalar := i168 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i12
+  let v146 ← shake256.parallel.mixed.chi v144 v129 v145
+  let a20 ← Array.update a19 i15 v146
   let v147 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) 20#usize
+  let i16 ← 20#usize + 1#usize
   let v148 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
-  let uxt131 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v130.pair v148.pair
-  let uxt132 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v147.pair uxt131
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i16
+  let i17 ← 20#usize + 2#usize
   let v149 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i161
-  let v150 ←
-    Array.index_usize
-      (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
-  let i169 ← lift (~~~ v150.scalar)
-  let i170 ← lift (i169 &&& v130.scalar)
-  let i171 ← lift (v149.scalar ^^^ i170)
-  let a24 ←
-    Array.update a23 i161 ({ pair := uxt132, scalar := i171 } :
-      shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i17
+  let v150 ← shake256.parallel.mixed.chi v147 v148 v149
+  let a21 ← Array.update a20 20#usize v150
   let v151 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i16
   let v152 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
-  let uxt133 ←
-    core.core_arch.arm_shared.neon.generated.vbicq_u64 v152.pair v130.pair
-  let uxt134 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v151.pair uxt133
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i17
+  let i18 ← 20#usize + 3#usize
   let v153 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i165
-  let i172 ← lift (~~~ v130.scalar)
-  let v154 ←
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i18
+  let v154 ← shake256.parallel.mixed.chi v151 v152 v153
+  let a22 ← Array.update a21 i16 v154
+  let v155 ←
     Array.index_usize
       (Array.make 25#usize [
-        ({ pair := uxt36, scalar := i31 } : shake256.parallel.mixed.V),
-        ({ pair := uxt38, scalar := i33 } : shake256.parallel.mixed.V),
-        ({ pair := uxt40, scalar := i35 } : shake256.parallel.mixed.V),
-        ({ pair := uxt42, scalar := i37 } : shake256.parallel.mixed.V),
-        ({ pair := uxt44, scalar := i39 } : shake256.parallel.mixed.V),
-        ({ pair := uxt46, scalar := i41 } : shake256.parallel.mixed.V),
-        ({ pair := uxt48, scalar := i43 } : shake256.parallel.mixed.V),
-        ({ pair := uxt50, scalar := i45 } : shake256.parallel.mixed.V),
-        ({ pair := uxt52, scalar := i47 } : shake256.parallel.mixed.V),
-        ({ pair := uxt54, scalar := i49 } : shake256.parallel.mixed.V),
-        ({ pair := uxt56, scalar := i51 } : shake256.parallel.mixed.V),
-        ({ pair := uxt58, scalar := i53 } : shake256.parallel.mixed.V),
-        ({ pair := uxt60, scalar := i55 } : shake256.parallel.mixed.V),
-        ({ pair := uxt62, scalar := i57 } : shake256.parallel.mixed.V),
-        ({ pair := uxt64, scalar := i59 } : shake256.parallel.mixed.V),
-        ({ pair := uxt66, scalar := i61 } : shake256.parallel.mixed.V),
-        ({ pair := uxt68, scalar := i63 } : shake256.parallel.mixed.V),
-        ({ pair := uxt70, scalar := i65 } : shake256.parallel.mixed.V),
-        ({ pair := uxt72, scalar := i67 } : shake256.parallel.mixed.V),
-        ({ pair := uxt74, scalar := i69 } : shake256.parallel.mixed.V),
-        ({ pair := uxt76, scalar := i71 } : shake256.parallel.mixed.V),
-        ({ pair := uxt78, scalar := i73 } : shake256.parallel.mixed.V),
-        ({ pair := uxt80, scalar := i75 } : shake256.parallel.mixed.V),
-        ({ pair := uxt82, scalar := i77 } : shake256.parallel.mixed.V),
-        ({ pair := uxt84, scalar := i79 } : shake256.parallel.mixed.V)
-        ]) i157
-  let i173 ← lift (i172 &&& v154.scalar)
-  let i174 ← lift (v153.scalar ^^^ i173)
-  let a25 ←
-    Array.update a24 i165 ({ pair := uxt134, scalar := i174 } :
-      shake256.parallel.mixed.V)
-  let v155 ← Array.index_usize a25 0#usize
-  let uxt135 ← core.core_arch.arm_shared.neon.generated.vdupq_n_u64 rc
-  let uxt136 ←
-    core.core_arch.arm_shared.neon.generated.veorq_u64 v155.pair uxt135
-  let i175 ← lift (v155.scalar ^^^ rc)
-  Array.update a25 0#usize ({ pair := uxt136, scalar := i175 } :
-    shake256.parallel.mixed.V)
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i17
+  let v156 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i18
+  let i19 ← 20#usize + 4#usize
+  let v157 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i19
+  let v158 ← shake256.parallel.mixed.chi v155 v156 v157
+  let a23 ← Array.update a22 i17 v158
+  let v159 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i18
+  let v160 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i19
+  let v161 ← shake256.parallel.mixed.chi v159 v160 v147
+  let a24 ← Array.update a23 i18 v161
+  let v162 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i19
+  let v163 ←
+    Array.index_usize
+      (Array.make 25#usize [
+        v46, v48, v50, v52, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63,
+        v64, v65, v66, v67, v68, v69, v70, v71, v72, v73, v74
+        ]) i16
+  let v164 ← shake256.parallel.mixed.chi v162 v147 v163
+  let a25 ← Array.update a24 i19 v164
+  let v165 ← Array.index_usize a25 0#usize
+  let v166 ← shake256.parallel.mixed.iota v165 rc
+  Array.update a25 0#usize v166
 
 end KmixedRust
