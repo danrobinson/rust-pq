@@ -125,11 +125,13 @@ echo "lean-hw hw_active theorems: 2, each depends on axioms: [propext, Quot.soun
 
 mode=ver
 [ "$1" = "full" ] && mode=all
-for s in 128s 128f 192s 192f 256s 256f; do
-  (cd lean && .lake/build/bin/spectest $s $mode) &
+jobs_started=""
+for s in 128s 128f 192s 192f 256s 256f shake-128s shake-128f shake-192s shake-192f shake-256s shake-256f; do
+  (cd lean && .lake/build/bin/spectest "$s" "$mode") &
+  jobs_started="$jobs_started $!"
 done
 fail=0
-for job in $(jobs -p); do wait "$job" || fail=1; done
+for job in $jobs_started; do wait "$job" || fail=1; done
 [ "$fail" -eq 0 ] || { echo "spec test FAILED"; exit 1; }
 # Constant time (portable build): regenerate the instrumented copy of the translation and the
 # per-set headline files, then the checker, the erasure theorems and the headline statements.
@@ -178,7 +180,7 @@ done
 
 # Adapter crate.
 ./scripts/check-compat-proof.sh
-for feat in "" "--features hw-sha2"; do
+for feat in "" "--features hw-sha2" "--no-default-features" "--no-default-features --features alloc" "--no-default-features --features getrandom"; do
   # shellcheck disable=SC2086
   out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }
   echo "$out" | grep "test result"

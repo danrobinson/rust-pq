@@ -1,4 +1,4 @@
-//! The six SHA-2 parameter sets, and the calls into the verified crate.
+//! The twelve SLH-DSA parameter sets, and the calls into the verified crate.
 //!
 //! One macro, [`parameter_set!`], defines each set's type, its lengths, its
 //! name and identifier, and its forwarding to the verified crate. Nothing
@@ -39,6 +39,7 @@ pub(crate) trait Core: SigningKeyStorage + VerifyingKeyStorage + SignatureStorag
 
     /// `slh_keygen` on its `3n` random bytes `SK.seed ‖ SK.prf ‖ PK.seed`:
     /// writes `SK` and `PK`.
+    #[cfg_attr(not(feature = "getrandom"), allow(dead_code))]
     fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]);
     /// `slh_keygen_internal` on three separate seeds (`slhdsa::adapter::keygen_seeds`).
     fn keygen_seeds(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]);
@@ -65,10 +66,10 @@ pub(crate) trait Core: SigningKeyStorage + VerifyingKeyStorage + SignatureStorag
     fn with_spki<T>(pk: &[u8], f: impl FnOnce(&[u8]) -> T) -> T;
 }
 
-/// A parameter set of FIPS 205. Implemented by the six SHA-2 sets.
+/// A parameter set of FIPS 205. Implemented by the six SHA-2 and six SHAKE sets.
 #[allow(private_bounds)] // Intentionally not implementable elsewhere
 pub trait ParameterSet:
-    Core
+    Core + Clone + core::fmt::Debug
     + SigningKeyLen<SkLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Sk>>
     + VerifyingKeyLen<VkLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Vk>>
     + SignatureLen<SigLen: hybrid_array::ArraySize<ArrayType<u8> = Self::Sig>>
@@ -92,7 +93,7 @@ fn split(addrnd: Option<&[u8]>) -> (bool, &[u8]) {
 /// One parameter set: the type, its lengths, name and identifier, and the
 /// forwarding to the verified crate at `slhdsa::$m::params`.
 macro_rules! parameter_set {
-    ($ty:ident, $m:ident, $name:literal, $oid:ident, sk: $sk:ident, vk: $vk:ident, sig: $sig:ident) => {
+    ($ty:ident, $([$family:ident])? $m:ident, $name:literal, $oid:ident, sk: $sk:ident, vk: $vk:ident, sig: $sig:ident) => {
         #[doc = concat!("SLH-DSA-", $name, ".")]
         #[derive(Debug, Clone)]
         #[allow(non_camel_case_types)]
@@ -133,12 +134,12 @@ macro_rules! parameter_set {
             const N: usize = slhdsa::$m::params::N;
 
             fn keygen(seeds: &[u8], sk: &mut [u8], pk: &mut [u8]) {
-                slhdsa::api::keygen::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, seeds, sk, pk);
+                slhdsa::$($family::)?api::keygen::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, seeds, sk, pk);
                 scrub_stack();
             }
 
             fn keygen_seeds(sk_seed: &[u8], sk_prf: &[u8], pk_seed: &[u8], sk: &mut [u8], pk: &mut [u8]) {
-                slhdsa::adapter::keygen_seeds::<{ slhdsa::$m::params::N }>(
+                slhdsa::$($family::)?adapter::keygen_seeds::<{ slhdsa::$m::params::N }>(
                     &slhdsa::$m::params::PARAMS, sk_seed, sk_prf, pk_seed, sk, pk,
                 );
                 scrub_stack();
@@ -146,7 +147,7 @@ macro_rules! parameter_set {
 
             fn sign(m: &[u8], ctx: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) -> bool {
                 let (has, r) = split(addrnd);
-                let ok = slhdsa::adapter::sign_into::<{ slhdsa::$m::params::N }>(
+                let ok = slhdsa::$($family::)?adapter::sign_into::<{ slhdsa::$m::params::N }>(
                     &slhdsa::$m::params::PARAMS, m, ctx, sk, has, r, sig,
                 );
                 scrub_stack();
@@ -155,18 +156,18 @@ macro_rules! parameter_set {
 
             fn sign_internal(m: &[u8], sk: &[u8], addrnd: Option<&[u8]>, sig: &mut [u8]) {
                 let (has, r) = split(addrnd);
-                slhdsa::adapter::sign_internal_into::<{ slhdsa::$m::params::N }>(
+                slhdsa::$($family::)?adapter::sign_internal_into::<{ slhdsa::$m::params::N }>(
                     &slhdsa::$m::params::PARAMS, m, sk, has, r, sig,
                 );
                 scrub_stack();
             }
 
             fn verify_internal(m: &[u8], sig: &[u8], pk: &[u8]) -> bool {
-                slhdsa::slh::slh_verify_internal::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, pk)
+                slhdsa::$($family::)?slh::slh_verify_internal::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, pk)
             }
 
             fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8]) -> bool {
-                slhdsa::api::verify::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, ctx, pk)
+                slhdsa::$($family::)?api::verify::<{ slhdsa::$m::params::N }>(&slhdsa::$m::params::PARAMS, m, sig, ctx, pk)
             }
 
             fn sk_from(bytes: &[u8], sk: &mut [u8], pk: &mut [u8]) -> bool {
@@ -206,3 +207,10 @@ parameter_set!(Sha2_192s, sha2_192s, "SHA2-192s", ID_SLH_DSA_SHA_2_192_S, sk: U9
 parameter_set!(Sha2_192f, sha2_192f, "SHA2-192f", ID_SLH_DSA_SHA_2_192_F, sk: U96, vk: U48, sig: U35664);
 parameter_set!(Sha2_256s, sha2_256s, "SHA2-256s", ID_SLH_DSA_SHA_2_256_S, sk: U128, vk: U64, sig: U29792);
 parameter_set!(Sha2_256f, sha2_256f, "SHA2-256f", ID_SLH_DSA_SHA_2_256_F, sk: U128, vk: U64, sig: U49856);
+
+parameter_set!(Shake128s, [shake] shake_128s, "SHAKE-128s", ID_SLH_DSA_SHAKE_128_S, sk: U64, vk: U32, sig: U7856);
+parameter_set!(Shake128f, [shake] shake_128f, "SHAKE-128f", ID_SLH_DSA_SHAKE_128_F, sk: U64, vk: U32, sig: U17088);
+parameter_set!(Shake192s, [shake] shake_192s, "SHAKE-192s", ID_SLH_DSA_SHAKE_192_S, sk: U96, vk: U48, sig: U16224);
+parameter_set!(Shake192f, [shake] shake_192f, "SHAKE-192f", ID_SLH_DSA_SHAKE_192_F, sk: U96, vk: U48, sig: U35664);
+parameter_set!(Shake256s, [shake] shake_256s, "SHAKE-256s", ID_SLH_DSA_SHAKE_256_S, sk: U128, vk: U64, sig: U29792);
+parameter_set!(Shake256f, [shake] shake_256f, "SHAKE-256f", ID_SLH_DSA_SHAKE_256_F, sk: U128, vk: U64, sig: U49856);

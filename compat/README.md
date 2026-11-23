@@ -1,11 +1,11 @@
-# slhdsa-compat: the interface to use, six SHA-2 sets
+# slhdsa-compat
 
-The interface of RustCrypto's [`slh-dsa`](https://github.com/RustCrypto/signatures/tree/master/slh-dsa)
-crate (0.2.0-rc.5) for the six SHA-2 parameter sets SLH-DSA-SHA2-{128s, 128f, 192s, 192f,
-256s, 256f}, on top of the verified crate in `../rust`. It is the single-set tree's adapter
-(SLH-DSA-SHA2-128s only; git commit 26aa3d8) extended to all six SHA-2 sets.
+The RustCrypto `slh-dsa` 0.2.0-rc.5 interface for all twelve pure FIPS 205
+parameter sets. The SHA-2 implementation has public-method refinement proofs.
+All six SHAKE sets have interoperability and ACVP coverage. Their refinement
+proofs are in progress.
 
-Code written against `slh-dsa` that uses only SHA-2 sets switches by changing one line of its
+Code written against `slh-dsa` that uses the named parameter sets switches by changing one line of its
 `Cargo.toml`; the source stays as it is:
 
 ```toml
@@ -23,7 +23,7 @@ The same names with the same behaviour: `SigningKey<P>`, `VerifyingKey<P>`, `Sig
 (`Signer`, `Verifier`, `RandomizedSigner`, `Keypair`, the multi-part variants), the conversions
 to and from bytes, and the PKCS#8 and SubjectPublicKeyInfo encodings.
 
-The six types come from one macro (`src/params.rs`), which also checks at compile time that
+The twelve types come from one macro (`src/params.rs`), which also checks at compile time that
 each set's array lengths are the verified crate's (`slhdsa::sha2_*::params::{SK,PK,SIG}_BYTES`).
 
 Additions, as in the single-set adapter:
@@ -183,9 +183,8 @@ separate reasoning.
 
 ## Differences from RustCrypto's crate
 
-- Only the six SHA-2 sets. The six SHAKE sets (`Shake128s` … `Shake256f`) do not exist here,
-  nor do upstream's generic types `Sha2L1<N, M>` and `Sha2L35<N, M>`, of which its SHA-2 names
-  are type aliases (here they are plain structs).
+- The adapter exposes concrete set types. Upstream also exposes the generic types `Sha2L1<N, M>` and `Sha2L35<N, M>`, of which its SHA-2 names
+  are type aliases.
 - `no_std` like RustCrypto's crate, but always needs an allocator. (The default `getrandom`
   feature needs a target the `getrandom` crate supports; turn it off on bare metal.)
 - A `SigningKey` is always wiped; its `Debug` output leaves the secret out; comparing two
@@ -201,7 +200,7 @@ cargo test --features hw-sha2
 ```
 
 - `tests/dropin.rs`: one piece of source, written against RustCrypto's interface, is compiled
-  against both crates for each of the six sets. All 516 recorded results (86 per set: keys,
+  against both crates for each of the twelve sets. All 1,032 recorded results (86 per set: keys,
   signatures, encodings, accept/reject answers, error cases) must be equal; the count is
   pinned.
 - `tests/extras.rs` (37 tests; 39 with `hw-sha2`, which adds checks that the two hardware

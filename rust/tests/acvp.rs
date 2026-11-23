@@ -16,7 +16,7 @@ const SETS: [(&str, &Params); 6] = [
 ];
 
 fn vectors(set: &str) -> Value {
-    let path = format!("{}/../vectors/slh-dsa-sha2-{}.json", env!("CARGO_MANIFEST_DIR"), set);
+    let path = format!("{}/../vectors/slh-dsa-{}.json", env!("CARGO_MANIFEST_DIR"), set);
     serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
@@ -270,10 +270,16 @@ macro_rules! acvp {
     )*};
 }
 acvp! {
-    acvp_128s, "128s", sha2_128s;
-    acvp_128f, "128f", sha2_128f;
-    acvp_192s, "192s", sha2_192s;
-    acvp_192f, "192f", sha2_192f;
-    acvp_256s, "256s", sha2_256s;
-    acvp_256f, "256f", sha2_256f;
+    acvp_128s, "sha2-128s", sha2_128s;
+    acvp_128f, "sha2-128f", sha2_128f;
+    acvp_192s, "sha2-192s", sha2_192s;
+    acvp_192f, "sha2-192f", sha2_192f;
+    acvp_256s, "sha2-256s", sha2_256s;
+    acvp_256f, "sha2-256f", sha2_256f;
+    acvp_shake_128s, "shake-128s", shake_128s;
+    acvp_shake_128f, "shake-128f", shake_128f;
+    acvp_shake_192s, "shake-192s", shake_192s;
+    acvp_shake_192f, "shake-192f", shake_192f;
+    acvp_shake_256s, "shake-256s", shake_256s;
+    acvp_shake_256f, "shake-256f", shake_256f;
 }

@@ -64,6 +64,20 @@ impl Adrs {
         Adrs { word3, ..self }
     }
 
+    /// The full 32-byte address used by SHAKE, including the zero high word
+    /// of the 96-bit tree address.
+    pub fn full(&self) -> [u8; 32] {
+        [
+            (self.layer >> 24) as u8, (self.layer >> 16) as u8, (self.layer >> 8) as u8, self.layer as u8,
+            0, 0, 0, 0,
+            (self.tree >> 56) as u8, (self.tree >> 48) as u8, (self.tree >> 40) as u8, (self.tree >> 32) as u8, (self.tree >> 24) as u8, (self.tree >> 16) as u8, (self.tree >> 8) as u8, self.tree as u8,
+            (self.typ >> 24) as u8, (self.typ >> 16) as u8, (self.typ >> 8) as u8, self.typ as u8,
+            (self.keypair >> 24) as u8, (self.keypair >> 16) as u8, (self.keypair >> 8) as u8, self.keypair as u8,
+            (self.word2 >> 24) as u8, (self.word2 >> 16) as u8, (self.word2 >> 8) as u8, self.word2 as u8,
+            (self.word3 >> 24) as u8, (self.word3 >> 16) as u8, (self.word3 >> 8) as u8, self.word3 as u8,
+        ]
+    }
+
     /// The compressed address ADRSc: layer (1) ‖ tree (8) ‖ type (1) ‖ words (12).
     #[inline(always)]
     pub fn compress(&self) -> [u8; 22] {

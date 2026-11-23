@@ -235,19 +235,31 @@ sets! {
     sha2_192f: Sha2_192f, 24, 33, 8;
     sha2_256s: Sha2_256s, 32, 22, 14;
     sha2_256f: Sha2_256f, 32, 35, 9;
+    shake_128s: Shake128s, 16, 14, 12;
+    shake_128f: Shake128f, 16, 33, 6;
+    shake_192s: Shake192s, 24, 17, 14;
+    shake_192f: Shake192f, 24, 33, 8;
+    shake_256s: Shake256s, 32, 22, 14;
+    shake_256f: Shake256f, 32, 35, 9;
 }
 
 /// The FIPS 205 names and signature lengths, as an independent check.
-const EXPECTED: [(&str, &str, usize); 6] = [
+const EXPECTED: [(&str, &str, usize); 12] = [
     ("Sha2_128s", "SLH-DSA-SHA2-128s", 7856),
     ("Sha2_128f", "SLH-DSA-SHA2-128f", 17088),
     ("Sha2_192s", "SLH-DSA-SHA2-192s", 16224),
     ("Sha2_192f", "SLH-DSA-SHA2-192f", 35664),
     ("Sha2_256s", "SLH-DSA-SHA2-256s", 29792),
     ("Sha2_256f", "SLH-DSA-SHA2-256f", 49856),
+    ("Shake128s", "SLH-DSA-SHAKE-128s", 7856),
+    ("Shake128f", "SLH-DSA-SHAKE-128f", 17088),
+    ("Shake192s", "SLH-DSA-SHAKE-192s", 16224),
+    ("Shake192f", "SLH-DSA-SHAKE-192f", 35664),
+    ("Shake256s", "SLH-DSA-SHAKE-256s", 29792),
+    ("Shake256f", "SLH-DSA-SHAKE-256f", 49856),
 ];
 
-/// All six sets in one test, so that the total is pinned in one place.
+/// All twelve sets in one test, so that the total is pinned in one place.
 #[test]
 fn same_source_gives_the_same_bytes() {
     let mut total = 0;
@@ -277,5 +289,5 @@ fn same_source_gives_the_same_bytes() {
         total += ours.len();
         println!("{set}: {} results equal", ours.len());
     }
-    assert_eq!(total, 516, "number of recorded results, all six sets");
+    assert_eq!(total, 1032, "number of recorded results, all twelve sets");
 }

@@ -1,4 +1,4 @@
-//! The interface of RustCrypto's [`slh-dsa`] crate for the six SLH-DSA-SHA2
+//! The interface of RustCrypto's [`slh-dsa`] crate for the twelve pure SLH-DSA
 //! parameter sets, backed by the formally verified `slhdsa` crate
 //! (`../rust`).
 //!
@@ -11,6 +11,8 @@
 //! ```
 //!
 //! ```
+//! # #[cfg(feature = "getrandom")]
+//! # {
 //! use slh_dsa::*;
 //! use slh_dsa::signature::*;
 //!
@@ -21,6 +23,7 @@
 //! // Hedged signing, the default of FIPS 205.
 //! let sig = sk.try_sign_hedged(b"Hello world", b"").unwrap();
 //! assert!(vk.verify(b"Hello world", &sig).is_ok());
+//! # }
 //! ```
 //!
 //! # What is verified and what is not
@@ -51,9 +54,9 @@
 //!
 //! # Differences from RustCrypto's crate
 //!
-//! * Only the six SHA-2 sets exist. The six SHAKE sets (`Shake128s` …) are
-//!   missing, and so are upstream's generic types `Sha2L1` and `Sha2L35` of
-//!   which its SHA-2 names are aliases.
+//! * The named SHAKE sets (`Shake128s` through `Shake256f`) pass interoperability
+//!   and vector tests. Their formal refinement is in progress. The public
+//!   parameter types are concrete.
 //! * This crate is `no_std` like upstream, but always needs an allocator.
 //! * A [`SigningKey`] is always wiped when dropped (upstream does so only
 //!   with its `zeroize` feature), its `Debug` output does not print the
@@ -90,7 +93,7 @@ mod signature_encoding;
 mod signing_key;
 mod verifying_key;
 
-pub use params::{ParameterSet, Sha2_128f, Sha2_128s, Sha2_192f, Sha2_192s, Sha2_256f, Sha2_256s};
+pub use params::{ParameterSet, Sha2_128f, Sha2_128s, Sha2_192f, Sha2_192s, Sha2_256f, Sha2_256s, Shake128s, Shake128f, Shake192s, Shake192f, Shake256s, Shake256f};
 #[doc(hidden)]
 pub use scrub::SCRUB_BYTES;
 pub use signature_encoding::{Signature, SignatureLen};

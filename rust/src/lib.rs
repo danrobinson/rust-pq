@@ -59,9 +59,13 @@ pub mod params;
 pub mod sets;
 pub mod sha256;
 pub mod sha512;
+pub mod shake;
+pub mod shake256;
 pub mod slh;
 pub mod util;
 pub mod wots;
 pub mod xmss;
 
 pub use sets::{sha2_128f, sha2_128s, sha2_192f, sha2_192s, sha2_256f, sha2_256s};
+
+pub use sets::{shake_128f, shake_128s, shake_192f, shake_192s, shake_256f, shake_256s};

@@ -117,7 +117,7 @@ structure params.SignatureStorage (Self : Type _) (Self_Sig : Type _) where
   corecloneCloneInst : core.clone.Clone Self_Sig
 
 /-- Trait declaration: [slh_dsa::params::Core]
-    Source: 'src/params.rs', lines 36:0-66:1 -/
+    Source: 'src/params.rs', lines 36:0-67:1 -/
 structure params.Core (Self : Type _) (Self_Clause0_Sk : Type _)
   (Self_Clause1_Vk : Type _) (Self_Clause2_Sig : Type _) where
   N : Result Std.Usize
@@ -148,39 +148,75 @@ structure params.Core (Self : Type _) (Self_Clause0_Sk : Type _)
     T2 (Slice Std.U8) T), Slice Std.U8 → T2 → Result T
 
 /-- [slh_dsa::params::Sha2_128s]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103
     Visibility: public -/
 structure params.Sha2_128s where
   _private : Unit
 
 /-- [slh_dsa::params::Sha2_128f]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104
     Visibility: public -/
 structure params.Sha2_128f where
   _private : Unit
 
 /-- [slh_dsa::params::Sha2_192s]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104
     Visibility: public -/
 structure params.Sha2_192s where
   _private : Unit
 
 /-- [slh_dsa::params::Sha2_192f]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104
     Visibility: public -/
 structure params.Sha2_192f where
   _private : Unit
 
 /-- [slh_dsa::params::Sha2_256s]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105
     Visibility: public -/
 structure params.Sha2_256s where
   _private : Unit
 
 /-- [slh_dsa::params::Sha2_256f]
-    Source: 'src/params.rs', lines 99:8-101:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105
     Visibility: public -/
 structure params.Sha2_256f where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake128s]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113
+    Visibility: public -/
+structure params.Shake128s where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake128f]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114
+    Visibility: public -/
+structure params.Shake128f where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake192s]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114
+    Visibility: public -/
+structure params.Shake192s where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake192f]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114
+    Visibility: public -/
+structure params.Shake192f where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake256s]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115
+    Visibility: public -/
+structure params.Shake256s where
+  _private : Unit
+
+/-- [slh_dsa::params::Shake256f]
+    Source: 'src/params.rs', lines 100:8-102:9; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115
+    Visibility: public -/
+structure params.Shake256f where
   _private : Unit
 
 /-- [slh_dsa::signature_encoding::Signature]
@@ -191,14 +227,14 @@ structure signature_encoding.Signature (P : Type _) (Clause0_Clause0_Sk :
   bytes : Clause0_Clause2_Sig
 
 /-- [slh_dsa::verifying_key::VerifyingKey]
-    Source: 'src/verifying_key.rs', lines 23:0-26:1
+    Source: 'src/verifying_key.rs', lines 24:0-27:1
     Visibility: public -/
 structure verifying_key.VerifyingKey (P : Type _) (Clause0_Clause0_Sk : Type _)
   (Clause0_Clause1_Vk : Type _) (Clause0_Clause2_Sig : Type _) where
   bytes : Clause0_Clause1_Vk
 
 /-- [slh_dsa::signing_key::SigningKey]
-    Source: 'src/signing_key.rs', lines 34:0-39:1
+    Source: 'src/signing_key.rs', lines 35:0-40:1
     Visibility: public -/
 structure signing_key.SigningKey (P : Type _) (Clause0_Clause0_Sk : Type _)
   (Clause0_Clause1_Vk : Type _) (Clause0_Clause2_Sig : Type _) where

@@ -103,7 +103,7 @@ def ArrayU8N.Insts.Slh_dsaParamsBuffer (N : Std.Usize) : params.Buffer (Array
 }
 
 /-- [slh_dsa::params::split]:
-    Source: 'src/params.rs', lines 85:0-90:1 -/
+    Source: 'src/params.rs', lines 86:0-91:1 -/
 def params.split
   (addrnd : Option (Slice Std.U8)) : Result (Bool × (Slice Std.U8)) := do
   match addrnd with
@@ -113,14 +113,14 @@ def params.split
   | some r => ok (true, r)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 @[global_simps, irreducible]
 def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_128s.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -137,7 +137,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -158,7 +158,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -168,7 +168,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -186,7 +186,7 @@ def scrub.scrub_stack : Result Unit := do
   ok ()
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -197,7 +197,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -208,7 +208,7 @@ def
   slhdsa.api.verify 16#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -218,7 +218,7 @@ def
   slhdsa.slh.slh_verify_internal 16#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -232,7 +232,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
@@ -245,7 +245,7 @@ def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -259,7 +259,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 def
   params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -271,7 +271,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 @[reducible]
 def params.Sha2_128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856 :
   params.SignatureStorage params.Sha2_128s (Array Std.U8 7856#usize) := {
@@ -280,7 +280,7 @@ def params.Sha2_128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 @[reducible]
 def params.Sha2_128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
   params.VerifyingKeyStorage params.Sha2_128s (Array Std.U8 32#usize) := {
@@ -289,7 +289,7 @@ def params.Sha2_128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 @[reducible]
 def params.Sha2_128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
   params.SigningKeyStorage params.Sha2_128s (Array Std.U8 64#usize) := {
@@ -298,7 +298,7 @@ def params.Sha2_128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Sha2_128s}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 203:0-203:103 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:103 -/
 @[reducible]
 def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 :
   params.Core params.Sha2_128s (Array Std.U8 64#usize) (Array Std.U8 32#usize)
@@ -341,14 +341,14 @@ def params.Sha2_128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 :
 }
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 @[global_simps, irreducible]
 def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_128f.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -365,7 +365,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -386,7 +386,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -396,7 +396,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -405,7 +405,7 @@ def
   slhdsa.encoding.public_key_from bytes pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -416,7 +416,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -427,7 +427,7 @@ def
   slhdsa.api.verify 16#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -437,7 +437,7 @@ def
   slhdsa.slh.slh_verify_internal 16#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -451,7 +451,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
@@ -464,7 +464,7 @@ def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -478,7 +478,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 def
   params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -490,7 +490,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 @[reducible]
 def params.Sha2_128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088 :
   params.SignatureStorage params.Sha2_128f (Array Std.U8 17088#usize) := {
@@ -499,7 +499,7 @@ def params.Sha2_128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 @[reducible]
 def params.Sha2_128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
   params.VerifyingKeyStorage params.Sha2_128f (Array Std.U8 32#usize) := {
@@ -508,7 +508,7 @@ def params.Sha2_128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 @[reducible]
 def params.Sha2_128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
   params.SigningKeyStorage params.Sha2_128f (Array Std.U8 64#usize) := {
@@ -517,7 +517,7 @@ def params.Sha2_128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Sha2_128f}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 204:0-204:104 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
 @[reducible]
 def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 :
   params.Core params.Sha2_128f (Array Std.U8 64#usize) (Array Std.U8 32#usize)
@@ -560,14 +560,14 @@ def params.Sha2_128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 :
 }
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 @[global_simps, irreducible]
 def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_192s.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -584,7 +584,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -605,7 +605,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -615,7 +615,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -624,7 +624,7 @@ def
   slhdsa.encoding.public_key_from bytes pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -635,7 +635,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -646,7 +646,7 @@ def
   slhdsa.api.verify 24#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -656,7 +656,7 @@ def
   slhdsa.slh.slh_verify_internal 24#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -670,7 +670,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
@@ -683,7 +683,7 @@ def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -697,7 +697,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 def
   params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -709,7 +709,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 @[reducible]
 def params.Sha2_192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224 :
   params.SignatureStorage params.Sha2_192s (Array Std.U8 16224#usize) := {
@@ -718,7 +718,7 @@ def params.Sha2_192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 @[reducible]
 def params.Sha2_192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
   params.VerifyingKeyStorage params.Sha2_192s (Array Std.U8 48#usize) := {
@@ -727,7 +727,7 @@ def params.Sha2_192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 @[reducible]
 def params.Sha2_192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
   params.SigningKeyStorage params.Sha2_192s (Array Std.U8 96#usize) := {
@@ -736,7 +736,7 @@ def params.Sha2_192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Sha2_192s}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 205:0-205:104 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
 @[reducible]
 def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 :
   params.Core params.Sha2_192s (Array Std.U8 96#usize) (Array Std.U8 48#usize)
@@ -779,14 +779,14 @@ def params.Sha2_192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 :
 }
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 @[global_simps, irreducible]
 def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_192f.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -803,7 +803,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -824,7 +824,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -834,7 +834,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -843,7 +843,7 @@ def
   slhdsa.encoding.public_key_from bytes pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -854,7 +854,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -865,7 +865,7 @@ def
   slhdsa.api.verify 24#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -875,7 +875,7 @@ def
   slhdsa.slh.slh_verify_internal 24#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -889,7 +889,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
@@ -902,7 +902,7 @@ def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -916,7 +916,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 def
   params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -928,7 +928,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 @[reducible]
 def params.Sha2_192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664 :
   params.SignatureStorage params.Sha2_192f (Array Std.U8 35664#usize) := {
@@ -937,7 +937,7 @@ def params.Sha2_192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 @[reducible]
 def params.Sha2_192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
   params.VerifyingKeyStorage params.Sha2_192f (Array Std.U8 48#usize) := {
@@ -946,7 +946,7 @@ def params.Sha2_192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 @[reducible]
 def params.Sha2_192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
   params.SigningKeyStorage params.Sha2_192f (Array Std.U8 96#usize) := {
@@ -955,7 +955,7 @@ def params.Sha2_192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Sha2_192f}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 206:0-206:104 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:104 -/
 @[reducible]
 def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 :
   params.Core params.Sha2_192f (Array Std.U8 96#usize) (Array Std.U8 48#usize)
@@ -998,14 +998,14 @@ def params.Sha2_192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 :
 }
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 @[global_simps, irreducible]
 def params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_256s.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -1022,7 +1022,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -1043,7 +1043,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -1053,7 +1053,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1062,7 +1062,7 @@ def
   slhdsa.encoding.public_key_from bytes pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1073,7 +1073,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -1084,7 +1084,7 @@ def
   slhdsa.api.verify 32#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1094,7 +1094,7 @@ def
   slhdsa.slh.slh_verify_internal 32#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -1108,7 +1108,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
@@ -1122,7 +1122,7 @@ def
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -1136,7 +1136,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 def
   params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1148,7 +1148,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 @[reducible]
 def params.Sha2_256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792 :
   params.SignatureStorage params.Sha2_256s (Array Std.U8 29792#usize) := {
@@ -1157,7 +1157,7 @@ def params.Sha2_256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 @[reducible]
 def params.Sha2_256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
   params.VerifyingKeyStorage params.Sha2_256s (Array Std.U8 64#usize) := {
@@ -1166,7 +1166,7 @@ def params.Sha2_256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 @[reducible]
 def params.Sha2_256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
   params.SigningKeyStorage params.Sha2_256s (Array Std.U8 128#usize) := {
@@ -1175,7 +1175,7 @@ def params.Sha2_256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Sha2_256s}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 207:0-207:105 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
 @[reducible]
 def params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 :
   params.Core params.Sha2_256s (Array Std.U8 128#usize) (Array Std.U8 64#usize)
@@ -1219,14 +1219,14 @@ def params.Sha2_256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 :
 }
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::N]
-    Source: 'src/params.rs', lines 133:12-133:51; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 @[global_simps, irreducible]
 def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
   : Result Std.Usize :=
   slhdsa.sets.sha2_256f.params.N
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::with_spki]:
-    Source: 'src/params.rs', lines 194:12-198:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -1243,7 +1243,7 @@ def
   coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::with_pkcs8]:
-    Source: 'src/params.rs', lines 186:12-192:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
   {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
@@ -1264,7 +1264,7 @@ def
   ok out
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sig_from]:
-    Source: 'src/params.rs', lines 182:12-184:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
   (bytes : Slice Std.U8) (sig : Slice Std.U8) :
@@ -1274,7 +1274,7 @@ def
   slhdsa.adapter.signature_from p bytes sig
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::pk_from]:
-    Source: 'src/params.rs', lines 178:12-180:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
   (bytes : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1283,7 +1283,7 @@ def
   slhdsa.encoding.public_key_from bytes pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sk_from]:
-    Source: 'src/params.rs', lines 172:12-176:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
   (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1294,7 +1294,7 @@ def
   ok (ok1, sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::verify]:
-    Source: 'src/params.rs', lines 168:12-170:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
   (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
@@ -1305,7 +1305,7 @@ def
   slhdsa.api.verify 32#usize p m sig ctx pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::verify_internal]:
-    Source: 'src/params.rs', lines 164:12-166:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
   (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1315,7 +1315,7 @@ def
   slhdsa.slh.slh_verify_internal 32#usize p m sig pk
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sign_internal]:
-    Source: 'src/params.rs', lines 156:12-162:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
   (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
@@ -1329,7 +1329,7 @@ def
   ok sig1
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::sign]:
-    Source: 'src/params.rs', lines 147:12-154:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
   (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
@@ -1343,7 +1343,7 @@ def
   ok (ok1, sig1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::keygen_seeds]:
-    Source: 'src/params.rs', lines 140:12-145:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
   (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
@@ -1357,7 +1357,7 @@ def
   ok (sk1, pk1)
 
 /-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}::keygen]:
-    Source: 'src/params.rs', lines 135:12-138:13; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 def
   params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
   (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
@@ -1369,7 +1369,7 @@ def
   ok (sk1, pk1)
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 130:8-130:89; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 @[reducible]
 def params.Sha2_256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856 :
   params.SignatureStorage params.Sha2_256f (Array Std.U8 49856#usize) := {
@@ -1378,7 +1378,7 @@ def params.Sha2_256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 129:8-129:90; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 @[reducible]
 def params.Sha2_256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
   params.VerifyingKeyStorage params.Sha2_256f (Array Std.U8 64#usize) := {
@@ -1387,7 +1387,7 @@ def params.Sha2_256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 128:8-128:88; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 @[reducible]
 def params.Sha2_256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
   params.SigningKeyStorage params.Sha2_256f (Array Std.U8 128#usize) := {
@@ -1396,7 +1396,7 @@ def params.Sha2_256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
 }
 
 /-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Sha2_256f}]
-    Source: 'src/params.rs', lines 132:8-199:9; this code is generated from a macro invocation at: 'src/params.rs', lines 208:0-208:105 -/
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 209:0-209:105 -/
 @[reducible]
 def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
   params.Core params.Sha2_256f (Array Std.U8 128#usize) (Array Std.U8 64#usize)
@@ -1439,6 +1439,1336 @@ def params.Sha2_256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
     coreopsfunctionFnOncePTupleShared0SliceU8PInst
 }
 
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+@[global_simps, irreducible]
+def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_128s.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 50#usize 0#u8
+  let a ← slhdsa.sets.shake_128s.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 84#usize 0#u8
+  let a ← slhdsa.sets.shake_128s.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 16#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  slhdsa.shake.api.verify 16#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 16#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 16#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 16#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 16#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+def
+  params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128s.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 16#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 7856usize]> for slh_dsa::params::Shake128s}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+@[reducible]
+def params.Shake128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856 :
+  params.SignatureStorage params.Shake128s (Array Std.U8 7856#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 7856#usize
+  corecloneCloneInst := core.clone.CloneArray 7856#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake128s}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+@[reducible]
+def params.Shake128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
+  params.VerifyingKeyStorage params.Shake128s (Array Std.U8 32#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
+  corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake128s}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+@[reducible]
+def params.Shake128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
+  params.SigningKeyStorage params.Shake128s (Array Std.U8 64#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
+  corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 7856usize]> for slh_dsa::params::Shake128s}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 211:0-211:113 -/
+@[reducible]
+def params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856 :
+  params.Core params.Shake128s (Array Std.U8 64#usize) (Array Std.U8 32#usize)
+  (Array Std.U8 7856#usize) := {
+  N := params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.N
+  SigningKeyStorageInst :=
+    params.Shake128s.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  VerifyingKeyStorageInst :=
+    params.Shake128s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  SignatureStorageInst :=
+    params.Shake128s.Insts.Slh_dsaParamsSignatureStorageArrayU87856
+  keygen :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen
+  keygen_seeds :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.keygen_seeds
+  sign :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign
+  sign_internal :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sign_internal
+  verify_internal :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify_internal
+  verify :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.verify
+  sk_from :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sk_from
+  pk_from :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.pk_from
+  sig_from :=
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake128s.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU87856.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+@[global_simps, irreducible]
+def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_128f.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 50#usize 0#u8
+  let a ← slhdsa.sets.shake_128f.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 84#usize 0#u8
+  let a ← slhdsa.sets.shake_128f.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 16#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  slhdsa.shake.api.verify 16#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 16#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 16#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 16#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 16#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+def
+  params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_128f.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 16#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 17088usize]> for slh_dsa::params::Shake128f}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+@[reducible]
+def params.Shake128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088 :
+  params.SignatureStorage params.Shake128f (Array Std.U8 17088#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 17088#usize
+  corecloneCloneInst := core.clone.CloneArray 17088#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 32usize]> for slh_dsa::params::Shake128f}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+@[reducible]
+def params.Shake128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832 :
+  params.VerifyingKeyStorage params.Shake128f (Array Std.U8 32#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 32#usize
+  corecloneCloneInst := core.clone.CloneArray 32#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake128f}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+@[reducible]
+def params.Shake128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864 :
+  params.SigningKeyStorage params.Shake128f (Array Std.U8 64#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
+  corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 64usize], [u8; 32usize], [u8; 17088usize]> for slh_dsa::params::Shake128f}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 212:0-212:114 -/
+@[reducible]
+def params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088 :
+  params.Core params.Shake128f (Array Std.U8 64#usize) (Array Std.U8 32#usize)
+  (Array Std.U8 17088#usize) := {
+  N := params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.N
+  SigningKeyStorageInst :=
+    params.Shake128f.Insts.Slh_dsaParamsSigningKeyStorageArrayU864
+  VerifyingKeyStorageInst :=
+    params.Shake128f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU832
+  SignatureStorageInst :=
+    params.Shake128f.Insts.Slh_dsaParamsSignatureStorageArrayU817088
+  keygen :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen
+  keygen_seeds :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.keygen_seeds
+  sign :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign
+  sign_internal :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sign_internal
+  verify_internal :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify_internal
+  verify :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.verify
+  sk_from :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sk_from
+  pk_from :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.pk_from
+  sig_from :=
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake128f.Insts.Slh_dsaParamsCoreArrayU864ArrayU832ArrayU817088.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+@[global_simps, irreducible]
+def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_192s.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 66#usize 0#u8
+  let a ← slhdsa.sets.shake_192s.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 116#usize 0#u8
+  let a ← slhdsa.sets.shake_192s.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 24#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  slhdsa.shake.api.verify 24#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 24#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 24#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 24#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 24#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+def
+  params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192s.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 24#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 16224usize]> for slh_dsa::params::Shake192s}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+@[reducible]
+def params.Shake192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224 :
+  params.SignatureStorage params.Shake192s (Array Std.U8 16224#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 16224#usize
+  corecloneCloneInst := core.clone.CloneArray 16224#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake192s}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+@[reducible]
+def params.Shake192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
+  params.VerifyingKeyStorage params.Shake192s (Array Std.U8 48#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
+  corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake192s}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+@[reducible]
+def params.Shake192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
+  params.SigningKeyStorage params.Shake192s (Array Std.U8 96#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
+  corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 16224usize]> for slh_dsa::params::Shake192s}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 213:0-213:114 -/
+@[reducible]
+def params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224 :
+  params.Core params.Shake192s (Array Std.U8 96#usize) (Array Std.U8 48#usize)
+  (Array Std.U8 16224#usize) := {
+  N := params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.N
+  SigningKeyStorageInst :=
+    params.Shake192s.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  VerifyingKeyStorageInst :=
+    params.Shake192s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  SignatureStorageInst :=
+    params.Shake192s.Insts.Slh_dsaParamsSignatureStorageArrayU816224
+  keygen :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen
+  keygen_seeds :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.keygen_seeds
+  sign :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign
+  sign_internal :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sign_internal
+  verify_internal :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify_internal
+  verify :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.verify
+  sk_from :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sk_from
+  pk_from :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.pk_from
+  sig_from :=
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake192s.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU816224.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+@[global_simps, irreducible]
+def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_192f.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 66#usize 0#u8
+  let a ← slhdsa.sets.shake_192f.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 116#usize 0#u8
+  let a ← slhdsa.sets.shake_192f.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 24#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  slhdsa.shake.api.verify 24#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 24#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 24#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 24#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 24#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+def
+  params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_192f.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 24#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 35664usize]> for slh_dsa::params::Shake192f}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+@[reducible]
+def params.Shake192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664 :
+  params.SignatureStorage params.Shake192f (Array Std.U8 35664#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 35664#usize
+  corecloneCloneInst := core.clone.CloneArray 35664#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 48usize]> for slh_dsa::params::Shake192f}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+@[reducible]
+def params.Shake192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848 :
+  params.VerifyingKeyStorage params.Shake192f (Array Std.U8 48#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 48#usize
+  corecloneCloneInst := core.clone.CloneArray 48#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 96usize]> for slh_dsa::params::Shake192f}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+@[reducible]
+def params.Shake192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896 :
+  params.SigningKeyStorage params.Shake192f (Array Std.U8 96#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 96#usize
+  corecloneCloneInst := core.clone.CloneArray 96#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 96usize], [u8; 48usize], [u8; 35664usize]> for slh_dsa::params::Shake192f}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 214:0-214:114 -/
+@[reducible]
+def params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664 :
+  params.Core params.Shake192f (Array Std.U8 96#usize) (Array Std.U8 48#usize)
+  (Array Std.U8 35664#usize) := {
+  N := params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.N
+  SigningKeyStorageInst :=
+    params.Shake192f.Insts.Slh_dsaParamsSigningKeyStorageArrayU896
+  VerifyingKeyStorageInst :=
+    params.Shake192f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU848
+  SignatureStorageInst :=
+    params.Shake192f.Insts.Slh_dsaParamsSignatureStorageArrayU835664
+  keygen :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen
+  keygen_seeds :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.keygen_seeds
+  sign :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign
+  sign_internal :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sign_internal
+  verify_internal :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify_internal
+  verify :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.verify
+  sk_from :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sk_from
+  pk_from :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.pk_from
+  sig_from :=
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake192f.Insts.Slh_dsaParamsCoreArrayU896ArrayU848ArrayU835664.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+@[global_simps, irreducible]
+def params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_256s.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 82#usize 0#u8
+  let a ← slhdsa.sets.shake_256s.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 150#usize 0#u8
+  let a ← slhdsa.sets.shake_256s.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 32#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  slhdsa.shake.api.verify 32#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 32#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 32#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 32#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 32#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+def
+  params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256s.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 32#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 29792usize]> for slh_dsa::params::Shake256s}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+@[reducible]
+def params.Shake256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792 :
+  params.SignatureStorage params.Shake256s (Array Std.U8 29792#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 29792#usize
+  corecloneCloneInst := core.clone.CloneArray 29792#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake256s}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+@[reducible]
+def params.Shake256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
+  params.VerifyingKeyStorage params.Shake256s (Array Std.U8 64#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
+  corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake256s}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+@[reducible]
+def params.Shake256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
+  params.SigningKeyStorage params.Shake256s (Array Std.U8 128#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
+  corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 29792usize]> for slh_dsa::params::Shake256s}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 215:0-215:115 -/
+@[reducible]
+def params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792 :
+  params.Core params.Shake256s (Array Std.U8 128#usize) (Array Std.U8 64#usize)
+  (Array Std.U8 29792#usize) := {
+  N :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.N
+  SigningKeyStorageInst :=
+    params.Shake256s.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  VerifyingKeyStorageInst :=
+    params.Shake256s.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  SignatureStorageInst :=
+    params.Shake256s.Insts.Slh_dsaParamsSignatureStorageArrayU829792
+  keygen :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen
+  keygen_seeds :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.keygen_seeds
+  sign :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign
+  sign_internal :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sign_internal
+  verify_internal :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify_internal
+  verify :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.verify
+  sk_from :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sk_from
+  pk_from :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.pk_from
+  sig_from :=
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake256s.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU829792.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::N]
+    Source: 'src/params.rs', lines 134:12-134:51; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+@[global_simps, irreducible]
+def params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+  : Result Std.Usize :=
+  slhdsa.sets.shake_256f.params.N
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::with_spki]:
+    Source: 'src/params.rs', lines 195:12-199:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (pk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 82#usize 0#u8
+  let a ← slhdsa.sets.shake_256f.SPKI_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s pk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::with_pkcs8]:
+    Source: 'src/params.rs', lines 187:12-193:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+  {T : Type _} {T1 : Type _} (coreopsfunctionFnOnceT1TupleShared0SliceU8TInst :
+  core.ops.function.FnOnce T1 (Slice Std.U8) T) (sk : Slice Std.U8) (f : T1) :
+  Result T
+  := do
+  let der := Array.repeat 150#usize 0#u8
+  let a ← slhdsa.sets.shake_256f.PKCS8_PREFIX
+  let s ← lift (Array.to_slice a)
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut der)
+  let s2 ← slhdsa.encoding.der_encode s sk s1
+  let der1 := to_slice_mut_back s2
+  let s3 ← lift (Array.to_slice der1)
+  let out ← coreopsfunctionFnOnceT1TupleShared0SliceU8TInst.call_once f s3
+  let _ ←
+    Array.Insts.ZeroizeZeroize.zeroize (zeroize.Zeroize.Blanket
+      U8.Insts.ZeroizeDefaultIsZeroes) der1
+  ok out
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sig_from]:
+    Source: 'src/params.rs', lines 183:12-185:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+  (bytes : Slice Std.U8) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  slhdsa.adapter.signature_from p bytes sig
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::pk_from]:
+    Source: 'src/params.rs', lines 179:12-181:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+  (bytes : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  slhdsa.encoding.public_key_from bytes pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sk_from]:
+    Source: 'src/params.rs', lines 173:12-177:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+  (bytes : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8) × (Slice Std.U8))
+  := do
+  let (ok1, sk1, pk1) ← slhdsa.adapter.signing_key_from 32#usize bytes sk pk
+  scrub.scrub_stack
+  ok (ok1, sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::verify]:
+    Source: 'src/params.rs', lines 169:12-171:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+  (m : Slice Std.U8) (sig : Slice Std.U8) (ctx : Slice Std.U8)
+  (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  slhdsa.shake.api.verify 32#usize p m sig ctx pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::verify_internal]:
+    Source: 'src/params.rs', lines 165:12-167:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+  (m : Slice Std.U8) (sig : Slice Std.U8) (pk : Slice Std.U8) :
+  Result Bool
+  := do
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  slhdsa.shake.slh.slh_verify_internal 32#usize p m sig pk
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sign_internal]:
+    Source: 'src/params.rs', lines 157:12-163:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+  (m : Slice Std.U8) (sk : Slice Std.U8) (addrnd : Option (Slice Std.U8))
+  (sig : Slice Std.U8) :
+  Result (Slice Std.U8)
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  let sig1 ←
+    slhdsa.shake.adapter.sign_internal_into 32#usize p m sk has r sig
+  scrub.scrub_stack
+  ok sig1
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::sign]:
+    Source: 'src/params.rs', lines 148:12-155:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+  (m : Slice Std.U8) (ctx : Slice Std.U8) (sk : Slice Std.U8)
+  (addrnd : Option (Slice Std.U8)) (sig : Slice Std.U8) :
+  Result (Bool × (Slice Std.U8))
+  := do
+  let (has, r) ← params.split addrnd
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  let (ok1, sig1) ←
+    slhdsa.shake.adapter.sign_into 32#usize p m ctx sk has r sig
+  scrub.scrub_stack
+  ok (ok1, sig1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::keygen_seeds]:
+    Source: 'src/params.rs', lines 141:12-146:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+  (sk_seed : Slice Std.U8) (sk_prf : Slice Std.U8) (pk_seed : Slice Std.U8)
+  (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  let (sk1, pk1) ←
+    slhdsa.shake.adapter.keygen_seeds 32#usize p sk_seed sk_prf pk_seed sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}::keygen]:
+    Source: 'src/params.rs', lines 136:12-139:13; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+def
+  params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+  (seeds : Slice Std.U8) (sk : Slice Std.U8) (pk : Slice Std.U8) :
+  Result ((Slice Std.U8) × (Slice Std.U8))
+  := do
+  let p ← slhdsa.sets.shake_256f.params.PARAMS
+  let (sk1, pk1) ← slhdsa.shake.api.keygen 32#usize p seeds sk pk
+  scrub.scrub_stack
+  ok (sk1, pk1)
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SignatureStorage<[u8; 49856usize]> for slh_dsa::params::Shake256f}]
+    Source: 'src/params.rs', lines 131:8-131:89; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+@[reducible]
+def params.Shake256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856 :
+  params.SignatureStorage params.Shake256f (Array Std.U8 49856#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 49856#usize
+  corecloneCloneInst := core.clone.CloneArray 49856#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::VerifyingKeyStorage<[u8; 64usize]> for slh_dsa::params::Shake256f}]
+    Source: 'src/params.rs', lines 130:8-130:90; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+@[reducible]
+def params.Shake256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864 :
+  params.VerifyingKeyStorage params.Shake256f (Array Std.U8 64#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 64#usize
+  corecloneCloneInst := core.clone.CloneArray 64#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::SigningKeyStorage<[u8; 128usize]> for slh_dsa::params::Shake256f}]
+    Source: 'src/params.rs', lines 129:8-129:88; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+@[reducible]
+def params.Shake256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128 :
+  params.SigningKeyStorage params.Shake256f (Array Std.U8 128#usize) := {
+  BufferInst := ArrayU8N.Insts.Slh_dsaParamsBuffer 128#usize
+  corecloneCloneInst := core.clone.CloneArray 128#usize core.clone.CloneU8
+}
+
+/-- Trait implementation: [slh_dsa::params::{impl slh_dsa::params::Core<[u8; 128usize], [u8; 64usize], [u8; 49856usize]> for slh_dsa::params::Shake256f}]
+    Source: 'src/params.rs', lines 133:8-200:9; this code is generated from a macro invocation at: 'src/params.rs', lines 216:0-216:115 -/
+@[reducible]
+def params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856 :
+  params.Core params.Shake256f (Array Std.U8 128#usize) (Array Std.U8 64#usize)
+  (Array Std.U8 49856#usize) := {
+  N :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.N
+  SigningKeyStorageInst :=
+    params.Shake256f.Insts.Slh_dsaParamsSigningKeyStorageArrayU8128
+  VerifyingKeyStorageInst :=
+    params.Shake256f.Insts.Slh_dsaParamsVerifyingKeyStorageArrayU864
+  SignatureStorageInst :=
+    params.Shake256f.Insts.Slh_dsaParamsSignatureStorageArrayU849856
+  keygen :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen
+  keygen_seeds :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.keygen_seeds
+  sign :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign
+  sign_internal :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sign_internal
+  verify_internal :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify_internal
+  verify :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.verify
+  sk_from :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sk_from
+  pk_from :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.pk_from
+  sig_from :=
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.sig_from
+  with_pkcs8 := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_pkcs8
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+  with_spki := fun {T : Type} {T1 : Type}
+    (coreopsfunctionFnOncePTupleShared0SliceU8PInst : core.ops.function.FnOnce
+    T1 (Slice Std.U8) T) =>
+    params.Shake256f.Insts.Slh_dsaParamsCoreArrayU8128ArrayU864ArrayU849856.with_spki
+    coreopsfunctionFnOncePTupleShared0SliceU8PInst
+}
+
 /-- [slh_dsa::signature_encoding::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
     Source: 'src/signature_encoding.rs', lines 75:4-81:5
     Visibility: public -/
@@ -1463,7 +2793,7 @@ def
        ok (core.result.Result.Err e)
 
 /-- [slh_dsa::signing_key::{impl core::ops::drop::Drop for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::drop]:
-    Source: 'src/signing_key.rs', lines 72:4-74:5
+    Source: 'src/signing_key.rs', lines 73:4-75:5
     Visibility: public -/
 def signing_key.SigningKey.Insts.CoreOpsDropDrop.drop
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1482,7 +2812,7 @@ def signing_key.SigningKey.Insts.CoreOpsDropDrop.drop
   ok { self with bytes := t }
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::slh_keygen_internal]:
-    Source: 'src/signing_key.rs', lines 151:4-159:5
+    Source: 'src/signing_key.rs', lines 153:4-161:5
     Visibility: public -/
 def signing_key.SigningKey.slh_keygen_internal
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1504,7 +2834,7 @@ def signing_key.SigningKey.slh_keygen_internal
   ok { bytes, verifying_key := { bytes := pk1 } }
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::key_from_rng_parts]:
-    Source: 'src/signing_key.rs', lines 100:4-107:5 -/
+    Source: 'src/signing_key.rs', lines 101:4-108:5 -/
 def signing_key.SigningKey.key_from_rng_parts
   {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
   Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause1_Clause0_Error :
@@ -1527,7 +2857,7 @@ def signing_key.SigningKey.key_from_rng_parts
   ok (sk, rng3, sk_seed1, sk_prf1, pk_seed1)
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::new]:
-    Source: 'src/signing_key.rs', lines 82:4-98:5
+    Source: 'src/signing_key.rs', lines 83:4-99:5
     Visibility: public -/
 def signing_key.SigningKey.new
   {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
@@ -1572,7 +2902,7 @@ def signing_key.SigningKey.new
   ok (key, rng1)
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_sign_with_context]:
-    Source: 'src/signing_key.rs', lines 202:4-215:5 -/
+    Source: 'src/signing_key.rs', lines 204:4-217:5 -/
 def signing_key.SigningKey.raw_try_sign_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
   {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
@@ -1599,7 +2929,7 @@ def signing_key.SigningKey.raw_try_sign_with_context
        ok (core.result.Result.Err e)
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign_with_context]:
-    Source: 'src/signing_key.rs', lines 181:4-188:5
+    Source: 'src/signing_key.rs', lines 183:4-190:5
     Visibility: public -/
 def signing_key.SigningKey.try_sign_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1616,7 +2946,7 @@ def signing_key.SigningKey.try_sign_with_context
     opt_rand
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::sign_with_rng_buffer]:
-    Source: 'src/signing_key.rs', lines 229:4-236:5 -/
+    Source: 'src/signing_key.rs', lines 231:4-238:5 -/
 def signing_key.SigningKey.sign_with_rng_buffer
   {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
   Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
@@ -1643,7 +2973,7 @@ def signing_key.SigningKey.sign_with_rng_buffer
     ok (core.result.Result.Err e, rng1, randomizer1)
 
 /-- [slh_dsa::signing_key::{slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_sign_with_rng]:
-    Source: 'src/signing_key.rs', lines 217:4-227:5 -/
+    Source: 'src/signing_key.rs', lines 219:4-229:5 -/
 def signing_key.SigningKey.raw_try_sign_with_rng
   {P : Type _} {R : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk :
   Type _} {Clause0_Clause2_Sig : Type _} {Clause1_Clause0_Error : Type _}
@@ -1673,7 +3003,7 @@ def signing_key.SigningKey.raw_try_sign_with_rng
   ok (result, rng1)
 
 /-- [slh_dsa::signing_key::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
-    Source: 'src/signing_key.rs', lines 258:4-268:5
+    Source: 'src/signing_key.rs', lines 260:4-270:5
     Visibility: public -/
 def signing_key.SigningKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1700,7 +3030,7 @@ def signing_key.SigningKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
        ok (core.result.Result.Err e)
 
 /-- [slh_dsa::signing_key::{impl signature::signer::MultipartSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_multipart_sign]:
-    Source: 'src/signing_key.rs', lines 278:4-280:5
+    Source: 'src/signing_key.rs', lines 280:4-282:5
     Visibility: public -/
 def
   signing_key.SigningKey.Insts.SignatureSignerMultipartSignerSignature.try_multipart_sign
@@ -1717,7 +3047,7 @@ def
     none
 
 /-- [slh_dsa::signing_key::{impl signature::signer::Signer<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign]:
-    Source: 'src/signing_key.rs', lines 272:4-274:5
+    Source: 'src/signing_key.rs', lines 274:4-276:5
     Visibility: public -/
 def signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1733,7 +3063,7 @@ def signing_key.SigningKey.Insts.SignatureSignerSignerSignature.try_sign
     paramsCoreInst self s
 
 /-- [slh_dsa::signing_key::{impl signature::signer::RandomizedMultipartSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_multipart_sign_with_rng]:
-    Source: 'src/signing_key.rs', lines 294:4-300:5
+    Source: 'src/signing_key.rs', lines 296:4-302:5
     Visibility: public -/
 def
   signing_key.SigningKey.Insts.SignatureSignerRandomizedMultipartSignerSignature.try_multipart_sign_with_rng
@@ -1753,7 +3083,7 @@ def
     rand_coreTryCryptoRngInst self rng msg s
 
 /-- [slh_dsa::signing_key::{impl signature::signer::RandomizedSigner<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::signing_key::SigningKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_sign_with_rng]:
-    Source: 'src/signing_key.rs', lines 284:4-290:5
+    Source: 'src/signing_key.rs', lines 286:4-292:5
     Visibility: public -/
 def
   signing_key.SigningKey.Insts.SignatureSignerRandomizedSignerSignature.try_sign_with_rng
@@ -1773,7 +3103,7 @@ def
     paramsCoreInst rand_coreTryCryptoRngInst self rng s
 
 /-- [slh_dsa::verifying_key::{slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::raw_try_verify_with_context]:
-    Source: 'src/verifying_key.rs', lines 74:4-84:5 -/
+    Source: 'src/verifying_key.rs', lines 75:4-85:5 -/
 def verifying_key.VerifyingKey.raw_try_verify_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
   {Clause0_Clause2_Sig : Type _} (paramsCoreInst : params.Core P
@@ -1795,7 +3125,7 @@ def verifying_key.VerifyingKey.raw_try_verify_with_context
   core.option.Option.ok_or o e
 
 /-- [slh_dsa::verifying_key::{slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_verify_with_context]:
-    Source: 'src/verifying_key.rs', lines 65:4-72:5
+    Source: 'src/verifying_key.rs', lines 66:4-73:5
     Visibility: public -/
 def verifying_key.VerifyingKey.try_verify_with_context
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}
@@ -1812,7 +3142,7 @@ def verifying_key.VerifyingKey.try_verify_with_context
     ctx sig
 
 /-- [slh_dsa::verifying_key::{impl core::convert::TryFrom<&'_0 [u8], signature::error::Error> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::try_from]:
-    Source: 'src/verifying_key.rs', lines 124:4-131:5
+    Source: 'src/verifying_key.rs', lines 125:4-132:5
     Visibility: public -/
 def
   verifying_key.VerifyingKey.Insts.CoreConvertTryFromShared0SliceU8Error.try_from
@@ -1835,7 +3165,7 @@ def
        ok (core.result.Result.Err e)
 
 /-- [slh_dsa::verifying_key::{impl signature::verifier::MultipartVerifier<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::multipart_verify]:
-    Source: 'src/verifying_key.rs', lines 141:4-143:5
+    Source: 'src/verifying_key.rs', lines 142:4-144:5
     Visibility: public -/
 def
   verifying_key.VerifyingKey.Insts.SignatureVerifierMultipartVerifierSignature.multipart_verify
@@ -1853,7 +3183,7 @@ def
     msg s sig
 
 /-- [slh_dsa::verifying_key::{impl signature::verifier::Verifier<slh_dsa::signature_encoding::Signature<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>> for slh_dsa::verifying_key::VerifyingKey<P, Clause0_Clause0_Sk, Clause0_Clause1_Vk, Clause0_Clause2_Sig>}::verify]:
-    Source: 'src/verifying_key.rs', lines 135:4-137:5
+    Source: 'src/verifying_key.rs', lines 136:4-138:5
     Visibility: public -/
 def verifying_key.VerifyingKey.Insts.SignatureVerifierVerifierSignature.verify
   {P : Type _} {Clause0_Clause0_Sk : Type _} {Clause0_Clause1_Vk : Type _}

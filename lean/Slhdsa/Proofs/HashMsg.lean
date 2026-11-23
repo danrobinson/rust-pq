@@ -302,7 +302,7 @@ theorem take_drop0 (l : Spec.Bytes) (k : Nat) (h : l.length = k) : (List.drop 0 
   rw [List.drop_zero, List.take_of_length_le (by omega)]
 
 @[step]
-theorem prf_msg_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk N)
+theorem prf_msg_spec {N : Usize} (P : Spec.Params) [family : Fact (P.family = .sha2)] (hPN : P.n = N.val) (hN : NOk N)
     (sk_prf opt_rand : Array U8 N) (m : Slice U8) (hm : Room m.length (msgSlack N.val)) :
     hash.prf_msg sk_prf opt_rand m ⦃ r =>
       bytes r.val = Spec.PRFmsg P (bytes sk_prf.val) (bytes opt_rand.val) (bytes m.val) ⦄ := by
@@ -356,7 +356,7 @@ theorem prf_msg_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk
       simp only [Array.val_to_slice, List.drop_zero, Nat.sub_zero, bytes_take, d_post, a_post]
       rw [← sha256_prefix64 _ _ (by simp), inner_post]
       have hNl : 64 - (bytes sk_prf.val).length = 64 - N.val := by simp
-      simp only [Spec.PRFmsg, Spec.hmacSha256, hkl, ↓reduceIte, hPN, hn, hNl]
+      simp only [Spec.PRFmsg, family.out, Spec.hmacSha256, hkl, ↓reduceIte, hPN, hn, hNl]
       rw [hIl, hOl, hn]
   · rename_i h16
     have hn : N.val ≠ 16 := fun h => h16 (by scalar_tac)
@@ -390,7 +390,7 @@ theorem prf_msg_spec {N : Usize} (P : Spec.Params) (hPN : P.n = N.val) (hN : NOk
       simp only [Array.val_to_slice, List.drop_zero, Nat.sub_zero, bytes_take, d_post, a_post]
       rw [← S512.sha512_prefix128 _ _ (by simp), inner_post]
       have hNl : 128 - (bytes sk_prf.val).length = 128 - N.val := by simp
-      simp only [Spec.PRFmsg, Spec.hmacSha512, hkl', ↓reduceIte, hPN, hn, hNl]
+      simp only [Spec.PRFmsg, family.out, Spec.hmacSha512, hkl', ↓reduceIte, hPN, hn, hNl]
       rw [hIl, hOl]
 
 /-- Four pieces written one after another into a zero block that they fill. -/

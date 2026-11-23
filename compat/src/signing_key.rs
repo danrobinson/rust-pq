@@ -17,6 +17,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use pkcs8::{der, EncodePrivateKey};
 
 use alloc::boxed::Box;
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
 /// A trait specifying the length of a serialized signing key for a given parameter set
@@ -131,6 +132,7 @@ impl<P: Core> SigningKey<P> {
     }
 
     /// `seeds` is `SK.seed ‖ SK.prf ‖ PK.seed`.
+    #[cfg(feature = "getrandom")]
     fn from_seeds(seeds: &[u8]) -> Self {
         // The private key is written straight into its allocation.
         let mut bytes = Box::new(P::Sk::zeroed());

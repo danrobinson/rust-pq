@@ -6,6 +6,10 @@ proofs, in Lean 4, that the Rust code computes exactly what the standard specifi
 branches and memory accesses do not depend on secrets, and that the scheme it computes is secure
 under named hash assumptions.
 
+The Rust crates also implement the six SHAKE sets. They pass NIST ACVP vectors
+and byte-for-byte comparisons with RustCrypto. SHAKE refinement is in progress.
+The proof and security claims below refer to SHA-2 unless explicitly qualified.
+
 Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
 lived in a subdirectory beside it. The six-set tree has replaced it; the single-set tree is git
 commit `26aa3d8`. What the single-set tree had and this one does not is listed in
@@ -226,7 +230,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 - **The processor, for `hw-sha2`.** See [above](#opt-in-hardware-sha-2-hw-sha2).
 - **Side channels, beyond the source.** The constant-time theorems are about the Rust source: the
   compiler, the processor's instruction timing, speculation, power and faults are outside them.
-- **The SHAKE parameter sets and the pre-hash variants** (HashSLH-DSA) are not implemented. The
+- **SHAKE refinement and pre-hash variants.** The SHAKE implementation and specification are tested separately. HashSLH-DSA is outside the implemented interface. The
   verified crate takes seeds and `addrnd` from the caller; drawing them from the operating system
   is done in `compat/`, outside the proofs.
 - **Wiping** (FIPS 205 §3.1): done by `compat/` and tested there, not proved.

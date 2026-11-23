@@ -4,6 +4,7 @@ use crate::params::{Core, Buffer};
 use crate::{join, same, ParameterSet, Signature};
 use ::signature::{Error, MultipartVerifier, Verifier};
 use hybrid_array::{Array, ArraySize};
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use pkcs8::{der, spki};
 

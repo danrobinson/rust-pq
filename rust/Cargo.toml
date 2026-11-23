@@ -2,7 +2,7 @@
 name = "slhdsa"
 version = "0.2.0"
 edition = "2021"
-description = "SLH-DSA with SHA-2 (FIPS 205, all six parameter sets), written in the Aeneas-translatable subset of safe Rust"
+description = "SLH-DSA with SHA-2 and SHAKE (FIPS 205, all twelve parameter sets), written in the Aeneas-translatable subset of safe Rust"
 
 [lib]
 name = "slhdsa"
@@ -19,6 +19,7 @@ serde_json = "1"
 hex = "0.4"
 sha2 = { version = "0.10", features = ["compress"] }
 hmac = "0.12"
+sha3 = "0.11"
 # RustCrypto's crate, pinned as in ../compat: keys, signatures and
 # encodings compared for all six sets (tests/rustcrypto.rs).
 upstream = { package = "slh-dsa", version = "=0.2.0-rc.5" }

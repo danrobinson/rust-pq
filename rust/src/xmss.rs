@@ -2,10 +2,10 @@
 
 use alloc::vec::Vec;
 use crate::address::{Adrs, TREE, WOTS_HASH};
-use crate::hash::{thash_pair, Seed};
+use super::hash::{thash_pair, Seed};
 use crate::params::{Params, LEN2};
 use crate::util::block;
-use crate::wots::{wots_pk_from_sig, wots_pk_gen, wots_sign};
+use super::wots::{wots_pk_from_sig, wots_pk_gen, wots_sign};
 
 /// `H(PK.seed, ADRS, left ‖ right)`.
 pub fn hash2<const N: usize>(seed: &Seed<N>, adrs: &Adrs, left: &[u8; N], right: &[u8; N]) -> [u8; N] {

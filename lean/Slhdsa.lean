@@ -5,3 +5,5 @@ import Slhdsa.ApiTheorems
 import Slhdsa.EncodingTheorems
 import Slhdsa.Compat128
 import Slhdsa.AdapterTheorems
+import Slhdsa.Proofs.Keccak
+import Slhdsa.Proofs.ShakeAddress

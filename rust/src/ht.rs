@@ -2,9 +2,9 @@
 
 use alloc::vec::Vec;
 use crate::address::Adrs;
-use crate::hash::Seed;
+use super::hash::Seed;
 use crate::params::Params;
-use crate::xmss::{xmss_pk_from_sig, xmss_sign};
+use super::xmss::{xmss_pk_from_sig, xmss_sign};
 
 /// Algorithm 12, `ht_sign`.
 pub fn ht_sign<const N: usize>(
