@@ -149,3 +149,6 @@ name = "Rcarmcode"
 
 [[lean_lib]]
 name = "Rcsoft"
+
+[[lean_lib]]
+name = "Rcsoft256"
