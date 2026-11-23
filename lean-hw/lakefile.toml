@@ -175,6 +175,12 @@ name = "Keccakasm"
 name = "Kspongel"
 
 [[lean_lib]]
+name = "Kavx"
+
+[[lean_lib]]
+name = "Ksha3"
+
+[[lean_lib]]
 name = "Kbulk"
 
 [[lean_lib]]
