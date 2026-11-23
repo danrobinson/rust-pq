@@ -27,16 +27,15 @@ structure ChildLaws (c : Children) (p : Params) : Prop where
   recover : c.xmss.recover = xmssPkFromSig p
   prfMsg : ∀ key rand msg, key.length = p.n → c.prfMsg key rand msg = PRFmsg p key rand msg.flatten.flatten
   hMsg : c.hMsg = (specChildren p).hMsg
-  split : c.split = (specChildren p).split
+  params : p.Valid
   forsSign : c.forsSign = Spec.forsSign p
   forsRecover : c.forsRecover = forsPkFromSig p
-  htVerify : c.htVerify = Spec.htVerify p
 
 private theorem xmss_is_spec {c : Children} {p : Params} (laws : ChildLaws c p) :
     c.xmss = xmssSpec p := by
   obtain ⟨⟨sign,recover,node⟩,other⟩ := c
   cases laws with
-  | mk hn hs hr _ _ _ _ _ _ => simp only at hn hs hr; subst_vars; rfl
+  | mk hn hs hr _ _ _ _ _ => simp only at hn hs hr; subst_vars; rfl
 
 /-- For D > 0 and H' < 32 the checked narrowing and bit mask agree with
 the FIPS natural-number leaf operation for every 64-bit tree index. -/
@@ -76,13 +75,13 @@ theorem sign_fips (c : Children) (p : Params) (laws : ChildLaws c p) (positive :
       slhSignInternal p msg.flatten.flatten k.bytes (rand.getD k.publicSeed) := by
   obtain ⟨a,b,d,e⟩ := key_blocks p k shape
   simp only [rawSign,Signature.bytes,slhSignInternal,a,b,d,e,laws.prfMsg _ _ _ shape.prf,
-    laws.hMsg,laws.split,laws.forsSign,laws.forsRecover,xmss_is_spec laws, specChildren,
+    laws.hMsg,split_correct p laws.params,laws.forsSign,laws.forsRecover,xmss_is_spec laws, specChildren,
     ht_fips _ positive]
   rfl
 
-theorem verify_fips (c : Children) (p : Params) (laws : ChildLaws c p)
+theorem verify_fips (c : Children) (p : Params) (laws : ChildLaws c p) (positive : 0<p.d)
     (k : PublicKey) (shape : k.Shape p) (msg : Parts) (s : Signature) (sig : s.Shape p) :
-    rawVerify c k msg s = slhVerifyInternal p msg.flatten.flatten s.bytes k.bytes := by
+    rawVerify c p k msg s = slhVerifyInternal p msg.flatten.flatten s.bytes k.bytes := by
   obtain ⟨a,b⟩ := public_blocks p k shape
   unfold slhVerifyInternal
   rw [if_neg (by intro bad; exact bad sig.size),a,b]
@@ -94,7 +93,7 @@ theorem verify_fips (c : Children) (p : Params) (laws : ChildLaws c p)
   have t : s.bytes.drop (p.n+p.forsSigBytes) = s.tree := by
     simp [Signature.bytes,List.append_assoc,List.drop_append,sig.r,sig.fors]
   rw [r,f,t]
-  simp only [rawVerify,laws.hMsg,laws.split,laws.forsRecover,laws.htVerify,specChildren]
+  simp only [rawVerify,laws.hMsg,split_correct p laws.params,laws.forsRecover,htVerifyWith_fips c.xmss p positive laws.recover,specChildren]
   rfl
 
 private theorem context_bytes (ctx : Bytes) (msg : List Bytes) :
@@ -109,11 +108,11 @@ theorem sign_context (c : Children) (p : Params) (laws : ChildLaws c p) (positiv
   · simp [signCtx,slhSign,ok,Nat.not_lt.mpr ok,sign_fips c p laws positive k shape,context_bytes]
   · simp [signCtx,slhSign,ok,Nat.lt_of_not_ge ok]
 
-theorem verify_context (c : Children) (p : Params) (laws : ChildLaws c p) (k : PublicKey)
+theorem verify_context (c : Children) (p : Params) (laws : ChildLaws c p) (positive : 0<p.d) (k : PublicKey)
     (shape : k.Shape p) (msg : List Bytes) (ctx : Bytes) (s : Signature) (sig : s.Shape p) :
-    verifyCtx c k msg ctx s = slhVerify p msg.flatten s.bytes ctx k.bytes := by
+    verifyCtx c p k msg ctx s = slhVerify p msg.flatten s.bytes ctx k.bytes := by
   by_cases ok : ctx.length ≤ 255
-  · simp [verifyCtx,slhVerify,ok,Nat.not_lt.mpr ok,verify_fips c p laws k shape _ s sig,context_bytes]
+  · simp [verifyCtx,slhVerify,ok,Nat.not_lt.mpr ok,verify_fips c p laws positive k shape _ s sig,context_bytes]
   · simp [verifyCtx,slhVerify,ok,Nat.lt_of_not_ge ok]
 
 end slhdsa.PeerCall

@@ -15,6 +15,8 @@ import PeerEquality.CallerFacade
 import PeerEquality.CallerComplete
 import PeerEquality.Slots
 import PeerEquality.CallerSha2
+#print axioms slhdsa.PeerCall.htVerifyWith_fips
+#print axioms slhdsa.PeerCall.split_correct
 #print axioms slhdsa.PeerCall.sha2_128s_facades
 #print axioms slhdsa.PeerCall.sha2_128f_facades
 #print axioms slhdsa.PeerCall.sha2_192s_facades
@@ -30,7 +32,6 @@ import PeerEquality.CallerSha2
 #print axioms slhdsa.PeerCall.all_slots
 #print axioms slhdsa.PeerCall.round_trip
 #print axioms slhdsa.PeerCall.PeerXmss.operations_fips
-#print axioms slhdsa.PeerCall.htVerifyWith_fips
 #print axioms slhdsa.PeerCall.ht_fips
 #print axioms slhdsa.PeerCall.keygen_fips
 #print axioms slhdsa.PeerCall.sign_fips
@@ -45,7 +46,7 @@ import sys
 from pathlib import Path
 import re
 lines=Path(sys.argv[1]).read_text().splitlines()
-if len(lines)!=24: raise SystemExit("missing proof audit")
+if len(lines)!=25: raise SystemExit("missing proof audit")
 for line in lines:
     if not re.fullmatch(r"'slhdsa\.PeerCall\.(?:PeerXmss\.)?\w+' (?:does not depend on any axioms|depends on axioms: \[(?:propext|Classical\.choice|Quot\.sound)(?:, (?:propext|Classical\.choice|Quot\.sound))*\])",line):
         raise SystemExit(line)

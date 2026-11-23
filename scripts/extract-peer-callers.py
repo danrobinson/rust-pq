@@ -56,7 +56,7 @@ def expression(s):
         name, n = {
             "P::prf_msg": ("c.prfMsg", 3),
             "P::h_msg": ("c.hMsg", 4),
-            "split_digest::<P>": ("c.split", 1),
+            "split_digest::<P>": ("splitResult p", 1),
             "ForsTree::new": ("forsAddress", 2),
         }[fun]
         require(len(args) == n, fun)
@@ -74,7 +74,7 @@ def expression(s):
         return f"PeerCall.ht c.xmss p {msg} {sk} {seed} {tree} {leaf}"
     if method == "ht_verify" and len(args) == 5:
         msg, sig, tree, leaf, root = args
-        return f"c.htVerify {msg} {sig} {seed} {tree} {leaf} {root}"
+        return f"htVerifyWith c.xmss p {msg} {sig} {seed} {tree} {leaf} {root}"
     raise ValueError(fun)
 
 
@@ -121,6 +121,54 @@ def main():
             require(
                 method(file, name) == compact(expected), f"unsupported {file}::{name}"
             )
+
+        exact(
+            "util",
+            "split_digest",
+            """
+          #[allow(deprecated)] let m=Array::from_slice(&digest[..P::MD::USIZE]);
+          let idx_tree_size=(P::H::USIZE-P::HPrime::USIZE).div_ceil(8);let idx_leaf_size=P::HPrime::USIZE.div_ceil(8);
+          let mut idx_tree_bytes=[0u8;8];let mut idx_leaf_bytes=[0u8;4];
+          idx_tree_bytes[8-idx_tree_size..].copy_from_slice(&digest[P::MD::USIZE..P::MD::USIZE+idx_tree_size]);
+          idx_leaf_bytes[4-idx_leaf_size..].copy_from_slice(&digest[P::MD::USIZE+idx_tree_size..P::MD::USIZE+idx_tree_size+idx_leaf_size],);
+          let mask:u64=1u64.checked_shl(P::H::U32-P::HPrime::U32).unwrap_or(0).wrapping_sub(1);
+          let idx_tree=u64::from_be_bytes(idx_tree_bytes)&mask;
+          let idx_leaf=u32::from_be_bytes(idx_leaf_bytes)&((1<<P::HPrime::USIZE)-1);(m,idx_tree,idx_leaf)
+        """,
+        )
+        for family, prefix in (("sha2", "Sha2_"), ("shake", "Shake")):
+            source = UPSTREAM["extract_body"](tar, peer, "hashes/" + family + ".rs")
+            names = ["128s", "128f", "192s", "192f", "256s", "256f"]
+            for name, (n, h, d, hp, a, k) in zip(
+                names,
+                [
+                    (16, 63, 7, 9, 12, 14),
+                    (16, 66, 22, 3, 6, 33),
+                    (24, 63, 7, 9, 14, 17),
+                    (24, 66, 22, 3, 8, 33),
+                    (32, 64, 8, 8, 14, 22),
+                    (32, 68, 17, 4, 9, 35),
+                ],
+            ):
+                ty = prefix + name
+                for trait, fields in [
+                    ("XmssParams", f"type HPrime=U<{hp}>;"),
+                    ("HypertreeParams", f"type D=U<{d}>;type H=U<{h}>;"),
+                    (
+                        "ForsParams",
+                        f"type K=U<{k}>;type A=U<{a}>;type MD=U<{(k * a + 7) // 8}>;",
+                    ),
+                ]:
+                    actual = compact(body(source, rf"impl {trait} for {ty}\b"))
+                    for x, y in [(a, k), (k, a)]:
+                        actual = actual.replace(
+                            f"U<{{({x}*{y}usize).div_ceil(8)}}>",
+                            f"U<{(a * k + 7) // 8}>",
+                        )
+                    require(
+                        actual == compact(fields),
+                        f"unexpected defaults or dimensions: {ty}::{trait}",
+                    )
 
         def scoped(file, impl, name, expected):
             source = UPSTREAM["extract_body"](tar, peer, file + ".rs")
@@ -242,7 +290,8 @@ def main():
         """,
         )
         exact(
-            "hypertree", "ht_verify",
+            "hypertree",
+            "ht_verify",
             """
           let mut adrs=WotsHash::default(); adrs.tree_adrs_low.set(idx_tree);
           let mut root=self.xmss_pk_from_sig(idx_leaf,&sig.0[0],m,&adrs);
@@ -339,14 +388,14 @@ def main():
                 "def rawSign (c : Children) (p : Params) (k : Key) (msg : Parts) (opt_rand : Option Bytes) : Signature :=",
                 *sign,
                 "",
-                "def rawVerify (c : Children) (k : PublicKey) (msg : Parts) (signature : Signature) : Bool :=",
+                "def rawVerify (c : Children) (p : Params) (k : PublicKey) (msg : Parts) (signature : Signature) : Bool :=",
                 *verify,
                 "",
                 "def signCtx (c : Children) (p : Params) (k : Key) (msg : List Bytes) (ctx : Bytes) (rand : Option Bytes) : Option Signature :=",
                 "  if ctx.length ≤ 255 then some (rawSign c p k (contextParts ctx msg) rand) else none",
                 "",
-                "def verifyCtx (c : Children) (k : PublicKey) (msg : List Bytes) (ctx : Bytes) (s : Signature) : Bool :=",
-                "  if ctx.length ≤ 255 then rawVerify c k (contextParts ctx msg) s else false",
+                "def verifyCtx (c : Children) (p : Params) (k : PublicKey) (msg : List Bytes) (ctx : Bytes) (s : Signature) : Bool :=",
+                "  if ctx.length ≤ 255 then rawVerify c p k (contextParts ctx msg) s else false",
                 "",
                 "end slhdsa.PeerCall",
                 "",

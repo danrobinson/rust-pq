@@ -40,7 +40,7 @@ structure Facades : Prop where
     (parsed : signature_encoding.Signature P (Array U8 sk) (Array U8 vk) (Array U8 sig)),
     bytes parsed.bytes.val=s.bytes → Room m.length slack →
     verifying_key.VerifyingKey.try_verify_with_context C ours m ctx parsed ⦃ ret =>
-      ret = if verifyCtx c k [bytes m.val] (bytes ctx.val) s then .Ok () else .Err () ⦄
+      ret = if verifyCtx c p k [bytes m.val] (bytes ctx.val) s then .Ok () else .Err () ⦄
 
 private theorem facades (positive : 0<p.d) (new : KeygenCorrect C p)
     (sign : ∀ (k : signing_key.SigningKey P (Array U8 sk) (Array U8 vk) (Array U8 sig)) (m ctx : Slice U8)
@@ -66,7 +66,7 @@ private theorem facades (positive : 0<p.d) (new : KeygenCorrect C p)
   · intro c laws k shape ours same m ctx s valid parsed sameSig room
     apply WP.spec_mono (verify ours m ctx parsed room)
     intro out eq
-    simpa [verify_context c p laws k shape _ _ s valid,←sameSig,←same] using eq
+    simpa [verify_context c p laws positive k shape _ _ s valid,←sameSig,←same] using eq
 
 end
 
