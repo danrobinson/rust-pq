@@ -44,11 +44,11 @@ structure State where
   mem : Std.TreeMap Nat Atom := {}
   cmp : Option (Bool × Bool) := none -- LS and HS
 def stack := 0x200000
-def key := 0x300000
-def rand := 0x400000
-def ctx := 0x500000
-def msg := 0x600000
-def out := 0x700000
+def key := ArmKeygen.base
+def rand := ArmInternalSigner.rand
+def ctx := 0x900000
+def msg := ArmInternalSigner.msg
+def out := ArmInternalSigner.descriptor
 def g (s : State) (r : Nat) := if r == 31 then lit 0 else s.g.getD r (bytes 8 (.unknown r))
 def q (s : State) (r : Nat) := s.q.getD r (bytes 16 (.unknown (32+r)))
 def base (s : State) (r : Nat) := if r == 31 then some s.sp else natV (g s r)
@@ -144,10 +144,12 @@ def window (im : Image) (s : State) (first last target : Nat) : Option State := 
   guard (t.pc == im.entry+4*last && w/2^26 == 0x25 && addr t.pc (4*signExt (w%2^26) 26) == target)
   return t
 
-/-- Preserve precisely the callee-saved integer registers and the frame at
+/-- Preserve only the forwarded argument registers, frame pointer and frame at
     the two inline-SHA cutpoints. Scratch values cannot supply a checked argument. -/
-def cutpoint (s : State) (pc : Nat) : State :=
-  let regs := (List.range 31).foldl (fun m r => if r < 19 || r == 30 then m.erase r else m) s.g
+def cutpoint (n : Nat) (s : State) (pc : Nat) : State :=
+  let live := if n == 16 then [20,21,22,23,24,25,26,29] else [20,21,23,24,25,29]
+  let regs := (List.range 31).foldl
+    (fun m r => if live.contains r then m else m.insert r (bytes 8 (.unknown (100+r)))) s.g
   {s with pc, cmp := none, q := {}, g := regs}
 
 structure Layout where
@@ -171,24 +173,35 @@ structure Frame where
   digest : List Fragment
 deriving DecidableEq, Repr
 
-def checked (im : Image) : Option Frame := do
+def atDigest (im : Image) : Option (State × Frame) := do
   let l ← layout im.p.n
   guard (im.record == ArmKeygen.parameterBytes im.p && im.p.family == .sha2 &&
     im.copyEnd < im.innerStart && im.innerEnd < im.digestStart)
   let s ← window im (init im) 0 im.copyEnd im.memcpy
   let pref := s.sp+l.frameBase
+  -- The inlined ipad and opad block code consumes the staged SK.prf.
+  let staged ← if l.n == 16 then read s (s.sp+64) 16
+    else if l.n == 24 then do pure ((← read s (s.sp+80) 16) ++ (q s 8).take 8)
+    else do pure ((← read s (s.sp+96) 16) ++ (← read s (s.sp+80) 16))
+  guard (staged == bytes l.n (fun i => .key (l.n+i)))
+  let hlen := if l.n == 16 then 32 else 64
+  guard (ArmKeygen.disjoint pref (l.n+2+255) (s.sp+l.state) hlen &&
+    ArmKeygen.disjoint pref (l.n+2+255) (s.sp+l.inner) hlen &&
+    ArmKeygen.disjoint (s.sp+l.inner) hlen (s.sp+l.state) hlen)
   guard (g s 0 == lit (pref+l.n+2) && g s 1 == lit ctx && g s 2 == bytes 8 .ctxSize &&
     pref+l.n+2+255 ≤ stack && (← read s pref l.n) == bytes l.n .random &&
     (← read s (pref+l.n) 2) == [.lit 0,.ctxSize 0])
-  let t ← window im (cutpoint s (im.entry+4*im.innerStart)) im.innerStart im.innerEnd im.continued
+  let t ← window im (cutpoint l.n s (im.entry+4*im.innerStart)) im.innerStart im.innerEnd im.continued
   guard (g t 0 == lit (s.sp+l.inner) && g t 1 == lit (s.sp+l.state) &&
     g t 2 == lit (if l.n == 16 then 64 else 128) && g t 3 == lit pref &&
     g t 4 == bytes 8 (.prefixSize (l.n+2)) && g t 5 == lit msg && g t 6 == bytes 8 .msgSize)
-  let u ← window im (cutpoint t (im.entry+4*im.digestStart)) im.digestStart im.digestEnd im.digest
+  let u ← window im (cutpoint l.n t (im.entry+4*im.digestStart)) im.digestStart im.digestEnd im.digest
   guard (g u 0 == lit (s.sp+l.vec) && g u 1 == lit im.p.m && g u 2 == lit (s.sp+l.outer) &&
     g u 3 == lit (key+2*l.n) && g u 4 == lit (key+3*l.n) && g u 5 == lit ctx &&
     g u 6 == bytes 8 .ctxSize && g u 7 == lit msg && (← read u s.sp 8) == bytes 8 .msgSize)
-  return ⟨[.random,.zero,.size,.context,.message],[.zero,.size,.context,.message]⟩
+  return (u,⟨[.random,.zero,.size,.context,.message],[.zero,.size,.context,.message]⟩)
+
+def checked (im : Image) : Option Frame := (atDigest im).map Prod.snd
 
 def evaluate (random ctx msg : Bytes) (fs : List Fragment) : Bytes :=
   fs.flatMap fun f => match f with
