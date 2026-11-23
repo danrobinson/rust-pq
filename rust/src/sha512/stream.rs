@@ -43,7 +43,7 @@ fn round(v: [u64; 8], wk: u64) -> [u64; 8] {
 
 cpufeatures::new!(dedicated, "sha");
 pub(super) fn prefix<'a>(state: &mut [u64; 8], blocks: &'a [[u8; 128]]) -> &'a [[u8; 128]] {
-    if blocks.len() < 8 || !available::get() {
+    if FORCE_SOFT || blocks.len() < 8 || !available::get() {
         return blocks;
     }
     let (groups, tail) = blocks.as_chunks::<8>();
@@ -53,6 +53,49 @@ pub(super) fn prefix<'a>(state: &mut [u64; 8], blocks: &'a [[u8; 128]]) -> &'a [
     }
     tail
 }
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw,bmi2")]
+fn schedule_word(w: &mut [core::arch::x86_64::__m512i; 16], i: usize) -> [u64; 8] {
+    use core::arch::x86_64::*;
+    if i >= 16 {
+        let x = w[(i + 1) % 16];
+        let y = w[(i + 14) % 16];
+        let a = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<1>(x),
+            _mm512_ror_epi64::<8>(x),
+            _mm512_srli_epi64::<7>(x),
+        );
+        let b = _mm512_ternarylogic_epi64::<0x96>(
+            _mm512_ror_epi64::<19>(y),
+            _mm512_ror_epi64::<61>(y),
+            _mm512_srli_epi64::<6>(y),
+        );
+        w[i % 16] = _mm512_add_epi64(
+            _mm512_add_epi64(a, b),
+            _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
+        );
+    }
+    let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
+    // SAFETY: the row and the vector have identical size and x86 lane order.
+    unsafe { core::mem::transmute(wk) }
+}
+
+#[inline]
+#[target_feature(enable = "avx512f,avx512bw,bmi2")]
+fn schedule_table(mut w: [core::arch::x86_64::__m512i; 16]) -> [[u64; 8]; 80] {
+    let mut ordered = [[0u64; 8]; 80];
+    // Expand in round order with fixed ring-buffer indices. Dynamic indices
+    // spill the sixteen-word sliding window on some AVX-512 processors.
+    macro_rules! expand {
+        ($index:expr) => {{
+            let i: usize = $index;
+            ordered[i] = schedule_word(&mut w, i);
+        }};
+    }
+    rounds!(expand);
+    ordered
+}
+
 #[target_feature(enable = "avx512f,avx512bw,bmi2")]
 fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
     use core::arch::x86_64::*;
@@ -61,44 +104,15 @@ fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
         0x08090a0b, 0x0c0d0e0f, 0x00010203, 0x04050607,
     ));
     for blocks in groups {
-        let mut ordered = [[0u64; 8]; 80];
         // Each gather reads the same word from every complete block in this group.
-        let mut w: [__m512i; 16] = core::array::from_fn(|i| unsafe {
+        let w: [__m512i; 16] = core::array::from_fn(|i| unsafe {
             let ptr = blocks.as_ptr().cast::<u8>();
             _mm512_shuffle_epi8(
                 _mm512_i32gather_epi64::<8>(offsets, ptr.add(i * 8).cast()),
                 swap,
             )
         });
-        // Expand in round order with fixed ring-buffer indices. Dynamic indices
-        // spill the sixteen-word sliding window on some AVX-512 processors.
-        macro_rules! expand {
-            ($index:expr) => {{
-                let i: usize = $index;
-                if i >= 16 {
-                    let x = w[(i + 1) % 16];
-                    let y = w[(i + 14) % 16];
-                    let a = _mm512_ternarylogic_epi64::<0x96>(
-                        _mm512_ror_epi64::<1>(x),
-                        _mm512_ror_epi64::<8>(x),
-                        _mm512_srli_epi64::<7>(x),
-                    );
-                    let b = _mm512_ternarylogic_epi64::<0x96>(
-                        _mm512_ror_epi64::<19>(y),
-                        _mm512_ror_epi64::<61>(y),
-                        _mm512_srli_epi64::<6>(y),
-                    );
-                    w[i % 16] = _mm512_add_epi64(
-                        _mm512_add_epi64(a, b),
-                        _mm512_add_epi64(w[i % 16], w[(i + 9) % 16]),
-                    );
-                }
-                let wk = _mm512_add_epi64(w[i % 16], _mm512_set1_epi64(super::K[i] as i64));
-                // SAFETY: the row and the vector have identical size and x86 lane order.
-                ordered[i] = unsafe { core::mem::transmute(wk) };
-            }};
-        }
-        rounds!(expand);
+        let ordered = schedule_table(w);
         for lane in 0..8 {
             let mut v = *state;
             macro_rules! step {
@@ -115,15 +129,30 @@ fn prescheduled(state: &mut [u64; 8], groups: &[[[u8; 128]; 8]]) {
 }
 
 cpufeatures::new!(has_bmi2, "bmi2");
+cpufeatures::new!(hardware_backend, "avx2");
+// RustCrypto also honors these build-time overrides before runtime detection.
+#[allow(unexpected_cfgs)]
+const FORCE_SOFT: bool = cfg!(any(sha2_backend = "soft", sha2_512_backend = "soft"));
+
 pub(super) fn remainder(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
-    if has_bmi2::get() && !dedicated::get() {
-        // SAFETY: the scalar rounds require only BMI2.
-        unsafe { scalar(state, blocks) };
-    } else {
+    if FORCE_SOFT {
+        scalar(state, blocks);
+    } else if has_bmi2::get() && !dedicated::get() {
+        // SAFETY: the checked feature enables the BMI2-specialized code generation.
+        unsafe { scalar_bmi2(state, blocks) };
+    } else if hardware_backend::get() {
         sha2_platform::block_api::compress512(state, blocks);
+    } else {
+        scalar(state, blocks);
     }
 }
+
 #[target_feature(enable = "bmi2")]
+fn scalar_bmi2(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
+    scalar(state, blocks);
+}
+
+#[inline(always)]
 fn scalar(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
     for block in blocks {
         let mut w = core::array::from_fn(|i| read_word(block, i));
