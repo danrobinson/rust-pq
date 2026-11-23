@@ -12,3 +12,9 @@ The table gives the speedup from specializing the Keccak-f[1600] rho, pi and chi
 | Apple M5 Ultra | 5.04× | 5.03× | 4.64× |
 
 Each CPU ran a warm-up pair and six timed pairs of the public APIs, alternating executable order. Linux runs pinned the benchmark process to one vCPU. The local Apple measurements used ordinary OS scheduling. The per-workload file includes median latencies in nanoseconds and the range of observed paired speedups. The SHA-2 study reports overhead against separately measured native SHA-256 and SHA-512 compression. SHAKE uses a different permutation. [Raw SHAKE samples](results/merged/shake.csv.gz) · [216 workload results](results/merged/shake-summary.csv) · [SHA-2 raw-throughput comparison](headroom.md)
+
+## SHA-2 compression refactor
+
+The AVX-512 kernels now expose a round-and-schedule step to the proof extractor while preserving their unrolled calls. The median paired speedups across the 36 SHA-2 workloads were 0.9994× on the older Xeon, 0.9999× on EPYC and 0.9986× on the newer Xeon. Individual workload medians ranged from 0.9812× to 1.0278×. The same three platforms passed the compression differential suite after the refactor. The merged platform builds also passed the full core and adapter suites on all five EC2 CPUs. [Raw measurements](results/merged/wide-refactor.csv.gz) · [108 workload results](results/merged/wide-refactor-summary.csv) · [Test counts](results/merged/validation.csv)
+
+Run `python3 bench/summarize-merged.py` from the checkout to regenerate both summary tables from the raw samples.
