@@ -87,6 +87,7 @@ macro_rules! parameter_set {
             }
 
             /// The public key held in a private key: `PK.seed ‖ PK.root`.
+            #[inline]
             pub fn public_key(sk: &[u8; SK_BYTES]) -> [u8; PK_BYTES] {
                 let mut pk = [0u8; PK_BYTES];
                 crate::$($family::)?api::public_key::<N>(sk, &mut pk);
@@ -116,6 +117,7 @@ macro_rules! parameter_set {
             use params::{PKCS8_BYTES, SPKI_BYTES};
 
             /// A private key from its bytes: any `4n` bytes, and nothing else.
+            #[inline]
             pub fn secret_key_from(bytes: &[u8]) -> Option<[u8; SK_BYTES]> {
                 let mut sk = [0u8; SK_BYTES];
                 if crate::encoding::secret_key_from(bytes, &mut sk) {
@@ -126,6 +128,7 @@ macro_rules! parameter_set {
             }
 
             /// A public key from its bytes: any `2n` bytes, and nothing else.
+            #[inline]
             pub fn public_key_from(bytes: &[u8]) -> Option<[u8; PK_BYTES]> {
                 let mut pk = [0u8; PK_BYTES];
                 if crate::encoding::public_key_from(bytes, &mut pk) {
