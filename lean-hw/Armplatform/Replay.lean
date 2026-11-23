@@ -20,7 +20,8 @@ private partial def rebuild (destination : Name) (source : Name) (names : IO.Ref
   -- Only declarations compiled from the library and its proofs can refer to
   -- a library implementation. Imported arithmetic and Aeneas remain shared.
   let some idx := env.getModuleIdxFor? source | return source
-  unless (`Slhdsa).isPrefixOf env.header.moduleNames[idx]! do return source
+  let origin := env.header.moduleNames[idx]!
+  unless (`Slhdsa).isPrefixOf origin || (`Armplatform).isPrefixOf origin do return source
   let info ← getConstInfo source
   let some body := info.value? true | return source
   let mut changed := false
@@ -73,4 +74,23 @@ def bindEntry (theoremName previousEntry actualEntry actualTheorem : Name) : Cor
                         levelParams := info.levelParams
                         type
                         value := mkConst theoremName (info.levelParams.map Level.param) }
+end PlatformProof
+
+namespace PlatformProof
+open Lean Meta
+
+/-- Transport a complete interface theorem across a proved equality of functions. -/
+def transport (theoremName previousEntry actualEntry equality target : Name) : MetaM Unit := do
+  let info ← getConstInfo theoremName
+  unless info.type.getUsedConstants.contains previousEntry do
+    throwError "{theoremName} does not mention {previousEntry}"
+  let impl := mkConst actualEntry
+  withLocalDeclD `implementation (← inferType impl) fun f => do
+    let predicate ← mkLambdaFVars #[f] (info.type.replace fun
+      | .const n _ => if n == previousEntry then some f else none
+      | _ => none)
+    let eq ← mkAppM ``congrArg #[predicate, mkConst equality]
+    let proof ← mkAppM ``Eq.mp #[eq, mkConst theoremName (info.levelParams.map Level.param)]
+    addDecl <| .thmDecl { name := target, type := (mkApp predicate impl).headBeta,
+                          levelParams := info.levelParams, value := proof }
 end PlatformProof
