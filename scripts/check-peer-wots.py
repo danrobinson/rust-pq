@@ -20,7 +20,11 @@ def prepare(path, name):
     harness = (ROOT / "scripts/peer-wots/proof.rs").read_text()
     ty, n = SUITES[name]
     module = "proof_" + name
-    (path / "src" / (module + ".rs")).write_text(harness.replace("PEER_TYPE", ty).replace("PARAM_N", str(n)))
+    # SHAKE's longest chain-harness helper inspects 32 address bytes. The
+    # SHA-2 seeded constructor also initializes a complete SHA block.
+    chain_unwind = 34 if name.startswith("shake_") else 150
+    source = harness.replace("PEER_TYPE", ty).replace("PARAM_N", str(n))
+    (path / "src" / (module + ".rs")).write_text(source.replace("CHAIN_UNWIND", str(chain_unwind)))
     common["append"](path / "src/wots.rs", f'#[cfg(kani)] #[path="{module}.rs"] pub(crate) mod {module};')
     # The three hash functions are the compositional cut. Intercept their concrete
     # impls because Kani cannot stub a trait declaration lacking a default body.
