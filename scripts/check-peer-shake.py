@@ -45,10 +45,15 @@ variable {S : Type} (x : Xof S)
     return result + "\nend PeerShake\n"
 
 
-def extract(p):
+def extract(p, target):
     import json
     manifest = locked["unpack"](p, "slh-dsa", "0.2.0-rc.5")
     recipe = {}
+    # This target's baseline excludes SSE2. Its unrelated SHA-2 dependency
+    # cannot lower its x86 intrinsics in this Charon toolchain.
+    env = os.environ.copy()
+    if target == "x86_64-unknown-none":
+        env["RUSTFLAGS"] = (env.get("RUSTFLAGS", "") + ' --cfg sha2_backend="soft"').strip()
     for shape,(n,k,m) in SHAPES.items():
         entry = "peer_shake_"+shape
         root = (source / "roots.rs").read_text().replace("ROOT",entry).replace("PEER_TYPE","Shake"+shape)
@@ -58,8 +63,8 @@ def extract(p):
         subprocess.run([ROOT/".tools/aeneas/charon/bin/charon","cargo","--monomorphize","--hide-marker-traits",
                         "--hide-allocator","--reconstruct-asserts","--reconstruct-matches","--start-from","crate::"+entry,
                         *[v for name in ("sha3","digest","hybrid_array","typenum","zerocopy","core") for v in ("--opaque",name)],
-                        "--dest-file",file,"--","--locked","--manifest-path",manifest,"--target-dir",p/"target"],
-                       cwd=p, check=True)
+                        "--dest-file",file,"--","--locked","--manifest-path",manifest,"--target",target,"--target-dir",p/"target"],
+                       cwd=p, env=env, check=True)
         ir = lower["Lower"](json.loads(file.read_text()))
         counts = Counter()
         for f in ir.fns:
@@ -81,17 +86,21 @@ def extract(p):
             counts[op] += 1
         if counts != {"new_from_pk_seed": 1, "prf_msg": 1, "h_msg": 1, "prf_sk":2,"t":2,"h":2,"f":2}:
             raise ValueError(f"unexpected {shape} peer call graph: {counts}")
-        print(f"{shape}: verified eleven concrete RustCrypto SHAKE method bodies", flush=True)
+        print(f"{target} {shape}: verified eleven concrete RustCrypto SHAKE method bodies", flush=True)
     return program(recipe)
 
 
 def main():
     os.environ["PATH"] = os.pathsep.join(str(Path.home()/tool/"bin") for tool in (".elan",".cargo"))+os.pathsep+os.environ["PATH"]
-    with tempfile.TemporaryDirectory(prefix="peer-hash-shake-") as d:
-        content = extract(Path(d))
     lean = ROOT/"lean-hw"
-    if (lean/"Shakebatch/PeerHashProgram.lean").read_text() != content:
-        raise ValueError("fresh RustCrypto SHAKE MIR differs from the verified Lean program")
+    expected = (lean/"Shakebatch/PeerHashProgram.lean").read_text()
+    targets = ("aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
+               "i686-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "wasm32-unknown-unknown",
+               "x86_64-unknown-none")
+    for target in targets:
+        with tempfile.TemporaryDirectory(prefix="peer-hash-shake-") as d:
+            if extract(Path(d), target) != expected:
+                raise ValueError(f"{target} RustCrypto SHAKE MIR differs from the verified Lean program")
     subprocess.run(["lake","build","Shakebatch.PeerHashProof"],cwd=lean,check=True)
     with tempfile.TemporaryDirectory(prefix="peer-shake-axioms-") as d:
         check = Path(d) / "Check.lean"
