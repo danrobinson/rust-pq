@@ -1026,3 +1026,4 @@ unset platform_arch
 python3 "$root/scripts/check-arm-api-proof.py"
 python3 "$root/scripts/check-platform-encoding.py"
 python3 "$root/scripts/check-portable-shake.py"
+sh "$root/scripts/check-keccak-assembly.sh"
