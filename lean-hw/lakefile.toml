@@ -155,3 +155,6 @@ name = "X86key"
 
 [[lean_lib]]
 name = "Armplatform"
+
+[[lean_lib]]
+name = "Xfors"
