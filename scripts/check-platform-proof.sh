@@ -1025,3 +1025,4 @@ grep -Fx "'slhdsa.PlatformShake.shake256_fips' depends on axioms: [propext, Clas
 unset platform_arch
 python3 "$root/scripts/check-arm-api-proof.py"
 python3 "$root/scripts/check-platform-encoding.py"
+python3 "$root/scripts/check-portable-shake.py"
