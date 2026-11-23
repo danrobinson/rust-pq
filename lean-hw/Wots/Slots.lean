@@ -87,4 +87,23 @@ theorem slot_regs_spec (lanes : Reg) (first : U32) (atSlot len : Usize)
       simp [BitVec.toNat_sub,BitVec.toNat_ofNat]
       omega
   · simp only [show j.val+atSlot.val%len.val = atSlot.val%len.val+j.val by omega,Nat.cast_le,cross,decide_false,ite_false,Nat.add_zero,and_self]
+
+/-- Both bulk-copy ranges address exactly the keypair and slot computed for each live SIMD lane. -/
+theorem destination_spec (atSlot len used j : Nat) (lenLo : 16 ≤ len)
+    (hu : used ≤ 16) (hj : j < used) :
+    let firstWidth := min used (len-atSlot%len)
+    ((atSlot+j)/len,(atSlot+j)%len) =
+      if j < firstWidth then (atSlot/len,atSlot%len+j)
+      else (atSlot/len+1,j-firstWidth) := by
+  have hm := Nat.mod_lt atSlot (by omega : 0 < len)
+  obtain ⟨hq,hr⟩ := slot_components atSlot len j lenLo (by omega)
+  dsimp only
+  rw [hq,hr]
+  by_cases h : j < min used (len-atSlot%len)
+  · have stays : ¬len ≤ atSlot%len+j := by omega
+    simp only [if_neg stays,if_pos h,Nat.add_zero]
+  · have cross : len ≤ atSlot%len+j := by omega
+    simp only [if_pos cross,if_neg h,Prod.mk.injEq,true_and]
+    omega
+
 end slhdsa.X86.Wots
