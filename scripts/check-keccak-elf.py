@@ -44,12 +44,12 @@ class Region:
     data: bytes
 
 
-def mapped(raw, loads, addr, size, flags):
+def mapped(raw, loads, addr, size, flags, page_size=4096):
     require(0 < size < 2**32 and 0 <= addr < addr + size <= 2**64, "invalid virtual range")
-    # Linux x86-64 uses a 4 KiB base page. Reject an overlapping load even when
-    # overlap arises solely from the page rounding in mmap.
-    mappings = [ph for ph in loads if (ph["p_vaddr"] & ~4095) < addr + size and
-                addr < ((ph["p_vaddr"] + ph["p_memsz"] + 4095) & ~4095)]
+    # Reject load overlap even when it arises solely from page rounding in mmap.
+    mask = page_size - 1
+    mappings = [ph for ph in loads if (ph["p_vaddr"] & ~mask) < addr + size and
+                addr < ((ph["p_vaddr"] + ph["p_memsz"] + mask) & ~mask)]
     require(len(mappings) == 1, "ambiguous or missing load mapping")
     ph = mappings[0]
     delta = addr - ph["p_vaddr"]
@@ -60,7 +60,7 @@ def mapped(raw, loads, addr, size, flags):
     return Region(addr, offset, raw[offset:offset+size])
 
 
-def check_relocations(elf, loads):
+def check_relocations(elf, loads, pointer_types=(1, 6, 7, 8)):
     dynamic = list(elf.iter_segments("PT_DYNAMIC"))
     require(len(dynamic) <= 1, "multiple dynamic segments")
     if not dynamic:
@@ -71,11 +71,11 @@ def check_relocations(elf, loads):
         require(isinstance(name, str) and "ANDROID" not in name, "unsupported dynamic tag")
         require(name != "DT_TEXTREL" and not (name == "DT_FLAGS" and tag.entry.d_val & 4),
                 "load image permits text relocations")
-    # Accept the common x86-64 pointer relocations, each writing one 8-byte value.
+    # All supported target-specific pointer relocations write one 8-byte value.
     # Reject COPY, other variable-width writes, or targets outside writable loads.
     for table, entries in dyn.get_relocation_tables().items():
         for r in entries.iter_relocations():
-            require(table == "RELR" or r["r_info_type"] in (1, 6, 7, 8),
+            require(table == "RELR" or r["r_info_type"] in pointer_types,
                     "unsupported dynamic relocation")
             place = r["r_offset"]
             require(any(p["p_flags"] & 2 and p["p_vaddr"] <= place and
