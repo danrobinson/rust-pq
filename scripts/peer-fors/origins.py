@@ -90,7 +90,15 @@ class Machine:
                 if line.endswith(":"):
                     label = line[:-1]
                     blocks[label] = []
-                elif label is not None:
+                else:
+                    if label is None:
+                        # LLVM numbers an unnamed entry block immediately after
+                        # any unnamed argument registers.
+                        numbers = [
+                            int(x[1:]) for x in registers if x and x[1:].isdigit()
+                        ]
+                        label = str(max(numbers, default=-1) + 1)
+                        blocks[label] = []
                     blocks[label].append(line.split(", !", 1)[0])
             self.functions[name] = (registers, blocks)
         self.blocks = []
@@ -146,6 +154,10 @@ class Machine:
 
         def val(token):
             if token.startswith("%"):
+                if token not in registers:
+                    raise ValueError(
+                        f"undefined register {token} in {name}:{label} at {line[:130]}"
+                    )
                 return registers[token]
             if token in ("false", "true"):
                 return int(token == "true")
@@ -375,6 +387,19 @@ class Machine:
                     elif callee.startswith("llvm.usub.sat."):
                         result = max(0, self.number(av[0]) - self.number(av[1]))
                     elif callee.endswith("___rust_no_alloc_shim_is_unstable_v2"):
+                        continue
+                    elif callee in ("malloc", "calloc"):
+                        args = list(map(self.number, av))
+                        n = args[0] if callee == "malloc" else args[0] * args[1]
+                        result = self.allocate(
+                            ([None] if callee == "malloc" else [0]) * n, 16
+                        )
+                    elif callee == "free":
+                        (ptr,) = av
+                        if ptr is not None:
+                            if ptr.offset or ptr.block in self.dead:
+                                raise ValueError("invalid free")
+                            self.dead.add(ptr.block)
                         continue
                     elif callee.endswith(("___rust_alloc", "___rust_alloc_zeroed")):
                         n, align = map(self.number, av)
