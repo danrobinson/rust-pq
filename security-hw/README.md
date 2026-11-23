@@ -1,6 +1,6 @@
 # security-hw
 
-The security theorems of `../security` (SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}), compiled
+The security theorems of `../security` (the six SHA-2 and six SHAKE parameter sets of SLH-DSA), compiled
 against the translation of `../rust` built with `hw-sha2` (`../lean-hw`) instead of the
 portable build's (`../lean`).
 

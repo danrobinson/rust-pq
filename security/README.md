@@ -1,6 +1,6 @@
 # security
 
-Machine-checked security results for SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f} (Lean 4.36.0, Mathlib
+Machine-checked security results for the six SHA-2 and six SHAKE parameter sets of SLH-DSA (Lean 4.36.0, Mathlib
 v4.36.0), attached to the verified Rust crate `../rust` (portable build; `../security-hw` compiles the
 same files against the `hw-sha2` build). One Lake project; every library is a default target, so
 `lake build` builds all of it (about 4 minutes from scratch on a 36-core machine, dependencies prebuilt).
@@ -67,3 +67,11 @@ scripts/check.sh                               # generators, build, placeholder 
 
 `scripts/check.sh` reads the single-set tree's statements from git commit `26aa3d8` (the templates of the
 ME2E generators and of the MIdeal textual check), so it needs the repository's history.
+
+## SHAKE security
+
+For 128s, 128f, 192s, 192f, 256s and 256f, [the Rust theorems](ME2E/ShakeRust.lean) identify extracted key generation, internal signing and verification, and pure context-string signing and verification with the byte-level cores in the security games. Keys have the specified lengths. The pure-interface corollaries assume the existing machine-length bound for constructing the context-prefixed message. Internal signing and verification accept arbitrary message slice lengths.
+
+[The concrete reduction](MReduction/Shake.lean) bounds classical existential and strong forgery advantages by twelve explicit primitive-attack terms, for both the internal and pure byte-string schemes. [The primitive bundle](MLink/ShakePrimitives.lean) uses the same executable SHAKE256 as the Rust refinement and the full 32-byte FIPS address. A numerical estimate for the deployed sponge still requires assumptions about those primitive attacks.
+
+[The ideal-oracle theorems](MReduction/ShakeIdeal.lean) give separate classical query-bounded estimates for strong and existential forgery of the internal scheme, including the fresh uniform signing-randomizer variant. They specialize VCVio's single byte-string random-oracle proof. [Oracle conformance](MReduction/ShakeOracle.lean) proves that answering this game's oracle with the executable SHAKE256 yields exactly the concrete internal scheme, including the use of shorter prefixes of one XOF answer. The ideal probabilities concern a randomly sampled oracle. Quantum-query adversaries are outside these games.
