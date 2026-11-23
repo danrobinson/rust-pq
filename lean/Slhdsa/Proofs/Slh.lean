@@ -173,18 +173,13 @@ theorem slh_keygen_internal_spec {N : Usize} (p : params.Params) (hp : PN p N)
   have hn := hp.le32
   have hd := hv.d_ge
   simp only [paramsS_d] at hd
-  have hhp := hv.hp_le
-  simp only [paramsS_hp] at hhp
-  have hpow : (0 + 1) * 2 ^ p.hp.val ≤ 2 ^ 32 := by
-    have : 2 ^ p.hp.val ≤ 2 ^ 9 := Nat.pow_le_pow_right (by decide) hhp
-    omega
   unfold slh.slh_keygen_internal
   let* ⟨ a, a_post ⟩ ← adrs_new_spec
   let* ⟨ i, i_post ⟩ ← U32.sub_spec
   let* ⟨ adrs, adrs_post ⟩ ← with_layer_spec
   let* ⟨ seed, seed_pk, seed_ok ⟩ ← seed_ctx_spec hp.nok
-  let* ⟨ pk_root, pk_root_post ⟩ ← xmss_node_spec p hp sk_seed 0#u32 p.hp seed seed_ok adrs
-    (by simpa using hpow)
+  let* ⟨ pk_root, pk_root_post ⟩ ← xmss_tree_node_spec p hp sk_seed 0#u32 p.hp seed seed_ok adrs
+    (by simp)
   step*
   all_goals try (subst_vars; scalar_tac)
   have hl1 : sk_seed.val.length = N.val := by simp
