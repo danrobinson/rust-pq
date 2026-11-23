@@ -50,3 +50,6 @@ name = "Paired"
 [[lean_lib]]
 name = "Shani"
 srcDir = "../lean"
+
+[[lean_lib]]
+name = "Parent512"

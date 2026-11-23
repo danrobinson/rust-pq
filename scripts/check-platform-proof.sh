@@ -19,6 +19,9 @@ extract() {
     opaque=slhdsa::sha512::hw::arm
     proofdir=lean-hw
   fi
+  if [ "$package" = Parent512 ]; then
+    proofdir=lean-hw
+  fi
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
     --opaque "$opaque" --dest-file "$scratch/$llbc.llbc" -- \
@@ -115,3 +118,25 @@ import Slhdsa.Proofs.ShaNi
 LEAN
 )
 grep -Fx "'slhdsa.Intel.compress_pair_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/shani-axioms.log"
+
+extract Parent512 ParentsRust parent512 --start-from 'crate::sha512::x86::compress_parents'
+cat > "$scratch/expected" <<'NAMES'
+Array.Insts.CoreIterTraitsCollectIntoIteratorTIntoIter.into_iter
+core.array.Array.map
+core.array.iter.IntoIter
+core.array.iter.IntoIter.Insts.CoreIterTraitsIteratorIterator.next
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_add_epi64
+core.core_arch.x86.avx512f._mm512_ror_epi64
+core.core_arch.x86.avx512f._mm512_set1_epi64
+core.core_arch.x86.avx512f._mm512_srli_epi64
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+core.intrinsics.transmute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Parent512.Proof && lake env lean --stdin > "$scratch/parent512-axioms.log" <<'LEAN'
+import Parent512.Proof
+#print axioms slhdsa.X86.S512.Parents.parents_spec
+LEAN
+)
+grep -Fx "'slhdsa.X86.S512.Parents.parents_spec' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/parent512-axioms.log"
