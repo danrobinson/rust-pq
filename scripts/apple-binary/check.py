@@ -20,6 +20,7 @@ from reject import certificate as rejection_certificate
 from keygen_witness import certificate as keygen_certificate
 from signer_witness import certificate as signer_certificate
 from verify_length_witness import certificate as verify_length_certificate
+from verify_body_witness import certificate as verify_body_certificate
 from pure_sign import (
     verify as pure_sign_certificate,
     mutation_tests as pure_sign_mutations,
@@ -340,6 +341,7 @@ if __name__ == "__main__":
             "Spec.ArmKeygen",
             "Spec.ArmInternalSigner",
             "Spec.ArmVerifyLength",
+            "Spec.ArmVerifyBody",
             "Spec.ArmRateBlocks",
             "Spec.SlhDsa",
         ],
@@ -387,12 +389,18 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
-        for witness in (rejection_certificate, keygen_certificate, signer_certificate, verify_length_certificate):
+        for witness, arguments in (
+            (rejection_certificate, (image,)),
+            (keygen_certificate, (image,)),
+            (signer_certificate, (image, snapshot)),
+            (verify_length_certificate, (image,)),
+            (verify_body_certificate, (image,)),
+        ):
             subprocess.run(
                 ["lake", "env", "lean", "--stdin"],
                 cwd=ROOT / "lean",
                 env=env,
-                input=witness(image),
+                input=witness(*arguments),
                 text=True,
                 check=True,
             )
