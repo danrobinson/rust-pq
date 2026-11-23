@@ -2,7 +2,7 @@ import Spec.ArmVerifyLength
 import Spec.ArmSignCoordinates
 import Spec.ArmRootComparison
 
-/-! Restricted interpreter for the linked SHAKE-128 internal verification drivers.
+/-! Restricted interpreter for the linked SHAKE internal verification drivers.
 The public wrapper and first H_msg call are replayed by ArmVerifyLength.hashEntry.
 The remaining instructions read symbolic digest byte offsets, authorize each
 callee against its actual arguments, and propagate opaque root/coordinate cells
@@ -22,6 +22,8 @@ structure Image where
   fors : Nat
   xmss : Nat
   free : Nat
+  ht : Nat
+  htWords : Array Nat
 
 def config (im : Image) : Config := ⟨im.p.n,im.p.d,im.p.hp,im.gate.entry,0,im.gate.param,im.gate.params,true,.shake⟩
 def digestPtr := 0x1000000
@@ -116,6 +118,41 @@ theorem compareBytes (m : LinkedArm.RootComparison.ByteMemory) (s : LinkedArm.Ro
     List.range_succ, List.foldlM, Bool.and_eq_true, and_assoc,
     BitVec.sub_eq_add_neg, BitVec.add_assoc]
 
+def wideCompare (n : Nat) : List Nat :=
+  if n == 24 then [0xa94227e8,0xf94007ed,0xa9402daa,0xf9401bec,0xf94009ad,0xeb0a011f,0xfa4b0120,0xfa4d0180,0x1a9f17e0]
+  else [0xa94227e8,0xf94007ef,0xa9402dea,0xa94337ec,0xa9413dee,0xeb0a011f,0xfa4b0120,0xfa4e0180,0xfa4f01a0,0x1a9f17e0]
+
+theorem compareWideBytes (n : Nat) (width : n = 24 ∨ n = 32)
+    (m : LinkedArm.RootComparison.ByteMemory) (s : LinkedArm.RootComparison.State) :
+    LinkedArm.RootComparison.verdict (wideCompare n) (LinkedArm.RootComparison.load64 m) s =
+      some (if LinkedArm.RootComparison.byteSlice m (s.sp + 32) n =
+        LinkedArm.RootComparison.byteSlice m (LinkedArm.RootComparison.load64 m (s.sp + 8)) n then 1 else 0) := by
+  rcases width with rfl | rfl <;>
+    simp [wideCompare, LinkedArm.RootComparison.verdict, LinkedArm.RootComparison.step,
+      LinkedArm.RootComparison.base, LinkedArm.RootComparison.operand, LinkedArm.RootComparison.write,
+      LinkedArm.RootComparison.load64_eq, LinkedArm.RootComparison.byteSlice,
+      List.range_succ, List.foldlM, Bool.and_assoc, Bool.and_eq_true, and_assoc,
+      BitVec.sub_eq_add_neg, BitVec.add_assoc]
+
+/-- The normalization rule carries the proof for its actual instruction list.
+`lhs` and `rhs` are the source addresses read by the hardware comparison. -/
+structure CertifiedComparison (n : Nat) where
+  words : List Nat
+  lhs : LinkedArm.RootComparison.State → LinkedArm.RootComparison.Word
+  rhs : LinkedArm.RootComparison.ByteMemory → LinkedArm.RootComparison.State → LinkedArm.RootComparison.Word
+  correct : ∀ m s, LinkedArm.RootComparison.verdict words (LinkedArm.RootComparison.load64 m) s =
+    some (if LinkedArm.RootComparison.byteSlice m (lhs s) n =
+      LinkedArm.RootComparison.byteSlice m (rhs m s) n then 1 else 0)
+
+def cmp16 : CertifiedComparison 16 :=
+  ⟨compareWords,fun s => s.regs 29-160,fun _ s => s.sp+64,compareBytes⟩
+def cmp24 : CertifiedComparison 24 :=
+  ⟨wideCompare 24,fun s => s.sp+32,fun m s => LinkedArm.RootComparison.load64 m (s.sp+8),
+    compareWideBytes 24 (Or.inl rfl)⟩
+def cmp32 : CertifiedComparison 32 :=
+  ⟨wideCompare 32,fun s => s.sp+32,fun m s => LinkedArm.RootComparison.load64 m (s.sp+8),
+    compareWideBytes 32 (Or.inr rfl)⟩
+
 def value (c : Control) (r : Nat) : Option V :=
   if let some x := arg c.machine r then some (.num x)
   else c.expressions.lookup (g c.machine r)
@@ -136,8 +173,11 @@ def coordOp (im : Image) (c : Control) (w : Nat) : Option Control := do
   return assign im c (w%32) (← ArmSignCoordinates.regs target (w%32))
 
 def code (im : Image) (pc : Nat) : Option Nat := do
-  guard (pc ≥ im.body && pc%4 == 0)
-  im.words[(pc-im.body)/4]?
+  guard (pc%4 == 0)
+  if region pc 4 im.body (4*im.words.size) then im.words[(pc-im.body)/4]?
+  else
+    guard (region pc 4 im.ht (4*im.htWords.size))
+    im.htWords[(pc-im.ht)/4]?
 
 def tick (im : Image) (c : Control) : Option Control := do
   let s := c.machine
@@ -155,8 +195,16 @@ def tick (im : Image) (c : Control) : Option Control := do
   let reg := fun r => if r == 31 then some 0 else a r
   let set := fun r val => {cont with machine := put next r (num val)}
   let jump := fun (b : Bool) => {c with machine := {s with pc := if b then addr pc (4*signExt (w/32%2^19) 19) else pc+4}}
-  if w == compareWords.head! then
-    guard ((← (List.range 5).mapM (fun j => code im (pc+4*j))) == compareWords &&
+  if im.p.n != 16 && w == 0xa94227e8 then
+    let seq := if im.p.n == 24 then cmp24.words else cmp32.words
+    guard ((← (List.range seq.length).mapM (fun j => code im (pc+4*j))) == seq && c.layers == im.p.d)
+    let pkRoot ← natVal (← read s.m (s.sp+8) 8)
+    guard (cellBuffer s (s.sp+32) (root im.p.n c.layers) && cellBuffer s pkRoot (ArmKeygen.block im.p.n 2))
+    let next := (List.range 8).foldl (fun t j => put t (8+j) (unknown (9008+j) 2)) next
+    return {c with machine := {put next 0 verdict with pc := pc+4*seq.length},
+                   actions := c.actions ++ [.compare], flags := none}
+  if im.p.n == 16 && w == cmp16.words.head! then
+    guard ((← (List.range 5).mapM (fun j => code im (pc+4*j))) == cmp16.words &&
       c.layers == im.p.d && cellBuffer s ((← a 29)-160) (root 16 c.layers) &&
       cellBuffer s (s.sp+64) (ArmKeygen.block 16 2))
     -- All comparison temporaries/flags are forgotten except the output W0.
@@ -190,7 +238,9 @@ def tick (im : Image) (c : Control) : Option Control := do
   if w == 0xd37ef501 then
     guard (g s 8 == digitCap)
     return {cont with machine := put next 1 digitBytes}
-  if w == 0x92401559 then return set 25 ((← a 10)%64)
+  if mask 0xfffffc00 == 0x92401400 then return set d ((← a n)%64)
+  if mask 0xffe00000 == 0x8b000000 then
+    return set d (((← reg n)+((← reg m) <<< (w/1024%64)))%2^64)
   if mask 0x7fe08000 == 0x1b000000 then
     return set d (((← reg n)*(← reg m)+(← reg (w/1024%32)))%(if w/2^31 == 0 then radix else 2^64))
   if mask 0xffc0fc00 == 0x53007c00 then return set d (((← a n)%radix) >>> (w/65536%32))
@@ -207,13 +257,13 @@ def tick (im : Image) (c : Control) : Option Control := do
     let y ← if mask 0xffc00000 == 0xf1000000 then some imm else reg m
     let t := if d == 31 then cont else set d ((x+2^64-y)%2^64)
     return {t with flags := some (x == y, decide (x ≥ y))}
-  return {cont with machine := ← step (config im) s w}
+  return {cont with machine := ← step (config im) s w (some ([(im.gate.param,36),(base,2*im.p.n),(sk,im.p.n)],[]))}
 
 def expected (p : Params) := [.hash,.digits,.fors] ++ (List.range p.d).map Action.layer ++ [.compare]
 
 def init (im : Image) : Option Control := do
   let p := im.p
-  guard (p.n == 16 && im.gate.params == parameterBytes p)
+  guard ([16,24,32].contains p.n && p.hp ≤ 32 && p.h-p.h/p.d ≤ 64 && im.gate.params == parameterBytes p)
   let (s,args) ← hashEntry im.gate p.n p.sigBytes im.hmsg im.hashPath
   guard (args == expectedCall p.n)
   return {machine := s}
@@ -236,6 +286,10 @@ def location (p : Params) (dg : Bytes) : Nat → Nat × Nat
           ArmSignCoordinates.eval dg (ArmSignCoordinates.expected p).2)
   | j+1 => let t := (location p dg j).1
            (t >>> p.hp, t &&& (2^p.hp-1))
+
+theorem wordLeaf (t hp : Nat) (width : hp ≤ 32) :
+    (t % 2^32) &&& (2^hp-1) = t % 2^hp := by
+  rw [Nat.and_two_pow_sub_one_eq_mod,Nat.mod_mod_of_dvd _ (pow_dvd_pow 2 width)]
 
 theorem nextLocation (p : Params) (dg : Bytes) (j : Nat) :
     location p dg (j+1) = ((location p dg j).1 >>> p.hp, (location p dg j).1 % 2^p.hp) := by
@@ -264,7 +318,7 @@ structure Callees (p : Params) (msg sig pk : Bytes) where
     (location p digest j).2 {Adrs.zero with layer := j, tree := (location p digest j).1} (roots (j+1))
 
 /-- Interpret the tag returned in W0. The decoder produces that tag only for
-the proven 16-byte comparison, and checks it survives cleanup and RET. -/
+the proven full-width byte comparison, and checks it survives cleanup and RET. -/
 def returned {p msg sig pk} (v : Callees p msg sig pk) (events : List Action) : Bool :=
   if events.getLast? == some .compare then v.roots (events.filter (fun a => match a with
     | .layer _ => true | _ => false)).length == Spec.block p pk 1 else false
@@ -272,7 +326,6 @@ def returned {p msg sig pk} (v : Callees p msg sig pk) (events : List Action) : 
 private theorem expectedReturn {p msg sig pk} (v : Callees p msg sig pk) :
     returned v (expected p) = (v.roots p.d == Spec.block p pk 1) := by
   have last : (expected p).getLast? = some .compare := List.getLast?_concat
-  have cnt : ((List.range p.d).filter (fun _ => true)).length = p.d := by simp
   unfold returned
   rw [last]
   simp [expected,List.filter_map,Function.comp_def]
