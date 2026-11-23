@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -561,4 +561,63 @@ LEAN
 )
 for name in chains_spec fallback_eq; do
   grep -Fx "'slhdsa.X86.Dispatch.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-chain-axioms"
+done
+
+
+extract Wots WotsRust wots --start-from 'crate::sha256::x86::avx512::wots_endpoints' \
+  --start-from 'crate::sha256::x86::avx512::recover' --opaque 'crate::sha256::x86::avx512::write_words' \
+  --opaque 'crate::sha256::x86::avx512::round' --opaque 'crate::sha256::x86::avx512::compression_step' \
+  --opaque 'crate::hash::short_block'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.__m512i.Insts.CoreCloneClone.clone
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_add_epi32
+core.core_arch.x86.avx512f._mm512_and_si512
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.avx512f._mm512_cmpeq_epi32_mask
+core.core_arch.x86.avx512f._mm512_cmpge_epi32_mask
+core.core_arch.x86.avx512f._mm512_loadu_si512
+core.core_arch.x86.avx512f._mm512_mask_add_epi32
+core.core_arch.x86.avx512f._mm512_mask_i32gather_epi32
+core.core_arch.x86.avx512f._mm512_mask_mov_epi32
+core.core_arch.x86.avx512f._mm512_mask_sub_epi32
+core.core_arch.x86.avx512f._mm512_mullo_epi32
+core.core_arch.x86.avx512f._mm512_or_si512
+core.core_arch.x86.avx512f._mm512_set1_epi32
+core.core_arch.x86.avx512f._mm512_set_epi32
+core.core_arch.x86.avx512f._mm512_setzero_si512
+core.core_arch.x86.avx512f._mm512_slli_epi32
+core.core_arch.x86.avx512f._mm512_srli_epi32
+core.core_arch.x86.avx512f._mm512_xor_si512
+core.core_arch.x86.sse2._mm_set_epi32
+core.num.U16.trailing_zeros
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+core.slice.SliceArray.as_flattened
+hash.short_block
+sha256.x86.avx512.compression_step
+sha256.x86.avx512.round
+sha256.x86.avx512.write_words
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Wots.Slots Wots.Input Wots.Fips && lake env lean --stdin > "$scratch/wots-axioms" <<'LEAN'
+import Wots.Slots
+import Wots.Input
+import Wots.Fips
+#print axioms slhdsa.X86.Wots.endpoint_chain_fips
+#print axioms slhdsa.X86.Wots.chain_spec
+#print axioms slhdsa.X86.Wots.step_spec
+#print axioms slhdsa.X86.Wots.pack_spec
+#print axioms slhdsa.X86.Wots.slot_regs_spec
+#print axioms slhdsa.X86.Wots.words_spec
+#print axioms slhdsa.X86.Wots.first_two
+#print axioms slhdsa.X86.Wots.recovery_words
+LEAN
+)
+for name in endpoint_chain_fips chain_spec step_spec pack_spec slot_regs_spec words_spec first_two recovery_words; do
+  grep -Fx "'slhdsa.X86.Wots.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wots-axioms"
 done

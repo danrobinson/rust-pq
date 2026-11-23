@@ -120,6 +120,8 @@ On x86 machines that select the AVX2 fallback, the chain driver now checks each 
 
 These figures isolate the fallback by disabling SHA-NI and AVX-512 dispatch for both the baseline and candidates. The raw reference times eight independent full SHA-256 compressions on pretransposed inputs and checks each output against scalar SHA. Each signing ratio uses the exact compression count for its inputs. Only workloads that use SHA-256 exclusively have a raw ratio in the data. [Paired API measurements](results/merged/avx2-chain-stores.csv) · [144 chain shapes per host](results/merged/avx2-chain-stores-kernels.csv) · [Candidate sources, CPU details, tests and raw samples](results/merged/avx2-chain-stores.tar.gz)
 
+The AVX2 revision passed all 134 core and 54 compatibility tests under both normal dispatch and forced AVX2 on all three hosts, for 1,128 passes. [Validation counts](results/merged/avx2-chain-validation.csv) · [Six configurations and source fingerprints](results/merged/avx2-chain-validation.tar.gz)
+
 ## WOTS endpoint and recovery stores on x86
 
 Both AVX-512 routines now use the verified digest writer to serialize a batch before copying its live outputs. Endpoint generation copies consecutive chains into at most two keypair rows. Recovery selects the destination row of each finished chain. The measurements below compare this change against the previous masked scatter implementation on the same pinned vCPU, using six paired rounds after warm-up.
