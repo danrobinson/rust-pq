@@ -24,17 +24,17 @@ theorem type_word (fromType toType : Spec.Byte) (head tail : Spec.Bytes) (hh : h
   all_goals grind
 
 theorem typed_word (a : Spec.Adrs) (i : Nat) (sk : Spec.Bytes) (hsk : sk.length ≤ 33)
-    (ht : a.typ = 3) (k : Nat) :
-    withType (fun t => word (padFrom 64 ((prfAddress a i).compress ++ sk)) (4*t)) 0x50000 k =
+    (k : Nat) :
+    withType (fun t => word (padFrom 64 ((prfAddress a i).compress ++ sk)) (4*t)) (((6#8 ^^^ BitVec.ofNat 8 a.typ).setWidth 32) <<< 16) k =
       word (padFrom 64 ((leafAddress a i).compress ++ sk)) (4*k) := by
   rw [padFrom_blk _ _ hsk,padFrom_blk _ _ hsk]
   let head9 := ((prfAddress a i).compress).take 9
   let tail := (prfAddress a i).compress.drop 10 ++ (sk ++ padTail sk.length)
-  have h := type_word 6#8 3#8 head9 tail (by simp [head9,adrs_compress_length]) k
+  have h := type_word 6#8 (BitVec.ofNat 8 a.typ) head9 tail (by simp [head9,adrs_compress_length]) k
   have prf : (prfAddress a i).compress ++ (sk ++ padTail sk.length) = head9 ++ (6#8 :: tail) := by
     simp only [head9,tail,compress_eq]; rfl
-  have leaf : (leafAddress a i).compress ++ (sk ++ padTail sk.length) = head9 ++ (3#8 :: tail) := by
-    simp only [head9,tail,compress_eq,leafAddress,prfAddress,Spec.Adrs.setTypeAndClear,ht]; rfl
+  have leaf : (leafAddress a i).compress ++ (sk ++ padTail sk.length) = head9 ++ (BitVec.ofNat 8 a.typ :: tail) := by
+    simp only [head9,tail,compress_eq,leafAddress,prfAddress,Spec.Adrs.setTypeAndClear]; rfl
   rw [prf,leaf]; exact h
 
 end slhdsa.X86.Leaf

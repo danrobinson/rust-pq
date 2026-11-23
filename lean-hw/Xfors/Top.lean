@@ -7,7 +7,7 @@ namespace slhdsa.X86.Fors
 theorem subtree_fips {N} (p : params.Params) (hp : PN p N) (seed : XForsRust.hash.Seed N)
     (hs : SeedOk (TreeHash.seedOf (XForsRust.scalarSeed seed))) (sk : Array U8 N) (a : XForsRust.address.Adrs)
     (idx height : U32) (low : 0<height.val) (high : height.val≤7) (cpu : GatherRust.avx512Available=true)
-    (limit : (idx.val+1)*2^height.val≤2^32) (typ : a.typ=3#u32) :
+    (limit : (idx.val+1)*2^height.val≤2^32) :
     XForsRust.fors.wide.subtree sk idx height seed a ⦃ out =>
       bytes out.val=Spec.forsNode (paramsS p) (bytes sk.val) idx.val height.val (bytes seed.pk_seed.val) (addressOf a) ⦄ := by
   unfold XForsRust.fors.wide.subtree
@@ -32,7 +32,7 @@ theorem subtree_fips {N} (p : params.Params) (hp : PN p N) (seed : XForsRust.has
   have room : first.val+s.length≤2^32 := by rw [base,slen,size,←Nat.add_one_mul]; exact limit
   unfold XForsRust.sha256.x86.fors_leaves
   step with Leaf.fors_node_spec (paramsS p) N seed.state (bytes seed.pk_seed.val) sk (XForsRust.leafAddr a)
-    first s hp.nok rfl hp.n (by simp) hs.1 cpu room typ as ⟨out,len,leaves⟩
+    first s hp.nok rfl hp.n (by simp) hs.1 cpu room as ⟨out,len,leaves⟩
   have prior : levelSpec p seed sk a idx.val height.val 0 (back out) := by
     intro j hj
     simp only [Nat.sub_zero] at hj ⊢
