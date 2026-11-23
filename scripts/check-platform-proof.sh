@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -422,4 +422,26 @@ LEAN
 )
 for name in address_spec value_spec saved_spec; do
   grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainvectors-axioms.log"
+done
+
+extract Chainwrite ChainWriteRust chainwrite --start-from 'crate::sha256::x86::avx512::write_finished' \
+  --opaque 'crate::sha256::x86::avx512::transpose_rows'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512bw._mm512_shuffle_epi8
+core.core_arch.x86.avx512f._mm512_broadcast_i32x4
+core.core_arch.x86.sse2._mm_set_epi32
+core.num.U16.trailing_zeros
+sha256.x86.avx512.transpose_rows
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainwrite.Chunk && lake env lean --stdin > "$scratch/chainwrite-axioms.log" <<'LEAN'
+import Chainwrite.Chunk
+#print axioms slhdsa.X86.Chain.write_index_spec
+#print axioms slhdsa.X86.Chain.write_chunk_spec
+LEAN
+)
+for name in write_index_spec write_chunk_spec; do
+  grep -Fx "'slhdsa.X86.Chain.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/chainwrite-axioms.log"
 done

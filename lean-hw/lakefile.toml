@@ -89,3 +89,6 @@ name = "Chainni"
 
 [[lean_lib]]
 name = "Chainvectors"
+
+[[lean_lib]]
+name = "Chainwrite"
