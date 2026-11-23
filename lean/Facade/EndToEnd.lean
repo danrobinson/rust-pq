@@ -60,5 +60,38 @@ theorem extracted_session (family : Spec.HashFamily) {N : Usize} (p : params.Par
   refine ⟨sk, pk, sig, kg, sg, vf, (session_iff set lens ctx).mpr ⟨keys, ?_, fv.symm, rfl⟩⟩
   cases hasRandom <;> simpa [randS, Spec.block, view] using signed.symm
 
+/-- Verify any submitted bytes, including signatures with incorrect lengths.
+    For a valid context the actual return is equivalent to the structured trace
+    verdict. For an oversized context the call returns false. -/
+theorem extracted_verdict_iff (family : Spec.HashFamily) {N : Usize} (p : params.Params)
+    (hp : PN p N) (message sig ctx pk : Slice U8) (answer : Bool)
+    (hpk : pk.length = 2 * N.val) (room : Room message.length (msgSlack N.val + 257)) :
+    verify family N p message sig ctx pk = ok answer ↔
+      (if ctx.length > 255 then answer = false else
+        Nonempty (VerifyTrace (view family p) (Spec.withContext (bytes message.val) (bytes ctx.val))
+          (bytes sig.val) (bytes pk.val) answer)) := by
+  obtain ⟨v, run, hv⟩ := spec_imp_exists (api_verify_spec family p hp message sig ctx pk hpk room)
+  rw [run, hv]
+  have ctxLength : (bytes ctx.val).length = ctx.length := bytes_length _
+  by_cases h : ctx.length > 255
+  · simp [h, Spec.slhVerify, ctxLength, eq_comm]
+  · simp only [h, ↓reduceIte, verification_trace_iff, Spec.slhVerify, ctxLength]
+    simp [eq_comm]
+
+/-- The signer returns the original destination when the context is oversized. -/
+theorem extracted_rejects_context (family : Spec.HashFamily) {N : Usize} (p : params.Params)
+    (hp : PN p N) (message ctx sk random dest : Slice U8) (hasRandom : Bool)
+    (hsk : sk.length = 4 * N.val) (hbuf : dest.length = (paramsS p).sigBytes)
+    (hr : hasRandom = true → random.length = N.val)
+    (room : Room message.length (msgSlack N.val + 257)) (oversized : 255 < ctx.length) :
+    sign_into family N p message ctx sk hasRandom random dest = ok (false, dest) := by
+  obtain ⟨⟨b, out⟩, run, post⟩ := spec_imp_exists
+    (adapter_sign_into_spec family p hp message ctx sk hasRandom random dest hsk hbuf hr room)
+  cases b with
+  | true => exact False.elim (Nat.not_le.mpr oversized (post.1.mp rfl))
+  | false => exact (post.2.2 rfl) ▸ run
+
+#print axioms extracted_verdict_iff
+#print axioms extracted_rejects_context
 #print axioms extracted_session
 end slhdsa.Suite
