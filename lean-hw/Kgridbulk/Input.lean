@@ -96,4 +96,38 @@ theorem lastRow_spec (grid : Kdiag.Grid) (block : Slice U8) (size : block.length
     rw [getElem!_pos grid.val 3 bound]
     by_cases small : j.val<2 <;> simp [small]
   · simp [same,Ne.symm same]
+
+/-- All seventeen rate words are absorbed, in order, while the eight capacity words are preserved. -/
+def injectBlock (grid : Kdiag.Grid) (block : Slice U8) : Result Kdiag.Grid := do
+  let first ← absorb_loop0_loop0 ⟨0#usize,3#usize⟩ grid block
+  lastRow first block
+
+theorem injectBlock_spec (grid : Kdiag.Grid) (block : Slice U8) (size : block.length=136) :
+    injectBlock grid block ⦃ out => ∀ k : Fin 25,
+      let lane : Fin 8 := ⟨k.val%5,by omega⟩
+      out.val[k.val/5]! lane = if k.val<17
+        then grid.val[k.val/5]! lane ^^^ wordAt block.val (8*k.val)
+        else grid.val[k.val/5]! lane ⦄ := by
+  unfold injectBlock
+  obtain ⟨first,hfirst,firstWords⟩ := spec_imp_exists (firstRows grid block size)
+  obtain ⟨last,hlast,lastWords⟩ := spec_imp_exists (lastRow_spec first block size)
+  rw [hfirst,bind_ok,hlast]
+  simp only [step_simps]
+  intro k
+  let lane : Fin 8 := ⟨k.val%5,by omega⟩
+  have range : k.val/5 < 5 := by omega
+  have active : lane.val<5 := Nat.mod_lt _ (by decide)
+  rw [lastWords (k.val/5) range lane,firstWords (k.val/5) range lane active]
+  change (if k.val/5=3 ∧ k.val%5<2 then _ else _) = _
+  split <;> rename_i tail
+  · rw [if_neg (show ¬k.val/5<3 by omega),if_pos (show k.val<17 by omega)]
+    congr 2
+    change 120+8*(k.val%5)=8*k.val
+    omega
+  · by_cases front : k.val/5<3
+    · rw [if_pos front,if_pos (show k.val<17 by omega)]
+      congr 2
+      change 40*(k.val/5)+8*(k.val%5)=8*k.val
+      omega
+    · rw [if_neg front,if_neg (show ¬k.val<17 by omega)]
 end slhdsa.Kgridbulk
