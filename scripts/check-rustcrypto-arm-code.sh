@@ -24,10 +24,16 @@ done
 python3 scripts/check-rustcrypto-arm-code.py "$scratch/aarch64-unknown-linux-gnu.s" \
   "$scratch/aarch64-apple-darwin.s" "$scratch/Code.lean"
 cmp "$scratch/Code.lean" lean-hw/Rcarmcode/Code.lean
+python3 scripts/check-rustcrypto-arm-code.py --bits 512 "$scratch/aarch64-unknown-linux-gnu.s" \
+  "$scratch/aarch64-apple-darwin.s" "$scratch/Code512.lean"
+cmp "$scratch/Code512.lean" lean-hw/Rcarmcode/Code512.lean
 cd "$root/lean-hw"
-lake build Rcarmcode.Proof
+lake build Rcarmcode.Proof Rcarmcode.Proof512
 lake env lean --stdin >"$scratch/axioms" <<'LEAN'
 import Rcarmcode.Proof
+import Rcarmcode.Proof512
+#print axioms slhdsa.RcArmCode.S512.armstream_contract
 #print axioms slhdsa.RcArmCode.armstream_contract
 LEAN
 grep -Fx "'slhdsa.RcArmCode.armstream_contract' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
+grep -Fx "'slhdsa.RcArmCode.S512.armstream_contract' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/axioms"
