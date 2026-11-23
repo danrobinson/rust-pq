@@ -27,7 +27,8 @@ def main():
             raise ValueError("SHA3 permutation call graph changed")
         api.write_text(code.replace(entry, "peer_proof::select(") + '\n#[cfg(kani)] #[path="peer_proof.rs"] mod peer_proof;\n')
         (api.parent / "peer_proof.rs").write_bytes((ROOT / "scripts/peer-xof/core.rs").read_bytes())
-        subprocess.run(["cargo", "kani", "--output-format", "terse"], cwd=p, check=True)
+        subprocess.run(["cargo", "kani", "--no-default-features", "--features", "digest/alloc,digest/block-api,digest/mac,digest/oid",
+                        "--output-format", "terse"], cwd=p, check=True)
 
 
 if __name__ == "__main__":
