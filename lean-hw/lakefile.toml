@@ -176,3 +176,6 @@ name = "Koriented"
 
 [[lean_lib]]
 name = "Portableplatform"
+
+[[lean_lib]]
+name = "Platformadapter"

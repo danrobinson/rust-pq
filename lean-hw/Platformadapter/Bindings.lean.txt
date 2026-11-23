@@ -1,0 +1,26 @@
+/-- [slhdsa::adapter::randomizer]:
+    Source: 'src/adapter.rs', lines 37:0-44:1 -/
+axiom adapter.randomizer
+  (N : Std.Usize) :
+  Slice Std.U8 → Bool → Slice Std.U8 → Result (Array Std.U8 N)
+
+/-- [slhdsa::slh::slh_sign]:
+    Source: 'src/slh.rs', lines 123:0-135:1
+    Visibility: public -/
+axiom slh.slh_sign
+  {N : Std.Usize} :
+  params.Params → Slice Std.U8 → Slice Std.U8 → Slice Std.U8 → Array
+    Std.U8 N → Result (Option (alloc.vec.Vec Std.U8))
+
+/-- [slhdsa::slh::with_context]:
+    Source: 'src/slh.rs', lines 112:0-119:1 -/
+axiom slh.with_context
+  : Slice Std.U8 → Slice Std.U8 → Result (alloc.vec.Vec Std.U8)
+
+/-- [slhdsa::slh::slh_sign_internal]:
+    Source: 'src/slh.rs', lines 87:0-95:1
+    Visibility: public -/
+axiom slh.slh_sign_internal
+  {N : Std.Usize} :
+  params.Params → Slice Std.U8 → Slice Std.U8 → Array Std.U8 N → Result
+    (alloc.vec.Vec Std.U8)
