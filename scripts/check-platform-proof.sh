@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kdiag|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1108,6 +1108,31 @@ core.core_arch.arm_shared.neon.uint64x2_t
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
 platform_arch=x86_64-unknown-linux-gnu
+extract Kdiag KdiagRust kdiag --start-from 'crate::shake256::stream_x86::even' --start-from 'crate::shake256::stream_x86::odd'
+cat > "$scratch/expected" <<'NAMES'
+core.array.Array.map
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_mask_blend_epi64
+core.core_arch.x86.avx512f._mm512_mask_xor_epi64
+core.core_arch.x86.avx512f._mm512_permutexvar_epi64
+core.core_arch.x86.avx512f._mm512_rol_epi64
+core.core_arch.x86.avx512f._mm512_rolv_epi64
+core.core_arch.x86.avx512f._mm512_set1_epi64
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+core.core_arch.x86.avx512f._mm512_xor_si512
+core.intrinsics.transmute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kdiag.Theta && lake env lean --stdin > "$scratch/row-axioms" <<'LEAN'
+import Kdiag.Theta
+#print axioms slhdsa.Kdiag.delta_spec
+#print axioms slhdsa.Kdiag.move_spec
+#print axioms slhdsa.Kdiag.rotate_spec
+LEAN
+)
+for name in move_spec rotate_spec delta_spec; do
+  grep -Fx "'slhdsa.Kdiag.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/row-axioms"
+done
 extract Kavxperm KavxpermRust kavxperm --start-from 'crate::shake256::parallel::avx512::permute' --opaque 'crate::shake256::parallel::avx512::round'
 cat > "$scratch/expected" <<'NAMES'
 core.core_arch.x86.__m512i
