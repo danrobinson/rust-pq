@@ -20,12 +20,12 @@ def run(args, cwd, **kwargs):
     return subprocess.run(args, cwd=cwd, check=True, **kwargs)
 
 
-def body(path):
+def body(path, namespace="slhdsa"):
     text = path.read_text()
-    before, separator, after = text.partition("\nnamespace slhdsa\n")
-    if not separator or not after.rstrip().endswith("end slhdsa"):
+    before, separator, after = text.partition(f"\nnamespace {namespace}\n")
+    if not separator or not after.rstrip().endswith(f"end {namespace}"):
         raise ValueError(f"unexpected Aeneas namespace in {path}")
-    return after.rstrip().removesuffix("end slhdsa")
+    return after.rstrip().removesuffix(f"end {namespace}")
 
 
 def declarations(text):
@@ -69,6 +69,7 @@ def check_target(target, namespace, scratch):
     package = scratch / "Slhdsa"
     package.mkdir()
     roots = [f"crate::sets::{s}::{f}" for s in SETS for f in OPERATIONS]
+    roots.append("crate::slh::message::digest")
     charon = ROOT / ".tools/aeneas/charon/bin/charon"
     run([charon, "cargo", "--preset=aeneas", *(a for r in roots for a in ("--start-from", r)),
          "--opaque", "crate::sha256::hw::arm", "--opaque", "crate::sha512::hw::arm",
@@ -85,21 +86,34 @@ def check_extraction(package, namespace, scratch):
     # Lean structures from different modules have nominal identity. Share only
     # declarations whose complete definitions match the checked hardware build.
     types = set(declarations(body(LEAN / "Slhdsa/Types.lean")))
+    message_types = {item: "SegmentedRust" for item in declarations(body(LEAN / "Segmented/Types.lean", "SegmentedRust"))}
+    for item in declarations(body(LEAN / "Segmentedapi/Types.lean", "SegmentedApiRust")):
+        if re.match(r"@\[reducible\]\s*def slh\.message\.Sha(?:256|512) :=", item):
+            message_types[item] = "SegmentedApiRust"
+    aliases = []
     for item in declarations(body(package / "Types.lean")):
-        if item not in types:
+        if item in types:
+            continue
+        if item not in message_types:
             raise ValueError(f"unmatched type declaration: {item}")
+        name = re.search(r"(?:structure|def) (slh\.message\.\w+)", item).group(1)
+        aliases.append(f"abbrev {name} := {message_types[item]}.{name}")
     source = f"""import Armplatform.Keygen
-import Armplatform.LinuxInternal
+import Armplatform.LinuxMessageDigest
 open Aeneas Aeneas.Std Result ControlFlow Error
 open slhdsa
 set_option maxRecDepth 65536
 set_option maxHeartbeats 0
 noncomputable section
 namespace {namespace}
+{chr(10).join(aliases)}
 {checked_external_bindings(package)}
 {body(package / 'Funs.lean')}
 end {namespace}
 """
+    root = "LinuxMessage.AppleMessage." if namespace == "ArmLinuxTarget" else "AppleMessage."
+    bindings = [(root + "slhdsa.Segmented.digest_spec", root + "SegmentedApiRust.slh.message.digest",
+                 namespace + ".slh.message.digest")]
     for s in SETS:
         for op in OPERATIONS:
             fips_proof = f"slhdsa.{s}.{op}_spec"
@@ -113,24 +127,25 @@ end {namespace}
                 if op != "public_key":
                     entry = "ArmLinux." + entry
             fresh = f"{namespace}.sets.{s}.{op}"
-            source += (f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
-                       f"`{fips_proof} `{entry} `{fresh} `{fresh}_fips\n#print axioms {fresh}_fips\n")
+            bindings.append((fips_proof, entry, fresh))
+    for fips_proof, entry, fresh in bindings:
+        source += (f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
+                   f"`{fips_proof} `{entry} `{fresh} `{fresh}_fips\n#print axioms {fresh}_fips\n")
     proof = scratch / "PublicAPI.lean"
     proof.write_text(source)
     result = subprocess.run(["lake", "env", "lean", proof], cwd=LEAN, stdout=subprocess.PIPE, text=True)
     if result.returncode:
         raise RuntimeError(result.stdout)
     output = result.stdout
-    for s in SETS:
-        for op in OPERATIONS:
-            expected = f"'{namespace}.sets.{s}.{op}_fips' depends on axioms: [propext, Classical.choice, Quot.sound]"
-            if expected not in output.splitlines():
-                raise ValueError(f"unexpected axiom audit for {s}.{op}\n{output}")
-    print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} public-entry theorems", flush=True)
+    for _, _, fresh in bindings:
+        expected = f"'{fresh}_fips' depends on axioms: [propext, Classical.choice, Quot.sound]"
+        if expected not in output.splitlines():
+            raise ValueError(f"unexpected axiom audit for {fresh}\n{output}")
+    print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} public-entry theorems and segmented H_msg", flush=True)
 
 
 if __name__ == "__main__":
-    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxInternal"], LEAN)
+    run(["lake", "build", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest"], LEAN)
     for arch, namespace in TARGETS.items():
         with tempfile.TemporaryDirectory() as temp:
             check_target(arch, namespace, Path(temp))
