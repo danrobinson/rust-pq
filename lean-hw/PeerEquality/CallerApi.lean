@@ -46,7 +46,7 @@ def keygenEntry (c : Children) (p : Params) (seed prf pk : Bytes) : Outcome Key 
   if seed.length = p.n ∧ prf.length = p.n ∧ pk.length = p.n then .success (keygen c p seed prf pk)
   else .panic
 
-theorem keygen_entry_accepted (c : Children) (p : Params) (node : c.xmss.node = xmssNode p)
+theorem keygen_entry_accepted (c : Children) (p : Params) (node : (c.xmss p).node = xmssNode p)
     (a b d : Bytes) (ha : a.length=p.n) (hb : b.length=p.n) (hd : d.length=p.n) :
     ∃ k, keygenEntry c p a b d = .success k ∧ (k.bytes,k.public.bytes) = slhKeygenInternal p a b d :=
   ⟨keygen c p a b d,by simp [keygenEntry,ha,hb,hd],keygen_fips _ _ node _ _ _⟩

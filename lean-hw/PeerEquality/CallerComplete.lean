@@ -3,7 +3,7 @@ import PeerEquality.CallerApi
 namespace slhdsa.PeerCall
 open Spec
 
-theorem key_shape (c : Children) (p : Params) (valid : p.Valid) (node : c.xmss.node = xmssNode p)
+theorem key_shape (c : Children) (p : Params) (valid : p.Valid) (node : (c.xmss p).node = xmssNode p)
     (a b d : Bytes) (ha : a.length=p.n) (hb : b.length=p.n) (hd : d.length=p.n) :
     (keygen c p a b d).Shape p :=
   ⟨ha,hb,hd,by simp [keygen,node,xmssNode_length p valid]⟩

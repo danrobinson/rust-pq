@@ -71,10 +71,10 @@ def expression(s):
         return f"c.forsRecover {sig} {md} {seed} {adrs}"
     if method == "ht_sign" and len(args) == 4:
         msg, sk, tree, leaf = args
-        return f"PeerCall.ht c.xmss p {msg} {sk} {seed} {tree} {leaf}"
+        return f"PeerCall.ht (c.xmss p) p {msg} {sk} {seed} {tree} {leaf}"
     if method == "ht_verify" and len(args) == 5:
         msg, sig, tree, leaf, root = args
-        return f"htVerifyWith c.xmss p {msg} {sig} {seed} {tree} {leaf} {root}"
+        return f"htVerifyWith (c.xmss p) p {msg} {sig} {seed} {tree} {leaf} {root}"
     raise ValueError(fun)
 
 
@@ -382,7 +382,7 @@ def main():
                 "open Spec",
                 "",
                 "def keygen (c : Children) (p : Params) (sk prf pk : Bytes) : Key :=",
-                "  let root := c.xmss.node sk 0 p.hp pk (layer (p.d-1) 0)",
+                "  let root := (c.xmss p).node sk 0 p.hp pk (layer (p.d-1) 0)",
                 "  ⟨sk,prf,pk,root⟩",
                 "",
                 "def rawSign (c : Children) (p : Params) (k : Key) (msg : Parts) (opt_rand : Option Bytes) : Signature :=",

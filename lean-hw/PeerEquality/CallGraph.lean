@@ -5,7 +5,7 @@ namespace slhdsa.PeerCall
 open Spec
 
 def keygen (c : Children) (p : Params) (sk prf pk : Bytes) : Key :=
-  let root := c.xmss.node sk 0 p.hp pk (layer (p.d-1) 0)
+  let root := (c.xmss p).node sk 0 p.hp pk (layer (p.d-1) 0)
   ⟨sk,prf,pk,root⟩
 
 def rawSign (c : Children) (p : Params) (k : Key) (msg : Parts) (opt_rand : Option Bytes) : Signature :=
@@ -19,7 +19,7 @@ def rawSign (c : Children) (p : Params) (k : Key) (msg : Parts) (opt_rand : Opti
   let adrs := forsAddress idx_tree idx_leaf
   let fors_sig := c.forsSign md sk_seed ht adrs
   let fors_pk := c.forsRecover fors_sig md ht adrs
-  let ht_sig := PeerCall.ht c.xmss p fors_pk sk_seed ht idx_tree idx_leaf
+  let ht_sig := PeerCall.ht (c.xmss p) p fors_pk sk_seed ht idx_tree idx_leaf
   ⟨randomizer, fors_sig, ht_sig⟩
 
 def rawVerify (c : Children) (p : Params) (k : PublicKey) (msg : Parts) (signature : Signature) : Bool :=
@@ -32,7 +32,7 @@ def rawVerify (c : Children) (p : Params) (k : PublicKey) (msg : Parts) (signatu
   let (md, idx_tree, idx_leaf) := splitResult p digest
   let adrs := forsAddress idx_tree idx_leaf
   let fors_pk := c.forsRecover fors_sig md ht adrs
-  htVerifyWith c.xmss p fors_pk ht_sig ht idx_tree idx_leaf k.root
+  htVerifyWith (c.xmss p) p fors_pk ht_sig ht idx_tree idx_leaf k.root
 
 def signCtx (c : Children) (p : Params) (k : Key) (msg : List Bytes) (ctx : Bytes) (rand : Option Bytes) : Option Signature :=
   if ctx.length ≤ 255 then some (rawSign c p k (contextParts ctx msg) rand) else none

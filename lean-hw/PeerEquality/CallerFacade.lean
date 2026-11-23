@@ -19,7 +19,7 @@ include C
 /-- Equality of secret and public key bytes, serialized signatures and public
 verification results for matching input bytes and random draws. -/
 structure Facades : Prop where
-  keys : ∀ (c : Children) (_ : c.xmss.node = xmssNode p)
+  keys : ∀ (c : Children) (_ : ChildLaws c p)
     {R E : Type} (rng : rand_core.CryptoRng R E) (r0 r1 r2 r3 : R) (a b d : Slice U8),
     a.length=p.n → b.length=p.n → d.length=p.n →
     (∀ buf : Slice U8, buf.val=List.replicate p.n 0#u8 → rng.RngInst.fill_bytes r0 buf=ok (r1,a)) →
@@ -54,10 +54,10 @@ private theorem facades (positive : 0<p.d) (new : KeygenCorrect C p)
         ret = if slhVerify p (bytes m.val) (bytes s.bytes.val) (bytes ctx.val) (bytes k.bytes.val)
           then .Ok () else .Err () ⦄) : Facades C p slack := by
   constructor
-  · intro c node R E rng r0 r1 r2 r3 a b d ha hb hd d1 d2 d3
+  · intro c laws R E rng r0 r1 r2 r3 a b d ha hb hd d1 d2 d3
     apply WP.spec_mono (new rng r0 r1 r2 r3 a b d ha hb hd d1 d2 d3)
     intro out eq
-    exact ⟨eq.1.trans (keygen_fips c p node _ _ _).symm,eq.2⟩
+    exact ⟨eq.1.trans (keygen_fips c p laws.node _ _ _).symm,eq.2⟩
   · intro c laws k shape ours same m ctx rnd hr room
     apply WP.spec_mono (sign ours m ctx rnd hr room)
     intro out eq
