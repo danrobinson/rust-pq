@@ -21,7 +21,7 @@ private partial def rebuild (destination : Name) (source : Name) (names : IO.Ref
   -- a library implementation. Imported arithmetic and Aeneas remain shared.
   let some idx := env.getModuleIdxFor? source | return source
   let origin := env.header.moduleNames[idx]!
-  unless [`Slhdsa, `Armplatform, `Segmented, `Segmentedapi, `Platformadapter, `Facade].any (·.isPrefixOf origin) do return source
+  unless [`Slhdsa, `Armplatform, `Segmented, `Segmentedapi, `Platformadapter, `Facade, `Shakebatch].any (·.isPrefixOf origin) do return source
   let info ← getConstInfo source
   let some body := info.value? true | return source
   let mut changed := false
