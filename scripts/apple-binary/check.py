@@ -11,6 +11,7 @@ import struct
 import subprocess
 import tempfile
 
+from bulk import decode as decode_bulk, mutation_tests as bulk_mutation_tests
 from entries import certificate as entry_certificate
 from hypertree import verify as verify_hypertree
 from image import Image, require
@@ -75,12 +76,14 @@ def expected(i):
     return result + (" ^^^ rc" if i == 0 else "")
 
 
-def certificate(words, table, instructions, layout):
+def certificate(words, table, instructions, layout, *, bulk=False):
+    namespace = "LinkedArmBulk" if bulk else "LinkedArm"
+    machine = "Spec.ArmSha3Binary.runBulk" if bulk else "Spec.ArmSha3Binary.run"
     lines = [
         "import Spec.ShakeWords",
         "import Spec.ArmSha3Binary",
         "import Mathlib.Tactic.IntervalCases",
-        "namespace LinkedArm",
+        f"namespace {namespace}",
         "open Spec.Keccak",
         "set_option maxRecDepth 65536",
         "set_option maxHeartbeats 800000",
@@ -110,13 +113,13 @@ def certificate(words, table, instructions, layout):
         f"def instructions : List Nat := {instructions}",
         f"def registers : List Nat := {layout}",
         "theorem decoded_eq (a : State) (rc : Lane) (s : Spec.ArmSha3Binary.Registers) :",
-        "    Spec.ArmSha3Binary.run instructions registers a rc s = some (round a rc) := by",
+        f"    {machine} instructions registers a rc s = some (round a rc) := by",
         "  rw [← round_eq]",
         "  rfl",
         "#print axioms decoded_eq",
         "def linkedConstants : Array Lane := #[" + ",".join(map(str, table)) + "]",
         "def machineRound (scratch : Lane → Spec.ArmSha3Binary.Registers) (a : State) (rc : Lane) :=",
-        "  (Spec.ArmSha3Binary.run instructions registers a rc (scratch rc)).getD #[]",
+        f"  ({machine} instructions registers a rc (scratch rc)).getD #[]",
         "theorem permutation_eq (a : State) (scratch : Lane → Spec.ArmSha3Binary.Registers) :",
         "    linkedConstants.foldl (machineRound scratch) a = permute a := by",
         "  have h : machineRound scratch = round := by",
@@ -125,8 +128,18 @@ def certificate(words, table, instructions, layout):
         "  rw [h]",
         "  rfl",
         "#print axioms permutation_eq",
-        "end LinkedArm",
     ]
+    if bulk:
+        lines.insert(0, "import Spec.ArmRateBlocks")
+        lines += [
+            "theorem blocks_eq (scratch : Lane → Spec.ArmSha3Binary.Registers) (a : State)",
+            "    (size : a.size = 25) (words : List Spec.Bytes) (width : ∀ w ∈ words, w.length = 8) :",
+            "    let out := words.foldl (ArmRateBlocks.word (fun s => linkedConstants.foldl (machineRound scratch) s)) (a,0)",
+            "    (out.1, 8*out.2) = words.flatten.foldl feed (a,0) :=",
+            "  ArmRateBlocks.foldWords _ (fun s => permutation_eq s scratch) words width a size 0 (by decide)",
+            "#print axioms blocks_eq",
+        ]
+    lines.append(f"end {namespace}")
     return "\n".join(lines) + "\n"
 
 
@@ -297,7 +310,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="reject fourteen independent binary mutations",
+        help="reject seventeen independent binary mutations",
     )
     parser.add_argument(
         "--certificate", type=Path, help="save the checked Lean certificate"
@@ -315,7 +328,15 @@ if __name__ == "__main__":
         PATH=str(Path.home() / ".elan/bin") + os.pathsep + os.environ["PATH"],
     )
     subprocess.run(
-        ["lake", "build", "Spec.ShakeWords", "Spec.ArmSha3Binary", "Spec.ArmSignReject", "Spec.SlhDsa"],
+        [
+            "lake",
+            "build",
+            "Spec.ShakeWords",
+            "Spec.ArmSha3Binary",
+            "Spec.ArmSignReject",
+            "Spec.ArmRateBlocks",
+            "Spec.SlhDsa",
+        ],
         cwd=ROOT / "lean",
         env=env,
         check=True,
@@ -368,6 +389,21 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
+        bulk_audit = subprocess.run(
+            ["lake", "env", "lean", "--stdin"],
+            cwd=ROOT / "lean",
+            env=env,
+            input=certificate(*decode_bulk(image), bulk=True),
+            text=True,
+            stdout=subprocess.PIPE,
+            check=True,
+        )
+        for name in ("decoded_eq", "permutation_eq", "blocks_eq"):
+            require(
+                f"'LinkedArmBulk.{name}' depends on axioms: [propext, Classical.choice, Quot.sound]"
+                in bulk_audit.stdout,
+                "unexpected bulk Keccak axiom audit",
+            )
         for bits in (256, 512):
             verify_sha2(image, snapshot, bits)
         verify_hypertree(image, snapshot)
@@ -375,15 +411,18 @@ if __name__ == "__main__":
         if args.self_test:
             mutation_tests(image, Path(folder), env)
             pure_sign_mutations(image, Path(folder))
+            bulk_mutation_tests(image)
     if args.self_test:
-        print("Rejected fourteen mutations in the linked image")
+        print("Rejected seventeen mutations in the linked image")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
     print(
         "Verified valid pure-sign framing, randomness and result forwarding for all twelve sets, including SHA-2 segmented dispatch"
     )
     print("Verified all 36 keygen, internal signing and verification entry stubs")
     print("Verified the linked Arm hardware SHA-256 and SHA-512 compression routines")
-    print("Verified Apple arm64 two-state Keccak-f[1600] and single-state wrapper")
+    print(
+        "Verified Apple arm64 two-state Keccak-f[1600], single-state wrapper and whole-rate-block absorb kernel"
+    )
     print(
         "Verified direct SHAKE hypertree signer call order for all six standard parameter sets"
     )
