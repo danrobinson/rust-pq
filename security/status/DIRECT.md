@@ -762,3 +762,162 @@ and less the D0/D1 savings).
 Predicted bounds unchanged (nothing proved this session changes them): tier B′
 P20 `2^-67.00`, P40 `2^-62.99`, P64 `2^-60.54` (§3), against tight8 `2^-63`, `2^-59`, `2^-39`
 (rounded proved points).
+
+---------------------------------------------------------------------------------------------
+
+## 9. 2026-11-22 (third session): deterministic part finished (SUF), generic probabilistic tools
+
+Seven new files under `Ideal/Direct/` (1731 lines), seven `import` lines appended to
+`Ideal.lean`; no existing Lean file changed.  `lake build Ideal`: success (7425 jobs).  Every
+headline `#print axioms` is `[propext, Classical.choice, Quot.sound]` (three small lemmas
+`[propext, Quot.sound]`); no `sorry`/`axiom`/`native_decide`/`bv_decide`.  **The final theorem
+(tier B′ headline) is NOT proved; nothing below is a bound on `sufI`.**
+
+### 9.1 Statements proved
+
+| file | lines | content |
+|---|---|---|
+| `Direct/ExtractWots.lean` | 345 | D3, WOTS+ part (§8.3), and the full extraction |
+| `Direct/Counts.lean` | 147 | D1 counts: total tagged queries |
+| `Direct/Bridge.lean` | 437 | the real experiment at the `PRF` table, pathwise extraction |
+| `Direct/EntryBridge.lean` | 44 | `sufI` ≤ table average of the extraction events |
+| `Direct/DagSwap.lean` | 339 | generic re-randomisation of an honest DAG, with collisions |
+| `Direct/Rooted.lean` | 204 | rooted chains in a cache, classes `ThL`, `HmF`, uniqueness |
+| `Direct/CollBudget.lean` | 215 | Coll as a budgeted hazard of the supermartingale |
+
+**D3 complete (SUF and EUF).**
+```
+def evHidW pkSeed tbl z : Prop :=                                      -- ExtractWots.lean:187
+  ∃ (j : Fin d) (i : Fin len), chainStepsCore (fLayerMsg pkSeed tbl z j) i <
+      chainStepsCore (hMsgA tbl pkSeed (layerWotsAdrs parts j)) i ∧
+    (z.1.2.hypertree[j]).wots[i] = chain prims pkSeed (wotsChainAdrs (layerWotsAdrs parts j) i)
+      (secretOf vp prims tbl (wotsSkAdrs (layerWotsAdrs parts j) i)) 0 (chainStepsCore (fLayerMsg …) i)
+theorem evWots_cases (hS) (h : evWots pkSeed tbl z = true) :           -- :217
+    evHidW pkSeed tbl z ∨ evColl pkSeed tbl z = true
+theorem suf_extract_full (hS) (h : sufWin pkSeed tbl z = true) :       -- :312
+    evItsr pkSeed tbl z = true ∨ evColl pkSeed tbl z = true ∨ evHidF pkSeed tbl z ∨ evHidW pkSeed tbl z
+theorem fresh_extract_full (hS) (h : freshWin pkSeed tbl z = true) : (same)   -- :325
+```
+The two membership lemmas: `wots_chain_verify_mem` (`:61`; every step `t ∈ [a, w−1)` of the
+forged chain at layer `j`, chain `i`, is in `verifyCalls`) and `wots_chain_honest_mem` (`:131`;
+every step `p < w−1` of every honest chain on the path is in `honestCalls`).  The reference
+signature's layer values come from the existing `y_idealSign_layer` (`Reduction/WotsEmbed.lean:1191`).
+
+**Counts.**  `qb_of_untag` (`Counts.lean:38`), `progS_comp` (`:103`), and
+```
+theorem progTS_all (hqf hqs hlong hout) :                                -- Counts.lean:125
+    IsQueryBoundP (progTS S oR pkSeedDist) (fun i => i.isRight = true) (qPrf qf qs ℓ + 2 * qOPrf qs)
+```
+(`progTE_all` `:134`): the cell budget `Q` of the collision term (all tags).  **Not done: the
+`V` count.**  The bound `(1 + verifyHashes)·11 + hmsgCost ℓ` needs the forged-message length
+`≤ ℓ` on the support of the first phase; and for the charge only the verifier's `Thash` cells
+matter (`≤ 3928·11`, independent of `ℓ`), which the tags cannot separate from its `H_msg` cells.
+Deferred to D6, where the charged class is decided.  The `H` count is subsumed by `progTS_all`.
+
+**Bridge (D3 → the real program).**  Over any `Structural` bundle:
+```
+noncomputable def prfTbl pkSeed k : SecretTable := idx ↦ PRF(pkSeed, k, canonical preimage of idx)
+theorem secretOf_prfTbl … (ha : a.isCanonical) : secretOf (prfTbl pkSeed k) a = PRF pkSeed k a  -- Bridge.lean:54
+theorem expW_real_eq_prfTbl (hS) (w) (A) :                               -- :289  (exact, no PRF charge)
+    prTrue (expW realAlg w A) = prTrue (pkSeed ← pkSeedDist; k ← $; SK.prf ← $;
+      z ← tableAlg.runWithSigningOracle (idealPk (prfTbl pkSeed k) pkSeed) (prfTbl pkSeed k, SK.prf) …; w …)
+theorem suf_real_eq_sufWin (hS) (A) :                                    -- :400
+    prTrue (expW realAlg sufCheck A) = prTrue (pkSeed ← pkSeedDist; k ← $; SK.prf ← $;
+      z ← g1Run A (prfTbl pkSeed k) (idealPk …) SK.prf; pure (sufWin pkSeed (prfTbl pkSeed k) z))
+theorem suf_real_le_extract (hS) (A) : prTrue (expW realAlg sufCheck A) ≤
+    prTrue (…; z ← g1Run …; pure (decide (evItsr ∨ evColl ∨ evHidF ∨ evHidW at prfTbl pkSeed k)))  -- :416
+theorem sufI_le_extract :  sufI S (optRandU oR) pkSeedDist ≤ cfAvg fun g =>   -- EntryBridge.lean:26
+    prTrue (… g1Run (S.typedS (optRandU oR) pkSeedDist g) (prfTbl pkSeed k) … ; extraction events)
+```
+`g1Run` (`:335`): the forger against the table signer with `R = PRF_msg(SK.prf, opt_rand, M)`,
+transcript `(M, opt_rand, R)` as a `G2Log`; `g1Run_proj` (`:348`) projects it to
+`tableAlg.runWithSigningOracle`.  **Copied code**: `keygen_sim`, `sign_sim`, `run_eq`,
+`rest_sim`, `bSign`, `bRest`, `canonical_of_secretChild`, `queriesIn_bRest` of
+`Reduction/SufHopPrf.lean` are private there and are copied into `Bridge.lean` (suffix `B`,
+`queriesIn` restated for the canonical-address set without the seed condition).
+**Not done: the EUF twin** (`expW` with an EUF check, through `prfRealPr_bPrfC`); it is the same
+proof with `fresh_extract_full`.  `sufI_le_extract` is the entry the probabilistic core starts
+from: the events are about `Thash_g` at the table `g` and the secret table `prfTbl`, and no hop
+has been charged.
+
+**Re-randomisation with collisions (generic, item 2).**  `DagS C V I` (`DagSwap.lean`): ranks,
+cells `pos g s i` depending on lower-rank honest values and on `g` at public cells `P` (the
+midstate cell).  `hv D g` (honest values, `hv_eq :82`), `Psi D g0 s` (`:109`), `Good`
+(honest cells pairwise distinct and outside `P`).
+```
+theorem hv_Psi (h : Good D g0 s) : hv D (Psi D g0 s) = s                 -- DagSwap.lean:138
+theorem ex_le_Psi (f : (C → V) → ℝ≥0∞) (hf : ∀ g, f g ≤ 1) :             -- :263
+    ex ($ᵗ (C → V)) f ≤ ex ($ᵗ (C → V)) (fun g0 => ex ($ᵗ (I → V)) fun s => f (Psi D g0 s)) +
+      ex ($ᵗ (C → V)) (fun g0 => ex ($ᵗ (I → V)) fun s => propInd (¬ Good D g0 s))
+```
+This is the toy's `realWin_eq_Psi` for an arbitrary honest DAG: intermediate `T_len`/`T_k` cells
+(chaining value = full value of the previous honest cell) are allowed; the price is the
+probability that two honest cells coincide (then `(g0, s) ↦ (Psi, g0∘pos)` is not injective),
+`≤ #I²/2^256 ≈ 2^-94` for SLH-DSA (estimate, the instance is not built).
+
+**Rooted chains (item 1 / D2).**  `mdC κ c bs` (iteration through a cache), `NoCollC c₀ κ`,
+`rooted_unique` (`Rooted.lean:88`: under `NoCollC`, a value is reached from `c₀` by one block
+list only), `rootOf`, `IsThL pk κ q A xs` (the last cell of `Thash(pk, A, xs)`, any length),
+`isThL_unique` (`:154`), `isThL_value` (`:168`: its value through a total table extending the
+cache is the `Thash` chaining value), `IsHmF κ q R pk s` (the `H_msg` outer final cell),
+`isHmF_unique` (`:185`).
+
+**Collisions in the same supermartingale (item 3).**  `ex_hz_le_of_step_cap`
+(`CollBudget.lean:36`: the engine with a state size growing by ≤ 1 per charged step and the step
+bound needed only below the cap `Q`), `CollZ`, `collZ_update`, `prEvent_fresh_coll_le` (`:165`:
+`≤ (|Z| + size)/|V|`), `ex_hz_fresh_coll_le` (`:194`: one fresh sample with `CollZ ∨ P` as the
+hazard).  So the budgeted form works as proposed: `Q` charged samples cost `Q(Q+|Z|)/2^256`.
+**One addition is needed (not a failure):** `CollZ` sees value coincidences only; the
+**back-link** event (a fresh value equal to the chaining input of an earlier cached cell) is a
+property of the order of samples, so the state must record it.  It costs the same `≤ size/|V|`
+per sample (`Engine.ex_hz_fresh_le` with the set of cached chaining inputs), but needs a state
+with a flag or a sample order (an extension of `tagRom`, which keeps none).
+
+### 9.2 Not done (exact remaining statements)
+
+* **EUF bridge** (`eufI_le_extract`), and the `V` count (above).
+* **Tier B′ needs a marking change.**  With the present tags (`F`/`H`/`V` by phase), the
+  signer's *inner*-final `H_msg` cell has block `cB` whenever `|M| = 20` with `M[16..19] = 0`
+  (L8), so marking all `cB` cells gives `n = qf + 2qs + 2`: P64 **2^-55.04** (tier "B" of
+  `tiers.out`) instead of 2^-60.54.  For `n = qf + qs + 2` the signer's outer-final call needs its
+  own tag (a change of `qTag`/`fullT` and of the chain interpretation of an `H_msg` query) or the
+  extra 2^-256 event of §2.4.
+* **The probabilistic core (D4–D6) is not started beyond the generic tools.**  Remaining, in
+  order: (a) the `DagS` instance of SLH-DSA-128s (index = ledger address × block, plus secret
+  addresses; children from VCVio's `childAdrs`, `HashSig/SLHDSA/Security/NodeGraph.lean:95`) and
+  `Pr[¬Good] ≤ #I²/2^256`; (b) honest values of `Psi` = `idealPk`/`idealSign` at `prfTbl` in
+  terms of `s`; (c) the deferred SUF game (signer reads `s` at the signature's indices, routing of
+  compression queries at cells with known parents); (d) identical-until-bad against `g1Run` at
+  `Psi g0 s` (`Engine.prEvent_le_untilBad`); (e) lazy = eager for the deferred game; (f) the
+  supermartingale with the per-class charges (`Parse.role`, `IsThL`), `CollZ` + back-link
+  budget, Kseed; (g) `sufI_le_extract`'s events ⇒ the deferred hazards; (h) ITSR tier B′ via
+  `prT_tape_le_marked`; (i) composition and the three points.  Estimate unchanged: 7–9k lines.
+
+### 9.3 A cheaper route found while doing this (recommended re-plan, not started)
+
+VCVio already proves, at the **three-oracle** level (tweakable hash, `H_msg`, `PRF_msg` as random
+oracles, `PRF` as `F` at secret-key addresses — the same shape as SHA2's `PRF`), exactly the bound
+this plan targets: `strongUnforgeableAdvantage_romScheme_le_securityBound`
+(`HashSig/SLHDSA/Security/CoverageBound.lean:361`), `securityBound p |Y| 2 1 qh qs =
+(qh+1)·weightedTargetCoverBound h a k qs qh (qs/|Y|) + (2qh + 2V)/|Y|` (`Target.lean:243`): the
+**tier C** bound (P64 ≈ 2^-62.98), with the per-query coefficient 2, hidden-value deferral and
+pre-read coverers all done.  The compression model reduces to it by a Merkle–Damgård
+indifferentiability simulator: a forger `B` against `romScheme` at the SHA2-128s core runs `S`,
+answers its compression queries from a lazy table and, when a query completes a rooted chain
+(`Rooted.lean`: `IsThL`, `IsHmF`, and the analogous HMAC class), answers the final cell from the
+matching oracle (`qh ≤ qf`, one oracle query per completing cell, by `isThL_unique`); its error is
+collision/back-link only (`CollBudget.lean`), `O(Q²/2^256)`, no 2^-128 term.  What it needs: the
+coupling of `progS` (honest hashing by compression chains) with `romScheme` (honest hashing by
+oracle queries) until a collision — the standard "intermediate honest cells are fresh either way"
+argument — plus `ByteLaws`/`KeyDiscipline` of the SHA2-128s core (VCVio discharges them at every
+FIPS 205 bundle; the repository has `Concrete.keySeparated_sha2Primitives`).  Estimate 3–5k lines
+(the generic MD/HMAC coupling is most of it), against 7–9k for D4–D8 here, for a better bound
+(tier C instead of B′).  Not attempted this session; it should be decided before more of §9.2 is
+built (`Bridge.lean`, `Rooted.lean`, `CollBudget.lean` serve both routes; `DagSwap.lean` only the
+direct one).
+
+### 9.4 Bounds
+
+No change to the predicted bounds (nothing proved bounds `sufI`): tier B′ P20 2^-67.00, P40
+2^-62.99, P64 2^-60.54 — or 2^-55.04 at P64 with the present tags (9.2); the route of 9.3 would
+give tier C (2^-67.00, 2^-63.00, 2^-62.98).  Proved bounds remain tight8's: 2^-63, 2^-59, 2^-39.

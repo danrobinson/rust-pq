@@ -163,3 +163,10 @@ import Ideal.Direct.Entry
 import Ideal.Direct.Tagged
 import Ideal.Direct.Parse
 import Ideal.Direct.Extract
+import Ideal.Direct.ExtractWots
+import Ideal.Direct.Counts
+import Ideal.Direct.Bridge
+import Ideal.Direct.EntryBridge
+import Ideal.Direct.DagSwap
+import Ideal.Direct.Rooted
+import Ideal.Direct.CollBudget
