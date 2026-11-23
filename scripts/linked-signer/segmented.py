@@ -317,16 +317,8 @@ class Segmented(Driver):
         clobber_scratch(s)
 
 
-def verify(path, image, n, v):
-    row, param, _, _, hooks = objects(path, image, n, v, "sha2")
-    driver = Segmented(row, param)
-    suffix = f"Kj{n:x}_EB6_".encode()
-    pc, words = image.function(b"3slh7message4sign" + suffix, b"6slhdsa")
+def execute(path, image, pc, words, hooks, driver):
     end = pc + 4 * len(words)
-    bits = driver.sha.bits
-    inner = f"9continuedKj{bits * 2:x}_NtB2_6Sha{bits * 8}EB6_".encode()
-    hooks[image.function(inner, b"6slhdsa3slh7message")[0]] = "continued"
-    hooks[image.function(b"6digest" + suffix, b"6slhdsa3slh7message")[0]] = "seg_digest"
     project = angr.load_shellcode(
         bytes(image.data), arch="aarch64", load_address=image.base
     )
@@ -348,7 +340,11 @@ def verify(path, image, n, v):
             return
         ptr = integer(s, getattr(s.inspect, f"mem_{kind}_address"))
         length = integer(s, getattr(s.inspect, f"mem_{kind}_length"))
-        if kind == "read" and RANDOM <= ptr and ptr + length <= RANDOM + n:
+        if hasattr(driver, "extra_access") and driver.extra_access(
+            s, kind, ptr, length
+        ):
+            return
+        if kind == "read" and RANDOM <= ptr and ptr + length <= RANDOM + driver.n:
             return
         return guard_access(s, kind, driver)
 
@@ -380,6 +376,18 @@ def verify(path, image, n, v):
             "unexpected termination",
         )
         todo.extend(succ.flat_successors)
+
+
+def verify(path, image, n, v):
+    row, param, _, _, hooks = objects(path, image, n, v, "sha2")
+    driver = Segmented(row, param)
+    suffix = f"Kj{n:x}_EB6_".encode()
+    pc, words = image.function(b"3slh7message4sign" + suffix, b"6slhdsa")
+    bits = driver.sha.bits
+    inner = f"9continuedKj{bits * 2:x}_NtB2_6Sha{bits * 8}EB6_".encode()
+    hooks[image.function(inner, b"6slhdsa3slh7message")[0]] = "continued"
+    hooks[image.function(b"6digest" + suffix, b"6slhdsa3slh7message")[0]] = "seg_digest"
+    execute(path, image, pc, words, hooks, driver)
     require(driver.final_paths == 4, "allocation path coverage")
     print(
         f"SHA2-{8 * n}{v}: segmented Algorithm 19, four output allocation paths",
