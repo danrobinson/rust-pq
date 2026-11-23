@@ -28,9 +28,17 @@ extract() {
     --locked --features platform-sha2 --target "$arch")
   .tools/aeneas/bin/aeneas -backend lean -abort-on-error -no-progress-bar -namespace "$namespace" \
     -split-files -dest "$scratch/$package" "$scratch/$llbc.llbc"
-  for name in Types Funs; do
-    cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
-  done
+  if [ "$package" = Armstream ] && [ "$arch" = aarch64-apple-darwin ]; then
+    # Apple uses a separate SHA-512 single-block implementation. All definitions
+    # reachable from both streaming entry points must match the Linux proof.
+    cmp "$scratch/$package/Types.lean" "$proofdir/$package/Types.lean"
+    sed '/^\/-- \[slhdsa::sha512::compress\]:$/,/^$/d' "$proofdir/$package/Funs.lean" > "$scratch/shared-arm-stream"
+    cmp "$scratch/$package/Funs.lean" "$scratch/shared-arm-stream"
+  else
+    for name in Types Funs; do
+      cmp "$scratch/$package/$name.lean" "$proofdir/$package/$name.lean"
+    done
+  fi
   if [ "$package" = Keypadding ] || [ "$package" = Parentblock ] || [ "$package" = Streamround ]; then
     # All operations in this extraction are implemented by Aeneas.
     for template in "$scratch/$package/"*External_Template.lean; do
@@ -728,3 +736,12 @@ LEAN
 for name in arm256_from arm512_from arm512_block; do
   grep -Fx "'slhdsa.PlatformStream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/arm-stream-axioms"
 done
+
+mv "$scratch/Armstream" "$scratch/Armstream-linux"
+platform_arch=aarch64-apple-darwin
+extract Armstream ArmStreamRust armstream --start-from 'crate::sha256::sha256_from' \
+  --start-from 'crate::sha512::sha512_from' --opaque 'sha2::sha256::compress256' \
+  --opaque 'sha2::sha512::compress512'
+unset platform_arch
+sed '/^core.slice.raw.from_ref$/d' "$scratch/expected" > "$scratch/expected-apple-stream"
+cmp "$scratch/actual" "$scratch/expected-apple-stream"

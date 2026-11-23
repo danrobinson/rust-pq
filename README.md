@@ -158,7 +158,7 @@ The FORS tree and authentication-path driver proofs cover both production SHA-51
 
 The scalar rounds shared by the x86 streaming SHA-256 and SHA-512 implementations each match one FIPS 180-4 round for an arbitrary incoming state. This holds when the precomputed input word is the round constant plus the message-schedule word. Verification of schedule generation and full streaming compression is still in progress. [Streaming round theorems](lean-hw/Streamround/Proof.lean)
 
-On AArch64 Linux, Lean verifies that the extracted SHA-256 and SHA-512 streaming drivers split the message into blocks, pad the tail using the prior byte count, and serialize the final state as specified by FIPS 180-4. The SHA-256 theorem requires a block-aligned prior count and room for 72 additional bytes under both the platform and SHA-256 length bounds. The SHA-512 theorem reserves 144 bytes within the platform length bound. A separate theorem covers the SHA-512 single-block entry at any offset with 128 bytes available. These proofs model Rust slice operations and assume the linked RustCrypto bulk routines apply FIPS compression sequentially. [Driver and single-block theorems](lean-hw/Armstream/Proof.lean) · [External contracts](lean-hw/Armstream/FunsExternal.lean)
+On AArch64 Linux and Apple Silicon, Lean verifies that the extracted SHA-256 and SHA-512 streaming drivers split the message into blocks, pad the tail using the prior byte count, and serialize the final state as specified by FIPS 180-4. The SHA-256 theorem requires a block-aligned prior count and room for 72 additional bytes under both the platform and SHA-256 length bounds. The SHA-512 theorem reserves 144 bytes within the platform length bound. A separate Linux theorem covers the SHA-512 single-block entry at any offset with 128 bytes available. These proofs model Rust slice operations and assume the linked RustCrypto bulk routines apply FIPS compression sequentially. [Driver and single-block theorems](lean-hw/Armstream/Proof.lean) · [External contracts](lean-hw/Armstream/FunsExternal.lean)
 
 The shared AVX-512 SHA-256 digest writer used by FORS leaves, FORS parents and WOTS key digests serializes every active lane of an arbitrary vector state. Lean checks byte order, the 32-bit and 64-bit unpacks within each 128-bit lane, the register reinterpretation under the little-endian layout, bounds on each slice write, and truncation for 16-, 24- and 32-byte outputs. The theorem holds for every output slice length from zero through sixteen. [Digest writer theorem](lean-hw/Store256/Proof.lean) · [Register transpose theorem](lean-hw/Store256/Transpose.lean)
 
@@ -327,7 +327,8 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 
 Needs Rust (rustup), Lean (elan), Aeneas with Charon built under `.tools/aeneas` (OCaml 5.3 via
 opam; see the Aeneas README), and, for `security/`, VCVio at `.tools/VCVio-upstream`
-([security/README.md](security/README.md)). Then:
+([security/README.md](security/README.md)). The platform proof compares extractions for the Rust targets
+`x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, and `aarch64-apple-darwin`. Then:
 
 ```bash
 ./scripts/check.sh                     # everything except the quantum check
