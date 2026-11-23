@@ -1,3 +1,4 @@
+import Lean.Util.CollectAxioms
 import Facade.Suite
 import Spec.AppleEndToEnd
 
@@ -94,4 +95,14 @@ theorem extracted_rejects_context (family : Spec.HashFamily) {N : Usize} (p : pa
 #print axioms extracted_verdict_iff
 #print axioms extracted_rejects_context
 #print axioms extracted_session
+/- Fail the build if an end-to-end theorem starts depending on an admitted
+    proposition, a native decision oracle, or a project-specific axiom. -/
+run_cmd
+  let allowed := [``propext, ``Classical.choice, ``Quot.sound]
+  for decl in [``extracted_session, ``extracted_verdict_iff, ``extracted_rejects_context,
+      ``LinkedArm.Signer.session_iff, ``LinkedArm.Signer.session_exists] do
+    for ax in (← Lean.collectAxioms decl) do
+      unless allowed.contains ax do
+        throwError "{decl} depends on unexpected axiom {ax}"
+
 end slhdsa.Suite
