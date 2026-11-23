@@ -16,23 +16,26 @@ def body_names(text):
             yield match[1], declaration
 
 
-def check_chains(package, width):
+def check_program(package, width, module, roots):
     literal = f"{width}#usize"
-    source = (LEAN / "Shakebatch/WotsChainProgram.lean").read_text()
+    source = (LEAN / f"Shakebatch/{module}.lean").read_text()
     specialized = source.replace("machine.width", literal).replace("machine.permute", "shake256.parallel.permute")
+    specialized = (specialized.replace("stream.absorb", "shake256.Sponge.absorb").replace("stream.State", "shake256.Sponge")
+                   .replace("stream.start", "shake.hash.start").replace("stream.digest", "shake.hash.digest"))
+    names = "|".join(roots)
     seen = set()
     for filename in ("Types.lean", "Funs.lean"):
         for name, decl in body_names(common["body"](package / filename)):
-            if re.match(r"shake\.batch\.(secrets|chains)(?:\.|_|$)", name):
+            if re.match(rf"shake\.batch\.(?:{names})(?:\.|_|$)", name):
                 exact = decl.replace("shake256.parallel.WIDTH", literal)
                 # Reducibility on the type synonym is immaterial to kernel definitional equality.
                 if exact.removeprefix("@[reducible]\n") not in specialized:
                     raise ValueError(f"unbound width-{width} WOTS body {name}")
                 seen.add(name)
-    expected = set(re.findall(r"\bdef\s+(shake\.batch\.(?:secrets|chains)[^\s]*)", source))
+    expected = set(re.findall(rf"\bdef\s+(shake\.batch\.(?:{names})[^\s]*)", source))
     if expected != seen:
         raise ValueError(f"width-{width} declaration mismatch {expected.symmetric_difference(seen)}")
-    print(f"verified {len(seen)} WOTS chain definitions at width {width}", flush=True)
+    print(f"verified {len(seen)} {module} definitions at width {width}", flush=True)
 
 
 def main():
@@ -43,11 +46,18 @@ def main():
             roots = ("crate::shake::batch::secrets", "crate::shake::batch::chains")
             cuts = tuple("crate::shake::batch::" + op for op in ("short", "header", "put"))
             package = extract("rust", target, "Chains", scratch, roots, (*cuts, "crate::shake256::parallel::permute"))
-            check_chains(package, width)
-        common["run"](["lake", "build", "Shakebatch.WotsChains"], LEAN)
+            check_program(package, width, "WotsChainProgram", ("secrets", "chains"))
+            roots = ("crate::shake::batch::keygen",)
+            cuts = ("crate::shake::batch::secrets", "crate::shake::batch::chains",
+                    "crate::shake::hash::start", "crate::shake::hash::digest", "crate::shake256::Sponge::absorb")
+            keys = extract("rust", target, "Wotskeys", scratch, roots, cuts)
+            check_program(keys, width, "WotsKeyProgram", ("keygen",))
+            order = extract("rust", target, "Wotsorder", scratch, ("crate::shake::batch::chain_order",), ())
+            check_program(order, width, "WotsOrderProgram", ("chain_order",))
+        common["run"](["lake", "build", "Shakebatch.WotsKeys", "Shakebatch.WotsScatter"], LEAN)
         check = Path(d) / "Check.lean"
-        theorems = ("wots_secrets", "wots_chains")
-        check.write_text("import Shakebatch.WotsChains\n" +
+        theorems = ("wots_secrets", "wots_chains", "keygen_spec", "WotsOrder.order_spec")
+        check.write_text("import Shakebatch.WotsKeys\nimport Shakebatch.WotsScatter\n" +
                          "".join(f"#print axioms slhdsa.ShakeBatch.{t}\n" for t in theorems))
         output = common["run"](["lake", "env", "lean", check], LEAN, text=True, capture_output=True).stdout
         for theorem in theorems:
