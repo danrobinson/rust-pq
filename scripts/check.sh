@@ -165,7 +165,7 @@ if grep -RnwE "sorry|admit|native_decide|bv_decide" lean/Ct lean/Ct.lean \
    || grep -RnE "^[[:space:]]*(axiom|opaque) " lean/Ct lean/Ct.lean; then
   echo "FOUND sorry/axiom/native_decide/bv_decide in the constant-time proofs"; exit 1
 fi
-for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+for f in Theorems ShakeEncoding ShakeSets Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
   n=$(grep -c "^#print axioms" "lean/Ct/$f.lean")
   out=$(cd lean && lake env lean "Ct/$f.lean" 2>&1)
   good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
@@ -183,7 +183,7 @@ if grep -RnwE "sorry|admit|native_decide|bv_decide" lean-hw/Ct lean-hw/Ct.lean \
    || grep -RnE "^[[:space:]]*(axiom|opaque) " lean-hw/Ct lean-hw/Ct.lean; then
   echo "FOUND sorry/axiom/native_decide/bv_decide in the hw constant-time proofs"; exit 1
 fi
-for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+for f in Theorems ShakeEncoding ShakeSets Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
   n=$(grep -c "^#print axioms" "lean-hw/Ct/$f.lean")
   out=$(cd lean-hw && lake env lean "Ct/$f.lean" 2>&1)
   good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
