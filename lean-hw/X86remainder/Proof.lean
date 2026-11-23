@@ -1,5 +1,6 @@
 import X86remainder.Funs
 import Rcni.Top
+import Rcavx.Top
 import Streamscalar.Top
 import Armstream.Proof
 open Aeneas Aeneas.Std Result
@@ -42,7 +43,7 @@ theorem remainder512 (st : Array U64 8#usize) (blocks : Slice (Array U8 128#usiz
   all_goals generalize h1 : RcDispatchRust.sha = bit1; cases bit1
   all_goals generalize h2 : RcDispatchRust.avx2 = bit2; cases bit2
   all_goals simp only [Bool.false_and,Bool.true_and,Bool.and_false,Bool.and_true,Bool.false_eq_true,ite_false,ite_true,bind_ok]
-  all_goals first | exact PlatformStream.bulk512 st blocks | exact scalar512 st blocks
+  all_goals first | exact slhdsa.X86.RustCrypto512.compress_spec st blocks | exact scalar512 st blocks
 
 theorem single512 (st : Array U64 8#usize) (data : Slice U8) (off : Usize) (room : off.val+128 ≤ data.length) :
     X86RemainderRust.sha512.compress st data off ⦃ out =>

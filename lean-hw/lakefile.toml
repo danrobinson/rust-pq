@@ -176,3 +176,6 @@ name = "Rcni"
 
 [[lean_lib]]
 name = "Rcdispatch"
+
+[[lean_lib]]
+name = "Rcavx"
