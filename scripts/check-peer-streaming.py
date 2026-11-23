@@ -30,12 +30,16 @@ def main():
     eager = runpy.run_path(str(PROOFS / "eager.py"))
     reader = runpy.run_path(str(PROOFS / "reader.py"))
     wire = runpy.run_path(str(PROOFS / "wiring.py"))
+    parts = runpy.run_path(str(PROOFS / "parts.py"))
     cert = runpy.run_path(str(PROOFS / "certificates.py"))["Certificates"]()
     with tempfile.TemporaryDirectory(prefix="peer-stream-") as d:
         root = Path(d)
-        buffer, sha = root / "buffer", root / "sha"
+        buffer, sha, peer = root / "buffer", root / "sha", root / "peer"
         buffer.mkdir()
         sha.mkdir()
+        peer.mkdir()
+        locked["unpack"](peer, "slh-dsa", "0.2.0-rc.5")
+        parts["append_roots"](peer / "src/lib.rs", locked["common"]["append"])
         locked["unpack"](buffer, "block-buffer", "0.12.1")
         manifest = locked["unpack"](sha, "sha3", "0.11.0")
         locked["common"]["append"](buffer / "src/lib.rs", (PROOFS / "buffer.rs").read_text())
@@ -47,6 +51,7 @@ def main():
         lib.write_text(before.replace("#![forbid(unsafe_code)]","#![deny(unsafe_code)]"))
         locked["common"]["append"](lib, (PROOFS / "roots.rs").read_text())
         for target in TARGETS:
+            parts["inspect"](compiled(peer, "slh_dsa", target, []))
             data = compiled(buffer, "block_buffer", target, [])
             eager["inspect"](data, cert.record)
             reader["inspect"](data, cert.record)
@@ -73,7 +78,8 @@ def main():
         if obligations != (ROOT / "lean-hw/Peerarmkeccak/BufferVcs.lean").read_text():
             raise ValueError("fresh LLVM verification obligations differ from checked Lean declarations")
         audit(root, ["Peerarmkeccak.Xof","Peerarmkeccak.BufferVcs"], [*names,"PeerShake.Buffer.providerCorrect","PeerShake.Buffer.completeBlock",
-               "PeerShake.Buffer.updateView","PeerShake.Buffer.padView","PeerShake.Buffer.readView"])
+               "PeerShake.Buffer.updateView","PeerShake.Buffer.padView","PeerShake.Buffer.readView",
+               "PeerShake.Buffer.descriptorStep","PeerShake.Buffer.foldParts"])
 
 
 if __name__=="__main__":
