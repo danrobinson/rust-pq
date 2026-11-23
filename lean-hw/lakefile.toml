@@ -161,3 +161,6 @@ name = "Xfors"
 
 [[lean_lib]]
 name = "X86platform"
+
+[[lean_lib]]
+name = "Segmented"
