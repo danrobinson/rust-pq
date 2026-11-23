@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -517,8 +517,13 @@ hash.chain_blocks_portable
 sha256.x86.avx2.compress8
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Chainavx2.Digest && lake env lean --stdin > "$scratch/avx2-chain-axioms" <<'LEAN'
-import Chainavx2.Digest
+(cd lean-hw && lake build Chainavx2.Top && lake env lean --stdin > "$scratch/avx2-chain-axioms" <<'LEAN'
+import Chainavx2.Top
+#print axioms slhdsa.Avx2.Chain.chains_spec
+#print axioms slhdsa.Avx2.Chain.groups_spec
+#print axioms slhdsa.Avx2.Chain.batch_steps_spec
+#print axioms slhdsa.Avx2.Chain.step_spec
+#print axioms slhdsa.Avx2.Chain.store_bytes_spec
 #print axioms slhdsa.Avx2.Chain.longest_spec
 #print axioms slhdsa.Avx2.Chain.range_lengths_spec
 #print axioms slhdsa.Avx2.Chain.addresses_spec
@@ -528,6 +533,32 @@ import Chainavx2.Digest
 #print axioms ChainAvx2Rust.chunks_roundtrip
 LEAN
 )
-for name in slhdsa.Avx2.Chain.longest_spec slhdsa.Avx2.Chain.range_lengths_spec slhdsa.Avx2.Chain.addresses_spec slhdsa.Avx2.Chain.broadcast_spec slhdsa.Avx2.Chain.digest_lanes_spec slhdsa.Avx2.Chain.word_store_spec ChainAvx2Rust.chunks_roundtrip; do
+for name in slhdsa.Avx2.Chain.chains_spec slhdsa.Avx2.Chain.groups_spec slhdsa.Avx2.Chain.batch_steps_spec slhdsa.Avx2.Chain.step_spec slhdsa.Avx2.Chain.store_bytes_spec slhdsa.Avx2.Chain.longest_spec slhdsa.Avx2.Chain.range_lengths_spec slhdsa.Avx2.Chain.addresses_spec slhdsa.Avx2.Chain.broadcast_spec slhdsa.Avx2.Chain.digest_lanes_spec slhdsa.Avx2.Chain.word_store_spec ChainAvx2Rust.chunks_roundtrip; do
   grep -Fx "'$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/avx2-chain-axioms"
+done
+
+
+extract Chainx86 ChainX86Rust chainx86 --start-from 'crate::sha256::x86::chain_blocks' \
+  --opaque 'crate::hash::chain_blocks_portable' --opaque 'crate::sha256::x86::avx2::chains' \
+  --opaque 'crate::sha256::x86::avx512::chains' --opaque 'crate::sha256::x86::chains' \
+  --opaque 'crate::sha256::x86::has_avx512::get' --opaque 'crate::sha256::x86::has_avx2::get' \
+  --opaque 'crate::sha256::x86::sha_ni::get'
+cat > "$scratch/expected" <<'NAMES'
+hash.chain_blocks_portable
+sha256.x86.avx2.chains
+sha256.x86.avx512.chains
+sha256.x86.chains
+sha256.x86.has_avx2.get
+sha256.x86.has_avx512.get
+sha256.x86.sha_ni.get
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Chainx86.Top && lake env lean --stdin > "$scratch/x86-chain-axioms" <<'LEAN'
+import Chainx86.Top
+#print axioms slhdsa.X86.Dispatch.chains_spec
+#print axioms slhdsa.X86.Dispatch.fallback_eq
+LEAN
+)
+for name in chains_spec fallback_eq; do
+  grep -Fx "'slhdsa.X86.Dispatch.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/x86-chain-axioms"
 done

@@ -98,3 +98,6 @@ name = "Chainwide"
 
 [[lean_lib]]
 name = "Chainavx2"
+
+[[lean_lib]]
+name = "Chainx86"
