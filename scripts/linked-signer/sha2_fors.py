@@ -7,7 +7,8 @@
 The trace oracle specifies each PRF/F/H input, compressed address, padded
 compression block, step counter, and result used by the next level. Batched
 SHA-256 chains, the paired SHA-512 compression kernel, scalar thash_pair,
-and the final hash on the roots are contract boundaries. The paired parents
+and the final hash on the roots use their callee contracts. The one-round SHA-256
+array handoff below discharges the preconditions of sha2_chain_scheduler.py. The paired parents
 and authentication-path builders themselves execute as linked instructions.
 
 All eight base heights run for each width. The recursive step assumes the
@@ -374,6 +375,7 @@ class Case:
         elif name == "chain":
             rows = args[0]
             count = len(rows)
+            require(0 < count <= 128, "FORS native chain batch size")
             reg(0, SEED + (96 if n == 32 else 64))
             reg(2, count)
             for i in [4, 6]:
@@ -383,7 +385,21 @@ class Case:
             blocks = stack(1, 64 * count)
             starts = stack(3, 4 * count)
             ends = stack(5, 4 * count)
+            prefix = rows[0][1].get_bytes(0, 16)
             for j, (idx, expected, out) in enumerate(rows):
+                # The linked one-step scheduler accepts independent 20-bit starts.
+                # It writes the final counter as well as the truncated digest. Here
+                # that counter already equals the compressed tree-address index.
+                agree(s, c.ULT(idx, 2**20), True, "FORS scheduler index range")
+                agree(
+                    s, expected.get_bytes(0, 16), prefix, "common FORS scheduler header"
+                )
+                agree(
+                    s,
+                    expected.get_bytes(18, 4),
+                    idx,
+                    "unchanged one-step address counter",
+                )
                 agree(s, unsigned(s, starts + 4 * j, 4), idx, "chain first step")
                 agree(s, unsigned(s, ends + 4 * j, 4), idx + 1, "chain last step")
                 agree(
