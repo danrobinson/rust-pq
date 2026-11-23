@@ -297,7 +297,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="reject eleven independent binary mutations",
+        help="reject fourteen independent binary mutations",
     )
     parser.add_argument(
         "--certificate", type=Path, help="save the checked Lean certificate"
@@ -376,10 +376,10 @@ if __name__ == "__main__":
             mutation_tests(image, Path(folder), env)
             pure_sign_mutations(image, Path(folder))
     if args.self_test:
-        print("Rejected eleven mutations in the linked image")
+        print("Rejected fourteen mutations in the linked image")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
     print(
-        "Verified valid SHAKE pure-sign framing, randomizers and returned Vec for all six sets"
+        "Verified valid pure-sign framing, randomness and result forwarding for all twelve sets, including SHA-2 segmented dispatch"
     )
     print("Verified all 36 keygen, internal signing and verification entry stubs")
     print("Verified the linked Arm hardware SHA-256 and SHA-512 compression routines")
