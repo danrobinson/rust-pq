@@ -28,7 +28,7 @@ def canonical(text, entry="proof_read_output", args=("%out.0","%out.1","%0")):
     return "\n".join(lines)
 
 
-def inspect(text):
+def inspect(text, prove=check):
     ir=canonical(text)
     # Track the local array's known alignment; it must suffice for the store
     # to its first byte. All external source and destination bytes are align 1.
@@ -40,13 +40,13 @@ def inspect(text):
     n,k,j=z3.Ints("output_len completed_blocks index")
     q,r=n/136,n%136
     env={"guard":[n>=0,n<=2**63-1]}
-    check(env,z3.And(n==q*136+r,r>=0,r<136,(n<136)==(q==0)), "read entry and tail arithmetic")
+    prove(env,z3.And(n==q*136+r,r>=0,r<136,(n<136)==(q==0)), "read entry and tail arithmetic")
     step={"guard":[*env["guard"],k>=0,k<q]}
     # Every iteration starts one pointer-width-aligned rate block after its
     # predecessor. The branch exactly detects the final iteration.
-    check(step,z3.And(k*136>=0,(k+1)*136<=n,
+    prove(step,z3.And(k*136>=0,(k+1)*136<=n,
                       ((k+1)*136==n-r)==(k+1==q),q-k>q-(k+1)), "reader induction")
-    check(step,z3.Implies(z3.And(j>=0,j<136),
+    prove(step,z3.Implies(z3.And(j>=0,j<136),
                           z3.And((k*136+j)/136==k,(k*136+j)%136==j)), "producer output order")
-    check(env,z3.Implies(z3.And(j>=0,j<r),z3.And(q*136+j<n,(q*136+j)/136==q,
+    prove(env,z3.Implies(z3.And(j>=0,j<r),z3.And(q*136+j<n,(q*136+j)/136==q,
                      (q*136+j)%136==j)), "last partial block")
