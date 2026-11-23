@@ -1,4 +1,5 @@
 """Produce latency and paired speedup summaries from the recorded samples."""
+import argparse
 import csv
 import gzip
 import itertools
@@ -7,7 +8,11 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import median
 
-folder = Path(__file__).resolve().parents[1] / "results" / "peers"
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("folder", nargs="?", type=Path,
+                    default=Path(__file__).resolve().parents[1] / "results" / "peers",
+                    help="directory containing samples.csv.gz and encoding-samples.csv.gz")
+folder = parser.parse_args().folder
 providers = ("library", "openssl", "rustcrypto")
 platforms = ("apple", "c5", "c5n", "c8a", "c8i", "c6g", "c8g")
 sets = [f"{family}_{n}{v}" for family in ("sha2", "shake") for n in (128, 192, 256) for v in "sf"]
