@@ -29,7 +29,7 @@ def main():
         [
             "lake",
             "build",
-            "Spec.AppleSha2Composition",
+            "Spec.AppleEndToEnd",
             "Spec.AppleRateBlocksWitness",
             "Spec.AppleSignRejectWitness",
         ],
@@ -37,6 +37,16 @@ def main():
         env=env,
         check=True,
     )
+    subprocess.run(
+        ["lake", "build", "Shakebatch.LinkedOrder"],
+        cwd=ROOT / "lean-hw", env=env, check=True,
+    )
+    if args.self_test:
+        subprocess.run(
+            ["uv", "run", "--python", "3.12", "--script",
+             ROOT / "scripts/linked-signer/audit_contracts.py"],
+            env=env, cwd=ROOT, check=True,
+        )
     with tempfile.TemporaryDirectory() as tmp:
         artifact = Path(tmp) / "consumer"
         artifact.write_bytes(data)
@@ -80,12 +90,14 @@ def main():
             "sha2_hash_helpers",
             "mgf",
             "wots_digits",
+            "wots_batch",
             "xmss_sign",
             "xmss_recover",
             "xmss_node",
             "tree_hash",
         ]:
             run(f"linked-signer/{name}.py", *flags)
+        run("linked-signer/continued.py", "--jobs", "4", *flags)
         run("linked-signer/sha_from.py", "--jobs", "4", *flags)
         run("linked-signer/fors.py")
         if args.self_test:

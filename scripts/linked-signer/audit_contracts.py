@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.11,<3.14"
+# dependencies = ["angr==9.2.213", "bitstring==4.3.1", "pycparser==3.0"]
+# ///
 """Regression checks for native proof memory regions and supplemental VEX operations."""
 
 import sys
