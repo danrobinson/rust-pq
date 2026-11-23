@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|S8driver|Kdiag|Kgridbulk|Kxouter|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|S8driver|S512driver|S512schedule|Kdiag|Kgridbulk|Kxouter|Kmixed|Kmixedperm|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kappleone|Kapplebulk|Kappleouter|Kneonperm|Kxdispatch|Kadisp|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -861,6 +861,10 @@ for name in offsets256 offsets512 swap256 swap512 gathered256 gathered512 ordere
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-gather-axioms"
 done
 
+# These separately extracted Rust guards have different feature masks.
+grep -Fx 'cpufeatures::new!(available, "avx512f", "avx512bw", "avx512vl", "avx2", "bmi2");' rust/src/sha256/stream.rs
+grep -Fx 'cpufeatures::new!(dedicated, "sha");' rust/src/sha256/stream.rs
+grep -Fx 'cpufeatures::new!(available, "avx512f", "avx512bw", "bmi2");' rust/src/sha512/stream.rs
 extract X86stream X86StreamRust x86stream --start-from 'crate::sha256::sha256_from' \
   --start-from 'crate::sha512::sha512_from' --opaque 'crate::sha256::stream::remainder' \
   --opaque 'crate::sha512::stream::remainder' --opaque 'crate::sha256::stream::prescheduled' \
@@ -929,46 +933,42 @@ LEAN
 )
 grep -Fx "'slhdsa.X86.Wots.Api.recover_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/wotsapi-axioms"
 
-extract Streamvector StreamVectorRust streamvector --start-from 'crate::sha256::stream::prescheduled' \
-  --start-from 'crate::sha512::stream::prescheduled' --opaque 'crate::sha256::stream::round' \
-  --opaque 'crate::sha512::stream::round'
+extract S512schedule S512scheduleRust s512schedule --start-from 'crate::sha512::stream::schedule_table'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m512i
+core.core_arch.x86.avx512f._mm512_add_epi64
+core.core_arch.x86.avx512f._mm512_ror_epi64
+core.core_arch.x86.avx512f._mm512_set1_epi64
+core.core_arch.x86.avx512f._mm512_srli_epi64
+core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
+core.intrinsics.transmute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+extract S512driver S512driverRust s512driver --start-from 'crate::sha512::stream::prescheduled' --opaque 'crate::sha512::stream::round' --opaque 'crate::sha512::stream::schedule_table'
 cat > "$scratch/expected" <<'NAMES'
 core.core_arch.x86.__m128i
 core.core_arch.x86.__m256i
 core.core_arch.x86.__m512i
 core.core_arch.x86.avx._mm256_set_epi32
 core.core_arch.x86.avx512bw._mm512_shuffle_epi8
-core.core_arch.x86.avx512f._mm512_add_epi32
-core.core_arch.x86.avx512f._mm512_add_epi64
 core.core_arch.x86.avx512f._mm512_broadcast_i32x4
-core.core_arch.x86.avx512f._mm512_i32gather_epi32
 core.core_arch.x86.avx512f._mm512_i32gather_epi64
-core.core_arch.x86.avx512f._mm512_ror_epi32
-core.core_arch.x86.avx512f._mm512_ror_epi64
-core.core_arch.x86.avx512f._mm512_set1_epi32
-core.core_arch.x86.avx512f._mm512_set1_epi64
-core.core_arch.x86.avx512f._mm512_set_epi32
-core.core_arch.x86.avx512f._mm512_srli_epi32
-core.core_arch.x86.avx512f._mm512_srli_epi64
-core.core_arch.x86.avx512f._mm512_ternarylogic_epi32
-core.core_arch.x86.avx512f._mm512_ternarylogic_epi64
 core.core_arch.x86.sse2._mm_set_epi32
-core.intrinsics.transmute
 core.ptr.const_ptr.RawPtrConstT.add
 core.ptr.const_ptr.RawPtrConstT.cast
 core.slice.Slice.as_ptr
-sha256.stream.round
 sha512.stream.round
+sha512.stream.schedule_table
 NAMES
 cmp "$scratch/actual" "$scratch/expected"
-(cd lean-hw && lake build Streamvector.Top && lake env lean --stdin > "$scratch/vector-axioms" <<'LEAN'
-import Streamvector.Top
-#print axioms slhdsa.X86.Stream.prescheduled256
-#print axioms slhdsa.X86.Stream.prescheduled512
+(cd lean-hw && lake build S512driver.Top && lake env lean --stdin > "$scratch/vector-axioms" <<'LEAN'
+import S512driver.Top
+#print axioms slhdsa.X86.Stream.Eight512.schedule
+#print axioms slhdsa.X86.Stream.Eight512.prescheduled512
 LEAN
 )
-for name in prescheduled256 prescheduled512; do
-  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/vector-axioms"
+for name in schedule prescheduled512; do
+  grep -Fx "'slhdsa.X86.Stream.Eight512.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/vector-axioms"
 done
 
 extract Xmsskeys XmssKeysRust xmsskeys --start-from 'crate::xmss::wide::keys' \
@@ -1288,6 +1288,40 @@ import Kbulk.Top
 LEAN
 )
 grep -Fx "'slhdsa.Oriented.Bulk.blocks_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/kbulk-axioms"
+extract Kmixed KmixedRust kmixed --start-from 'crate::shake256::parallel::mixed::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.aarch64.neon.generated.vsriq_n_u64
+core.core_arch.arm_shared.neon.generated.vbicq_u64
+core.core_arch.arm_shared.neon.generated.vdupq_n_u64
+core.core_arch.arm_shared.neon.generated.veorq_u64
+core.core_arch.arm_shared.neon.generated.vshlq_n_u64
+core.core_arch.arm_shared.neon.uint64x2_t
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+extract Kmixedperm KmixedpermRust kmixedperm --start-from 'crate::shake256::parallel::mixed::permute' \
+  --opaque 'crate::shake256::parallel::mixed::round'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.arm_shared.neon.generated.vcombine_u64
+core.core_arch.arm_shared.neon.generated.vcreate_u64
+core.core_arch.arm_shared.neon.generated.vgetq_lane_u64
+core.core_arch.arm_shared.neon.uint64x1_t
+core.core_arch.arm_shared.neon.uint64x2_t
+shake256.parallel.mixed.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Kmixed.Top Kmixedperm.Bridge && lake env lean --stdin > "$scratch/mixed-axioms" <<'LEAN'
+import Kmixed.Top
+import Kmixedperm.Bridge
+open Aeneas Aeneas.Std Result slhdsa
+def mixed_permutation (s : Array (Array U64 3#usize) 25#usize) :=
+  Kmixedperm.permute_of_native Kmixed.round_fips s
+#print axioms mixed_permutation
+#print axioms slhdsa.Kmixed.round_fips
+LEAN
+)
+for name in mixed_permutation slhdsa.Kmixed.round_fips; do
+  grep -Fx "'$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/mixed-axioms"
+done
 extract Kspongel KspongeLRust kspongel --start-from 'crate::shake256::shake256' \
   --opaque 'crate::shake256::oriented::blocks' --opaque 'crate::shake256::oriented::permute'
 cat > "$scratch/expected" <<'NAMES'
