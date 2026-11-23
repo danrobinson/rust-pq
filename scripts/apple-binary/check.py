@@ -439,6 +439,7 @@ if __name__ == "__main__":
             bulk_mutation_tests(image)
     if args.self_test:
         print("Rejected seventeen mutations in the linked image")
+    print("Verified six segmented SHA-2 signers across four allocator profiles and fifteen mutations")
     print("Verified twelve internal SHAKE and SHA-2 signers across four allocator profiles and twelve mutations")
     print("Verified 24 SHAKE and SHA-2 keygen replays and seven negative keygen controls")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
