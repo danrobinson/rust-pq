@@ -138,7 +138,7 @@ def expectedCall (n : Nat) : HashCall := ⟨ArmKeygen.block n 0, ArmKeygen.block
 The signature and public key start at disjoint modeled locations. Message pointer
 and length remain independent opaque register values. The signature suffix need
 not be materialized: a read from an uninitialized cell fails. -/
-def hashCall (p : Path) (n sigLen entry : Nat) (tail : List (Nat × Nat)) : Option HashCall := do
+def hashEntry (p : Path) (n sigLen entry : Nat) (tail : List (Nat × Nat)) : Option (State × HashCall) := do
   let gate ← inspect p
   guard (gate.length == sigLen && n % 4 == 0 && n ≤ 32)
   let c := {config p with n := n}
@@ -171,7 +171,10 @@ def hashCall (p : Path) (n sigLen entry : Nat) (tail : List (Nat × Nat)) : Opti
   let root ← number s 3
   guard (region out 24 s.sp (stack-s.sp) && disjoint r n out 24 &&
     disjoint seed n out 24 && disjoint root n out 24)
-  return ⟨← read s.m r n, ← read s.m seed n, ← read s.m root n⟩
+  return (s, ⟨← read s.m r n, ← read s.m seed n, ← read s.m root n⟩)
+
+def hashCall (p : Path) (n sigLen entry : Nat) (tail : List (Nat × Nat)) : Option HashCall :=
+  (hashEntry p n sigLen entry tail).map Prod.snd
 
 def hashSources (p : Params) (sig pk : Bytes) : Nat → Bytes
   | 0 => sig.take p.n
