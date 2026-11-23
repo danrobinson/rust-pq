@@ -37,9 +37,4 @@ def shakeApiRoots : Array Name := Id.run do
 def shakeApi (destination backend sponge : Name) : CoreM Unit :=
   replay destination (shakeBindings backend sponge) shakeApiRoots
 
-def shakeUnderRound (destination backend sponge roundLaw : Name) (roots : Array Name) : CoreM Unit := do
-  let (conditional, ordinary) := (shakeBindings backend sponge).partition fun binding =>
-    binding.1.getPrefix == `slhdsa.Shake
-  replayAssuming destination roundLaw ordinary conditional roots
-
 end PlatformProof

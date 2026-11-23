@@ -94,7 +94,7 @@ def proof(package, imports, bindings, target_namespace, raw, scratch):
             if f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]" not in audit:
                 raise ValueError(f"unverified public claim {name}")
     print(f"{target_namespace}: verified {len(SETS)*len(OPS)} fixed-size SHAKE operations"
-          + (" assuming the Linux mixed-round lemma" if target_namespace == "NativeShakeLinux" else ""), flush=True)
+         , flush=True)
 
 
 def forest(package, platform, scratch):
@@ -214,7 +214,7 @@ def audit_facade(platform):
                    for n in (name, f"{namespace}.{name}")):
             raise ValueError(f"missing native facade theorem {name}")
     print(f"{platform}: verified {len(roots)} SHAKE facade theorem groups"
-          + (" assuming the Linux mixed-round lemma" if platform == "Linux" else ""), flush=True)
+         , flush=True)
 
 
 def check_platform(platform, scratch):
