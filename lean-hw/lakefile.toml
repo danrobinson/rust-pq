@@ -134,3 +134,6 @@ name = "Wotswide"
 
 [[lean_lib]]
 name = "Wotsapi"
+
+[[lean_lib]]
+name = "Xmsskeys"

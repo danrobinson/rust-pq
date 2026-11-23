@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -44,6 +44,11 @@ extract() {
     for template in "$scratch/$package/"*External_Template.lean; do
       test ! -e "$template"
     done
+    return
+  fi
+  if [ "$package" = Xmsskeys ]; then
+    # Charon wraps the long mutable-chunk iterator declaration after the keyword.
+    awk '/^axiom$/ { getline; print $1; next } /^axiom / { print $2 }' "$scratch/$package/"*External_Template.lean | LC_ALL=C sort > "$scratch/actual"
     return
   fi
   sed -n 's/^axiom \([^ :]*\).*/\1/p' "$scratch/$package/"*External_Template.lean | LC_ALL=C sort > "$scratch/actual"
@@ -972,4 +977,28 @@ LEAN
 )
 for name in prescheduled256 prescheduled512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/vector-axioms"
+done
+
+extract Xmsskeys XmssKeysRust xmsskeys --start-from 'crate::xmss::wide::keys' \
+  --opaque 'crate::xmss::wide::prepare_message' --opaque 'crate::sha256::x86::wots_endpoints' \
+  --opaque 'crate::sha256::x86::key_digests' --opaque 'crate::sha512::x86::key_digests'
+cat > "$scratch/expected" <<'NAMES'
+core.slice.Slice.chunks_mut
+core.slice.iter.ChunksMut
+core.slice.iter.ChunksMut.Insts.CoreIterTraitsIteratorIteratorMutASlice.next
+sha256.x86.key_digests
+sha256.x86.wots_endpoints
+sha512.x86.key_digests
+xmss.wide.prepare_message
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Xmsskeys.Top && lake env lean --stdin > "$scratch/xmsskeys-axioms" <<'LEAN'
+import Xmsskeys.Top
+#print axioms slhdsa.X86.Wots.keyBatch_fips
+#print axioms slhdsa.X86.Wots.endpoint_payload
+#print axioms slhdsa.X86.XmssKeys.keys_fips
+LEAN
+)
+for name in Wots.keyBatch_fips Wots.endpoint_payload XmssKeys.keys_fips; do
+  grep -Fx "'slhdsa.X86.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmsskeys-axioms"
 done
