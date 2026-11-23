@@ -120,27 +120,34 @@ pub(super) fn remainder(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
 #[target_feature(enable = "bmi2")]
 fn scalar(state: &mut [u64; 8], blocks: &[[u8; 128]]) {
     for block in blocks {
-        let mut w: [u64; 16] = core::array::from_fn(|i| {
-            u64::from_be_bytes(block[i * 8..(i + 1) * 8].try_into().unwrap())
-        });
+        let mut w = core::array::from_fn(|i| read_word(block, i));
         let mut v = *state;
         macro_rules! step {
-            ($i:expr) => {{
-                const I: usize = $i;
-                if I >= 16 {
-                    let x = w[(I + 1) % 16];
-                    let y = w[(I + 14) % 16];
-                    w[I % 16] = w[I % 16]
-                        .wrapping_add(w[(I + 9) % 16])
-                        .wrapping_add(x.rotate_right(1) ^ x.rotate_right(8) ^ (x >> 7))
-                        .wrapping_add(y.rotate_right(19) ^ y.rotate_right(61) ^ (y >> 6));
-                }
-                v = round(v, w[I % 16].wrapping_add(super::K[I]));
-            }};
+            ($i:expr) => {
+                v = scalar_step::<{ $i }>(v, &mut w)
+            };
         }
         rounds!(step);
         for i in 0..8 {
             state[i] = state[i].wrapping_add(v[i]);
         }
     }
+}
+
+#[inline(always)]
+fn read_word(block: &[u8; 128], i: usize) -> u64 {
+    u64::from_be_bytes(block[i * 8..(i + 1) * 8].try_into().unwrap())
+}
+
+#[inline(always)]
+fn scalar_step<const I: usize>(v: [u64; 8], w: &mut [u64; 16]) -> [u64; 8] {
+    if I >= 16 {
+        let x = w[(I + 1) % 16];
+        let y = w[(I + 14) % 16];
+        w[I % 16] = w[I % 16]
+            .wrapping_add(w[(I + 9) % 16])
+            .wrapping_add(x.rotate_right(1) ^ x.rotate_right(8) ^ (x >> 7))
+            .wrapping_add(y.rotate_right(19) ^ y.rotate_right(61) ^ (y >> 6));
+    }
+    round(v, w[I % 16].wrapping_add(super::K[I]))
 }

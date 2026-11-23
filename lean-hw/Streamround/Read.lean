@@ -45,4 +45,34 @@ theorem read64 (a : Array U8 8#usize) :
   calc
     _ = (core.num.U64.from_be_bytes (Array.make 8#usize xs (by rfl))).bv := congrArg (fun x => (core.num.U64.from_be_bytes x).bv) rebuild
     _ = _ := be_eight _ _ _ _ _ _ _ _
+
+private theorem loadedByte {n m} (block : Array U8 n) (part : Array U8 m) (off j : Nat)
+    (piece : part.val = (block.val.drop off).take m.val)
+    (room : off+m.val ≤ n.val) (hj : j < m.val) :
+    part.val[j]!.bv = (bytes block.val)[off+j]! := by
+  have a : j < part.val.length := by simpa using hj
+  have b : off+j < block.val.length := by simpa using (show off+j < n.val by omega)
+  have mapped : off+j < (bytes block.val).length := by simpa [bytes] using b
+  rw [getElem!_pos part.val j a,getElem!_pos (bytes block.val) (off+j) mapped]
+  simp only [bytes,List.getElem_map]
+  rw [List.getElem_of_eq piece a]
+  simp [List.getElem_take,List.getElem_drop]
+
+theorem load256 (block : Array U8 64#usize) (i : Nat) (hi : i < 16)
+    (part : Array U8 4#usize) (piece : part.val = (block.val.drop (4*i)).take 4) :
+    (core.num.U32.from_be_bytes part).bv = (Spec.SHA256.schedule (bytes block.val))[i]! := by
+  rw [read32,slhdsa.schedule_lt16 _ _ hi]
+  unfold Spec.SHA256.word
+  have h := loadedByte block part (4*i)
+  have room : 4*i+(4#usize).val ≤ (64#usize).val := by change 4*i+4 ≤ 64; omega
+  simp only [h 0 piece room (by decide),h 1 piece room (by decide),h 2 piece room (by decide),h 3 piece room (by decide),Nat.add_zero]
+
+theorem load512 (block : Array U8 128#usize) (i : Nat) (hi : i < 16)
+    (part : Array U8 8#usize) (piece : part.val = (block.val.drop (8*i)).take 8) :
+    (core.num.U64.from_be_bytes part).bv = (Spec.SHA512.schedule (bytes block.val))[i]! := by
+  rw [read64,slhdsa.H512.schedule_lt16 _ _ hi]
+  unfold Spec.SHA512.word
+  have h := loadedByte block part (8*i)
+  have room : 8*i+(8#usize).val ≤ (128#usize).val := by change 8*i+8 ≤ 128; omega
+  simp only [h 0 piece room (by decide),h 1 piece room (by decide),h 2 piece room (by decide),h 3 piece room (by decide),h 4 piece room (by decide),h 5 piece room (by decide),h 6 piece room (by decide),h 7 piece room (by decide),Nat.add_zero]
 end slhdsa.X86.Stream

@@ -137,3 +137,7 @@ The endpoint median spans all three digest widths and eight nonempty batch sizes
 Direct lane stores generally helped recovery but slowed endpoint generation on EPYC. Caching a fifth SHA round offered little additional end-to-end improvement across the three hosts. [Direct-store experiment](results/merged/wots-stores-confirm.tar.gz) · [Fifth-round experiment](results/merged/wots-stores-prefix.tar.gz)
 
 The adopted version passed all 134 core tests and 54 compatibility tests with platform dispatch on each of the three x86 hosts, for 564 passes. [Validation counts](results/merged/wots-stores-validation.csv) · [Release logs, CPU details, source fingerprints and runner](results/merged/wots-stores-validation.tar.gz)
+
+## BMI2 streaming SHA-256 and SHA-512
+
+The const-generic round helper used for verification preserves the emitted scalar kernel on the x86-64 Linux release build. Against `df998a8`, the assembly bodies matched for both SHA-256 (2,800 lines) and SHA-512 (3,533 lines), including register allocation, instructions, and stack offsets. The comparison used `cargo rustc --locked --release --features platform-sha2 --target x86_64-unknown-linux-gnu --lib -- --emit=asm` and normalized local basic-block label numbers. This is a code-generation comparison for that build. [End-to-end kernel proofs](../lean-hw/Streamscalar/Top.lean)

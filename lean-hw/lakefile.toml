@@ -113,3 +113,9 @@ name = "Streamround"
 
 [[lean_lib]]
 name = "Armstream"
+
+[[lean_lib]]
+name = "Streamstep"
+
+[[lean_lib]]
+name = "Streamscalar"

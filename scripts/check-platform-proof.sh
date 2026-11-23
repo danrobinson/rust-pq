@@ -20,7 +20,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Streamround|Armstream|Streamstep|Streamscalar) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -704,13 +704,15 @@ extract Streamround StreamRoundRust streamround --start-from 'crate::sha256::str
 import Streamround.Read
 #print axioms slhdsa.X86.Stream.read32
 #print axioms slhdsa.X86.Stream.read64
+#print axioms slhdsa.X86.Stream.load256
+#print axioms slhdsa.X86.Stream.load512
 #print axioms slhdsa.X86.Stream.expansion256
 #print axioms slhdsa.X86.Stream.expansion512
 #print axioms slhdsa.X86.Stream.round256_spec
 #print axioms slhdsa.X86.Stream.round512_spec
 LEAN
 )
-for name in round256_spec round512_spec read32 read64 expansion256 expansion512; do
+for name in round256_spec round512_spec read32 read64 load256 load512 expansion256 expansion512; do
   grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-round-axioms"
 done
 
@@ -745,3 +747,45 @@ extract Armstream ArmStreamRust armstream --start-from 'crate::sha256::sha256_fr
 unset platform_arch
 sed '/^core.slice.raw.from_ref$/d' "$scratch/expected" > "$scratch/expected-apple-stream"
 cmp "$scratch/actual" "$scratch/expected-apple-stream"
+
+extract Streamstep StreamStepRust streamstep --start-from 'crate::sha256::stream::read_word' \
+  --start-from 'crate::sha512::stream::read_word' --start-from 'crate::sha256::stream::scalar_step' \
+  --start-from 'crate::sha512::stream::scalar_step' --opaque 'crate::sha256::stream::round' \
+  --opaque 'crate::sha512::stream::round'
+cat > "$scratch/expected" <<'NAMES'
+sha256.stream.round
+sha512.stream.round
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Streamstep.Transition && lake env lean --stdin > "$scratch/stream-word-axioms" <<'LEAN'
+import Streamstep.Transition
+#print axioms slhdsa.X86.Stream.read_word256
+#print axioms slhdsa.X86.Stream.read_word512
+#print axioms slhdsa.X86.Stream.step256
+#print axioms slhdsa.X86.Stream.step512
+LEAN
+)
+for name in read_word256 read_word512 step256 step512; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-word-axioms"
+done
+
+extract Streamscalar StreamScalarRust streamscalar --start-from 'crate::sha256::stream::scalar' \
+  --start-from 'crate::sha512::stream::scalar' --opaque 'crate::sha256::stream::read_word' \
+  --opaque 'crate::sha512::stream::read_word' --opaque 'crate::sha256::stream::scalar_step' \
+  --opaque 'crate::sha512::stream::scalar_step'
+cat > "$scratch/expected" <<'NAMES'
+sha256.stream.read_word
+sha256.stream.scalar_step
+sha512.stream.read_word
+sha512.stream.scalar_step
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build Streamscalar.Top && lake env lean --stdin > "$scratch/stream-scalar-axioms" <<'LEAN'
+import Streamscalar.Top
+#print axioms slhdsa.X86.Stream.scalar256
+#print axioms slhdsa.X86.Stream.scalar512
+LEAN
+)
+for name in scalar256 scalar512; do
+  grep -Fx "'slhdsa.X86.Stream.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream-scalar-axioms"
+done
