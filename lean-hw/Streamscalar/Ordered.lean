@@ -3,14 +3,14 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.X86.Stream
 
 /-- Each row holds one precomputed round word for each message block in the group. -/
-def ordered256 (table : Array (Array U32 16#usize) 64#usize)
-    (blocks : Array (Array U8 64#usize) 16#usize) (count : Nat) :=
-  ∀ i < count, ∀ lane < 16, table.val[i]!.val[lane]!.bv =
+def ordered256 {lanes : Usize} (table : Array (Array U32 lanes) 64#usize)
+    (blocks : Array (Array U8 64#usize) lanes) (count : Nat) :=
+  ∀ i < count, ∀ lane < lanes.val, table.val[i]!.val[lane]!.bv =
     Spec.SHA256.K[i]! + (Spec.SHA256.schedule (bytes blocks.val[lane]!.val))[i]!
 
-theorem ordered_round256 (i lane : Nat) (st v : Array U32 8#usize)
-    (table : Array (Array U32 16#usize) 64#usize) (blocks : Array (Array U8 64#usize) 16#usize)
-    (roundIndex : i < 64) (laneIndex : lane < 16) (rows : ordered256 table blocks 64)
+theorem ordered_round256 {lanes : Usize} (i lane : Nat) (st v : Array U32 8#usize)
+    (table : Array (Array U32 lanes) 64#usize) (blocks : Array (Array U8 64#usize) lanes)
+    (roundIndex : i < 64) (laneIndex : lane < lanes.val) (rows : ordered256 table blocks 64)
     (state : state256 v = rounds256 i (bytes blocks.val[lane]!.val) st) :
     StreamRoundRust.sha256.stream.round v table.val[i]!.val[lane]! ⦃ out =>
       state256 out = rounds256 (i+1) (bytes blocks.val[lane]!.val) st ⦄ := by
@@ -35,10 +35,10 @@ theorem ordered_round512 (i lane : Nat) (st v : Array U64 8#usize)
   simp only [computed,state,rounds512,List.range_succ,List.foldl_append,List.foldl_cons,List.foldl_nil]
 
 
-theorem write_ordered256 (table : Array (Array U32 16#usize) 64#usize)
-    (blocks : Array (Array U8 64#usize) 16#usize) (i : Usize) (row : Array U32 16#usize)
+theorem write_ordered256 {lanes : Usize} (table : Array (Array U32 lanes) 64#usize)
+    (blocks : Array (Array U8 64#usize) lanes) (i : Usize) (row : Array U32 lanes)
     (bound : i.val < 64) (previous : ordered256 table blocks i.val)
-    (values : ∀ lane < 16, row.val[lane]!.bv =
+    (values : ∀ lane < lanes.val, row.val[lane]!.bv =
       Spec.SHA256.K[i.val]! + (Spec.SHA256.schedule (bytes blocks.val[lane]!.val))[i.val]!) :
     ordered256 (table.set i row) blocks (i.val+1) := by
   intro t ht lane hl

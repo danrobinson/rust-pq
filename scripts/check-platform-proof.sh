@@ -32,7 +32,7 @@ extract() {
     proofdir=lean-hw
   fi
   case "$package" in
-    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
+    Parent512|Gather512|Keypadding|Store256|Digest256|Parentblock|Parentx86|Parentarm|Leaf256|Parent256|Chainni|Chainvectors|Chainwrite|Chainwide|Chainavx2|Chainx86|Wots|Wotsx86|Wotswide|Wotsapi|Treehash|Keccakscalar|S8word|S8table|Kavx|Ksha3|Kneon|Kavxperm|Kappleperm|Kneonperm|Koriented|Kbulk|Kspongel|Shakeabs|Xmssroot|Xmsskeys|Streamround|Armstream|Streamstep|Streamscalar|Streamvector|X86remainder|X86stream) proofdir=lean-hw ;;
   esac
   mkdir "$scratch/$package"
   (cd rust && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas "$@" \
@@ -1041,6 +1041,39 @@ python3 "$root/scripts/check-arm-api-proof.py"
 python3 "$root/scripts/check-platform-encoding.py"
 python3 "$root/scripts/check-portable-shake.py"
 sh "$root/scripts/check-keccak-assembly.sh"
+platform_arch=x86_64-unknown-linux-gnu
+extract S8word S8wordRust s8word --start-from 'crate::sha256::stream::expand'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m256i
+core.core_arch.x86.avx._mm256_set1_epi32
+core.core_arch.x86.avx2._mm256_add_epi32
+core.core_arch.x86.avx2._mm256_srli_epi32
+core.core_arch.x86.avx512f._mm256_ror_epi32
+core.core_arch.x86.avx512f._mm256_ternarylogic_epi32
+core.intrinsics.transmute
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+extract S8table S8tableRust s8table --start-from 'crate::sha256::stream::schedule' --opaque 'crate::sha256::stream::expand'
+cat > "$scratch/expected" <<'NAMES'
+core.core_arch.x86.__m128i
+core.core_arch.x86.__m256i
+core.core_arch.x86.avx._mm256_set_epi32
+core.core_arch.x86.avx2._mm256_broadcastsi128_si256
+core.core_arch.x86.avx2._mm256_i32gather_epi32
+core.core_arch.x86.avx2._mm256_shuffle_epi8
+core.core_arch.x86.sse2._mm_set_epi32
+core.ptr.const_ptr.RawPtrConstT.add
+core.ptr.const_ptr.RawPtrConstT.cast
+core.slice.Slice.as_ptr
+sha256.stream.expand
+NAMES
+cmp "$scratch/actual" "$scratch/expected"
+(cd lean-hw && lake build S8table.Top && lake env lean --stdin > "$scratch/stream8-table-axioms" <<'LEAN'
+import S8table.Top
+#print axioms slhdsa.X86.Stream.Eight.table_fips
+LEAN
+)
+grep -Fx "'slhdsa.X86.Stream.Eight.table_fips' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/stream8-table-axioms"
 platform_arch=aarch64-unknown-linux-gnu
 extract Koriented KorientedRust koriented --start-from 'crate::shake256::oriented::permute'
 (cd lean-hw && lake build Koriented.Permutation && lake env lean --stdin > "$scratch/oriented-axioms" <<'LEAN'
