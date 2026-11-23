@@ -997,8 +997,9 @@ import Xmsskeys.Top
 #print axioms slhdsa.X86.Wots.keyBatch_fips
 #print axioms slhdsa.X86.Wots.endpoint_payload
 #print axioms slhdsa.X86.XmssKeys.keys_fips
+#print axioms slhdsa.X86.XmssKeys.tree_leaves
 LEAN
 )
-for name in Wots.keyBatch_fips Wots.endpoint_payload XmssKeys.keys_fips; do
+for name in Wots.keyBatch_fips Wots.endpoint_payload XmssKeys.keys_fips XmssKeys.tree_leaves; do
   grep -Fx "'slhdsa.X86.$name' depends on axioms: [propext, Classical.choice, Quot.sound]" "$scratch/xmsskeys-axioms"
 done

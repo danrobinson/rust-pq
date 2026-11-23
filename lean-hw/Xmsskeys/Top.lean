@@ -78,4 +78,21 @@ theorem keys_fips {N} (G L : Usize) (p : params.Params) (hp : PN p N) (seed : Xm
     · simp [inv]
   · intro e proof
     exact (WP.spec_ok _).mpr proof
+/-- Within an XMSS tree of a supported parameter set, every prepared lane has a
+representable address, even when some lanes of the final group are inactive. -/
+theorem tree_leaves {N} (G L : Usize) (p : params.Params) (hp : PN p N)
+    (seed : XmssKeysRust.hash.Seed N) (hs : SeedOk (seedOf seed)) (sk : Array U8 N)
+    (a : XmssKeysRust.address.Adrs) (first : U32) (roots : Wots.Rows N)
+    (cpu : GatherRust.avx512Available=true) (format : shape N G L)
+    (within : first.val+roots.length≤2^p.hp.val) :
+    XmssKeysRust.xmss.wide.keys G L seed sk a first roots ⦃ out => out.length=roots.length ∧
+      ∀ j<out.length, bytes out.val[j]!.val = Spec.xmssNode (paramsS p) (bytes sk.val)
+        (first.val+j) 0 (bytes seed.pk_seed.val)
+        (adrsS (WotsRust.addressOf (WotsX86Rust.asKernel (XmssKeysRust.asChecked a)))) ⦄ := by
+  apply keys_fips G L p hp seed hs sk a first roots cpu format
+  intro group start
+  have height : p.hp.val≤9 := hp.valid.hp_le
+  have capacity : 2^p.hp.val≤512 := Nat.pow_le_pow_right (by decide : 0<2) height
+  have width : G.val≤16 := by rcases format with h|h|h <;> omega
+  omega
 end slhdsa.X86.XmssKeys
