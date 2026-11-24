@@ -32,9 +32,8 @@ private theorem record_cost {α : Type} (pk : S.Node) (P : OracleComp (thSpec P�
 noncomputable def walk (tbl : SecretTable S.vp P₀) (pk : S.Node) (H : Input → Output) :=
   ((simulateQ (record S pk H) (structureFree tbl)).run []).2
 
-theorem walk_cost (tbl : SecretTable S.vp P₀) (pk : S.Node) :
-    EvalCost (fun H => (pure (walk S tbl pk H) : ProbComp (CallLog S))) (tcrTargets S.vp * walkMax S) := by
-  apply record_cost
+theorem walk_count (tbl : SecretTable S.vp P₀) :
+    WCount (fun t => thashCalls S t.2.length) (structureFree tbl) (tcrTargets S.vp * walkMax S) := by
   apply cappedCount (fun t : (thSpec P₀).Domain => thashCalls S t.2.length) (fun _ => True)
     (walkMax S) (fun _ h => (h trivial).elim) _ _ (tcr_structureFree_bound tbl)
   unfold structureFree
@@ -43,6 +42,10 @@ theorem walk_cost (tbl : SecretTable S.vp P₀) (pk : S.Node) :
   intro h
   change walkMax S < thashCalls S xs.length at h
   rcases hx with h'|h'|h'|h' <;> rw [h'] at h <;> unfold walkMax keygenMax at h <;> omega
+
+theorem walk_cost (tbl : SecretTable S.vp P₀) (pk : S.Node) :
+    EvalCost (fun H => (pure (walk S tbl pk H) : ProbComp (CallLog S))) (tcrTargets S.vp * walkMax S) := by
+  exact record_cost S pk _ _ (walk_count S tbl) []
 
 set_option maxHeartbeats 1500000 in
 theorem walk_oracle (g : CompressionTables) (tbl : SecretTable S.vp P₀) (pk : S.Node) :

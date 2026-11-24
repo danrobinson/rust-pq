@@ -16,7 +16,14 @@ for every message limit and every query budget, even zero. Its query count inclu
 honest tree construction in a cubic quantum collision estimate. Independently, keeping one FORS
 coordinate in ITSR yields a term of at least one at `2^40` public queries. Both estimates need
 improvement for a nontrivial guarantee at that benchmark.
-The two SHA2-128 parameter sets still need closed shared-compression signature bounds.
+For the four wide sets, Lean now verifies that the [honest construction alone](Integration/SlhDsaCompressionClassicalWalk.lean)
+has a classical birthday bound of at most 1/256 for a repeated SHA-512 digest prefix or an IV-prefix hit.
+The end-to-end proof still needs to connect this transcript to the subsequent quantum queries.
+
+For SHA2-128s and 128f, the [SHA-256 message PRF](Integration/SlhDsaCompressionHmac256Signature.lean)
+and [all four arity-specific target collision terms](Integration/SlhDsaCompressionSmallClass.lean)
+have numerical bounds for the signature forger using both shared compression tables.
+Their full shared-compression signature bounds remain open.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component
