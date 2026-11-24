@@ -7,7 +7,7 @@
 #   ALLOW_MTIME_SKEW=1  scripts/check-integration.sh      # downgrade check (2d) below to a warning
 #
 # WHAT IT DOES
-#   1. `lake build` in quantum/ (default target), then `lake build` of every `PQ.*` module that
+#   1. `lake build` in quantum/ (default target), then `lake build` of every `PQ.*` or `VCVio.*` module that
 #      an Integration file imports (these are not all in the default target).
 #   2. Checks the compiled modules of ../security that the Integration files import
 #      (transitively), WITHOUT running lake in ../security.  For every such module it fails if
@@ -51,11 +51,11 @@ if [ "${SKIP_DEFAULT_BUILD:-0}" != "1" ]; then
 else
   echo "(default target skipped: SKIP_DEFAULT_BUILD=1)"
 fi
-PQMODS=$(grep -h '^import PQ\.' Integration/*.lean | awk '{print $2}' | sort -u | tr '\n' ' ')
-if [ -n "$PQMODS" ]; then
+PROOF_MODULES=$(grep -Eh '^import (PQ|VCVio)\.' Integration/*.lean | awk '{print $2}' | sort -u | tr '\n' ' ')
+if [ -n "$PROOF_MODULES" ]; then
   # shellcheck disable=SC2086
-  lake build $PQMODS 2>&1 | tail -1
-  [ "${PIPESTATUS[0]}" -eq 0 ] || fail "lake build of $PQMODS failed"
+  lake build $PROOF_MODULES 2>&1 | tail -1
+  [ "${PIPESTATUS[0]}" -eq 0 ] || fail "lake build of $PROOF_MODULES failed"
 fi
 
 echo "== 2. security oleans: present and up to date =="

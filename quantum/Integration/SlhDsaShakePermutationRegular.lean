@@ -8,7 +8,7 @@ capacity pairs. The bound holds simultaneously for every pair of rates. -/
 namespace Reduction.ShakePermutation
 open Classical
 
-private def imageTuple {I A : Type} (x : I ↪ A) (π : Equiv.Perm A) : I ↪ A :=
+def imageTuple {I A : Type} (x : I ↪ A) (π : Equiv.Perm A) : I ↪ A :=
   x.trans π.toEmbedding
 
 private theorem embedding_fiber {I A : Type} [Fintype I] [Fintype A] (x y : I ↪ A) :
@@ -60,7 +60,7 @@ def irregular (π : Permutation) : Prop :=
 
 private abbrev Witness := Rate × Rate × (Fin 5 ↪ Capacity) × (Fin 5 ↪ Capacity)
 
-private theorem graph_union_bound {I A W : Type} [Fintype I] [Fintype A] [Fintype W]
+theorem graph_union_bound {I A W : Type} [Fintype I] [Fintype A] [Fintype W]
     (left right : W → I ↪ A) (bad : Equiv.Perm A → Prop)
     (cert : ∀ π, bad π → ∃ w, imageTuple (left w) π = right w) :
     Nat.card (I ↪ A) * Nat.card {π : Equiv.Perm A // bad π} ≤ Nat.card W * Nat.card (Equiv.Perm A) := by

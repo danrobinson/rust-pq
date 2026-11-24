@@ -353,7 +353,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 - `security/` — the security theorems (`MLink`, `MReduction`, `ME2E`, `MIdeal` for the six sets;
   the generic `Reduction`, `Ideal`, `Link`, `E2E` they build on); `security/STATUS.md`.
 - `security-hw/` — the same libraries compiled against `lean-hw`. No source of its own.
-- `quantum/` — the quantum-random-oracle analysis of SLH-DSA-SHA2-128s ([below](#quantum-adversaries-quantum-see-quantumstatusmd)).
+- `quantum/` — the quantum security analysis of the SHA-2 and SHAKE parameter sets ([below](#quantum-adversaries-quantum-see-quantumstatusmd)).
 - `compat/` — the RustCrypto-style adapter (forwarding to `rust/src/adapter.rs` and the rest of the
   verified crate; its own code is not verified, see above).
 - `bench/` — benchmarks against other libraries, with interoperability checks.
@@ -479,6 +479,16 @@ charge SHA-256 queries and allow the adversary to know the SHA-512 table.
 For the four wider sets the [classical pure-byte SUF-CMA and EUF-CMA bounds](quantum/Integration/SlhDsaCompressionClassicalWide.lean) use an exact simulation of each classical compression read. These inherit the shared-compression query and signing budgets and the numerical certificates below.
 
 ### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
+
+For all six pure SHAKE parameter sets, Lean bounds both strong and existential
+forgery probability by `2^-36` with at most `2^40` coherent public queries,
+one classical signing query and 65,536 encoded message bytes. The signing
+algorithms and adversary share one ideal XOF on raw byte strings. The theorem
+allows any finite input cap large enough for the benchmark. The public port
+returns the full message-digest width for that set, and the signer takes shorter
+prefixes where required. A concrete numerical bound for the ideal Keccak
+permutation with coherent forward and inverse access remains open.
+[Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeXofSignature.lean)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
 pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA
