@@ -14,10 +14,10 @@ set_option linter.unusedSectionVars false
 variable {J Y Z : Type} [Fintype J] [DecidableEq J] [Fintype Y] [DecidableEq Y] [Nonempty Y]
   [Fintype Z] [DecidableEq Z] [Nonempty Z]
 
-private theorem const_mean {A : Type} [Fintype A] [Nonempty A] (c : ℝ≥0∞) :
+theorem const_mean {A : Type} [Fintype A] [Nonempty A] (c : ℝ≥0∞) :
     uniformMean (fun _ : A => c) = c := by simp only [uniformMean,← Finset.sum_mul,sum_unifW,one_mul]
 
-private theorem rate {A : Type} [Fintype A] [Nonempty A] (P : A → Prop) [DecidablePred P]
+theorem rate {A : Type} [Fintype A] [Nonempty A] (P : A → Prop) [DecidablePred P]
     (n : ℕ) (h : Fintype.card {a // P a} * 2^n ≤ Fintype.card A) :
     uniformMean (fun a => if P a then 1 else 0) ≤ ((2:ℝ≥0∞)^n)⁻¹ := by
   have exact_mass : uniformMean (fun a => if P a then 1 else 0) =
@@ -37,12 +37,12 @@ def splitWorld : (J → Words) ≃ Parts J Y Z :=
   (Equiv.arrowCongr (Equiv.refl _) e).trans
     (Equiv.arrowProdEquivProdArrow J (fun _ => Y) (fun _ => Z))
 
-private theorem split_mean (V : Parts J Y Z → ℝ≥0∞) :
+theorem split_mean (V : Parts J Y Z → ℝ≥0∞) :
     uniformMean (fun t : J → Words => V (splitWorld e t)) = uniformMean V := by
   let h := Equiv.sum_comp (splitWorld e (J := J)) (fun w => unifW _ w * V w)
   simpa only [uniformMean,unifW,Fintype.card_congr (splitWorld e (J := J))] using h
 
-private theorem pair_mean (v : Parts J Y Z → ℝ≥0∞) :
+theorem pair_mean (v : Parts J Y Z → ℝ≥0∞) :
     uniformMean v = uniformMean (fun f => uniformMean (fun s => v (f,s))) := by
   simp only [uniformMean,Fintype.sum_prod_type,unifW,Fintype.card_prod,Nat.cast_mul,
     ENNReal.mul_inv (Or.inr (ENNReal.natCast_ne_top _)) (Or.inl (ENNReal.natCast_ne_top _)),
@@ -50,7 +50,7 @@ private theorem pair_mean (v : Parts J Y Z → ℝ≥0∞) :
 
 def exactTable (π : Permutation) (j : J) := (e (π (a j))).1
 
-private theorem local_law (π : Permutation) (t : J → Words)
+theorem local_law (π : Permutation) (t : J → Words)
     (ok : Function.Injective (Program.pair a π t)) (sm : small (splitWorld e t).2) :
     let p := (Program.resample a (π,t)).1
     oracle p = simulatedPort e a π (splitWorld e t).2 base (splitWorld e t).1 ∧
@@ -115,12 +115,12 @@ private theorem fixed (π : Permutation) (jcap : Fintype.card J ≤ 2^768) (zcap
       (fun _ => uniformMean (fun s : J → Z => warn (¬small s))) from rfl,const_mean]
     exact rate _ _ (bucket_risk jcap zcap)
 
-private theorem avg_shift {A : Type} [Fintype A] [Nonempty A] (f g : A → ℝ≥0∞) (u : ℝ≥0∞)
+theorem avg_shift {A : Type} [Fintype A] [Nonempty A] (f g : A → ℝ≥0∞) (u : ℝ≥0∞)
     (h : ∀ a, f a ≤ g a + u) : uniformMean f ≤ uniformMean g + u := by
   have le := Finset.sum_le_sum (s := Finset.univ) (fun a _ => mul_le_mul' (le_refl (unifW _ a)) (h a))
   exact le.trans_eq (by simp only [uniformMean,mul_add,Finset.sum_add_distrib,← Finset.sum_mul,sum_unifW,one_mul])
 
-private theorem mean_instance {A : Type} {i j : Fintype A} (f : A → ℝ≥0∞) :
+theorem mean_instance {A : Type} {i j : Fintype A} (f : A → ℝ≥0∞) :
     @uniformMean A i f = @uniformMean A j f := congrArg (fun k => @uniformMean A k f) (Subsingleton.elim i j)
 
 /-- Unrestricted coherent access to the shared forward and inverse permutation

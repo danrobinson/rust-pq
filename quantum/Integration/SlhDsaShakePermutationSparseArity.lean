@@ -12,7 +12,7 @@ abbrev Msg := SetOracle.ArMsg S ar
 abbrev Row := Bytes 32 × Msg S ar
 def data (j : Row S ar) := thBytes S pk j.1 j.2.val
 
-private theorem single (j : Row S ar) (bound : ar ≤ 2) :
+theorem single (j : Row S ar) (bound : ar ≤ 2) :
     messageBlocks (sp (data S ar pk j)) = [rateBlock (padded (sp (data S ar pk j))) 0] := by
   have n : S.vp.params.n ≤ 32 := by cases S <;> decide
   have k : S.vp.params.n*ar ≤ 32*2 := Nat.mul_le_mul n bound
@@ -35,7 +35,7 @@ def input (bound : ar ≤ 2) : Row S ar ↪ Words where
     exact Prod.ext (Vector.toList_inj.mp (List.append_cancel_left left))
       (Subtype.ext (MIdeal.Sha512.payload_injective S right))
 
-private theorem fmt (a : Bytes 32) (xs : List S.Node) :
+theorem fmt (a : Bytes 32) (xs : List S.Node) :
     sp (thBytes S pk a xs) = nd pk ++ nd a ++ nds xs := by
   have payload (l : List S.Node) : sp (Payload S l) = nds l := by
     induction l with
