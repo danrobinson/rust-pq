@@ -15,7 +15,9 @@ static mut LAYER: usize = 0;
 static mut RECOVERED: usize = 0;
 static mut TREE: u64 = 0;
 static mut LEAF: u32 = 0;
-static mut PREVIOUS: [u8; N] = [0; N];
+// Kani 0.68 can coalesce a zero-initialized one-byte buffer with the
+// constant BigEndian::ORDER. Keep the initial state distinct and check it on use.
+static mut PREVIOUS: Option<[u8; N]> = None;
 static mut SAMPLE: usize = 0;
 static mut BYTES: [u8; D] = [0; D];
 static mut HASH: *const () = core::ptr::null();
@@ -41,7 +43,7 @@ fn check_args<S: XmssParams>(
         expected[..4].copy_from_slice(&(layer as u32).to_be_bytes());
         expected[8..16].copy_from_slice(&expected_tree.to_be_bytes());
         assert_eq!(adrs.as_bytes(), &expected);
-        let previous = PREVIOUS;
+        let previous = PREVIOUS.expect("initial message supplied");
         assert_eq!(msg.as_slice(), &previous);
         assert!(core::ptr::from_ref(suite).cast::<()>() == HASH);
     }
@@ -84,7 +86,7 @@ trait Observe: XmssParams {
             let byte = core::ptr::from_ref(sig).cast::<u8>().add(SAMPLE).read();
             assert_eq!(byte, BYTES[layer]);
             let next = kani::any::<[u8; N]>();
-            PREVIOUS = next;
+            PREVIOUS = Some(next);
             RECOVERED = layer + 1;
             next.as_slice().try_into().unwrap()
         }
@@ -107,7 +109,7 @@ fn sign_layers() {
     kani::assume(offset < XmssSig::<P>::SIZE);
     unsafe {
         SAMPLE = offset;
-        PREVIOUS = message;
+        PREVIOUS = Some(message);
         TREE = tree;
         LEAF = leaf;
         SECRET = core::ptr::from_ref(&secret).cast();

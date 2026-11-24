@@ -1,5 +1,6 @@
 #[kani::proof]
-#[kani::unwind(40)]
+// SHA-512 seed setup constructs up to 104 padding bytes before the step.
+#[kani::unwind(128)]
 #[kani::stub(crate::xmss::XmssParams::xmss_sign, Observe::checked_sign)]
 #[kani::stub(crate::xmss::XmssParams::xmss_pk_from_sig, Observe::checked_recover)]
 fn sign_step() {
@@ -14,7 +15,7 @@ fn sign_step() {
     kani::assume(j < D && offset < XmssSig::<P>::SIZE);
     unsafe {
         SAMPLE = offset;
-        PREVIOUS = message;
+        PREVIOUS = Some(message);
         TREE = tree;
         LEAF = leaf;
         SECRET = core::ptr::from_ref(&secret).cast();
@@ -47,7 +48,7 @@ fn sign_step() {
         let recovered = RECOVERED;
         assert_eq!(signed, j + 1);
         assert_eq!(recovered, if j + 1 == D { j } else { j + 1 });
-        let expected_root = PREVIOUS;
+        let expected_root = PREVIOUS.expect("initial message supplied");
         assert_eq!(root.as_slice(), &expected_root);
         let sig = sigs[j].as_ref().unwrap();
         let byte = core::ptr::from_ref(sig).cast::<u8>().add(offset).read();
