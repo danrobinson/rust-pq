@@ -8,3 +8,6 @@ bench/results/*/*/
 !bench/results/optimized-competitors/hosts/
 # macOS
 .DS_Store
+
+# Source release archives and checksums
+/dist/

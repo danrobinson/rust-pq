@@ -2,6 +2,7 @@
 name = "slhdsa"
 version = "0.2.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 description = "SLH-DSA with SHA-2 and SHAKE (FIPS 205, all twelve parameter sets), written in the Aeneas-translatable subset of safe Rust"
 
 [lib]

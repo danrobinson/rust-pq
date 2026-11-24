@@ -2,6 +2,7 @@
 name = "slhdsa-compat"
 version = "0.2.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 publish = false
 description = "The RustCrypto `slh-dsa` interface for the twelve pure SLH-DSA parameter sets, backed by the formally verified `slhdsa` crate of `../rust`"
 

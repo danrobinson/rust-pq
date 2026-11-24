@@ -11,10 +11,16 @@ comparisons with RustCrypto.
 All twelve sets have source-level leakage proofs. Lean also proves that the measured Apple arm64 public keygen, signing and verification drivers return the same keys, signature bytes and verdict as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
 [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
-Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
-lived in a subdirectory beside it. The six-set tree has replaced it; the single-set tree is git
-commit `26aa3d8`. What the single-set tree had and this one does not is listed in
-[HANDOFF.md](HANDOFF.md) ("What the single-set tree had that this tree does not").
+## Use the 0.2.0 source release
+
+Extract `formal-sig-0.2.0.tar.gz` and point Cargo at the adapter to use the RustCrypto-style API. Keep the extracted directory together so Cargo can resolve the sibling core crate.
+
+```toml
+[dependencies]
+slh-dsa = { package = "slhdsa-compat", path = "formal-sig-0.2.0/compat" }
+```
+
+The portable implementation is the default. Enable `platform-sha2` for runtime-dispatched SHA-2 and SHAKE kernels, or `parallel` for CPU-parallel signing. [Usage examples](compat/README.md) · [Benchmark comparisons](#performance) · [Release contents and checks](RELEASE.md)
 
 ## What is proven
 
@@ -133,7 +139,24 @@ The Apple host ran under normal scheduling with concurrent work.
 [Signature and key-generation timings](bench/results/peers-optimized/workloads.csv) ·
 [Key conversion timings](bench/results/peers-optimized/encoding-workloads.csv)
 
-[Seven-platform comparison with Botan, parallel-sphincsplus, and Conduition, including multicore and Apple GPU signing](bench/results/optimized-competitors/README.md)
+### Botan, Conduition and Fluhrer
+
+Each cell counts workloads where formal-sig had lower median latency, out of the workloads measured for that peer. Each workload fixes the processor, parameter set, operation and message size. The two CPU builds of Conduition support the four 128-bit sets. Its GPU results cover SHA2-128s and SHA2-128f on Apple. Fluhrer ran on the four x86 hosts. [Operation counts](bench/results/optimized-competitors/operations.csv) · [Absolute times, including losses](bench/results/optimized-competitors/workloads.csv)
+
+| Peer configuration | Key generation | Public-key extraction | Deterministic sign | Hedged sign | Verify |
+|---|---:|---:|---:|---:|---:|
+| Botan | 168/168 | 168/168 | 168/168 | 168/168 | 168/168 |
+| Conduition SIMD | 56/56 | 56/56 | 56/56 | 56/56 | 56/56 |
+| Conduition cached and threaded | 56/56 | 56/56 | 56/56 | 56/56 | 56/56 |
+| Conduition OpenCL GPU | 4/4 | 4/4 | 2/4 | 2/4 | 4/4 |
+| Fluhrer parallel-sphincsplus, one thread | 84/96 | 96/96 | 89/96 | 90/96 | 87/96 |
+| Fluhrer parallel-sphincsplus, two threads | 84/96 | 96/96 | 64/96 | 64/96 | 88/96 |
+
+Fluhrer’s two-thread signer was faster on EPYC 9R45 in the aggregate deterministic-signing comparison (peer/library latency ratio 0.87×). The GPU comparison excludes OpenCL initialization and kernel compilation. The full reports give per-CPU speedup ratios, pinned peer revisions, validation and timing methods. [Per-platform results](bench/results/optimized-competitors/README.md) · [Peer build and reproduction](bench/optimized-peers/README.md)
+
+### Earlier single-set comparisons
+
+The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable formal-sig, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
 
 ### Parallel CPU signing (`parallel`)
 
@@ -573,3 +596,7 @@ across secrets in every comparison, in both builds; in timing (dudect), nothing 
 level was distinguishable, and short hash calls were distinguishable only with the processor's
 data-independent-timing mode off. The harness now builds against this crate's 128s functions; on
 it only the emulator's self-check (`cttrace hwcheck`) has been run.
+
+## License
+
+The original code, proofs and documentation are available under either the MIT License or the Apache License, Version 2.0, at your option. Third-party material retains its own terms. [MIT](LICENSE-MIT) · [Apache-2.0](LICENSE-APACHE) · [Third-party notices](RELEASE.md#third-party-material)
