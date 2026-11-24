@@ -525,6 +525,7 @@ macro_rules! prehash_set {
                 addrnd: &[u8; N],
                 cache: &TopTreeCache<N>,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 super::hash_slh_sign_cached::<N>(&PARAMS, m, ctx, ph, sk, addrnd, cache)
             }
 
@@ -536,6 +537,7 @@ macro_rules! prehash_set {
                 sk: &[u8; SK_BYTES],
                 cache: &TopTreeCache<N>,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 super::hash_slh_sign_deterministic_cached::<N>(&PARAMS, m, ctx, ph, sk, cache)
             }
 
@@ -548,6 +550,7 @@ macro_rules! prehash_set {
                 addrnd: &[u8; N],
                 cache: &TopTreeCache<N>,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 super::hash_slh_sign_prehashed_cached::<N>(
                     &PARAMS, digest, ctx, ph, sk, addrnd, cache,
                 )
@@ -561,6 +564,7 @@ macro_rules! prehash_set {
                 sk: &[u8; SK_BYTES],
                 cache: &TopTreeCache<N>,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 super::hash_slh_sign_prehashed_deterministic_cached::<N>(
                     &PARAMS, digest, ctx, ph, sk, cache,
                 )

@@ -18,6 +18,37 @@ def function(source, name):
     return source[match.start() : end]
 
 
+def check_tree_layout(folder):
+    batch = (SRC / "shake/batch.rs").read_text()
+    body = "\n".join(
+        function(batch, name) for name in ("xmss_subtree", "xmss_subtree_fallback")
+    )
+    probe = Path(__file__).with_name("tree-layout.rs").read_text()
+    probe = probe.replace("// PRODUCTION_TREE", body).replace(
+        "pub(super) fn xmss_subtree", "fn xmss_subtree"
+    )
+    probe = probe.replace("ADDRESS_PATH", str(SRC / "address.rs"))
+    for width in (3, 8):
+        source = folder / "tree-layout.rs"
+        source.write_text(probe.replace("PROOF_WIDTH", str(width)))
+        binary = folder / "tree-layout"
+        subprocess.run(
+            [
+                "rustc",
+                "--edition=2021",
+                "-O",
+                "-C",
+                "overflow-checks=yes",
+                "-Awarnings",
+                source,
+                "-o",
+                binary,
+            ],
+            check=True,
+        )
+        subprocess.run([binary], check=True)
+
+
 def build(folder):
     batch = (SRC / "shake/batch.rs").read_text()
     probe = (Path(__file__).with_name("probe.rs")).read_text()
@@ -25,7 +56,22 @@ def build(folder):
         "// PRODUCTION_HELPERS",
         "\n".join(
             function(batch, name)
-            for name in ("word", "header", "put", "read", "subtree8")
+            for name in (
+                "word",
+                "seed_words",
+                "adrs_words",
+                "header_active",
+                "put_active",
+                "read_active",
+                "extract_lane",
+                "pair_active",
+                "refill_short_inplace",
+                "fill_prf",
+                "wots_leaves_batch",
+                "wots_leaves_small",
+                "xmss_subtree",
+                "xmss_subtree_fallback",
+            )
         ),
     )
     layout = (SRC / "shake256/parallel.rs").read_text()
@@ -35,11 +81,12 @@ def build(folder):
     for name in ("address", "params"):
         probe = probe.replace(name.upper() + "_PATH", str(SRC / (name + ".rs")))
     probe += "\n".join(
-        f'#[no_mangle] pub extern "C" fn proof{n}(out: &mut [u8;{n}], '
+        f'#[no_mangle] pub extern "C" fn proof{n}_{height}(out: &mut [u8;{n}], '
         f"sk: &[u8;{n}], seed: &[u8;{n}], idx: u32, layer: u32, tree: u64, rest: &[u32;4]) {{"
-        f"*out = batch::subtree8(sk, seed, idx, address::Adrs {{ layer, tree, "
+        f"*out = batch::xmss_subtree(sk, seed, idx, {height}, address::Adrs {{ layer, tree, "
         "typ: rest[0], keypair: rest[1], word2: rest[2], word3: rest[3] }); }"
         for n in (16, 24, 32)
+        for height in (1, 2, 3)
     )
     source = folder / "probe.rs"
     source.write_text(probe)

@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 HERE = Path(__file__).resolve().parent
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(HERE / "parallel-proof"))
 from build import ROOT, SRC, function
 

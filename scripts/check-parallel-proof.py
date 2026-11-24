@@ -114,7 +114,7 @@ def check_dispatch(scratch):
         for level in (128, 192, 256):
             for variant in ("s", "f"):
                 p = f"Spec.{family}_{level}{variant}"
-                checks.append(f"example : {p}.d * {p}.hp + {p}.d + 1 ≤ 89 := by decide")
+                checks.append(f"example : {p}.a ≤ 14 ∧ {p}.hp ≤ 9 := by decide")
                 if family == "shake":
                     checks.append(
                         f"example : {p}.len = 2*{p}.n+3 ∧ {p}.w=16 := by decide"
@@ -123,17 +123,20 @@ def check_dispatch(scratch):
 
 
 def check_entry_calls():
-    def single(file, fragment):
+    def single(file, fragment, count=1):
         source = re.sub(r"//[^\n]*|\s+", "", (build.SRC / file).read_text())
-        if source.count(re.sub(r"\s+", "", fragment)) != 1:
+        if source.count(re.sub(r"\s+", "", fragment)) != count:
             raise ValueError(f"review the feature-selected call in {file}")
 
     single(
         "xmss.rs",
         """shake_only! {
-        #[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
-        if z == 3 && super::batch::available::<N>() {
-            return super::batch::subtree8(sk_seed, seed, i, adrs);
+        #[cfg(all(feature = "platform-sha2", any(
+            all(target_arch = "aarch64", target_endian = "little"),
+            all(target_arch = "x86_64", target_feature = "sse2")
+        )))]
+        if z >= 1 && super::batch::available::<N>() {
+            return super::batch::xmss_subtree(sk_seed, seed, i, z, adrs);
         }
     }""",
     )
@@ -146,13 +149,15 @@ def check_entry_calls():
         }""",
     )
     for file in ("slh.rs", "slh/message.rs"):
-        single(file, "sign_digest!(N, p, sk_seed, pk_seed, r, digest)")
+        single(file, "sign_digest!(N, p, sk_seed, pk_seed, r, digest)", 2 if file == "slh.rs" else 1)
 
 
 def main():
     check_entry_calls()
     modules = {
-        "Parallel.Signing": "ParallelSigning.context_sign_fips",
+        "Parallel.Fused": "ParallelFused.context_sign_fips",
+        "Parallel.SplitTree": "ParallelSplitTree.keygenRoot",
+        "Parallel.Batch": "ParallelBatch.verify_all",
         "Parallel.Subtree": "ParallelSubtree.subtree_eq",
         "Parallel.Dispatch": "slhdsa.ParallelDispatch.permute_fips",
     }
@@ -162,9 +167,11 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         check_dispatch(Path(tmp))
         signer.main()
+        build.check_tree_layout(Path(tmp))
         image = build.build(Path(tmp))
         for n in (16, 24, 32):
-            subtree.check(image, n)
+            for height in (1, 2, 3):
+                subtree.check(image, n, height)
     run(["sh", HERE / "check-keccak-assembly.sh", "parallel"], ROOT)
 
 

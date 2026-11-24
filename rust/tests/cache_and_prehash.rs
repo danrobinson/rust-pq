@@ -438,3 +438,18 @@ fn cache_matches_nist_acvp_vectors() {
         assert!(sg_checked >= 2);
     }
 }
+
+#[test]
+fn typed_signers_reject_a_cache_from_the_other_hash_family() {
+    let mut sk = [0; 64];
+    let mut pk = [0; 32];
+    let cache = cache::shake_128f::keygen_with_cache(&[0; 48], &mut sk, &mut pk);
+    assert!(std::panic::catch_unwind(|| {
+        cache::sha2_128f::sign_deterministic_cached(b"message", b"", &sk, &cache)
+    }).is_err());
+    assert!(std::panic::catch_unwind(|| {
+        prehash::sha2_128f::hash_slh_sign_deterministic_cached(
+            b"message", b"", PreHash::Sha256, &sk, &cache,
+        )
+    }).is_err());
+}

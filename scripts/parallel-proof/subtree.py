@@ -27,7 +27,7 @@ def word_row(msgs, word):
     return bv.Concat(*(byte_range(m, word * 8, 8) for m in msgs))
 
 
-def inputs(n, secret, seed, index, layer, tree):
+def inputs(n, height, secret, seed, index, layer, tree):
     """FIPS byte strings, with the permutation result fresh at every invocation."""
 
     def address(typ, first, second, third):
@@ -56,61 +56,74 @@ def inputs(n, secret, seed, index, layer, tree):
             for lane in range(8)
         ]
 
-    keys = [index * 8 + i for i in range(8)]
-    prefix = [bv.Concat(seed, address(1, k, 0, 0)) for k in keys]
-    pending = prefix
-    sponge = [zeros(64)] * 25
+    key_count = 1 << height
+    keys = [index * key_count + i for i in range(key_count)]
+    pending = [bv.Concat(seed, address(1, k, 0, 0)) for k in keys]
+    sponge = [zeros(key_count * 8)] * 25
 
     def absorb(blocks):
         return [old ^ new for old, new in zip(sponge, rows(blocks))]
 
-    for chain in range(2 * n + 3):
+    chains = 2 * n + 3
+    chains_per_batch = 8 // key_count
+    for first in range(0, chains, chains_per_batch):
+        lanes = [
+            (chain, k)
+            for chain in range(first, min(first + chains_per_batch, chains))
+            for k in keys
+        ]
+        active = len(lanes)
         state = fresh()
-        yield (
-            "permute",
-            rows(
-                [block(bv.Concat(seed, address(5, k, chain, 0), secret)) for k in keys]
-            ),
-            state,
-        )
+        messages = [
+            block(bv.Concat(seed, address(5, k, chain, 0), secret))
+            for chain, k in lanes
+        ]
+        yield "active", (active, rows(messages)), state
         for step in range(15):
             messages = [
-                block(bv.Concat(seed, address(0, k, chain, step), d))
-                for k, d in zip(keys, digests(state))
+                block(bv.Concat(seed, address(0, k, chain, step), digest))
+                for (chain, k), digest in zip(lanes, digests(state))
             ]
             state = fresh()
-            yield "permute", rows(messages), state
-        pending = [
-            bv.Concat(m, d) if m is not None else d
-            for m, d in zip(pending, digests(state))
-        ]
-        size = pending[0].size() // 8
-        if size >= 136:
-            blocks = [bv.Concat(byte_range(m, 0, 136), zeros(64)) for m in pending]
-            updated = fresh()
-            yield "permute", absorb(blocks), updated
-            sponge = updated
+            yield "active", (active, rows(messages)), state
+        endpoints = digests(state)
+        for group in range(0, active, key_count):
             pending = [
-                byte_range(m, 136, size - 136) if size > 136 else None for m in pending
+                bv.Concat(m, d) if m is not None else d
+                for m, d in zip(pending, endpoints[group : group + key_count])
             ]
+            size = pending[0].size() // 8
+            if size >= 136:
+                blocks = [bv.Concat(byte_range(m, 0, 136), zeros(64)) for m in pending]
+                updated = fresh()
+                yield "active", (key_count, absorb(blocks)), updated
+                sponge = [byte_range(r, 0, key_count * 8) for r in updated]
+                pending = [
+                    byte_range(m, 136, size - 136) if size > 136 else None
+                    for m in pending
+                ]
     final = fresh()
-    yield "permute", absorb([block(m) for m in pending]), final
-    nodes = digests(final)
-    for h in range(1, 4):
-        count = 8 >> h
-        for j in range(count):
-            value = bv.BVS("parent", 8 * n)
-            yield (
-                "parent",
-                (
+    yield "active", (key_count, absorb([block(m) for m in pending])), final
+    nodes = digests(final)[:key_count]
+    for h in range(1, height):
+        count = key_count >> h
+        blocks = [
+            block(
+                bv.Concat(
                     seed,
                     address(2, 0, h, index * count + j),
                     nodes[2 * j],
                     nodes[2 * j + 1],
-                ),
-                value,
+                )
             )
-            nodes[j] = value
+            for j in range(count)
+        ]
+        updated = fresh()
+        yield "active", (count, rows(blocks)), updated
+        nodes = digests(updated)[:count]
+    value = bv.BVS("root", 8 * n)
+    yield "parent", (seed, address(2, 0, height, index), *nodes), value
+    nodes = [value]
     yield "return", (), nodes[0]
 
 
@@ -128,7 +141,7 @@ class Copy(angr.SimProcedure):
         return dst
 
 
-def check(image, n):
+def check(image, n, height):
     project = angr.Project(str(image), auto_load_libs=False)
     addr = lambda name: project.loader.find_symbol(name).rebased_addr
     for name in ("memset", "memcpy", "memmove"):
@@ -140,11 +153,11 @@ def check(image, n):
             )
     out, sk, pk, stop = 0x710000, 0x720000, 0x730000, 0x750000
     secret, seed = (bv.BVS(k, n * 8) for k in ("secret", "seed"))
-    # Every index for which all eight leaf indices fit u32.
-    idx = bv.ZeroExt(3, bv.BVS("index", 29))
+    # Every index for which all leaf indices fit u32.
+    idx = bv.ZeroExt(height, bv.BVS("index", 32 - height))
     layer, tree = bv.BVS("layer", 32), bv.BVS("tree", 64)
     st = project.factory.call_state(
-        addr(f"proof{n}"),
+        addr(f"proof{n}_{height}"),
         out,
         sk,
         pk,
@@ -173,7 +186,7 @@ def check(image, n):
             event, when=angr.BP_BEFORE, action=lambda s, k=event: fixed_address(s, k)
         )
 
-    stream = iter(inputs(n, secret, seed, idx, layer, tree))
+    stream = iter(inputs(n, height, secret, seed, idx, layer, tree))
     permitted = {addr("proof_permute"), addr("proof_parent"), stop}
     count = 0
 
@@ -195,14 +208,19 @@ def check(image, n):
                 if kind != "return" or next(stream, None) is not None:
                     raise ValueError("early return")
                 same(st.memory.load(out, n), result)
-                print(f"{n} bytes: checked {count} calls and root", flush=True)
+                print(
+                    f"{n} bytes, height {height}: checked {count} calls and root",
+                    flush=True,
+                )
                 return
             if st.addr == addr("proof_permute"):
-                if kind != "permute":
+                if kind not in ("permute", "active"):
                     raise ValueError("unexpected permutation")
+                active, args = args if kind == "active" else (8, args)
+                same(st.regs.rsi, bv.BVV(active, 64))
                 ptr = concrete(st.regs.rdi)
                 for j, row in enumerate(args):
-                    same(st.memory.load(ptr + 64 * j, 64), row)
+                    same(st.memory.load(ptr + 64 * j, active * 8), row)
                     st.memory.store(ptr + 64 * j, result[j])
             else:
                 if kind != "parent":
@@ -247,4 +265,5 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmp:
         binary = build(Path(tmp))
         for width in options.width:
-            check(binary, width)
+            for height in (1, 2, 3):
+                check(binary, width, height)

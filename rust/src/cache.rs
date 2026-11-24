@@ -2039,6 +2039,10 @@ impl<const N: usize> TopTreeCache<N> {
         nodes * N
     }
 
+    pub(crate) fn assert_family(&self, expected: HashFamily) {
+        assert_eq!(self.family, expected, "TopTreeCache: hash family mismatch");
+    }
+
     fn assert_compatible(&self, p: &Params, sk: &[u8]) {
         assert_eq!(N, p.n, "TopTreeCache: N must match p.n");
         assert_eq!(self.hp, p.hp, "TopTreeCache: parameter set h' mismatch");
@@ -2490,6 +2494,7 @@ macro_rules! cache_set {
             /// Precomputes all `2^h'` subtrees at layer `d - 2` into `cache`.
             #[inline(never)]
             pub fn precompute_layer_d2(cache: &mut Cache, sk: &[u8; SK_BYTES]) {
+                cache.assert_family($family);
                 cache.precompute_layer_d2(&PARAMS, sk);
             }
 
@@ -2500,6 +2505,7 @@ macro_rules! cache_set {
                 addrnd: &[u8; N],
                 cache: &Cache,
             ) -> Vec<u8> {
+                cache.assert_family($family);
                 cache.sign_internal(&PARAMS, m, sk, addrnd)
             }
 
@@ -2511,6 +2517,7 @@ macro_rules! cache_set {
                 addrnd: &[u8; N],
                 cache: &Cache,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 cache.sign(&PARAMS, m, ctx, sk, addrnd)
             }
 
@@ -2521,6 +2528,7 @@ macro_rules! cache_set {
                 sk: &[u8; SK_BYTES],
                 cache: &Cache,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 cache.sign_deterministic(&PARAMS, m, ctx, sk)
             }
 
@@ -2532,6 +2540,7 @@ macro_rules! cache_set {
                 addrnd: &[u8; N],
                 cache: &mut Cache,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 cache.sign_mut(&PARAMS, m, ctx, sk, addrnd)
             }
 
@@ -2542,6 +2551,7 @@ macro_rules! cache_set {
                 sk: &[u8; SK_BYTES],
                 cache: &mut Cache,
             ) -> Option<Vec<u8>> {
+                cache.assert_family($family);
                 cache.sign_deterministic_mut(&PARAMS, m, ctx, sk)
             }
         }
