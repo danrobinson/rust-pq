@@ -1,5 +1,11 @@
 # SLH-DSA quantum security proofs
 
+## SHAKE benchmark
+
+For SHAKE-128s, 128f, 192s, 192f, 256s and 256f, the probability of either strong or existential forgery is at most `2^-36` with `2^40` coherent public queries, one classical signing query and 65,536 encoded message bytes. The public port and all signing primitives use the same ideal byte XOF. [Signature theorem](Integration/SlhDsaShakeXofSignature.lean)
+
+For the shared ideal Keccak permutation, the forward and inverse public query circuits and the honest signature query budget have been checked. The numerical forgery bound remains open. In the current simulation, a recorded hash value can occupy a different capacity in each quantum branch. Moving the value to its common input path before or after local mask compression gives an output amplitude difference above `1/2`, even on a good database with one recorded value in each bank. The witness concerns the internal simulator operations. Relating the two observable signature experiments still requires a different argument. [Public port](Integration/SlhDsaShakePermutationPortMatrix.lean) · [Honest query budget](Integration/SlhDsaShakePermutationHonestBudget.lean) · [Checked witness](Integration/SlhDsaShakePermutationRelabelCorrelation.lean)
+
 ## Six-set extensions (2026-11-23)
 
 Lean checks strong and existential forgery bounds for all six pure SHA-2 sets in each of the following models. The [all-set shared-compression theorems](Integration/SlhDsaCompressionAllSets.lean) state both forgery bounds directly for the classical and quantum byte forgers, with their query budgets and encoded-message cap.
