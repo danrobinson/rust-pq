@@ -513,6 +513,8 @@ so the overall theorem gives no quantitative forgery guarantee at that benchmark
 
 With at most one signing query, the proof uses all decoded FORS coordinates. For encoded messages of at most 64 KiB and up to `2^40` public queries, the complete forgery bounds are `2^-19` (192s), `2^-22` (192f), `2^-78` (256s), and `2^-79` (256f). [Signature theorems](quantum/Integration/SlhDsaCompressionSingleTarget.lean) · [Numerical certificate](quantum/Integration/SlhDsaCompressionSingleBenchmark.lean)
 
+The [multi-signature certificate](quantum/Integration/SlhDsaCompressionSubsetBenchmark.lean) also bounds forgery for all four wider sets at two and three signing queries. For SHA2-128s and 128f the [complete shared-compression theorems](quantum/Integration/SlhDsaCompressionSmallClosed.lean) give explicit bounds, but the class-collision term exceeds one even with zero adversary queries.
+
 `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
 ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):
 for SLH-DSA-SHA2-128s at the external pure byte interface, with the four hash components (Thash,

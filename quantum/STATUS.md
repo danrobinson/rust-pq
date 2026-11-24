@@ -22,13 +22,24 @@ makes that particular estimate at least one at `2^40` public queries for any mes
 
 With at most one signing query, the proof uses all decoded FORS coordinates. For encoded messages of at most 64 KiB and up to `2^40` public queries, the complete forgery bounds are `2^-19` (192s), `2^-22` (192f), `2^-78` (256s), and `2^-79` (256f). [Signature theorems](Integration/SlhDsaCompressionSingleTarget.lean) · [Numerical certificate](Integration/SlhDsaCompressionSingleBenchmark.lean)
 
+The following entries give $b$ such that forgery probability is at most $2^{-b}$, with at most `2^40` public queries and encoded messages up to 64 KiB. The [multi-signature proof](Integration/SlhDsaCompressionTargetSubset.lean) counts the FORS coordinates that a single target must share with the forgery. [Benchmarks for two through four signatures](Integration/SlhDsaCompressionSubsetBenchmark.lean)
+
+| Maximum signing queries | 192s | 192f | 256s | 256f |
+|---:|---:|---:|---:|---:|
+| 1 | 19 | 22 | 78 | 79 |
+| 2 | 19 | 22 | 74 | 73 |
+| 3 | 9 | 2 | 33 | 22 |
+| 4 | — | — | 7 | — |
+
+A dash indicates that the certificate provides no value for that case.
+
 For SHA2-128s and 128f, the [SHA-256 message PRF](Integration/SlhDsaCompressionHmac256Signature.lean)
 and [all four arity-specific target collision terms](Integration/SlhDsaCompressionSmallClass.lean)
 have numerical bounds for the signature forger using both shared compression tables.
 The [signature ITSR bound](Integration/SlhDsaCompressionSmallItsr.lean) uses a 75-bit projection
 on SHA2-128s and a 61-bit projection on SHA2-128f. These projections describe collision events
 in the reduction. Their widths alone give no forgery-security level.
-The full shared-compression signature bounds for both narrow sets remain open.
+[The complete narrow shared-compression theorems](Integration/SlhDsaCompressionSmallClosed.lean) give strong and existential forgery bounds for both sets. Their class-collision cost already exceeds one at zero adversary queries.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component
