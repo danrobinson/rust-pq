@@ -134,6 +134,12 @@ pub fn slh_sign<const N: usize>(p: &Params, m: &[u8], ctx: &[u8], sk: &[u8], add
             return Some(message::sign(p, m, ctx, sk, addrnd));
         }
     }
+    shake_only! {
+        #[cfg(feature = "platform-sha2")]
+        if !m.is_empty() {
+            return Some(shake_sign_ctx::<N>(p, m, ctx, sk, addrnd));
+        }
+    }
     let mp = with_context(m, ctx);
     Some(slh_sign_internal::<N>(p, &mp, sk, addrnd))
 }
@@ -149,8 +155,53 @@ pub fn slh_verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], 
             return message::verify::<N>(p, m, ctx, sig, pk);
         }
     }
+    shake_only! {
+        #[cfg(feature = "platform-sha2")]
+        if !m.is_empty() {
+            return shake_verify_ctx::<N>(p, m, ctx, sig, pk);
+        }
+    }
     let mp = with_context(m, ctx);
     slh_verify_internal::<N>(p, &mp, sig, pk)
+}
+
+shake_only! {
+    #[cfg(feature = "platform-sha2")]
+    fn shake_sign_ctx<const N: usize>(
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sk: &[u8],
+        addrnd: &[u8; N],
+    ) -> Vec<u8> {
+        let sk_seed = block::<N>(sk, 0);
+        let sk_prf = block::<N>(sk, 1);
+        let pk_seed = block::<N>(sk, 2);
+        let pk_root = block::<N>(sk, 3);
+        let r = super::hash::prf_msg_ctx::<N>(&sk_prf, addrnd, ctx, m);
+        let digest = super::hash::h_msg_ctx::<N>(p, &r, &pk_seed, &pk_root, ctx, m);
+        sign_digest!(N, p, sk_seed, pk_seed, r, digest)
+    }
+
+    #[cfg(feature = "platform-sha2")]
+    fn shake_verify_ctx<const N: usize>(
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sig: &[u8],
+        pk: &[u8],
+    ) -> bool {
+        let sig_bytes = p.sig_bytes();
+        if sig.len() != sig_bytes {
+            return false;
+        }
+        let fors_end = N + p.fors_sig_bytes();
+        let pk_seed = block::<N>(pk, 0);
+        let pk_root = block::<N>(pk, 1);
+        let r = block::<N>(sig, 0);
+        let digest = super::hash::h_msg_ctx::<N>(p, &r, &pk_seed, &pk_root, ctx, m);
+        verify_digest!(N, p, pk_seed, pk_root, sig, sig_bytes, fors_end, digest)
+    }
 }
 
 sha2_only! {
