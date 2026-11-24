@@ -1,5 +1,7 @@
 # SLH-DSA quantum security proofs
 
+[Security claim, FIPS category assessment, and checked comparison with the SPHINCS+ submission](../reports/Post-quantum%20security%20claim.md)
+
 ## SHAKE benchmark
 
 Lean checks the following bounds on strong and existential forgery for the pure byte API. Each row allows at most `2^40` coherent public queries and one classical signing query. The signed and forged messages may each use up to 65,536 encoded bytes, including the context and two framing bytes.
