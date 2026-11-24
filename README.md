@@ -445,9 +445,7 @@ hypothesis. See [HANDOFF.md](HANDOFF.md) and [security/status/DIRECT.md](securit
 
 Limits: the subset-resilience leg is vacuous once `qf + 4·qs + 2` (compression queries plus four
 times the signatures) reaches about 2^70; the statement averages over random tables and says
-nothing about the real compression function. The closed forgery bound covers 128s.
-The other sets still need bounds for the remaining hash games in the
-[shared SHA-256 and SHA-512 table model](security/MIdeal/MixedTables.lean).
+nothing about the real compression function. These numerical examples apply to 128s.
 See [the tightening work](security/status/TIGHT.md).
 
 [The secret-address PRF bound](security/MIdeal/SkPrf.lean) extends to all six sets.
@@ -512,6 +510,8 @@ allows coherent access to the same tables afterward. The [class collision estima
 is at most 1/256 per nonsingleton arity at a 1 KiB message limit, `2^40` public queries and
 `2^20` signing queries. The message-hash estimate still reaches one at `2^40` public queries,
 so the overall theorem gives no quantitative forgery guarantee at that benchmark.
+
+With at most one signing query, the proof uses all decoded FORS coordinates. For encoded messages of at most 64 KiB and up to `2^40` public queries, the complete forgery bounds are `2^-19` (192s), `2^-22` (192f), `2^-78` (256s), and `2^-79` (256f). [Signature theorems](quantum/Integration/SlhDsaCompressionSingleTarget.lean) · [Numerical certificate](quantum/Integration/SlhDsaCompressionSingleBenchmark.lean)
 
 `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
 ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):

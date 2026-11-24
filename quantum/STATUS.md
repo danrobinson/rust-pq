@@ -18,7 +18,9 @@ With `c` classical reads followed by `q` quantum queries, the [prefix collision 
 is `(c² + c(2q+1)² + 16(q+1)³) / 2^(8n)` for an `n`-byte prefix. At a 1 KiB message limit,
 `2^40` public queries and `2^20` signing queries, Lean [checks this cost is at most 1/256](Integration/SlhDsaCompressionMixedBudget.lean)
 per nonsingleton arity. The message-hash proof retains only one FORS coordinate, and its contribution
-makes the complete bound at least one at `2^40` public queries for any message or signing budget.
+makes that particular estimate at least one at `2^40` public queries for any message or signing budget.
+
+With at most one signing query, the proof uses all decoded FORS coordinates. For encoded messages of at most 64 KiB and up to `2^40` public queries, the complete forgery bounds are `2^-19` (192s), `2^-22` (192f), `2^-78` (256s), and `2^-79` (256f). [Signature theorems](Integration/SlhDsaCompressionSingleTarget.lean) · [Numerical certificate](Integration/SlhDsaCompressionSingleBenchmark.lean)
 
 For SHA2-128s and 128f, the [SHA-256 message PRF](Integration/SlhDsaCompressionHmac256Signature.lean)
 and [all four arity-specific target collision terms](Integration/SlhDsaCompressionSmallClass.lean)
