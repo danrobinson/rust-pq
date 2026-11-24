@@ -489,10 +489,15 @@ allows any finite input cap large enough for the benchmark. The public port
 returns the full message-digest width for that set, and the signer takes shorter
 prefixes where required. At the same budget, a classical forger with forward and
 inverse access to the shared ideal Keccak permutation has forgery probability at
-most the corresponding XOF bound plus `2^-427`. The full signature bound with
-quantum access to that permutation remains open.
-[Classical permutation theorem](quantum/Integration/SlhDsaShakePermutationClassicalSignature.lean)
-[Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeSetPrecision.lean)
+most the corresponding XOF bound plus `2^-427`. With coherent forward and inverse
+access to that same uniform 1,600-bit permutation, both forgery probabilities are
+at most `2^-18 + 2^-25` for each of the six sets. Both the signed and forged
+messages must meet the encoded-length cap, including the context and two framing
+bytes. Applying the permutation-model bound to concrete Keccak-f[1600] requires
+a cryptographic assumption.
+[Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeSetPrecision.lean) ·
+[Classical permutation theorem](quantum/Integration/SlhDsaShakePermutationClassicalSignature.lean) ·
+[Quantum permutation theorem](quantum/Integration/SlhDsaShakePermutationLongBenchmark.lean)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
 pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA
