@@ -79,6 +79,10 @@ pub fn wots_sign<const N: usize>(m: &[u8; N], sk_seed: &[u8; N], seed: &Seed<N>,
 pub fn wots_pk_from_sig<const N: usize>(sig: &[u8], m: &[u8; N], seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
     let len = 2 * N + LEN2;
     let msg = wots_digits::<N>(m);
+    #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+    if matches!(N, 16 | 24 | 32) && crate::sha256::x86::avx512_available() {
+        return wide::recover(seed, adrs, sig, &msg);
+    }
     let mut blocks = [[0u8; 64]; LEN_MAX];
     let mut i = 0;
     while i < len {
@@ -89,3 +93,6 @@ pub fn wots_pk_from_sig<const N: usize>(sig: &[u8], m: &[u8; N], seed: &Seed<N>,
     let pk_adrs = adrs.with_type(WOTS_PK).with_keypair(adrs.keypair);
     thash_values::<N>(seed, &pk_adrs, &blocks[0..len])
 }
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+mod wide;

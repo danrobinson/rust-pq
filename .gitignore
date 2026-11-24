@@ -5,5 +5,6 @@ target/
 
 # Raw criterion output (thousands of small files); the .log and .md summaries beside them are kept
 bench/results/*/*/
+!bench/results/optimized-competitors/hosts/
 # macOS
 .DS_Store

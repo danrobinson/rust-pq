@@ -13,7 +13,7 @@
 
 use alloc::vec::Vec;
 use crate::params::Params;
-use crate::slh::{slh_keygen_internal, slh_sign, slh_verify};
+use super::slh::{slh_keygen_internal, slh_sign, slh_verify};
 use crate::util::block;
 
 /// Algorithm 21, `slh_keygen`, given its random bytes: `seeds` is
@@ -30,6 +30,7 @@ pub fn keygen<const N: usize>(p: &Params, seeds: &[u8], sk: &mut [u8], pk: &mut 
 
 /// The public key held in a private key: its last two blocks,
 /// `PK.seed ‖ PK.root`, written to `pk` (2n bytes).
+#[inline]
 pub fn public_key<const N: usize>(sk: &[u8], pk: &mut [u8]) {
     pk.copy_from_slice(&sk[2 * N..4 * N]);
 }

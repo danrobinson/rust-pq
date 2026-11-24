@@ -338,6 +338,7 @@ theorem wots_pk_gen_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Arr
   let* ⟨ blocks, blocks_post ⟩ ← sk_blocks_spec
   step*
   case P => exact paramsS p
+  case family => infer_instance
   case hPN => exact hp.n
   case hN => exact hp.nok
   all_goals try (simp only [W_eq]; decide)
@@ -509,6 +510,7 @@ theorem wots_pk_from_sig_spec {N : Usize} (p : params.Params) (hp : PN p N) (sig
     (hsig := by rw [hl]; exact h)
   step*
   case P => exact paramsS p
+  case family => infer_instance
   case hPN => exact hp.n
   case hN => exact hp.nok
   all_goals try (simp only [W_eq]; decide)

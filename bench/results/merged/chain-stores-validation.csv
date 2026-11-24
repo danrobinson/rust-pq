@@ -1,0 +1,11 @@
+host,cpu,mode,crate,test_targets,passed,failed
+c5,Intel(R) Xeon(R) Platinum 8275CL CPU @ 3.00GHz,platform,core,7,134,0
+c5,Intel(R) Xeon(R) Platinum 8275CL CPU @ 3.00GHz,platform,compat,7,54,0
+c8a,AMD EPYC 9R45,platform,core,7,134,0
+c8a,AMD EPYC 9R45,shani,core,7,134,0
+c8a,AMD EPYC 9R45,platform,compat,7,54,0
+c8a,AMD EPYC 9R45,shani,compat,7,54,0
+c8i,Intel(R) Xeon(R) 6975P-C,platform,core,7,134,0
+c8i,Intel(R) Xeon(R) 6975P-C,shani,core,7,134,0
+c8i,Intel(R) Xeon(R) 6975P-C,platform,compat,7,54,0
+c8i,Intel(R) Xeon(R) 6975P-C,shani,compat,7,54,0

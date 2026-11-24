@@ -16,14 +16,22 @@
 use ct_evidence::*;
 use std::time::Instant;
 
+#[cfg(target_os = "macos")]
 extern "C" {
     fn mach_absolute_time() -> u64;
     fn mach_timebase_info(info: *mut [u32; 2]) -> i32;
     fn pthread_set_qos_class_self_np(qos: u32, rel: i32) -> i32;
 }
 
+#[cfg(target_os = "macos")]
 fn now() -> u64 {
     unsafe { mach_absolute_time() }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn now() -> u64 {
+    static ORIGIN: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    ORIGIN.get_or_init(Instant::now).elapsed().as_nanos() as u64
 }
 
 #[derive(Clone, Copy, Default)]
@@ -333,12 +341,18 @@ fn main() {
         }
         i += 1;
     }
-    let mut tb = [0u32; 2];
-    unsafe {
-        mach_timebase_info(&mut tb);
-        pthread_set_qos_class_self_np(0x21, 0); // QOS_CLASS_USER_INTERACTIVE: prefer performance cores
-    }
-    let ns_per_tick = tb[0] as f64 / tb[1] as f64;
+    #[cfg(target_os = "macos")]
+    let (clock, ns_per_tick) = {
+        let mut tb = [0u32; 2];
+        unsafe {
+            mach_timebase_info(&mut tb);
+            pthread_set_qos_class_self_np(0x21, 0);
+        }
+        ("mach_absolute_time", tb[0] as f64 / tb[1] as f64)
+    };
+    #[cfg(not(target_os = "macos"))]
+    let (clock, ns_per_tick) = ("Instant", 1.0);
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     let dit_state = unsafe {
         let mut v: u64;
         if dit {
@@ -348,6 +362,11 @@ fn main() {
         // mrs x0, DIT
         core::arch::asm!(".inst 0xd53b42a0", out("x0") v);
         (v >> 24) & 1
+    };
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    let dit_state = {
+        assert!(!dit, "--dit requires Apple Silicon");
+        "unmeasured"
     };
     // observed clock granularity
     let mut gran = f64::INFINITY;
@@ -360,7 +379,7 @@ fn main() {
         gran = gran.min((b - a) as f64 * ns_per_tick);
     }
     println!(
-        "slhdsa build: {}; clock: mach_absolute_time, {:.3} ns/tick, observed granularity {:.1} ns; PSTATE.DIT = {}; classes = {}; fixed class = {}; seed {}{}{}\n",
+        "slhdsa build: {}; clock: {clock}, {:.3} ns/tick, observed granularity {:.1} ns; PSTATE.DIT = {}; classes = {}; fixed class = {}; seed {}{}{}\n",
         variant(),
         ns_per_tick,
         gran,

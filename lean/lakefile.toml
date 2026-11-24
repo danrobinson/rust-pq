@@ -17,3 +17,15 @@ name = "Ct"
 [[lean_exe]]
 name = "spectest"
 root = "SpecTest"
+
+[[lean_lib]]
+name = "Facade"
+
+[[lean_lib]]
+name = "Platform"
+
+[[lean_lib]]
+name = "Avx2"
+
+[[lean_lib]]
+name = "Shani"

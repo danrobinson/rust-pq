@@ -46,10 +46,10 @@ fn schedule(data: &[u8], off: usize) -> [u32; 64] {
 }
 
 /// The SHA-256 compression function on the block at `data[off..off + 64]`.
-///
 /// With the opt-in `hw-sha2` feature, on a CPU that has the ARMv8 SHA-256
 /// instructions, the result comes from [`hw`]; otherwise from
 /// [`compress_portable`].
+#[cfg(not(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2")))]
 #[inline]
 pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> [u32; 8] {
     #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
@@ -142,9 +142,9 @@ pub fn digest(state: &[u32; 8]) -> [u8; 32] {
 
 /// SHA-256 of `X ‖ msg`, given the state `state` reached after compressing
 /// the `pre` bytes of `X` (a multiple of 64).
-///
 /// Whole blocks are compressed straight from `msg`; only what is left over
 /// (under 64 bytes) is copied, together with the padding.
+#[cfg(not(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little")))))]
 pub fn sha256_from(state: &[u32; 8], pre: usize, msg: &[u8]) -> [u8; 32] {
     let mut st = *state;
     let mut off = 0;
@@ -182,11 +182,11 @@ pub fn hmac_sha256(key: &[u8], msg: &[u8]) -> [u8; 32] {
     sha256(&outer)
 }
 
-/// Whether [`compress`] is running on hardware SHA-256 instructions.
+/// Whether the crate's Arm SHA-256 instruction backend is active.
 ///
-/// Exists only with the `hw-sha2` feature. `false` means the feature is on
-/// but this CPU (or this architecture) has no backend, so the portable code
-/// is in use.
+/// With `platform-sha2` on x86-64, RustCrypto selects its backend
+/// internally. This Arm-specific probe returns false there regardless
+/// of RustCrypto's selection.
 #[cfg(feature = "hw-sha2")]
 pub fn hw_active() -> bool {
     #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
@@ -892,7 +892,7 @@ pub(crate) mod hw {
 
         /// Every case as a line `name args = result`.
         #[allow(unused_unsafe)]
-        fn cases() -> String {
+        fn sha256_cases() -> String {
             let mut rng = Rng(0x41524d5f56454353);
             let mut out = String::new();
             unsafe {
@@ -946,7 +946,14 @@ pub(crate) mod hw {
                     writeln!(out, "sha256h2 {} {} {} = {}", words(&a), words(&b), words(&c), words(&w(arm::sha256h2(v(a), v(b), v(c))))).unwrap();
                     writeln!(out, "sha256su1 {} {} {} = {}", words(&a), words(&b), words(&c), words(&w(arm::sha256su1(v(a), v(b), v(c))))).unwrap();
                 }
-                // The SHA-512 wrappers, from a stream of their own.
+            }
+            out
+        }
+
+        #[allow(unused_unsafe)]
+        fn sha512_cases() -> String {
+            let mut out = String::new();
+            unsafe {
                 let mut rng = Rng(0x5348_4135_3132_5645);
                 for _ in 0..48 {
                     let len = 2 + (rng.next() % 11) as usize;
@@ -982,18 +989,73 @@ pub(crate) mod hw {
 
         #[test]
         fn arm_wrappers_match_the_record() {
-            assert!(arm::available(), "this test needs a CPU with the SHA-256 instructions");
-            assert!(a5::available(), "this test needs a CPU with the SHA-512 instructions");
+            let write = std::env::var_os("ARM_VECTORS_WRITE").is_some();
+            let full = write || std::env::var_os("ARM_VECTORS_REQUIRE_ALL").is_some();
+            let has256 = arm::available();
+            let has512 = a5::available();
+            assert!(!full || has256 && has512, "full replay requires both SHA extensions");
             let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../vectors/arm-wrappers.txt");
-            let now = cases();
-            if std::env::var_os("ARM_VECTORS_WRITE").is_some() {
-                std::fs::write(path, &now).unwrap();
+            let v256 = has256.then(sha256_cases);
+            let v512 = has512.then(sha512_cases);
+            if write {
+                std::fs::write(path, format!("{}{}", v256.as_ref().unwrap(), v512.as_ref().unwrap())).unwrap();
             }
             let recorded = std::fs::read_to_string(path).unwrap();
-            assert_eq!(recorded.lines().count(), now.lines().count());
-            for (i, (r, n)) in recorded.lines().zip(now.lines()).enumerate() {
-                assert_eq!(r, n, "line {}", i + 1);
+            let (r256, r512) = recorded.split_at(recorded.find("load_words64 ").unwrap());
+            for (name, now, expected) in [("SHA-256", v256, r256), ("SHA-512", v512, r512)] {
+                if let Some(now) = now {
+                    assert_eq!(expected.lines().count(), now.lines().count(), "{name} case count");
+                    for (i, (r, n)) in expected.lines().zip(now.lines()).enumerate() {
+                        assert_eq!(r, n, "{name} case {}", i + 1);
+                    }
+                } else {
+                    std::eprintln!("Skipping {name} wrapper replay: CPU extension unavailable");
+                }
             }
         }
     }
 }
+
+/// SHA-256 compression using RustCrypto's runtime-selected x86-64 backend.
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+#[inline]
+pub fn compress(state: &[u32; 8], data: &[u8], off: usize) -> [u32; 8] {
+    let block: &[u8; 64] = data[off..][..64].try_into().unwrap();
+    let mut out = *state;
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut out, core::slice::from_ref(block));
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress256(&mut out, core::slice::from_ref(block));
+    out
+}
+
+/// Continue a SHA-256 hash from a block boundary, submitting all complete
+/// message blocks to the runtime-selected backend in one call.
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little"))))]
+pub fn sha256_from(state: &[u32; 8], pre: usize, msg: &[u8]) -> [u8; 32] {
+    let mut st = *state;
+    let (blocks, tail) = msg.as_chunks::<64>();
+    let padded_prefix = pre + blocks.len() * 64;
+    #[cfg(target_arch = "x86_64")]
+    let blocks = stream::prefix(&mut st, blocks);
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut st, blocks);
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress256(&mut st, blocks);
+    let padding = pad(tail, padded_prefix);
+    let (final_blocks, remainder) = padding.as_chunks::<64>();
+    debug_assert!(remainder.is_empty());
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut st, final_blocks);
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress256(&mut st, final_blocks);
+    digest(&st)
+}
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+#[allow(unsafe_code)]
+pub(crate) mod x86;
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+#[allow(unsafe_code)]
+mod stream;

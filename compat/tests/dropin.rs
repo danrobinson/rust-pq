@@ -1,8 +1,7 @@
 //! The drop-in claim, tested: one piece of source, written against the
 //! interface of RustCrypto's `slh-dsa`, is compiled twice, once against that
 //! crate and once against this one, and must produce the same bytes and the
-//! same accept/reject answers at every step, for each of the six SHA-2
-//! parameter sets.
+//! same accept/reject answers at every step, for all twelve pure SLH-DSA sets.
 
 mod common;
 
@@ -103,6 +102,10 @@ macro_rules! usage {
             let rand = rng.bytes(N);
             let with_ctx = sk.try_sign_with_context(msg, ctx, None).unwrap();
             rec("ctx sign", &with_ctx.to_vec());
+            let long = [0x5a; 1025];
+            let long_signature = sk.try_sign_with_context(&long, ctx, None).unwrap();
+            rec("long ctx sign", &long_signature.to_vec());
+            rec("long ctx verify", &flag(vk.try_verify_with_context(&long, ctx, &long_signature).is_ok()));
             rec("ctx sign rand", &sk.try_sign_with_context(msg, ctx, Some(&rand)).unwrap().to_vec());
             rec("ctx 255", &sk.try_sign_with_context(msg, &[7u8; 255], None).unwrap().to_vec());
             rec("ctx 256", &flag(sk.try_sign_with_context(msg, &[7u8; 256], None).is_ok()));
@@ -235,19 +238,31 @@ sets! {
     sha2_192f: Sha2_192f, 24, 33, 8;
     sha2_256s: Sha2_256s, 32, 22, 14;
     sha2_256f: Sha2_256f, 32, 35, 9;
+    shake_128s: Shake128s, 16, 14, 12;
+    shake_128f: Shake128f, 16, 33, 6;
+    shake_192s: Shake192s, 24, 17, 14;
+    shake_192f: Shake192f, 24, 33, 8;
+    shake_256s: Shake256s, 32, 22, 14;
+    shake_256f: Shake256f, 32, 35, 9;
 }
 
 /// The FIPS 205 names and signature lengths, as an independent check.
-const EXPECTED: [(&str, &str, usize); 6] = [
+const EXPECTED: [(&str, &str, usize); 12] = [
     ("Sha2_128s", "SLH-DSA-SHA2-128s", 7856),
     ("Sha2_128f", "SLH-DSA-SHA2-128f", 17088),
     ("Sha2_192s", "SLH-DSA-SHA2-192s", 16224),
     ("Sha2_192f", "SLH-DSA-SHA2-192f", 35664),
     ("Sha2_256s", "SLH-DSA-SHA2-256s", 29792),
     ("Sha2_256f", "SLH-DSA-SHA2-256f", 49856),
+    ("Shake128s", "SLH-DSA-SHAKE-128s", 7856),
+    ("Shake128f", "SLH-DSA-SHAKE-128f", 17088),
+    ("Shake192s", "SLH-DSA-SHAKE-192s", 16224),
+    ("Shake192f", "SLH-DSA-SHAKE-192f", 35664),
+    ("Shake256s", "SLH-DSA-SHAKE-256s", 29792),
+    ("Shake256f", "SLH-DSA-SHAKE-256f", 49856),
 ];
 
-/// All six sets in one test, so that the total is pinned in one place.
+/// All twelve sets in one test, so that the total is pinned in one place.
 #[test]
 fn same_source_gives_the_same_bytes() {
     let mut total = 0;
@@ -255,7 +270,7 @@ fn same_source_gives_the_same_bytes() {
         let ours = ours();
         let theirs = theirs();
         assert_eq!(ours.len(), theirs.len(), "{set}");
-        assert_eq!(ours.len(), 86, "number of recorded results, {set}");
+        assert_eq!(ours.len(), 88, "number of recorded results, {set}");
         for (a, b) in ours.iter().zip(theirs.iter()) {
             assert_eq!(a.0, b.0);
             assert!(a.1 == b.1, "`{}` differs between this crate and RustCrypto's, {set}", a.0);
@@ -277,5 +292,5 @@ fn same_source_gives_the_same_bytes() {
         total += ours.len();
         println!("{set}: {} results equal", ours.len());
     }
-    assert_eq!(total, 516, "number of recorded results, all six sets");
+    assert_eq!(total, 1056, "number of recorded results, all twelve sets");
 }

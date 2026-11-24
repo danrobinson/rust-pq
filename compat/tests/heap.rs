@@ -165,7 +165,7 @@ fn check<P: ParameterSet>(name: &str, n: usize) {
 
     // Control: a copy of the private key in a `Vec`, dropped as it is.
     let key = SigningKey::<P>::slh_keygen_internal(sk_seed, sk_prf, pk_seed);
-    let leaked = freed_with(&patterns, || drop(std::hint::black_box(key.to_vec())));
+    let leaked = freed_with(&patterns, || drop(std::hint::black_box(key.to_bytes().as_slice().to_vec())));
     assert!(leaked[0] > 0 && leaked[1] > 0, "{name}: the allocator did not notice a freed copy of the key");
 
     // Control: HMAC with its key blocks and inner digest in growing `Vec`s,

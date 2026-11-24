@@ -1,8 +1,10 @@
 //! The public key type.
 
+use crate::params::{Core, Buffer};
 use crate::{join, same, ParameterSet, Signature};
 use ::signature::{Error, MultipartVerifier, Verifier};
 use hybrid_array::{Array, ArraySize};
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use pkcs8::{der, spki};
 
@@ -18,9 +20,10 @@ pub trait VerifyingKeyLen {
 /// A `VerifyingKey` is an SLH-DSA public key, allowing
 /// verification of signatures created with the corresponding
 /// `SigningKey`
-pub struct VerifyingKey<P: ParameterSet> {
+#[allow(private_bounds)]
+pub struct VerifyingKey<P: Core> {
     /// `PK.seed ‖ PK.root`.
-    pub(crate) bytes: Array<u8, P::VkLen>,
+    pub(crate) bytes: P::Vk,
 }
 
 impl<P: ParameterSet> core::fmt::Debug for VerifyingKey<P> {
@@ -33,13 +36,14 @@ impl<P: ParameterSet> core::fmt::Debug for VerifyingKey<P> {
 
 impl<P: ParameterSet> PartialEq for VerifyingKey<P> {
     fn eq(&self, other: &Self) -> bool {
-        same(&self.bytes, &other.bytes)
+        same(self.bytes.as_slice(), other.bytes.as_slice())
     }
 }
 
 impl<P: ParameterSet> Eq for VerifyingKey<P> {}
 
-impl<P: ParameterSet> VerifyingKey<P> {
+#[allow(private_bounds)]
+impl<P: Core> VerifyingKey<P> {
     #[doc(hidden)]
     /// Verify a raw message (without context).
     /// Implements [slh_verify_internal] as defined in FIPS-205.
@@ -47,10 +51,10 @@ impl<P: ParameterSet> VerifyingKey<P> {
     pub fn slh_verify_internal(
         &self,
         msg: &[&[u8]],
-        signature: &Signature<P>,
+        sig: &Signature<P>,
     ) -> Result<(), Error> {
         let m = join(msg);
-        P::verify_internal(&m, &signature.bytes, &self.bytes)
+        P::verify_internal(&m, sig.bytes.as_slice(), self.bytes.as_slice())
             .then_some(())
             .ok_or(Error::new())
     }
@@ -63,32 +67,35 @@ impl<P: ParameterSet> VerifyingKey<P> {
         &self,
         msg: &[u8],
         ctx: &[u8],
-        signature: &Signature<P>,
+        sig: &Signature<P>,
     ) -> Result<(), Error> {
-        self.raw_try_verify_with_context(&[msg], ctx, signature)
+        self.raw_try_verify_with_context(&[msg], ctx, sig)
     }
 
     fn raw_try_verify_with_context(
         &self,
         msg: &[&[u8]],
         ctx: &[u8],
-        signature: &Signature<P>,
+        sig: &Signature<P>,
     ) -> Result<(), Error> {
         let m = join(msg);
-        P::verify(&m, &signature.bytes, ctx, &self.bytes)
+        P::verify(&m, sig.bytes.as_slice(), ctx, self.bytes.as_slice())
             .then_some(())
             .ok_or(Error::new())
     }
 
+}
+
+impl<P: ParameterSet> VerifyingKey<P> {
     /// Serialize the verifying key to a new stack-allocated array
     pub fn to_bytes(&self) -> Array<u8, P::VkLen> {
-        self.bytes.clone()
+        Array(self.bytes.clone())
     }
 
     /// Serialize the verifying key to a new heap-allocated vector
     #[cfg(feature = "alloc")]
     pub fn to_vec(&self) -> Vec<u8> {
-        self.bytes.to_vec()
+        self.bytes.as_slice().to_vec()
     }
 }
 
@@ -108,16 +115,16 @@ impl<P: ParameterSet> From<&VerifyingKey<P>> for Array<u8, P::VkLen> {
 
 impl<P: ParameterSet> From<Array<u8, P::VkLen>> for VerifyingKey<P> {
     fn from(bytes: Array<u8, P::VkLen>) -> VerifyingKey<P> {
-        VerifyingKey { bytes }
+        VerifyingKey { bytes: bytes.0 }
     }
 }
 
-impl<P: ParameterSet> TryFrom<&[u8]> for VerifyingKey<P> {
+impl<P: Core> TryFrom<&[u8]> for VerifyingKey<P> {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let mut vk = Array::<u8, P::VkLen>::default();
-        if P::pk_from(bytes, &mut vk) {
+        let mut vk = P::Vk::zeroed();
+        if P::pk_from(bytes, vk.as_mut_slice()) {
             Ok(VerifyingKey { bytes: vk })
         } else {
             Err(Error::new())
@@ -125,39 +132,39 @@ impl<P: ParameterSet> TryFrom<&[u8]> for VerifyingKey<P> {
     }
 }
 
-impl<P: ParameterSet> Verifier<Signature<P>> for VerifyingKey<P> {
-    fn verify(&self, msg: &[u8], signature: &Signature<P>) -> Result<(), Error> {
-        self.multipart_verify(&[msg], signature)
+impl<P: Core> Verifier<Signature<P>> for VerifyingKey<P> {
+    fn verify(&self, msg: &[u8], sig: &Signature<P>) -> Result<(), Error> {
+        self.multipart_verify(&[msg], sig)
     }
 }
 
-impl<P: ParameterSet> MultipartVerifier<Signature<P>> for VerifyingKey<P> {
-    fn multipart_verify(&self, msg: &[&[u8]], signature: &Signature<P>) -> Result<(), Error> {
-        self.raw_try_verify_with_context(msg, &[], signature)
+impl<P: Core> MultipartVerifier<Signature<P>> for VerifyingKey<P> {
+    fn multipart_verify(&self, msg: &[&[u8]], sig: &Signature<P>) -> Result<(), Error> {
+        self.raw_try_verify_with_context(msg, &[], sig)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<P: ParameterSet> EncodePublicKey for VerifyingKey<P> {
+impl<P: Core> EncodePublicKey for VerifyingKey<P> {
     fn to_public_key_der(&self) -> pkcs8::spki::Result<der::Document> {
         // The encoding is the verified crate's; the `der` crate only checks
         // that it is well formed and takes ownership of it.
-        P::with_spki(&self.bytes, |encoding| Ok(der::Document::try_from(encoding)?))
+        P::with_spki(self.bytes.as_slice(), |encoding| Ok(der::Document::try_from(encoding)?))
     }
 }
 
-impl<P: ParameterSet> TryFrom<pkcs8::SubjectPublicKeyInfoRef<'_>> for VerifyingKey<P> {
+impl<P: Core + crate::params::DerAlgorithm> TryFrom<pkcs8::SubjectPublicKeyInfoRef<'_>> for VerifyingKey<P> {
     type Error = spki::Error;
 
-    fn try_from(spki: pkcs8::SubjectPublicKeyInfoRef<'_>) -> spki::Result<Self> {
+    fn try_from(info: pkcs8::SubjectPublicKeyInfoRef<'_>) -> spki::Result<Self> {
         // `spki`'s `assert_algorithm_oid`, with the comparison done by the verified crate.
-        let oid = spki.algorithm.oid;
-        if !same(oid.as_bytes(), P::ALGORITHM_OID.as_bytes()) {
+        let oid = info.algorithm.oid;
+        if !same(oid.as_bytes(), P::DER_OID.as_bytes()) {
             return Err(spki::Error::OidUnknown { oid });
         }
 
         Self::try_from(
-            spki.subject_public_key
+            info.subject_public_key
                 .as_bytes()
                 .ok_or_else(|| der::Tag::BitString.value_error().to_error())?,
         )

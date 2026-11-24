@@ -1,0 +1,63 @@
+{
+  "region": "us-east-1",
+  "checked_utc": "2026-11-23T15:49:37.585138+00:00",
+  "instances": [
+    {
+      "instance_id": "i-01db1ca8f9c343fbf",
+      "instance_type": "c8a.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-037b01f86f9c85e04",
+      "instance_type": "c6g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-03885c163d9de8098",
+      "instance_type": "c8a.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-03b8d73a0d97856f1",
+      "instance_type": "c8g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0471194242f26e420",
+      "instance_type": "c5.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-04f6857b3fc19ebd9",
+      "instance_type": "c8i.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-09f3394b64c6ab92a",
+      "instance_type": "c8i.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0d494e7f7c434e8d6",
+      "instance_type": "c8g.large",
+      "state": "terminated"
+    },
+    {
+      "instance_id": "i-0329e4789e3335813",
+      "instance_type": "c5n.large",
+      "state": "terminated"
+    }
+  ],
+  "security_groups_deleted": [
+    "sg-0e63348baee8f98f4",
+    "sg-0efca724d4f164d10",
+    "sg-066fd87397f9c817a"
+  ],
+  "key_pairs_deleted": [
+    "slh-peers-1795446527",
+    "slh-peers-1795446712",
+    "slh-peers-1795447733"
+  ],
+  "remaining_matching_security_groups": 0,
+  "remaining_matching_key_pairs": 0
+}

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Re-run every check of the repository except the quantum one
 # (quantum/scripts/check-integration.sh): the Rust tests in every build (NIST
-# ACVP vectors for all six sets, interoperability with RustCrypto, the
+# ACVP vectors for all twelve sets, interoperability with RustCrypto, the
 # interface tests, the hash kernels against the `sha2`
 # crate), both re-extractions with Charon + Aeneas and their opaque/axiom
 # checks, the refinement proofs of the default build (lean/Slhdsa/Proofs, the
@@ -20,8 +20,22 @@ set -e
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 
+case "${1:-}" in
+  "") mode=ver ;;
+  full) mode=all ;;
+  *) echo "usage: scripts/check.sh [full]" >&2; exit 2 ;;
+esac
+[ "$#" -le 1 ] || { echo "usage: scripts/check.sh [full]" >&2; exit 2; }
+
 (cd rust && cargo test --release)
 (cd rust && cargo test --release --features hw-sha2)
+# Runtime-dispatched SHA kernels and the adapter on each supported architecture.
+case "$(uname -m)" in
+  x86_64|aarch64|arm64)
+    (cd rust && cargo test --locked --release --features platform-sha2)
+    (cd compat && cargo test --locked --release --features platform-sha2)
+    ;;
+esac
 
 # The default build: no opaque function, no axiom.
 ./scripts/extract.sh > /dev/null 2>&1 || { echo "extraction FAILED"; exit 1; }
@@ -31,7 +45,7 @@ fi
 if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean/Slhdsa/Funs.lean lean/Slhdsa/Types.lean; then
   echo "FOUND an axiom or opaque declaration in the extraction"; exit 1
 fi
-(cd lean && lake build Slhdsa Spec spectest)
+(cd lean && lake build Slhdsa Spec spectest Spec.AppleKeccakWitness)
 
 # No sorry, axiom, native_decide or bv_decide anywhere in the Lean sources.
 if grep -rnwE "sorry|admit|native_decide|bv_decide" lean/Slhdsa lean/Spec lean/Spec.lean lean/Slhdsa.lean \
@@ -69,7 +83,7 @@ fi
 
 # The model of the wrappers on the cases recorded from a processor
 # (vectors/arm-wrappers.txt).
-(cd lean-hw && lake build Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers \
+(cd lean-hw && lake build Keccakasm.ReleaseWitness Slhdsa.Proofs.Hw.Wrappers Slhdsa.Proofs.Hw512.Wrappers \
    && lake env lean --run ArmTest.lean ../vectors/arm-wrappers.txt)
 
 # No sorry, axiom, native_decide or bv_decide in any Lean source the hw-sha2
@@ -123,13 +137,24 @@ out=$(cd lean-hw && printf 'import Slhdsa.Proofs.Compress512Top\n#print axioms s
 [ "$(echo "$out" | grep -c "depends on axioms: \[propext, Quot.sound\]$")" -eq 2 ] || { echo "$out"; echo "hw_active check FAILED"; exit 1; }
 echo "lean-hw hw_active theorems: 2, each depends on axioms: [propext, Quot.sound]"
 
-mode=ver
-[ "$1" = "full" ] && mode=all
-for s in 128s 128f 192s 192f 256s 256f; do
-  (cd lean && .lake/build/bin/spectest $s $mode) &
+# Missing, empty and incomplete verification groups must fail before running any hash cases.
+tmp_vectors=$(mktemp)
+for invalid in '{}' '{"sigVer":[]}' '{"sigVer":[{},{}]}'; do
+  printf '%s\n' "$invalid" > "$tmp_vectors"
+  if (cd lean && .lake/build/bin/spectest 128f ver "$tmp_vectors") >/dev/null 2>&1; then
+    rm -f "$tmp_vectors"
+    echo "spec test accepted malformed vectors" >&2
+    exit 1
+  fi
+done
+rm -f "$tmp_vectors"
+jobs_started=""
+for s in 128s 128f 192s 192f 256s 256f shake-128s shake-128f shake-192s shake-192f shake-256s shake-256f; do
+  (cd lean && .lake/build/bin/spectest "$s" "$mode") &
+  jobs_started="$jobs_started $!"
 done
 fail=0
-for job in $(jobs -p); do wait "$job" || fail=1; done
+for job in $jobs_started; do wait "$job" || fail=1; done
 [ "$fail" -eq 0 ] || { echo "spec test FAILED"; exit 1; }
 # Constant time (portable build): regenerate the instrumented copy of the translation and the
 # per-set headline files, then the checker, the erasure theorems and the headline statements.
@@ -140,7 +165,7 @@ if grep -RnwE "sorry|admit|native_decide|bv_decide" lean/Ct lean/Ct.lean \
    || grep -RnE "^[[:space:]]*(axiom|opaque) " lean/Ct lean/Ct.lean; then
   echo "FOUND sorry/axiom/native_decide/bv_decide in the constant-time proofs"; exit 1
 fi
-for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+for f in Theorems ShakeEncoding ShakeSets Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
   n=$(grep -c "^#print axioms" "lean/Ct/$f.lean")
   out=$(cd lean && lake env lean "Ct/$f.lean" 2>&1)
   good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
@@ -158,7 +183,7 @@ if grep -RnwE "sorry|admit|native_decide|bv_decide" lean-hw/Ct lean-hw/Ct.lean \
    || grep -RnE "^[[:space:]]*(axiom|opaque) " lean-hw/Ct lean-hw/Ct.lean; then
   echo "FOUND sorry/axiom/native_decide/bv_decide in the hw constant-time proofs"; exit 1
 fi
-for f in Theorems Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
+for f in Theorems ShakeEncoding ShakeSets Sets/Sha2_128s Sets/Sha2_128f Sets/Sha2_192s Sets/Sha2_192f Sets/Sha2_256s Sets/Sha2_256f; do
   n=$(grep -c "^#print axioms" "lean-hw/Ct/$f.lean")
   out=$(cd lean-hw && lake env lean "Ct/$f.lean" 2>&1)
   good=$(echo "$out" | grep -c "depends on axioms: \[propext, Classical.choice, Quot.sound\]" || true)
@@ -176,9 +201,23 @@ for d in security security-hw; do
   echo "$d: $(echo "$out" | grep "headline theorems reported") $(echo "$out" | tail -1)"
 done
 
+# Accelerated streaming and RustCrypto trait proofs.
+./scripts/check-segmented-continuation.py
+./scripts/check-platform-facade.py
+
 # Adapter crate.
 ./scripts/check-compat-proof.sh
-for feat in "" "--features hw-sha2"; do
+./scripts/check-platform-proof.sh
+./scripts/check-x86-key-proof.sh
+./scripts/check-x86-fors-proof.sh
+./scripts/check-segmented-api-proof.py
+./scripts/check-x86-core-proof.py
+./scripts/check-portable-sha2-api-proof.py
+python3 scripts/check-shake-platform-api.py
+./scripts/check-cross-target-outputs.py
+./scripts/check-peer-callers.sh
+python3 scripts/check-platform-peer.py
+for feat in "" "--features hw-sha2" "--no-default-features" "--no-default-features --features alloc" "--no-default-features --features getrandom"; do
   # shellcheck disable=SC2086
   out=$(cd compat && cargo test --release $feat 2>&1) || { echo "$out" | tail -40; echo "compat tests FAILED ($feat)"; exit 1; }
   echo "$out" | grep "test result"

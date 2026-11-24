@@ -1,5 +1,6 @@
 import Spec.Sha256
 import Spec.Sha512
+import Spec.Shake256
 
 /-!
 # SLH-DSA with SHA-2
@@ -14,6 +15,11 @@ Signatures are flat byte strings laid out exactly as in the standard.
 namespace Spec
 
 /-! ## Parameters (FIPS 205 §11, Table 2) -/
+
+inductive HashFamily where
+  | sha2
+  | shake
+deriving Repr, DecidableEq
 
 /-- A row of Table 2. -/
 structure Params where
@@ -33,6 +39,7 @@ structure Params where
   lgw : Nat
   /-- Message digest length in bytes. -/
   m : Nat
+  family : HashFamily := .sha2
 deriving Repr, DecidableEq
 
 def sha2_128s : Params := { n := 16, h := 63, d := 7, hp := 9, a := 12, k := 14, lgw := 4, m := 30 }
@@ -41,6 +48,13 @@ def sha2_192s : Params := { n := 24, h := 63, d := 7, hp := 9, a := 14, k := 17,
 def sha2_192f : Params := { n := 24, h := 66, d := 22, hp := 3, a := 8, k := 33, lgw := 4, m := 42 }
 def sha2_256s : Params := { n := 32, h := 64, d := 8, hp := 8, a := 14, k := 22, lgw := 4, m := 47 }
 def sha2_256f : Params := { n := 32, h := 68, d := 17, hp := 4, a := 9, k := 35, lgw := 4, m := 49 }
+
+def shake_128s : Params := { sha2_128s with family := .shake }
+def shake_128f : Params := { sha2_128f with family := .shake }
+def shake_192s : Params := { sha2_192s with family := .shake }
+def shake_192f : Params := { sha2_192f with family := .shake }
+def shake_256s : Params := { sha2_256s with family := .shake }
+def shake_256f : Params := { sha2_256f with family := .shake }
 
 namespace Params
 
@@ -178,30 +192,45 @@ and 5) when `n = 24` or `n = 32` (§11, first paragraph after Table 2). -/
 /-- `F`: `Trunc_n(SHA-256(PK.seed ‖ toByte(0, 64 − n) ‖ ADRSc ‖ M_1))`, in
 both §11.2.1 and §11.2.2. -/
 def F (p : Params) (pkSeed : Bytes) (adrs : Adrs) (msg : Bytes) : Bytes :=
-  (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
+  match p.family with
+  | .shake => shake256 (pkSeed ++ adrs.bytes ++ msg) p.n
+  | .sha2 =>
+    (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
 
 /-- `PRF`: `Trunc_n(SHA-256(PK.seed ‖ toByte(0, 64 − n) ‖ ADRSc ‖ SK.seed))`,
 in both §11.2.1 and §11.2.2. -/
 def PRF (p : Params) (pkSeed skSeed : Bytes) (adrs : Adrs) : Bytes :=
-  (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ skSeed)).take p.n
+  match p.family with
+  | .shake => shake256 (pkSeed ++ adrs.bytes ++ skSeed) p.n
+  | .sha2 =>
+    (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ skSeed)).take p.n
 
 /-- `H`: `Trunc_n(SHA-256(PK.seed ‖ toByte(0, 64 − n) ‖ ADRSc ‖ M_2))` for
 `n = 16` (§11.2.1) and `Trunc_n(SHA-512(PK.seed ‖ toByte(0, 128 − n) ‖ ADRSc ‖ M_2))`
 otherwise (§11.2.2). -/
 def H (p : Params) (pkSeed : Bytes) (adrs : Adrs) (msg : Bytes) : Bytes :=
-  if p.n = 16 then (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
-  else (sha512 (pkSeed ++ toByte 0 (128 - p.n) ++ adrs.compress ++ msg)).take p.n
+  match p.family with
+  | .shake => shake256 (pkSeed ++ adrs.bytes ++ msg) p.n
+  | .sha2 =>
+    if p.n = 16 then (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
+    else (sha512 (pkSeed ++ toByte 0 (128 - p.n) ++ adrs.compress ++ msg)).take p.n
 
 /-- `T_l`: the same formula as `H`, on `l` blocks. -/
 def T (p : Params) (pkSeed : Bytes) (adrs : Adrs) (msg : Bytes) : Bytes :=
-  if p.n = 16 then (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
-  else (sha512 (pkSeed ++ toByte 0 (128 - p.n) ++ adrs.compress ++ msg)).take p.n
+  match p.family with
+  | .shake => shake256 (pkSeed ++ adrs.bytes ++ msg) p.n
+  | .sha2 =>
+    if p.n = 16 then (sha256 (pkSeed ++ toByte 0 (64 - p.n) ++ adrs.compress ++ msg)).take p.n
+    else (sha512 (pkSeed ++ toByte 0 (128 - p.n) ++ adrs.compress ++ msg)).take p.n
 
 /-- `PRF_msg`: `Trunc_n(HMAC-SHA-256(SK.prf, opt_rand ‖ M))` for `n = 16`,
 with HMAC-SHA-512 otherwise. -/
 def PRFmsg (p : Params) (skPrf optRand msg : Bytes) : Bytes :=
-  if p.n = 16 then (hmacSha256 skPrf (optRand ++ msg)).take p.n
-  else (hmacSha512 skPrf (optRand ++ msg)).take p.n
+  match p.family with
+  | .shake => shake256 (skPrf ++ optRand ++ msg) p.n
+  | .sha2 =>
+    if p.n = 16 then (hmacSha256 skPrf (optRand ++ msg)).take p.n
+    else (hmacSha512 skPrf (optRand ++ msg)).take p.n
 
 /-- MGF1 (RFC 8017 Appendix B.2.1) with a hash function of output length `hLen`. -/
 def mgf1 (hash : Bytes → Bytes) (hLen : Nat) (seed : Bytes) (l : Nat) : Bytes :=
@@ -210,8 +239,11 @@ def mgf1 (hash : Bytes → Bytes) (hLen : Nat) (seed : Bytes) (l : Nat) : Bytes 
 /-- `H_msg`: `MGF1-SHA-256(R ‖ PK.seed ‖ SHA-256(R ‖ PK.seed ‖ PK.root ‖ M), m)`
 for `n = 16`, with SHA-512 in both places otherwise. -/
 def Hmsg (p : Params) (r pkSeed pkRoot msg : Bytes) : Bytes :=
-  if p.n = 16 then mgf1 sha256 32 (r ++ pkSeed ++ sha256 (r ++ pkSeed ++ pkRoot ++ msg)) p.m
-  else mgf1 sha512 64 (r ++ pkSeed ++ sha512 (r ++ pkSeed ++ pkRoot ++ msg)) p.m
+  match p.family with
+  | .shake => shake256 (r ++ pkSeed ++ pkRoot ++ msg) p.m
+  | .sha2 =>
+    if p.n = 16 then mgf1 sha256 32 (r ++ pkSeed ++ sha256 (r ++ pkSeed ++ pkRoot ++ msg)) p.m
+    else mgf1 sha512 64 (r ++ pkSeed ++ sha512 (r ++ pkSeed ++ pkRoot ++ msg)) p.m
 
 /-! ## WOTS+ (§5) -/
 

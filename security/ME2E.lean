@@ -21,3 +21,5 @@ import ME2E.Rom.Sha2_256s
 import ME2E.Rom.Sha2_256f
 import ME2E.Gen128s
 import ME2E.RomBounds
+import ME2E.Shake
+import ME2E.ShakeRust

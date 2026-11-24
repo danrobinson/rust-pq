@@ -70,6 +70,7 @@ macro_rules
         intro seed adrs
         rw [$l:ident, $o:ident]
         simp only [ct_erase]
+        try (refine bind_congr_ok fun _ _ => bind_congr_ok fun _ _ => ?_)
         split_ifs
         · rfl
         · refine bind_congr_ok fun i1 _ => bind_congr_ok fun i2 h2 => ?_
@@ -177,4 +178,5 @@ elab "#ct_derive_erasure" : command => do
 
 end Ct.Erase
 
+set_option maxRecDepth 16000 in
 #ct_derive_erasure

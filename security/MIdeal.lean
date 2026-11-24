@@ -23,3 +23,4 @@ import MIdeal.ArityTcr512
 import MIdeal.CellCollision
 import MIdeal.SingletonHash
 import MIdeal.SingletonTcr
+import MIdeal.PureCompression

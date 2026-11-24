@@ -68,10 +68,10 @@ fn schedule(data: &[u8], off: usize) -> [u64; 80] {
 }
 
 /// The SHA-512 compression function on the block at `data[off..off + 128]`.
-///
 /// With the opt-in `hw-sha2` feature, on a CPU that has the ARMv8.2
 /// SHA-512 instructions, the result comes from [`hw`]; otherwise from
 /// [`compress_portable`].
+#[cfg(not(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little", not(target_vendor = "apple"))))))]
 #[inline]
 pub fn compress(state: &[u64; 8], data: &[u8], off: usize) -> [u64; 8] {
     #[cfg(all(feature = "hw-sha2", target_arch = "aarch64", target_endian = "little"))]
@@ -166,9 +166,9 @@ pub fn digest(state: &[u64; 8]) -> [u8; 64] {
 
 /// SHA-512 of `X ‖ msg`, given the state `state` reached after compressing
 /// the `pre` bytes of `X` (a multiple of 128).
-///
 /// Whole blocks are compressed straight from `msg`; only what is left over
 /// (under 128 bytes) is copied, together with the padding.
+#[cfg(not(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little")))))]
 pub fn sha512_from(state: &[u64; 8], pre: usize, msg: &[u8]) -> [u8; 64] {
     let mut st = *state;
     let mut off = 0;
@@ -206,11 +206,11 @@ pub fn hmac_sha512(key: &[u8], msg: &[u8]) -> [u8; 64] {
     sha512(&outer)
 }
 
-/// Whether [`compress`] is running on hardware SHA-512 instructions.
+/// Whether the crate's Arm SHA-512 instruction backend is active.
 ///
-/// Exists only with the `hw-sha2` feature. `false` means the feature is on
-/// but this CPU (or this architecture) lacks the SHA-512 instructions, so the
-/// portable code is in use.
+/// With `platform-sha2` on x86-64, RustCrypto selects its backend
+/// internally. This Arm-specific probe returns false there regardless
+/// of RustCrypto's selection.
 #[cfg(feature = "hw-sha2")]
 pub fn hw_active() -> bool {
     #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
@@ -404,3 +404,55 @@ pub(crate) mod hw {
         }
     }
 }
+
+/// SHA-512 compression using RustCrypto's runtime-selected x86-64 backend.
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little", not(target_vendor = "apple")))))]
+#[inline]
+pub fn compress(state: &[u64; 8], data: &[u8], off: usize) -> [u64; 8] {
+    let block: &[u8; 128] = data[off..][..128].try_into().unwrap();
+    let mut out = *state;
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut out, core::slice::from_ref(block));
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress512(&mut out, core::slice::from_ref(block));
+    out
+}
+
+/// Continue a SHA-512 hash from a block boundary, submitting all complete
+/// message blocks to the runtime-selected backend in one call.
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little"))))]
+pub fn sha512_from(state: &[u64; 8], pre: usize, msg: &[u8]) -> [u8; 64] {
+    let mut st = *state;
+    let (blocks, tail) = msg.as_chunks::<128>();
+    let padded_prefix = pre + blocks.len() * 128;
+    #[cfg(target_arch = "x86_64")]
+    let blocks = stream::prefix(&mut st, blocks);
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut st, blocks);
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress512(&mut st, blocks);
+    let padding = pad(tail, padded_prefix);
+    let (final_blocks, remainder) = padding.as_chunks::<128>();
+    debug_assert!(remainder.is_empty());
+    #[cfg(target_arch = "x86_64")]
+    stream::remainder(&mut st, final_blocks);
+    #[cfg(not(target_arch = "x86_64"))]
+    sha2_platform::block_api::compress512(&mut st, final_blocks);
+    digest(&st)
+}
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+#[allow(unsafe_code)]
+pub(crate) mod x86;
+
+#[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+#[allow(unsafe_code)]
+pub(crate) mod paired;
+
+#[cfg(all(feature = "platform-sha2", any(all(target_arch = "x86_64", target_feature = "sse2"), all(target_arch = "aarch64", target_endian = "little"))))]
+#[allow(unsafe_code)]
+pub(crate) mod parents;
+
+#[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
+#[allow(unsafe_code)]
+mod stream;

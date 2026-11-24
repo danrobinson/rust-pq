@@ -1,5 +1,6 @@
 #!/bin/sh
-# Re-extract the production adapter code and check its proof against that extraction.
+# Re-extract the adapter from its production crate, then verify the trait methods
+# against each feature build of the core.
 set -eu
 cd "$(dirname "$0")/.."
 root=$PWD
@@ -7,7 +8,43 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 (cd compat && "$root/.tools/aeneas/charon/bin/charon" cargo --preset=aeneas \
-  --start-from crate::multipart::join --dest-file "$scratch/slh_dsa.llbc" -- --locked)
-"$root/.tools/aeneas/bin/aeneas" -backend lean -dest "$scratch" "$scratch/slh_dsa.llbc"
-cmp "$scratch/SlhDsa.lean" lean/Slhdsa/Compat/SlhDsa.lean
-(cd lean && lake build Slhdsa.Compat.Multipart)
+  --dest-file "$scratch/facade.llbc" --opaque 'slhdsa::params::Params' \
+  --start-from '{impl crate::params::DerAlgorithm for _}' \
+  --start-from '{impl crate::params::Core for _}' \
+  --start-from '{impl signature::Signer for crate::signing_key::SigningKey}::try_sign' \
+  --start-from '{impl signature::Verifier for crate::verifying_key::VerifyingKey}::verify' \
+  --start-from 'crate::signing_key::SigningKey::try_sign_with_context' \
+  --start-from 'crate::verifying_key::VerifyingKey::try_verify_with_context' \
+  --start-from 'crate::signing_key::SigningKey::new' \
+  --start-from '{impl signature::RandomizedSigner for crate::signing_key::SigningKey}::try_sign_with_rng' \
+  --start-from '{impl core::convert::TryFrom for crate::signature_encoding::Signature}::try_from' \
+  --start-from '{impl core::convert::TryFrom for crate::verifying_key::VerifyingKey}::try_from' \
+  --start-from '{impl core::convert::TryFrom for crate::signing_key::SigningKey}::try_from' \
+  -- --locked)
+"$root/.tools/aeneas/bin/aeneas" -backend lean -abort-on-error -no-progress-bar \
+  -dest "$scratch" -split-files "$scratch/facade.llbc"
+for f in Types Funs; do
+  case "${1:-}" in
+    --regenerate) cp "$scratch/$f.lean" "lean/Facade/$f.lean" ;;
+    "") cmp "$scratch/$f.lean" "lean/Facade/$f.lean" ;;
+    *) echo "usage: $0 [--regenerate]" >&2; exit 2 ;;
+  esac
+done
+for project in lean lean-hw; do
+  (cd "$project" && lake build Facade)
+  for file in Multipart MultipartApi Sign Verify Keygen Randomized Parse Der; do
+    (cd "$project" && lake env lean "Facade/$file.lean") > "$scratch/axioms"
+    case "$file" in
+      Multipart) expected=1 ;;
+      MultipartApi) expected=3 ;;
+      Sign|Verify) expected=24 ;;
+      Keygen|Randomized|Parse|Der) expected=12 ;;
+    esac
+    printed=$(grep -c '^#print axioms ' "$project/Facade/$file.lean")
+    checked=$(grep -Fc 'depends on axioms: [propext, Classical.choice, Quot.sound]' "$scratch/axioms" || true)
+    [ "$printed" -eq "$expected" ] && [ "$checked" -eq "$expected" ] || {
+      cat "$scratch/axioms" >&2
+      exit 1
+    }
+  done
+done

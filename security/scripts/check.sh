@@ -87,6 +87,20 @@ open MLink MReduction
 #print axioms MIdeal.sha2_128s.api_ideal_security_closed_pure_tight8
 #print axioms MIdeal.sha2_128s.pure_bytes_end_to_end
 #print axioms MIdeal.sha2_128s.pureBytesAlg_realCF
+#print axioms ShakeSecurity.Rust.keygen
+#print axioms ShakeSecurity.Rust.signInternal
+#print axioms ShakeSecurity.Rust.verifyInternal
+#print axioms ShakeSecurity.Rust.signPure
+#print axioms ShakeSecurity.Rust.verifyPure
+#print axioms ShakeSecurity.slhdsa_shake_bytes_suf_cma_final
+#print axioms ShakeSecurity.slhdsa_shake_bytes_euf_cma_final
+#print axioms ShakeSecurity.slhdsa_shake_pure_bytes_suf_cma_final
+#print axioms ShakeSecurity.slhdsa_shake_pure_bytes_euf_cma_final
+#print axioms ShakeSecurity.oracle_conformance
+#print axioms ShakeIdeal.SLHDSA.Security.shakeStrongAdvantage_le_securityBound_validatedParams
+#print axioms ShakeIdeal.SLHDSA.Security.shakeStrongAdvantage_le_securityBound_hedged_validatedParams
+#print axioms ShakeIdeal.SLHDSA.Security.shakeAdvantage_le_securityBound_validatedParams
+#print axioms ShakeIdeal.SLHDSA.Security.shakeAdvantage_le_securityBound_hedged_validatedParams
 #print axioms MLink.sha512_eq
 #print axioms MLink.hmacSha512_eq
 #print axioms MLink.mgf1Sha512_eq
@@ -162,7 +176,8 @@ for s in $SETS; do
            pure_rom_security api_pure_rom_security rust_pure_rom_security_bytes api_pure_rom_security_bytes; do
     echo "#print axioms ME2E.sha2_${s}.${t}" >> "$out/Ax.lean"; done
 done
-lake env lean "$out/Ax.lean" > "$out/axioms.txt" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.txt" | head; fail=1; }
+lake env lean "$out/Ax.lean" > "$out/axioms.raw" 2>&1 || { echo "FAIL: axiom file did not check"; grep error "$out/axioms.raw" | head; fail=1; }
+awk -f scripts/axiom-lines.awk "$out/axioms.raw" > "$out/axioms.txt"
 total=$(grep -c "depends on axioms\|does not depend" "$out/axioms.txt")
 expected=$(grep -c "^#print axioms" "$out/Ax.lean")
 badax=$(grep "depends on axioms" "$out/axioms.txt" | grep -v "depends on axioms: \[propext, Classical.choice, Quot.sound\]$" | grep -v "depends on axioms: \[propext, Quot.sound\]$")

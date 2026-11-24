@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reproduces everything in RESULTS.md:  ./run.sh            (ROUNDS=2 by default)
+# Runs the SHA2-128s comparison for this checkout:  ./run.sh            (ROUNDS=2 by default)
 #
 #   1. checks that the frozen copies variants/base (= `verified-before`) and variants/current
 #      still equal opt/original/rust/src and rust/src of the single-set tree they were taken

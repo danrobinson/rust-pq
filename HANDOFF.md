@@ -191,8 +191,7 @@ same one-liners. That raises the headline count of the security checks from 257 
 **Bench.** `bench/` uses `slhdsa::sha2_128s` for the `verified` entries; `variants/` are frozen
 copies of single-set code, now checked against `git show 26aa3d8:…` by `run.sh`; new
 `benches/sets.rs` benchmarks the six sets against RustCrypto (checks byte-identical keys and
-signatures first). Old results (`RESULTS.md`, `results/run1`–`run6`) are marked as measured on
-the single-set crate. Smoke run: see "Checks".
+signatures first). The single-set results from runs 1–6 are archived in Git at `be142b7:bench/results`. Smoke run: see "Checks".
 
 **Binary timing evidence (`ct-evidence/`).** The harness (emulator traces with Unicorn, dudect
 timing, disassembly checks; `run.sh`, `scripts/disasm_check.py`, `scripts/make_results.py`,

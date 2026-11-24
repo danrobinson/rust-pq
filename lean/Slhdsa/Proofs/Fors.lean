@@ -275,6 +275,7 @@ theorem fors_batch_loop3_loop2_spec {N : Usize} (p : params.Params) (hp : PN p N
       have hjv : j.val < cnt.val := by scalar_tac
       step*
       case P => exact paramsS p
+      case family => infer_instance
       case hPN => exact hp.n
       case hN => exact hp.nok
       all_goals try exact hs
@@ -420,7 +421,7 @@ theorem fors_batch_loop3_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk 
   · exact ⟨hlvl, hlz, hcnt, hv⟩
 
 /-- A FORS leaf block: `PRF` in place, the type switched, then `F` in place. -/
-theorem fors_leaf_value (P : Spec.Params) (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
+theorem fors_leaf_value (P : Spec.Params) [Fact (P.family = .sha2)] (hn : P.n ≤ 32) (pk : Spec.Bytes) (hpk : pk.length = P.n)
     (A : Spec.Adrs) (m : Spec.Bytes) (hm : m.length = P.n) (t ty : Nat) :
     ((stepBlock P.n (seedState P.n pk) ((stepBlock P.n (seedState P.n pk)
       (padFrom 64 ({ A with word3 := t }.compress ++ m)) t).set 9 (BitVec.ofNat 8 ty)) t).drop 22).take P.n =

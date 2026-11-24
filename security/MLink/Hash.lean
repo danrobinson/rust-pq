@@ -167,6 +167,8 @@ theorem thash_sha512_of_n_ne_16 (pk : S.Node) (key : Bytes 22) (ys : List S.Node
   rw [h, prefixOrZero_eq _ _ (by rw [sha512_size]; have := S.n_le_32; omega), sha512_eq, spA_append,
     spA_prefix512, spA_concat]
 
+private theorem spec_sha2 (S : Sha2Set) : S.spec.family = .sha2 := by cases S <;> rfl
+
 /-! ### Key-level and address-level forms in terms of `Spec` -/
 
 /-- The tweakable hash at a raw key and a single node: the `F` formula of the spec with the key
@@ -199,6 +201,7 @@ theorem thash_eq (pk : S.Node) (a : SLHDSA.Adrs) (h : Dom a) (ys : List S.Node)
     nd (S.prims.Thash pk (S.prims.adrsToKey a) ys) = Spec.T S.spec (nd pk) (adr a) (nds ys) := by
   have := thash_key_eq S pk (sha2AdrsKey a) ys hys
   rw [show nd (sha2AdrsKey a) = (adr a).compress from adrsKey_eq a h] at this
+  simp only [Spec.T, spec_sha2]
   exact this
 
 /-- `F` at an in-domain address (SHA-256 in every category). -/
@@ -206,6 +209,7 @@ theorem F_eq (pk : S.Node) (a : SLHDSA.Adrs) (h : Dom a) (y : S.Node) :
     nd (S.prims.F pk a y) = Spec.F S.spec (nd pk) (adr a) (nd y) := by
   have := thash_key_singleton_eq S pk (sha2AdrsKey a) y
   rw [show nd (sha2AdrsKey a) = (adr a).compress from adrsKey_eq a h] at this
+  simp only [Spec.F, spec_sha2]
   exact this
 
 /-- `H` at an in-domain address (SHA-256 for `n = 16`, SHA-512 otherwise). -/
@@ -236,6 +240,7 @@ theorem PRF_eq (pk sk : S.Node) (a : SLHDSA.Adrs) (h : Dom a) :
   rw [e, nd, hs, sha256_eq, spA_append, sha2Prefix256, spA_prefix256]
   simp only [nd_def, Sha2Address.bytes_toList, compressSha2_eq, spA_bytes]
   unfold Spec.PRF
+  rw [spec_sha2]
   rw [← S.n_eq]
 
 /-- `PRF_msg` (HMAC-SHA-256 for `n = 16`, HMAC-SHA-512 otherwise). -/
@@ -244,6 +249,7 @@ theorem PRFmsg_eq (skPrf optRand : S.Node) (msg : List UInt8) :
   have hle := S.n_le_32
   show nd (sha2PRFmsg skPrf optRand msg) = _
   unfold sha2PRFmsg Spec.PRFmsg
+  rw [spec_sha2]
   rw [← S.n_eq]
   by_cases hn : S.vp.params.n = 16
   · rw [ifPos hn, ifPos hn]
@@ -260,6 +266,7 @@ theorem Hmsg_eq (r pk root : S.Node) (msg : List UInt8) :
     nd (S.prims.Hmsg r pk root msg) = Spec.Hmsg S.spec (nd r) (nd pk) (nd root) (sp msg) := by
   show nd (sha2Hmsg S.vp.params r pk root msg) = _
   unfold sha2Hmsg Spec.Hmsg
+  rw [spec_sha2]
   rw [← S.n_eq, ← S.m_eq]
   by_cases hn : S.vp.params.n = 16
   · rw [ifPos hn, ifPos hn]

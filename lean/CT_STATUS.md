@@ -1,4 +1,4 @@
-# Constant time: what is proved (2026-11-22)
+# Constant time: what is proved (2026-11-23)
 
 For the portable (default) build of `../rust`, all six SHA-2 parameter sets, the Lean
 library [Ct](Ct) proves the statements of the single-set tree's constant-time proofs (its
@@ -12,6 +12,34 @@ cd lean && lake build Ct
 ```
 
 The `hw-sha2` build, with its hardware SHA-256 and SHA-512, is covered too ([Part 2](#part-2)).
+
+## SHAKE parameter sets
+
+Both Lean builds check the portable SHAKE256 path used by all six SHAKE sets.
+[ShakeSets](Ct/ShakeSets.lean) connects the fixed-size key generation, hedged signing and
+deterministic signing wrappers to these results.
+
+- Two calls to key generation with arbitrary seed bytes and initial output buffers of the
+  specified sizes return with equal modelled traces, at both the slice API and fixed wrappers. [Tree proofs](Ct/ShakeTrees.lean) and [key generation](Ct/ShakeSets.lean)
+- Given a returned signature, a simulator with only the public key, message, context and
+  signature reproduces the entire signing trace. Secret key seeds and hedging randomness
+  may vary. Different published signatures may reveal different WOTS chain lengths and tree
+  indices. For a context longer than 255 bytes, the two public signing APIs have separate
+  early-return theorems. [Signing simulator and proofs](Ct/ShakeSigning.lean)
+- Key equality, key and signature parsing, and DER encoding and decoding also have fixed-wrapper
+  trace proofs. Decoding assumes equal input lengths and equal DER header bytes; the payload can
+  vary. [SHAKE key and DER proofs](Ct/ShakeEncoding.lean)
+- SHAKE256 itself has equal traces for arbitrary input bytes of equal length and output
+  buffers of equal length, whenever both calls return. The proof covers all 24 Keccak
+  rounds, absorption, padding and squeezing across any number of rate boundaries.
+  [Keccak](Ct/ShakePermutation.lean) and [sponge](Ct/ShakeSponge.lean)
+
+The model records branch decisions, indices and range endpoints with container lengths,
+copy and extension lengths, division and remainder operands, and comparison-prefix lengths.
+These source-level theorems concern the extracted bodies in the default and `hw-sha2`
+configurations. SIMD Keccak kernels selected by `platform-sha2`, compiled machine-code
+leakage, absolute addresses, timing, power and speculative execution are outside these
+theorems.
 
 ## Same model, same machinery
 
