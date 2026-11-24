@@ -39,14 +39,13 @@ private theorem joint {St Blk PK T M Y ι : Type} {F : THFam St Blk PK T M Y ι}
     · simp [THFam.isChal,THFam.isColl] at ht
     · simp [THFam.isChal,THFam.isColl] at ht
 
-private theorem budgets {σ : Type} (seeds : ProbComp Node) (ar n cap : ℕ) (ha : ar ≤ 2)
+private theorem setup {σ : Type} (seeds : ProbComp Node) (ar n cap : ℕ)
     (o : OracleComp (Spec1 (Bytes 22) Node (fun xs => xs.length = ar)) σ)
     (hc : IsQueryBoundP o (fun t => t.isRight = true) cap)
     (hl : IsQueryBoundP o (fun t => bad1 (Tweak := Bytes 22) (fun xs : List Node => xs.length = ar) 35 t = true) 0) :
     let A := classFirst seeds ar n o
-    IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
-      IsQueryBoundP (tcrProg₁ A) (fun i => isChain i = true) cap ∧
-      AllQueriesSatisfy (tcrProg₁ A) (chainLenLe 9) := by
+    A.ChooseBound 0 ∧ IsQueryBoundP A.choose
+        (fun i => ((family seeds ar n).isChal i || (family seeds ar n).isColl i) = true) cap ∧ A.CollLen 9 := by
   let A := classFirst seeds ar n o
   have h0 : A.ChooseBound 0 := by
     exact emb_noH (fun i => (family seeds ar n).isH i = true) (fun t => by rcases t with m|t <;> simp [embIdx,THFam.isH]) o
@@ -67,10 +66,22 @@ private theorem budgets {σ : Type} (seeds : ProbComp Node) (ar n cap : ℕ) (ha
       have t := tblocks_snd_length tw xs
       simp only [bad1,decide_eq_true_eq]
       omega
-  exact ⟨tcrProg₁_pubBound A h0, joint A cap hq,
-    tcrProg₁_chainLen A (fun tw x => by change (tblocks tw x.val).2.length ≤ 9; rw [noTail ha]; decide) hlen⟩
+  exact ⟨h0,hq,hlen⟩
 
-theorem class_counts_128s (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
+private theorem budgets {σ : Type} (seeds : ProbComp Node) (ar n cap : ℕ) (ha : ar ≤ 35)
+    (o : OracleComp (Spec1 (Bytes 22) Node (fun xs => xs.length = ar)) σ)
+    (hc : IsQueryBoundP o (fun t => t.isRight = true) cap)
+    (hl : IsQueryBoundP o (fun t => bad1 (Tweak := Bytes 22) (fun xs : List Node => xs.length = ar) 35 t = true) 0) :
+    let A := classFirst seeds ar n o
+    IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
+      IsQueryBoundP (tcrProg₁ A) (fun i => isChain i = true) cap ∧
+      AllQueriesSatisfy (tcrProg₁ A) (chainLenLe 9) := by
+  let A := classFirst seeds ar n o
+  obtain ⟨h0,hq,hlen⟩ := setup seeds ar n cap o hc hl
+  exact ⟨tcrProg₁_pubBound A h0, joint A cap hq,
+    tcrProg₁_chainLen A (fun tw x => by change (tblocks tw x.val).2.length ≤ 9; rw [tblocks_snd_length,x.property]; omega) hlen⟩
+
+theorem long_counts_128s (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 35) :
     let A := classFirst seeds ar (arityTargets Sha2Set.s128s.vp ar)
       (tcrPhase1 Sha2Set.s128s.vp (randPrims (carrier Sha2Set.s128s)) ar)
     IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
@@ -81,7 +92,7 @@ theorem class_counts_128s (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
   have h := raw (v := v) p ar (fun xs ok => by rcases ok with h|h|h|h <;> rw [h] <;> decide)
   exact budgets seeds ar (arityTargets v ar) (tcrTargets v) ha (tcrPhase1 v p ar) h.1 h.2
 
-theorem class_counts_128f (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
+theorem long_counts_128f (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 35) :
     let A := classFirst seeds ar (arityTargets Sha2Set.s128f.vp ar)
       (tcrPhase1 Sha2Set.s128f.vp (randPrims (carrier Sha2Set.s128f)) ar)
     IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
@@ -91,6 +102,50 @@ theorem class_counts_128f (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
   let p := randPrims (carrier Sha2Set.s128f)
   have h := raw (v := v) p ar (fun xs ok => by rcases ok with h|h|h|h <;> rw [h] <;> decide)
   exact budgets seeds ar (arityTargets v ar) (tcrTargets v) ha (tcrPhase1 v p ar) h.1 h.2
+
+theorem class_counts_128s (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
+    let A := classFirst seeds ar (arityTargets Sha2Set.s128s.vp ar)
+      (tcrPhase1 Sha2Set.s128s.vp (randPrims (carrier Sha2Set.s128s)) ar)
+    IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
+      IsQueryBoundP (tcrProg₁ A) (fun i => isChain i = true) (tcrTargets Sha2Set.s128s.vp) ∧
+      AllQueriesSatisfy (tcrProg₁ A) (chainLenLe 9) := long_counts_128s seeds ar (by omega)
+
+theorem class_counts_128f (seeds : ProbComp Node) (ar : ℕ) (ha : ar ≤ 2) :
+    let A := classFirst seeds ar (arityTargets Sha2Set.s128f.vp ar)
+      (tcrPhase1 Sha2Set.s128f.vp (randPrims (carrier Sha2Set.s128f)) ar)
+    IsQueryBoundP (tcrProg₁ A) (fun i => isPub i = true) 0 ∧
+      IsQueryBoundP (tcrProg₁ A) (fun i => isChain i = true) (tcrTargets Sha2Set.s128f.vp) ∧
+      AllQueriesSatisfy (tcrProg₁ A) (chainLenLe 9) := long_counts_128f seeds ar (by omega)
+
+private theorem setup_individual {σ : Type} (seeds : ProbComp Node) (ar n cap : ℕ)
+    (o : OracleComp (Spec1 (Bytes 22) Node (fun xs => xs.length = ar)) σ)
+    (hc : IsQueryBoundP o (fun t => t.isRight = true) cap)
+    (hl : IsQueryBoundP o (fun t => bad1 (Tweak := Bytes 22) (fun xs : List Node => xs.length = ar) 35 t = true) 0) :
+    let A := classFirst seeds ar n o
+    A.ChooseBound 0 ∧ A.ChalBound cap ∧ A.CollBound cap ∧ A.CollLen 9 := by
+  obtain ⟨h0,hj,hlen⟩ := setup seeds ar n cap o hc hl
+  exact ⟨h0,hj.of_imp (fun t h => by simp [h]),hj.of_imp (fun t h => by simp [h]),hlen⟩
+
+theorem setup_128s (seeds : ProbComp Node) (ar : ℕ) :
+    let v := Sha2Set.s128s.vp
+    let A := classFirst seeds ar (arityTargets v ar) (tcrPhase1 v (randPrims (carrier Sha2Set.s128s)) ar)
+    A.ChooseBound 0 ∧ A.ChalBound (tcrTargets v) ∧ A.CollBound (tcrTargets v) ∧ A.CollLen 9 := by
+  let v := Sha2Set.s128s.vp
+  let p := randPrims (carrier Sha2Set.s128s)
+  have h := raw (v := v) p ar (fun xs ok => by rcases ok with h|h|h|h <;> rw [h] <;> decide)
+  exact setup_individual seeds ar (arityTargets v ar) (tcrTargets v) (tcrPhase1 v p ar) h.1 h.2
+
+theorem setup_128f (seeds : ProbComp Node) (ar : ℕ) :
+    let v := Sha2Set.s128f.vp
+    let A := classFirst seeds ar (arityTargets v ar) (tcrPhase1 v (randPrims (carrier Sha2Set.s128f)) ar)
+    A.ChooseBound 0 ∧ A.ChalBound (tcrTargets v) ∧ A.CollBound (tcrTargets v) ∧ A.CollLen 9 := by
+  let v := Sha2Set.s128f.vp
+  let p := randPrims (carrier Sha2Set.s128f)
+  have h := raw (v := v) p ar (fun xs ok => by rcases ok with h|h|h|h <;> rw [h] <;> decide)
+  exact setup_individual seeds ar (arityTargets v ar) (tcrTargets v) (tcrPhase1 v p ar) h.1 h.2
+
 end Reduction.Compression.ShortBlocks
-#print axioms Reduction.Compression.ShortBlocks.class_counts_128s
-#print axioms Reduction.Compression.ShortBlocks.class_counts_128f
+#print axioms Reduction.Compression.ShortBlocks.long_counts_128s
+#print axioms Reduction.Compression.ShortBlocks.long_counts_128f
+#print axioms Reduction.Compression.ShortBlocks.setup_128s
+#print axioms Reduction.Compression.ShortBlocks.setup_128f
