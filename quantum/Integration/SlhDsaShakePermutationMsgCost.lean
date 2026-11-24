@@ -19,7 +19,7 @@ def hashWeight (D : Type) : (Lazy.RSpec (Lazy.msgG P₀) D S.Node (publicHashSpe
   fun t => if Lazy.kind t = .hash then 1 else 0
 local notation "Wc" => hashWeight S base SecIdx
 
-private theorem liftDet {ι α : Type} {sp : OracleSpec ι} (cnt : (unifSpec + sp).Domain → ℕ)
+theorem liftDet {ι α : Type} {sp : OracleSpec ι} (cnt : (unifSpec + sp).Domain → ℕ)
     (hu : ∀ n, cnt (.inl n) = 0) (d : (Port → Words) → α) {n : ℕ}
     (h : EvalCost (fun H => (pure (d H) : ProbComp α)) n) :
     EvalCostQ E cnt (fun H => (pure (d H) : OracleComp (unifSpec + sp) α)) n := by
@@ -51,7 +51,7 @@ private theorem signCost (pk : PublicKeyCore (P₀).core) (t : (SG).Domain) (log
     exact (WCount.bind h' (m := 0) (fun sig => wCount_pure Wc (sig,log ++ [⟨m,sig⟩]) 0)).mono (Nat.le_of_eq (Nat.add_zero _))
 
 
-private theorem scale {I A : Type} {sp : OracleSpec I} (w : I → ℕ) (p : OracleComp sp A)
+theorem scale {I A : Type} {sp : OracleSpec I} (w : I → ℕ) (p : OracleComp sp A)
     (a : ℕ) (hc : WCount w p a) : WCount (fun i => 483*w i) p (483*a) := by
   induction p using OracleComp.inductionOn generalizing a with
   | pure x => trivial
