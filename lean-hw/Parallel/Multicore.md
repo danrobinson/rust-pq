@@ -2,6 +2,8 @@
 
 | Component | Checked property | Implementation boundary |
 |---|---|---|
+| Cached XMSS authentication path | Lean checks the extracted cache lookup and append loop, including all output bytes and indices. Given a correctly populated tree and WOTS signature, it produces the FIPS XMSS signature. | Apple AArch64, Linux AArch64 and Linux x86-64 extractions match. Cache construction, key association, replacement policy and complete cached signing still require separate proofs. [Theorem](../Cachepath/Proof.lean) · [Replay](../../scripts/check-cache-path.py) |
+| Arm SHA-512 interleaved rounds | The two-round step extracted on Apple and Linux AArch64 matches the proved step. A symbolic schedule checks all 40 steps, both constants per step and independent lanes in one-, two- and four-lane configurations. | Assumes the modeled ARM instructions, valid constant-pool pointer and hardware feature. The surrounding block loaders, accumulation and callers have separate obligations. [Replay](../../scripts/check-arm-sha512-lanes.py) |
 | Arm SHA-256 short-block packing | Symbolic execution of optimized AArch64 code checks the 48-byte schedule suffix for arbitrary input digest and address words. It checks all three digest widths, digest load/store round-trip and the memory ranges accessed. | Assumes the AArch64 instruction model, including SIMD subword reversal. The four-round head and callers require separate proofs. [Replay](../../scripts/parallel-proof/arm-pack.py) |
 | Apple eight-lane Keccak | For arbitrary input words and round constant, Lean checks all 25 output words of the scalar, SHA3 and NEON round bodies against FIPS 202. A symbolic replay checks the round constants, coordinate ordering, loads and stores for each active lane count from zero through eight. | The replay lifts the Rust bodies under lane-wise intrinsic semantics. The compiler, emitted instructions and CPU feature detection are trusted here. [Replay](../../scripts/check-apple-hybrid.py) |
 | Split XMSS and FORS subtrees | For any number of levels and any valid root index, merging the specified consecutive subtrees gives FIPS Algorithm 9 or 15. A Rust replay checks the reducer's child indices, height, hash input order and in-place writes for all supported heights. | The child nodes satisfy their primitive contracts. Absolute indices must fit in the Rust index type. [Theorems](SplitTree.lean) · [Source check](../../scripts/check-split-tree.py) |
@@ -25,6 +27,8 @@ python3 scripts/check-metal-keccak.py
 python3 scripts/check-metal-sha2.py
 uv run --script scripts/parallel-proof/active.py
 uv run --script scripts/parallel-proof/arm-pack.py
+python3 scripts/check-arm-sha512-lanes.py
+python3 scripts/check-cache-path.py
 python3 scripts/check-split-tree.py
 python3 scripts/check-prehash-framing.py
 uv run --script scripts/check-parallel-proof.py

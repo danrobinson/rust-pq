@@ -284,3 +284,6 @@ name = "Parallel"
 
 [[lean_lib]]
 name = "Prehash"
+
+[[lean_lib]]
+name = "Cachepath"
