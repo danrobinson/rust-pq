@@ -40,7 +40,7 @@ private theorem swap_means {U V : Type} [Fintype U] [Fintype V] (f : U → V →
     uniformMean (fun u => uniformMean (f u)) = uniformMean (fun v => uniformMean (fun u => f u v)) := by
   unfold uniformMean; simp only [Finset.mul_sum]; rw [Finset.sum_comm]; simp only [mul_left_comm]
 
-private theorem unfilled (b : Bank I A) (j : I) (hj : b j = none) (f : (I → A) → ℝ≥0∞) :
+theorem unfilled (b : Bank I A) (j : I) (hj : b j = none) (f : (I → A) → ℝ≥0∞) :
     uniformMean (fun H => f (fill b H)) = uniformMean (fun v : A =>
       uniformMean (fun H => f (fill (Function.update b j (some v)) H))) := by
   let sw (z : (I → A) × A) := (Function.update z.1 j z.2,z.1 j)

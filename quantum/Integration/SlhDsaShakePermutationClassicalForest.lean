@@ -9,7 +9,7 @@ open scoped ENNReal
 open SetOracle (uniformMean)
 noncomputable section
 
-private theorem mean_select {A : Type} [Fintype A] [Nonempty A] (g : A → Prop) [DecidablePred g]
+theorem mean_select {A : Type} [Fintype A] [Nonempty A] (g : A → Prop) [DecidablePred g]
     (f : A → ℝ≥0∞) (bounded : ∀ a, f a ≤ 1) :
     uniformMean f ≤ uniformMean (fun x : {a // g a} => f x.val) +
       (Fintype.card {a // ¬g a} : ℝ≥0∞) / (Fintype.card A : ℝ≥0∞) := by
