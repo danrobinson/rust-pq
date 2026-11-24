@@ -1,28 +1,26 @@
 # Optimized SLH-DSA peer benchmarks
 
-The library led in 2,683 of 2,688 workload–peer comparisons by median paired latency. The original baseline led in 2,049. In the new run, 2,653 comparisons favored the library in all six measured pairs.
-
 All twelve parameter sets ran on seven CPUs against OpenSSL 4.1.0 and RustCrypto SLH-DSA 0.2.0-rc.5. The matrix covers seeded key generation, public-key extraction, deterministic signing, hedged signing and verification at 32 bytes and 1 MiB, plus raw and DER key conversions. Each workload ran once as warm-up and six more times, once per provider order. [Reproduction and timing method](../../peers/README.md) · [Original baseline](../peers/README.md)
 
 Linux ran each provider on CPU 0 of a dedicated EC2 instance. Apple used normal scheduling on a shared developer machine with concurrent Lean jobs. The paired sample ranges show the observed variation. Margins of a few percent on that host are sensitive to scheduling and load.
 
 ## Results by operation
 
-Each count gives the number of workloads with a median paired latency ratio strictly above one, meaning the library ran faster than the named peer.
+Each cell is the geometric mean of the paired median speedups, giving each measured processor, parameter set and message size equal weight within that peer and operation. Ratios above 1× favor rust-pq.
 
-| Operation | Workloads | Wins vs OpenSSL | Wins vs RustCrypto |
-|---|---:|---:|---:|
-| Key generation | 168 | 168 | 168 |
-| Public-key extraction | 168 | 168 | 163 |
-| Deterministic signing | 168 | 168 | 168 |
-| Hedged signing | 168 | 168 | 168 |
-| Verification | 168 | 168 | 168 |
-| Raw private-key import | 84 | 84 | 84 |
-| Raw public-key import | 84 | 84 | 84 |
-| PKCS#8 encode | 84 | 84 | 84 |
-| PKCS#8 decode | 84 | 84 | 84 |
-| SPKI encode | 84 | 84 | 84 |
-| SPKI decode | 84 | 84 | 84 |
+| Operation | vs OpenSSL | vs RustCrypto |
+|---|---:|---:|
+| Key generation | 3.92× | 7.05× |
+| Public-key extraction | 13.82× | 1.86× |
+| Deterministic signing | 3.52× | 6.01× |
+| Hedged signing | 3.51× | 6.00× |
+| Verification | 2.09× | 3.22× |
+| Raw private-key import | 639.13× | 2.01× |
+| Raw public-key import | 744.87× | 1.86× |
+| PKCS#8 encode | 1192.33× | 17.59× |
+| PKCS#8 decode | 575.18× | 26.28× |
+| SPKI encode | 1034.67× | 11.73× |
+| SPKI decode | 654.30× | 27.33× |
 
 ## SHAKE signing
 

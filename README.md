@@ -108,10 +108,7 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
 ## Performance
 
-The platform-optimized build had lower median latency than OpenSSL 4.1.0 in **1,344 of 1,344 workloads**
-and RustCrypto `slh-dsa` 0.2.0-rc.5 in **1,339 of 1,344**. The five RustCrypto wins were all
-extractions of a 32-byte public key on the Xeon 8275CL or Graviton4. These measurements cover
-all twelve SHA-2 and SHAKE parameter sets with `platform-sha2` enabled.
+Across seven processors and all twelve parameter sets, deterministic signing with `platform-sha2` was **6.01× as fast as RustCrypto** (`slh-dsa` 0.2.0-rc.5) and **3.52× as fast as OpenSSL** (4.1.0), aggregating 32-byte and 1 MiB messages. Speedup is peer latency divided by rust-pq latency. Above 1× favors rust-pq and below 1× favors the peer.
 
 **Deterministic signing of a 32-byte message.** Each range gives the smallest and largest
 speedup across the twelve parameter sets. A 4× speedup means signing took one-quarter of
@@ -139,30 +136,37 @@ The Apple host ran under normal scheduling with concurrent work.
 [Signature and key-generation timings](bench/results/peers-optimized/workloads.csv) ·
 [Key conversion timings](bench/results/peers-optimized/encoding-workloads.csv)
 
-### Botan, Conduition and Fluhrer
+### Speedup by peer and operation
 
-Each cell counts workloads where rust-pq had lower median latency, out of the workloads measured for that peer. Each workload fixes the processor, parameter set, operation and message size. The two CPU builds of Conduition support the four 128-bit sets. Its GPU results cover SHA2-128s and SHA2-128f on Apple. Fluhrer ran on the four x86 hosts. [Operation counts](bench/results/optimized-competitors/operations.csv) · [Absolute times, including losses](bench/results/optimized-competitors/workloads.csv)
+Each cell is the geometric mean of the paired median speedups, giving each measured processor, parameter set and message size equal weight within that peer and operation. RustCrypto, OpenSSL and Botan cover all twelve sets on seven processors. Conduition’s CPU builds cover four 128-bit sets, its OpenCL GPU build covers the two SHA2-128 sets on Apple, and Fluhrer covers all twelve sets on four x86 hosts. [RustCrypto and OpenSSL workloads](bench/results/peers-optimized/workloads.csv) · [Other peer workloads](bench/results/optimized-competitors/workloads.csv)
 
 | Peer configuration | Key generation | Public-key extraction | Deterministic sign | Hedged sign | Verify |
 |---|---:|---:|---:|---:|---:|
-| Botan | 168/168 | 168/168 | 168/168 | 168/168 | 168/168 |
-| Conduition SIMD | 56/56 | 56/56 | 56/56 | 56/56 | 56/56 |
-| Conduition cached and threaded | 56/56 | 56/56 | 56/56 | 56/56 | 56/56 |
-| Conduition OpenCL GPU | 4/4 | 4/4 | 2/4 | 2/4 | 4/4 |
-| Fluhrer parallel-sphincsplus, one thread | 84/96 | 96/96 | 89/96 | 90/96 | 87/96 |
-| Fluhrer parallel-sphincsplus, two threads | 84/96 | 96/96 | 64/96 | 64/96 | 88/96 |
+| RustCrypto | 7.05× | 1.86× | 6.01× | 6.00× | 3.22× |
+| OpenSSL | 3.92× | 13.82× | 3.52× | 3.51× | 2.09× |
+| Botan | 3.26× | 16.01× | 3.12× | 3.12× | 2.23× |
+| Conduition SIMD | 5.12× | 8.96× | 4.96× | 4.96× | 4.79× |
+| Conduition cached and threaded | 5.13× | 8.96× | 3.55× | 3.57× | 4.83× |
+| Conduition OpenCL GPU | 8.83× | 3.07× | 1.15× | 1.12× | 6.57× |
+| Fluhrer parallel-sphincsplus, one thread | 1.58× | 10.84× | 1.46× | 1.46× | 1.54× |
+| Fluhrer parallel-sphincsplus, two threads | 1.59× | 11.04× | 1.19× | 1.19× | 1.55× |
+
+| Key conversion | Raw private import | Raw public import | PKCS#8 encode | PKCS#8 decode | SPKI encode | SPKI decode |
+|---|---:|---:|---:|---:|---:|---:|
+| RustCrypto | 2.01× | 1.86× | 17.59× | 26.28× | 11.73× | 27.33× |
+| OpenSSL | 639.13× | 744.87× | 1,192.33× | 575.18× | 1,034.67× | 654.30× |
 
 Fluhrer’s two-thread signer was faster on EPYC 9R45 in the aggregate deterministic-signing comparison (peer/library latency ratio 0.87×). The GPU comparison excludes OpenCL initialization and kernel compilation. The full reports give per-CPU speedup ratios, pinned peer revisions, validation and timing methods. [Per-platform results](bench/results/optimized-competitors/README.md) · [Peer build and reproduction](bench/optimized-peers/README.md)
 
 ### Earlier single-set comparisons
 
-The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable rust-pq, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
+The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable rust-pq, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. Relative to those peers in the same order, the original portable rust-pq signing speedups were 0.079×, 0.071×, 0.60×, 0.28× and 0.34×. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
 
 ### Parallel CPU signing (`parallel`)
 
 Enable the opt-in Cargo feature `parallel` on the core or compatibility crate to use spare CPU threads for a single signature. It includes `platform-sha2`. The caller computes FORS while scoped workers compute the independent XMSS authentication nodes. On AVX-512 CPUs, this build also batches eight SHAKE leaves and uses the vectorized Keccak round function for short inputs. Applications signing many independent messages can keep the single-threaded configuration to control concurrency.
 
-The five-platform rerun covers all 122 workloads where a peer previously had lower median latency. The new build won each comparison, including one-thread comparisons on the Xeon 6975P-C and Apple CPU signing against OpenCL. Lean proves that every joined worker schedule in the model yields the FIPS 205 signature bytes, the eight-leaf batch yields the specified XMSS node, and both x86 single-state dispatch branches yield Keccak-f. Source-bound symbolic checks cover the Rust signer and the compiled subtree at all three digest widths. [Proofs, assumptions and replay](lean-hw/Parallel/README.md) · [Measurements](bench/results/parallel/README.md)
+The five-platform rerun covers all 122 workloads where a peer previously had lower median latency. On that selected subset, the geometric mean speedup over the peer was **1.31×**, with individual workload medians from 1.06× to 2.87×. Lean proves that every joined worker schedule in the model yields the FIPS 205 signature bytes, the eight-leaf batch yields the specified XMSS node, and both x86 single-state dispatch branches yield Keccak-f. Source-bound symbolic checks cover the Rust signer and the compiled subtree at all three digest widths. [Proofs, assumptions and replay](lean-hw/Parallel/README.md) · [Measurements](bench/results/parallel/README.md)
 
 ### Multi-platform acceleration (`platform-sha2`)
 

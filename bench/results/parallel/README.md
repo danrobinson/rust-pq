@@ -1,14 +1,14 @@
 # Retest of the 122 previous SLH-DSA losses
 
-With the opt-in `parallel` feature, rust-pq finished ahead of the same peer in every measured round of all 122 comparisons it had previously lost. These comprised 41 deterministic signing, 40 hedged signing, 24 key generation and 17 verification comparisons. Each comparison fixes the CPU, peer configuration, parameter set, message size and operation. The smallest median lead was 1.056×. The two Graviton platforms had no previous losses and were outside this retest. [Original seven-platform results](../optimized-competitors/README.md) · [All 122 before, after and peer measurements](prior-losses.csv)
+With the opt-in `parallel` feature, rust-pq achieved a geometric mean speedup of **1.31×** over the peer on the 122 workloads selected for retesting. These comprised 41 deterministic signing, 40 hedged signing, 24 key generation and 17 verification comparisons. Each comparison fixes the CPU, peer configuration, parameter set, message size and operation. The smallest median lead was 1.056×. The two Graviton platforms had no previous losses and were outside this retest. [Original seven-platform results](../optimized-competitors/README.md) · [All 122 before, after and peer measurements](prior-losses.csv)
 
-| CPU | Previous losses reversed | Peer |
+| CPU | Geometric mean speedup over peer | Peer |
 |---|---:|---|
-| Apple M5 Ultra | 4 | Conduition OpenCL |
-| Xeon 8275CL | 6 | Fluhrer |
-| Xeon 8124M | 6 | Fluhrer |
-| Xeon 6975P-C | 67 | Fluhrer |
-| EPYC 9R45 | 39 | Fluhrer |
+| Apple M5 Ultra | 2.67× | Conduition OpenCL |
+| Xeon 8275CL | 1.36× | Fluhrer |
+| Xeon 8124M | 1.36× | Fluhrer |
+| Xeon 6975P-C | 1.22× | Fluhrer |
+| EPYC 9R45 | 1.35× | Fluhrer |
 
 ## Where the time went
 

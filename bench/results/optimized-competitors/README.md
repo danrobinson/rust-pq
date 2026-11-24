@@ -1,6 +1,6 @@
 # Optimized SLH-DSA peers on seven platforms
 
-Measured November 23, 2026. Across deterministic signing workloads, rust-pq had lower paired median latency in **168/168** comparisons with Botan, **56/56** with single-threaded Conduition and **89/96** with single-threaded Fluhrer. Each comparison uses one CPU, one supported parameter set and one message size.
+Measured November 23, 2026. Deterministic signing speedups over Botan, single-threaded Conduition and single-threaded Fluhrer were 3.12×, 4.96×, 1.46×, respectively, using the geometric mean of workload-level paired medians for each peer.
 
 ## Deterministic signing
 
