@@ -13,13 +13,13 @@ set_option exponentiation.threshold 2048
 set_option maxRecDepth 12000
 set_option maxHeartbeats 1500000
 
-private theorem salt_mean (f : Permutation → ℝ≥0∞) : uniformMean f =
+theorem salt_mean (f : Permutation → ℝ≥0∞) : uniformMean f =
     uniformMean (fun π : Permutation => uniformMean (fun H : Table => f (perm π H))) := by
   rw [Classic.mean_comm]
   have law (H : Table) : uniformMean (fun π => f (perm π H)) = uniformMean f := uniform_salted _ _ _ f
   simp only [law,Classic.avg_const]
 
-private theorem uniform_price (B : ℝ≥0∞) (v : Permutation → ℝ≥0∞) (lim : ∀ π, v π ≤ 1)
+theorem uniform_price (B : ℝ≥0∞) (v : Permutation → ℝ≥0∞) (lim : ∀ π, v π ≤ 1)
     (fit : ∀ π, ¬irregular π → ¬Pairs.exceptional π → v π ≤ B) :
     uniformMean v ≤ B + ((2:ℝ≥0∞)^699)⁻¹ + ((2:ℝ≥0∞)^1000)⁻¹ := by
   let u := fun π : Permutation => if irregular π then (1:ℝ≥0∞) else 0
