@@ -1059,3 +1059,7 @@ pub(crate) mod x86;
 #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
 #[allow(unsafe_code)]
 mod stream;
+
+#[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+#[allow(unsafe_code)]
+pub(crate) mod arm_wide;

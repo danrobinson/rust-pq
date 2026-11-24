@@ -19,6 +19,10 @@ pub fn xmss_node<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<
         if matches!(N, 16 | 24 | 32) && (2..=4).contains(&z) && crate::sha256::x86::avx512_available() {
             return wide::batch_root(sk_seed, i, z, seed, adrs);
         }
+        #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+        if matches!(N, 16 | 24 | 32) && (1..=4).contains(&z) && crate::sha256::arm_wide::available() {
+            return arm::batch_root(sk_seed, i, z, seed, adrs);
+        }
     }
     shake_only! {
         #[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
@@ -102,4 +106,6 @@ pub fn xmss_pk_from_sig<const N: usize>(
 sha2_only! {
     #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
     mod wide;
+    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    mod arm;
 }
