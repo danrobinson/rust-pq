@@ -87,7 +87,7 @@ theorem native_bound {A : QReg} (x : Prog A) (Q n t : ℕ) (hQ : QueryBounded x 
   · intro A U l k n t ih ht v hs
     exact query_bound p N hN uniform I a pick l k Q n t ih ht v hs
 
-private theorem initial_response {A : QReg} (h : Full) (x : Prog A) (ev : (Σ _ : QReg, α) → Prop) (u : Vec A) :
+theorem initial_response {A : QReg} (h : Full) (x : Prog A) (ev : (Σ _ : QReg, α) → Prop) (u : Vec A) :
     Purify.pv I (project a h) x ev (tensor (initialState u) (fun i => some (h i))) =
       (Fintype.card Full : ℝ)⁻¹ * Purify.pv I (project a h) x ev u := by
   rw [initial_tensor,pv_smul_real,total_weight]

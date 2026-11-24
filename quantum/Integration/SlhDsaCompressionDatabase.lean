@@ -64,7 +64,7 @@ theorem occupied_assemble_le (x : X) (r : Rest x Y) (u : Option Y) :
 def Sparse (t : ℕ) (ψ : Wave X Y V) : Prop :=
   ∀ x d, t < (occupied d).card → ψ x d = 0
 
-private theorem query_zero (O : Option Y → V ≃ₗᵢ[ℝ] V) :
+theorem query_zero (O : Option Y → V ≃ₗᵢ[ℝ] V) :
     query O (fun _ => 0) = fun _ => 0 := by
   funext u
   cases u <;> simp [query, swap, mean]
@@ -139,7 +139,7 @@ noncomputable def badMass (p : Y → T) (ψ : Wave X Y V) : ℝ := by
   classical
   exact ∑ x, ∑ d, if Collision p d then ‖ψ x d‖^2 else 0
 
-private lemma sum_fibres (x : X) (f : DB X Y → ℝ) :
+lemma sum_fibres (x : X) (f : DB X Y → ℝ) :
     ∑ d, f d = ∑ r : Rest x Y, ∑ u : Option Y, f (assemble x r u) := by
   classical
   let e := Equiv.funSplitAt x (Option Y)
@@ -233,7 +233,7 @@ private theorem query_add (O : Option Y → V ≃ₗᵢ[ℝ] V) (f g : Option Y 
   simp only [map_add]
   rw [swap_add]
 
-private theorem call_add (O : X → Option Y → V ≃ₗᵢ[ℝ] V) (f g : Wave X Y V) (x : X) (d : DB X Y) :
+theorem call_add (O : X → Option Y → V ≃ₗᵢ[ℝ] V) (f g : Wave X Y V) (x : X) (d : DB X Y) :
     call O (fun i z => f i z + g i z) x d = call O f x d + call O g x d := by
   unfold call
   rw [query_add]

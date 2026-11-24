@@ -29,6 +29,16 @@ private theorem emptyOnly_bad (p : Y → T) (u : V) :
     exact ite_eq_right (by rintro ⟨i,j,a,b,hd,hi,_⟩; cases hi)
   · simp [emptyOnly,h]
 
+private theorem emptyOnly_weight (P : DB X Y → Prop) (hP : ¬P (fun _ => none)) (u : V) :
+    sumWeight P (emptyOnly u) = 0 := by
+  classical
+  unfold sumWeight
+  refine Finset.sum_eq_zero fun d _ => ?_
+  by_cases h : d = fun _ => none
+  · subst d
+    exact ite_eq_right hP
+  · simp [emptyOnly,h]
+
 private theorem emptyOnly_sparse (u : V) (d : DB X Y) (hd : 0 < (occupied d).card) : emptyOnly u d = 0 := by
   classical
   refine ite_eq_right fun h => ?_
@@ -48,6 +58,9 @@ theorem initial_mass (u : Vec A) : ∑ d, ‖initialState u d‖ ^ 2 = ‖u‖^2
 
 theorem initial_bad {T : Type} (p : Chain512 → T) (u : Vec A) :
     sumWeight (Collision p) (initialState u) = 0 := emptyOnly_bad p u
+
+theorem initial_weight (P : Cells → Prop) (hP : ¬P (fun _ => none)) (u : Vec A) :
+    sumWeight P (initialState u) = 0 := emptyOnly_weight P hP u
 
 theorem initial_sparse (u : Vec A) : sparse 0 (initialState u) := emptyOnly_sparse u
 

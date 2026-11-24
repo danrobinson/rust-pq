@@ -20,7 +20,7 @@ private theorem bad_nn (v : State A) : 0 ≤ bad p v := by
   intro d _
   split <;> positivity
 
-private theorem total_nn (v : State A) : 0 ≤ total v := Finset.sum_nonneg fun _ _ => sq_nonneg _
+theorem total_nn (v : State A) : 0 ≤ total v := Finset.sum_nonneg fun _ _ => sq_nonneg _
 
 private theorem combine {J : Type} [Fintype J] (x y : J → ℝ) (K b m : ℝ)
     (hx : ∀ j, 0 ≤ x j) (hy : ∀ j, 0 ≤ y j) (hK : 0 ≤ K)
@@ -36,7 +36,7 @@ private theorem combine {J : Type} [Fintype J] (x y : J → ℝ) (K b m : ℝ)
     Real.sq_sqrt mpos,← Finset.mul_sum] at h
   exact h hb (mul_le_mul_of_nonneg_left hm (sq_nonneg K))
 
-private theorem combine_branches {B : Type} {C : B → Type} [∀ b, Fintype (C b)]
+theorem combine_branches {B : Type} {C : B → Type} [∀ b, Fintype (C b)]
     (s : Finset B) (x y : (b : B) → C b → ℝ) (K m n : ℝ)
     (hx : ∀ b c, 0 ≤ x b c) (hy : ∀ b c, 0 ≤ y b c) (hK : 0 ≤ K)
     (hm : ∑ b ∈ s, ∑ c, x b c ≤ m) (hn : ∑ b ∈ s, ∑ c, y b c ≤ n) :
@@ -52,7 +52,7 @@ private theorem combine_branches {B : Type} {C : B → Type} [∀ b, Fintype (C 
     (fun j => hx _ _) (fun j => hy _ _) hK ((eq x).le.trans hm) ((eq y).le.trans hn)
   exact (eq (fun b c => (Real.sqrt (x b c) + K * Real.sqrt (y b c))^2)).ge.trans h
 
-private theorem total_bound (o : L.Op A) (v : State A) (s : Finset (L.Outcome o)) :
+theorem total_bound (o : L.Op A) (v : State A) (s : Finset (L.Outcome o)) :
     (∑ b ∈ s, ∑ c, total (kraus I o b c v)) ≤ total v := by
   simpa only [total,sumWeight,ite_true] using kraus_weight I o v s (fun _ => True)
 

@@ -18,7 +18,7 @@ noncomputable def reindexCall (L : V ≃ₗᵢ[ℝ] Work X E) (R : V' ≃ₗᵢ[
     (O : X → Option Y → E ≃ₗᵢ[ℝ] E) (v : DB X Y → V) : DB X Y → V' :=
   joinAtWork R (call O (splitAtWork L v))
 
-private theorem split_norm (L : V ≃ₗᵢ[ℝ] Work X E) (v : DB X Y → V) (d : DB X Y) :
+theorem split_norm (L : V ≃ₗᵢ[ℝ] Work X E) (v : DB X Y → V) (d : DB X Y) :
     ∑ x, ‖splitAtWork L v x d‖^2 = ‖v d‖^2 := by
   exact (PiLp.norm_sq_eq_of_L2 _ (L (v d))).symm.trans (congrArg (fun z : ℝ => z^2) (L.norm_map (v d)))
 

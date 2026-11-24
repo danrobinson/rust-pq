@@ -51,7 +51,7 @@ def PairHit {T : Type} (p : Y → T) (a b : X) (d : DB X Y) : Prop :=
 noncomputable def readCell (a : X) (v : DB X Y → V) (d : DB X Y) :=
   swap (fun u => v (assemble a (fun j => d j.val) u)) (d a)
 
-private theorem split_sum {W : Type} [AddCommMonoid W] (a : X) (f : DB X Y → W) :
+theorem split_sum {W : Type} [AddCommMonoid W] (a : X) (f : DB X Y → W) :
     ∑ d, f d = ∑ r : Rest a Y, ∑ u : Option Y, f (assemble a r u) := by
   classical
   let e := Equiv.funSplitAt a (Option Y)
@@ -133,11 +133,11 @@ noncomputable def sumWeight {A : Type} [Fintype A] (P : A → Prop) (v : A → V
   classical
   exact ∑ d, if P d then ‖v d‖^2 else 0
 
-private theorem sw_nonneg {A : Type} [Fintype A] (P : A → Prop) (v : A → V) : 0 ≤ sumWeight P v := by
+theorem sw_nonneg {A : Type} [Fintype A] (P : A → Prop) (v : A → V) : 0 ≤ sumWeight P v := by
   classical
   exact Finset.sum_nonneg fun d _ => by split <;> first | exact sq_nonneg _ | exact le_rfl
 
-private theorem sw_triangle {A : Type} [Fintype A] (P : A → Prop) (f g : A → V) :
+theorem sw_triangle {A : Type} [Fintype A] (P : A → Prop) (f g : A → V) :
     Real.sqrt (sumWeight P (fun d => f d + g d)) ≤ Real.sqrt (sumWeight P f) + Real.sqrt (sumWeight P g) := by
   classical
   let w := fun d => if P d then (1:ℝ) else 0
@@ -157,7 +157,7 @@ theorem readCell_energy (a : X) (v : DB X Y → V) : ∑ d, ‖readCell a v d‖
   refine Finset.sum_congr rfl fun r _ => ?_
   simpa only [readCell_slice,Fintype.sum_option,energy] using swap_energy (fun w => v (assemble a r w))
 
-private theorem diff_energy (f : Option Y → V) :
+theorem diff_energy (f : Option Y → V) :
     ‖f none - mean f‖^2 ≤ 4 * energy f := by
   have h (g : Option Y → V) : ‖g none‖^2 ≤ energy g := le_add_of_nonneg_right (Finset.sum_nonneg fun _ _ => sq_nonneg _)
   have h₁ := h f
