@@ -73,14 +73,19 @@ private theorem local_port (g : CompressionTables) (r t : Rows S) (x : Input)
 already-computed chaining state and the 22 address bytes. -/
 noncomputable def terminalScheme (g : CompressionTables) := keyedScheme id (readRows S g)
 
-private theorem column_prf {R : Type} [Fintype R] [DecidableEq R] [SampleableType R] [Nonempty R]
-    (put : CompressionTables → (S.Node × AddressInput → R) → CompressionTables)
-    (read : CompressionTables → S.Node × AddressInput → R)
-    (swap : Function.Involutive (fun z : CompressionTables × (S.Node × AddressInput → R) => (put z.1 z.2,read z.1)))
+theorem node_card_real : (Fintype.card S.Node : ℝ) = 2^(8*S.vp.params.n) := by
+  rw [card_bytes', Nat.cast_pow, Nat.cast_ofNat, pow_mul]; norm_num
+
+theorem column_prf {K : Type} [Fintype K] [DecidableEq K] [SampleableType K] [Nonempty K]
+    {X : Type} [Fintype X] [DecidableEq X] [Nonempty X]
+    (loc : Input → Option (K × X)) {R : Type} [Fintype R] [DecidableEq R] [SampleableType R] [Nonempty R]
+    (put : CompressionTables → (K × X → R) → CompressionTables)
+    (read : CompressionTables → K × X → R)
+    (swap : Function.Involutive (fun z : CompressionTables × (K × X → R) => (put z.1 z.2,read z.1)))
     (he : ∀ g r, read (put g r) = r)
-    (locality : ∀ g r t x, (∀ p, portLocation S x = some p → r p = t p) → oracle (put g r) x = oracle (put g t) x)
+    (locality : ∀ g r t x, (∀ p, loc x = some p → r p = t p) → oracle (put g r) x = oracle (put g t) x)
     {D : Type} [DecidableEq D]
-    (address : CompressionTables → D → AddressInput)
+    (address : CompressionTables → D → X)
     (inj : ∀ g, Function.Injective (address g))
     (outside : ∀ g r, address (put g r) = address g)
     {E : Type} [Fintype E] [DecidableEq E]
@@ -89,19 +94,16 @@ private theorem column_prf {R : Type} [Fintype R] [DecidableEq R] [SampleableTyp
     (∑ g : CompressionTables, unifW _ g * qPrfRealPr (keyedScheme (address g) (read g)) (A (oracle g))
       (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) ≤
     (∑ g : CompressionTables, unifW _ g * qPrfIdealPr (A (oracle g))
-      (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) + ENNReal.ofReal (8*(q:ℝ)^2 / 2^(8*S.vp.params.n)) := by
+      (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) + ENNReal.ofReal (8*(q:ℝ)^2 / Fintype.card K) := by
   let M := ρ.matrix ⊗ₖ (SubState.basis ()).matrix
-  have hr (g : CompressionTables) := prf_answer_real_le_ideal_add (K := S.Node) (Dm := AddressInput)
-    (address g) (inj g) A q hA (fun r => oracle (put g r)) (portLocation S) (locality g) ρ
-  have card : (Fintype.card S.Node : ℝ) = 2^(8*S.vp.params.n) := by
-    rw [card_bytes', Nat.cast_pow, Nat.cast_ofNat, pow_mul]; norm_num
-  rw [← card]
+  have hr (g : CompressionTables) := prf_answer_real_le_ideal_add (K := K) (Dm := X)
+    (address g) (inj g) A q hA (fun r => oracle (put g r)) loc (locality g) ρ
   rw [SetOracle.avg_resample (put) (read) swap
     (fun g => qPrfRealPr (keyedScheme (address g) (read g)) (A (oracle g)) M)]
   rw [SetOracle.avg_resample (put) (read) swap
     (fun g => qPrfIdealPr (A (oracle g)) M)]
   simp only [he, outside]
-  calc _ ≤ ∑ g : CompressionTables, unifW _ g * (_ + ENNReal.ofReal (8*(q:ℝ)^2 / Fintype.card S.Node)) :=
+  calc _ ≤ ∑ g : CompressionTables, unifW _ g * (_ + ENNReal.ofReal (8*(q:ℝ)^2 / Fintype.card K)) :=
           Finset.sum_le_sum fun g _ => mul_le_mul' le_rfl (hr g)
        _ = _ := by
          simp only [mul_add, Finset.sum_add_distrib, ← Finset.sum_mul, sum_unifW, one_mul]
@@ -117,7 +119,8 @@ private theorem terminal_prf_at {D : Type} [DecidableEq D]
       (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) ≤
     (∑ g : CompressionTables, unifW _ g * qPrfIdealPr (A (oracle g))
       (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) + ENNReal.ofReal (8*(q:ℝ)^2 / 2^(8*S.vp.params.n)) := by
-  apply column_prf S (withRows S) (readRows S) (swap_rows S) _ (local_port S) address inj outside A q hA.toPUE.prfAnswerCost ρ
+  rw [← node_card_real S]
+  apply column_prf (portLocation S) (withRows S) (readRows S) (swap_rows S) _ (local_port S) address inj outside A q hA.toPUE.prfAnswerCost ρ
   intro g r
   funext p
   change (readLocation S (location S p)).elim _ r = _
@@ -220,7 +223,8 @@ theorem address_prf_answer (pk : S.Node) {E : Type} [Fintype E] [DecidableEq E]
     funext k a
     exact (fixed_seed_eval S g pk k a).symm
   simp_rw [eq]
-  apply column_prf S (withOutputs S) (outputs S) (swap_outputs S) _ _ address _ _ A q hA ρ
+  rw [← node_card_real S]
+  apply column_prf (portLocation S) (withOutputs S) (outputs S) (swap_outputs S) _ _ address _ _ A q hA ρ
   · intro g r; funext p
     exact (congrArg (MIdeal.SkPrf.output S) (read_set S g r p)).trans (read_prefix S _ _)
   · intro g r t x h

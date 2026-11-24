@@ -62,6 +62,22 @@ a singleton tweakable-hash call agree on the corresponding inputs. An independen
 four-component oracle does not preserve this identity. Any transfer must account for
 which inputs the reduction exposes or analyze the compression games directly.
 
+The [shared-compression forgery bounds](Integration/SlhDsaCompressionCompose.lean)
+now substitute the address-PRF and both FORS estimates directly into the averaged
+byte-level SUF and EUF theorems for all six sets. For the four wider sets they
+also substitute the three WOTS estimates and arity-one TCR. Five terms remain in
+`wideRemaining`: the averaged message-PRF gap, ITSR, and class TCR at arities
+two, WOTS length, and FORS tree count. All seven discharged terms use budgets
+from the byte forger. The narrower sets also retain the three WOTS games and
+arity-one TCR.
+
+The [SHA-512 HMAC key-block hop](Integration/SlhDsaCompressionHmacHop.lean)
+replaces the two keyed starting states together in the actual message-PRF
+experiment. The loss is at most `8q²/2^(8n)` with the external compression port
+available throughout. The weighted budget charges each message evaluation for
+its remaining inner blocks and its outer compression. The ideal side of this
+hop continues HMAC from two independent chaining states.
+
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
 > same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
