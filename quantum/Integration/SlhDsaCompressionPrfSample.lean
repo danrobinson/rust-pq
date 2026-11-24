@@ -10,7 +10,7 @@ variable {W D R α K σ : Type} [Fintype W]
 def drawThen (seeds : ProbComp K) (next : K → QOC W (PRFScheme.PRFOracleSpec D R) α) :=
   liftQ (liftM seeds : OracleComp (PRFScheme.PRFOracleSpec D R) K) >>= next
 
-private theorem close_draw (impl : QueryImpl (PRFScheme.PRFOracleSpec D R) (StateT σ ProbComp))
+theorem close_draw (impl : QueryImpl (PRFScheme.PRFOracleSpec D R) (StateT σ ProbComp))
     (h : ForwardsUnif impl) (seeds : ProbComp K)
     (next : K → QOC W (PRFScheme.PRFOracleSpec D R) α) (s : σ) :
     close impl (drawThen seeds next) s = liftU seeds >>= fun k => close impl (next k) s := by
