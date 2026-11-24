@@ -51,7 +51,7 @@ if [ "${SKIP_DEFAULT_BUILD:-0}" != "1" ]; then
 else
   echo "(default target skipped: SKIP_DEFAULT_BUILD=1)"
 fi
-PROOF_MODULES=$(grep -Eh '^import (PQ|VCVio)\.' Integration/*.lean | awk '{print $2}' | sort -u | tr '\n' ' ')
+PROOF_MODULES=$(grep -Eh '^import (PQ|VCVio|HashSig)\.' Integration/*.lean | awk '{print $2}' | sort -u | tr '\n' ' ')
 if [ -n "$PROOF_MODULES" ]; then
   # shellcheck disable=SC2086
   lake build $PROOF_MODULES 2>&1 | tail -1
