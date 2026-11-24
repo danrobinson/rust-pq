@@ -302,3 +302,6 @@ name = "Metal"
 
 [[lean_lib]]
 name = "Shakeopt"
+
+[[lean_lib]]
+name = "Armwide"
