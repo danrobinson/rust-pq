@@ -45,7 +45,7 @@ private theorem local_branch (e : Equiv.Perm (Register X Y Z)) (i : Fin 1)
   rw [conj_basisMatrix_equiv]
   rfl
 
-private theorem port_branch (H : X → Y) (i : Fin 1) (M : Matrix (WS X Y Z) (WS X Y Z) ℂ) :
+theorem port_branch (H : X → Y) (i : Fin 1) (M : Matrix (WS X Y Z) (WS X Y Z) ℂ) :
     (portInstr H).branch i M = transport ((Circuit.port (Z := Z)).run H) M := by
   change ((oracleRt H).queryStep () (QReg.of Z) (idSplit X Y Z)).branch () _ = _
   rw [QuantumRuntime.queryStep_branch_apply]
