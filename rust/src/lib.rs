@@ -68,11 +68,15 @@ macro_rules! shake_only {
 pub mod adapter;
 pub mod address;
 pub mod api;
+#[cfg(all(feature = "parallel", not(target_os = "none")))]
+pub mod batch_api;
 pub mod encoding;
 pub mod fors;
 pub mod hash;
 pub mod ht;
 pub mod params;
+#[cfg(all(feature = "parallel", not(target_os = "none")))]
+pub(crate) mod pool;
 pub mod sets;
 pub mod sha256;
 pub mod sha512;

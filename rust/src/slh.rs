@@ -29,6 +29,10 @@ pub fn slh_keygen_internal<const N: usize>(
 ) {
     let adrs = Adrs::new().with_layer(p.d - 1);
     let seed = seed_ctx::<N>(pk_seed);
+    #[cfg(all(feature = "parallel", not(target_os = "none")))]
+    let pk_root = parallel::keygen::<N>(p, sk_seed, &seed, adrs)
+        .unwrap_or_else(|| xmss_node::<N>(sk_seed, 0, p.hp, &seed, adrs));
+    #[cfg(not(all(feature = "parallel", not(target_os = "none"))))]
     let pk_root = xmss_node::<N>(sk_seed, 0, p.hp, &seed, adrs);
     sk[0..N].copy_from_slice(sk_seed);
     sk[N..2 * N].copy_from_slice(sk_prf);
