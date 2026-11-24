@@ -11,7 +11,7 @@ comparisons with RustCrypto.
 All twelve sets have source-level leakage proofs. Lean also proves that the measured Apple arm64 public keygen, signing and verification drivers return the same keys, signature bytes and verdict as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
 [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
-**Accelerated-path coverage on this branch.** The new persistent-worker, ARM and Metal implementations have partial proof coverage. The coverage table identifies the checked Rust paths, model assumptions and outstanding implementation proofs. [Accelerated-path proof coverage](lean-hw/Parallel/Multicore.md)
+**Accelerated-path coverage on this branch.** The new persistent-worker, ARM and Metal implementations have partial proof coverage. The coverage table identifies the checked Rust paths, model assumptions and outstanding implementation proofs. [Accelerated-path proof coverage](lean-hw/Parallel/Multicore.md) · [Performance of the verification fixes on M5 Ultra](bench/results/pr1-verification/README.md)
 
 ## Use the 0.2.0 source release
 
@@ -162,6 +162,8 @@ Enable the opt-in Cargo feature `parallel` on the core or compatibility crate to
 The five-platform benchmark of the scoped-worker implementation covers all 122 workloads where a peer previously had lower median latency. On that selected subset, the geometric mean speedup over the peer was **1.31×**, with individual workload medians from 1.06× to 2.87×. Lean proves that every joined worker schedule in the model yields the FIPS 205 signature bytes, the eight-leaf batch yields the specified XMSS node, and both x86 single-state dispatch branches yield Keccak-f. Source-bound symbolic checks cover the Rust signer and the compiled subtree at all three digest widths. [Proofs, assumptions and replay](lean-hw/Parallel/README.md) · [Measurements](bench/results/parallel/README.md)
 
 ### Multi-platform acceleration (`platform-sha2`)
+
+The extraction results in this section describe the implementations covered by the 0.2.0 release proofs. For replacements introduced on this PR, the component table records which source bindings have been replayed and which remain open. [PR proof coverage](lean-hw/Parallel/Multicore.md)
 
 Enable `platform-sha2` on either the core crate or the compatibility crate.
 On x86-64 with SSE2 it dispatches to 16-way AVX-512 SHA-256 chains, SHA-NI pairs,

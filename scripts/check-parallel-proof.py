@@ -149,12 +149,71 @@ def check_entry_calls():
         }""",
     )
     for file in ("slh.rs", "slh/message.rs"):
-        single(file, "sign_digest!(N, p, sk_seed, pk_seed, r, digest)", 2 if file == "slh.rs" else 1)
+        single(
+            file,
+            "sign_digest!(N, p, sk_seed, pk_seed, r, digest)",
+            2 if file == "slh.rs" else 1,
+        )
+
+
+def check_pool():
+    # Events used by ParallelPool.join. This source guard covers the
+    # ownership/publication protocol; Rust's atomic and CV semantics are trusted.
+    source = (build.SRC / "pool.rs").read_text()
+
+    def ordered(body, markers):
+        text = re.sub(r"//[^\n]*|\s+", "", body)
+        start = 0
+        for marker in markers:
+            marker = re.sub(r"\s+", "", marker)
+            if marker not in text[start:]:
+                raise ValueError(f"review worker pool event {marker}")
+            start = text.index(marker, start) + len(marker)
+
+    ordered(
+        source[source.index("pub(crate) fn execute") :],
+        [
+            "let n_workers = (max_threads - 1).min(spawned);",
+            ".compare_exchange(false,true,Ordering::Acquire,Ordering::Relaxed).is_err()",
+            "*pool.job.get()=Some(Job{",
+            "pool.remaining.store(n_workers*2,Ordering::Relaxed);",
+            "let _guard=PoolGuard{pool};",
+            "for slot in &pool.workers[..n_workers]",
+            "slot.state.swap(WORK_PENDING,Ordering::AcqRel)",
+            "f();",
+        ],
+    )
+    ordered(
+        source[source.index("fn worker_loop") : source.index("static PARALLELISM")],
+        [
+            "slot.state.load(Ordering::Acquire)",
+            "let job=unsafe{(*pool.job.get()).expect(",
+            "std::panic::catch_unwind(",
+            "run_worker_job(job.call,job.data);",
+            "if result.is_err(){pool.remaining.fetch_or(1,Ordering::Relaxed);}",
+            "slot.state.store(IDLE_SPIN,Ordering::Release);",
+            "pool.remaining.fetch_sub(2,Ordering::SeqCst)<4",
+        ],
+    )
+    ordered(
+        source[
+            source.index("impl Drop for PoolGuard") : source.index("fn run_worker_job")
+        ],
+        [
+            "let failed=loop{let state=self.pool.remaining.load(Ordering::Acquire);if state<2{break state==1;}",
+            "*self.pool.job.get()=None;",
+            "self.pool.busy.store(false,Ordering::Release);",
+            "if failed && !thread::panicking(){panic!(",
+        ],
+    )
 
 
 def main():
     check_entry_calls()
+    check_pool()
     modules = {
+        "Parallel.Pool": "ParallelPool.join",
+        "Parallel.FusedWots": "ParallelFusedWots.selected",
         "Parallel.Fused": "ParallelFused.context_sign_fips",
         "Parallel.SplitTree": "ParallelSplitTree.keygenRoot",
         "Parallel.Batch": "ParallelBatch.verify_all",
@@ -164,6 +223,8 @@ def main():
     run(["lake", "build", *modules], LEAN)
     for module, theorem in modules.items():
         facade["audit_theorems"](module, [theorem])
+    facade["audit_theorems"]("Parallel.Pool", ["ParallelPool.packed_join"])
+    facade["audit_theorems"]("Parallel.Fused", ["ParallelFused.phase_one_ready"])
     with tempfile.TemporaryDirectory() as tmp:
         check_dispatch(Path(tmp))
         signer.main()

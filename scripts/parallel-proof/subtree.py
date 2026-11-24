@@ -141,9 +141,8 @@ class Copy(angr.SimProcedure):
         return dst
 
 
-def check(image, n, height):
+def project_for(image):
     project = angr.Project(str(image), auto_load_libs=False)
-    addr = lambda name: project.loader.find_symbol(name).rebased_addr
     for name in ("memset", "memcpy", "memmove"):
         if project.loader.find_symbol(name) is not None:
             project.hook_symbol(
@@ -151,6 +150,12 @@ def check(image, n, height):
                 (angr.SIM_PROCEDURES["libc"][name]() if name == "memset" else Copy()),
                 replace=True,
             )
+    return project
+
+
+def check(image, n, height):
+    project = project_for(image)
+    addr = lambda name: project.loader.find_symbol(name).rebased_addr
     out, sk, pk, stop = 0x710000, 0x720000, 0x730000, 0x750000
     secret, seed = (bv.BVS(k, n * 8) for k in ("secret", "seed"))
     # Every index for which all leaf indices fit u32.
@@ -176,6 +181,13 @@ def check(image, n, height):
     st.memory.store(pk, seed)
     st.memory.store(0x740000, bv.BVS("address_tail", 128))
 
+    stream = inputs(n, height, secret, seed, idx, layer, tree)
+    execute(project, st, out, stop, iter(stream), 8, f"{n} bytes, height {height}")
+
+
+def execute(project, st, out, stop, stream, width, label):
+    addr = lambda name: project.loader.find_symbol(name).rebased_addr
+
     def fixed_address(state, kind):
         addr_expr = getattr(state.inspect, kind + "_address")
         if getattr(addr_expr, "symbolic", False):
@@ -186,8 +198,9 @@ def check(image, n, height):
             event, when=angr.BP_BEFORE, action=lambda s, k=event: fixed_address(s, k)
         )
 
-    stream = iter(inputs(n, height, secret, seed, idx, layer, tree))
-    permitted = {addr("proof_permute"), addr("proof_parent"), stop}
+    permitted = {addr("proof_permute"), stop}
+    if project.loader.find_symbol("proof_parent") is not None:
+        permitted.add(addr("proof_parent"))
     count = 0
 
     def concrete(v):
@@ -198,7 +211,7 @@ def check(image, n, height):
     def same(x, y):
         if x is not y and st.solver.satisfiable(extra_constraints=[x != y]):
             raise ValueError(
-                f"SHAKE-{n * 8} mismatch at call {count}: {str(x)[:900]} vs {str(y)[:900]}"
+                f"{label} mismatch at call {count}: {str(x)[:900]} vs {str(y)[:900]}"
             )
 
     while True:
@@ -207,21 +220,22 @@ def check(image, n, height):
             if st.addr == stop:
                 if kind != "return" or next(stream, None) is not None:
                     raise ValueError("early return")
-                same(st.memory.load(out, n), result)
+                same(st.memory.load(out, result.size() // 8), result)
                 print(
-                    f"{n} bytes, height {height}: checked {count} calls and root",
+                    f"{label}: checked {count} calls and output",
                     flush=True,
                 )
                 return
             if st.addr == addr("proof_permute"):
                 if kind not in ("permute", "active"):
                     raise ValueError("unexpected permutation")
-                active, args = args if kind == "active" else (8, args)
+                active, args = args if kind == "active" else (width, args)
                 same(st.regs.rsi, bv.BVV(active, 64))
                 ptr = concrete(st.regs.rdi)
                 for j, row in enumerate(args):
-                    same(st.memory.load(ptr + 64 * j, active * 8), row)
-                    st.memory.store(ptr + 64 * j, result[j])
+                    same(st.memory.load(ptr + 8 * width * j, active * 8), row)
+                for j, returned in enumerate(result):
+                    st.memory.store(ptr + 8 * width * j, returned)
             else:
                 if kind != "parent":
                     raise ValueError("unexpected parent")

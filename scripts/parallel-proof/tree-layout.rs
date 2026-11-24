@@ -89,7 +89,39 @@ fn pair_active<const N: usize>(
 
 // PRODUCTION_TREE
 
+// The checked common WOTS loop supplies the first eight leaves and each
+// signature digit. Execute the remaining signature writes verbatim.
+struct Geometry {
+    hp: u32,
+}
+fn auth<const N: usize>(
+    p: &Geometry,
+    idx: u32,
+    seed: &[u8; N],
+    sk: &[u8; N],
+    addr: Adrs,
+) -> Vec<u8> {
+    let sig_lane = (idx & 7) as usize;
+    let base_leaf = idx & !7;
+    let len = 2 * N + 3;
+    let mut sig = vec![0xa5; (len + p.hp as usize) * N];
+    let nodes: [[u8; N]; 8] = wots_leaves_small(sk, seed, base_leaf, addr);
+    // PRODUCTION_AUTH
+}
+
 fn check<const N: usize>() {
+    if WIDTH == 8 {
+        for hp in [3, 4, 8, 9] {
+            for idx in 0..(1 << hp) {
+                let bytes = auth(&Geometry { hp }, idx, &[2; N], &[1; N], BASE);
+                let mut expected = vec![0xa5; (2 * N + 3) * N];
+                for h in 0..hp {
+                    expected.extend(encode::<N>(h, (idx >> h) ^ 1));
+                }
+                assert_eq!(bytes, expected);
+            }
+        }
+    }
     for height in 1..=9 {
         for index in 0..1 << (9 - height) {
             assert_eq!(

@@ -43,8 +43,36 @@ fn check_grid(count: usize, stride: usize) -> Result<(), MetalError> {
 }
 
 #[cfg(test)]
-mod grid_tests {
+mod tests {
     use super::*;
+
+    #[test]
+    fn metal_compiler_agrees_with_rust_on_all_shared_record_layouts() {
+        use std::fmt::Write;
+        use std::mem::{align_of, offset_of, size_of};
+        let mut source = SHADER_SRC.to_owned();
+        macro_rules! layout {
+            ($name:ident, $($field:ident),+) => {{
+                let name = stringify!($name);
+                writeln!(source, "static_assert(sizeof({name}) == {}, \"{name} size\");", size_of::<$name>()).unwrap();
+                writeln!(source, "static_assert(alignof({name}) == {}, \"{name} alignment\");", align_of::<$name>()).unwrap();
+                $(
+                    let field = stringify!($field);
+                    writeln!(source, "static_assert(__builtin_offsetof({name}, {field}) == {}, \"{name}.{field}\");",
+                        offset_of!($name, $field)).unwrap();
+                )+
+            }};
+        }
+        layout!(KeyMaterial, sk_seed, state256, state512);
+        layout!(ShakeKeyMaterial, sk_seed, pk_seed);
+        layout!(XmssTreeDesc, tree, key_idx, layer, target_leaf, auth_byte_off);
+        layout!(ForsJobDesc, idx_tree, key_idx, idx_leaf, sig_byte_off, _pad, indices);
+        layout!(WotsSignLayerDesc, tree, key_idx, layer, keypair, sig_idx, wots_byte_off, _pad);
+        layout!(XmssParams, num_trees, hp, leaves_per_tree, wots_len);
+        layout!(ForsParams, num_sigs, k, a, s1, s2, subtrees_per_tree);
+        layout!(WotsSignParams, num_layers, d, wots_len);
+        MetalContext::new(&source).unwrap();
+    }
 
     #[test]
     fn grid_limits_include_the_last_representable_batch() {

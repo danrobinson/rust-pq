@@ -343,7 +343,7 @@ fn main() {
         summaries.push(bench_set::<32>(&gpu, "SHAKE-256f", &SHA2_256F, true));
     }
 
-    println!("\n=== Summary (Apple M4 Metal GPU vs Single-Thread CPU `platform-sha2`) ===");
+    println!("\n=== Summary ({} vs Single-Thread CPU `platform-sha2`) ===", gpu.device_name());
     println!(
         "{:<10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>8}",
         "Param Set", "CPU Kg", "GPU Kg(1)", "GPU Kg/64", "CPU Sign", "GPU Sg(1)", "GPU Sg/64", "B64 Spd"

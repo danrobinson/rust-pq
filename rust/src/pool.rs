@@ -45,7 +45,9 @@ struct Job {
 unsafe impl Send for Job {}
 unsafe impl Sync for Job {}
 
-#[repr(align(64))]
+// Apple ARM cores use 128-byte cache lines for independently polled slots.
+#[cfg_attr(all(target_arch = "aarch64", target_vendor = "apple"), repr(align(128)))]
+#[cfg_attr(not(all(target_arch = "aarch64", target_vendor = "apple")), repr(align(64)))]
 struct WorkerSlot {
     state: AtomicU32,
 }
@@ -64,8 +66,9 @@ struct Pool {
     workers: Vec<Arc<WorkerSlot>>,
     park_lock: Mutex<()>,
     park_cv: Condvar,
+    // Twice the outstanding worker count, plus one if any worker panicked.
+    // A single acquire reads both the join condition and the outcome.
     remaining: AtomicUsize,
-    worker_panicked: AtomicBool,
     caller_parked: AtomicBool,
     done_lock: Mutex<()>,
     done_cv: Condvar,
@@ -84,7 +87,11 @@ struct PoolGuard<'a> {
 impl Drop for PoolGuard<'_> {
     fn drop(&mut self) {
         let mut spins = 0u32;
-        while self.pool.remaining.load(Ordering::Acquire) != 0 {
+        let failed = loop {
+            let state = self.pool.remaining.load(Ordering::Acquire);
+            if state < 2 {
+                break state == 1;
+            }
             if spins < JOIN_SPIN_ITERS {
                 core::hint::spin_loop();
                 spins += 1;
@@ -92,13 +99,13 @@ impl Drop for PoolGuard<'_> {
                 // Publish `caller_parked` before re-checking `remaining` (SeqCst
                 // pairs with worker's SeqCst fetch_sub + caller_parked load).
                 self.pool.caller_parked.store(true, Ordering::SeqCst);
-                if self.pool.remaining.load(Ordering::SeqCst) != 0 {
+                if self.pool.remaining.load(Ordering::SeqCst) >= 2 {
                     let mut g = self
                         .pool
                         .done_lock
                         .lock()
                         .unwrap_or_else(|e| e.into_inner());
-                    while self.pool.remaining.load(Ordering::Acquire) != 0 {
+                    while self.pool.remaining.load(Ordering::Acquire) >= 2 {
                         g = self
                             .pool
                             .done_cv
@@ -107,20 +114,13 @@ impl Drop for PoolGuard<'_> {
                     }
                 }
                 self.pool.caller_parked.store(false, Ordering::Relaxed);
-                break;
             }
-        }
-        // SAFETY: `remaining == 0` with Acquire synchronization guarantees every
+        };
+        // SAFETY: a zero outstanding worker count with Acquire synchronization guarantees every
         // dispatched worker has already finished reading `pool.job` and stored
         // `IDLE_SPIN`.
         unsafe {
             *self.pool.job.get() = None;
-        }
-        // The acquire on remaining observes every worker's completion. Consume
-        // the failure before making the pool available for another dispatch.
-        let failed = self.pool.worker_panicked.load(Ordering::Relaxed);
-        if failed {
-            self.pool.worker_panicked.store(false, Ordering::Relaxed);
         }
         self.pool.busy.store(false, Ordering::Release);
         if failed && !thread::panicking() {
@@ -184,15 +184,15 @@ fn worker_loop(pool: &'static Pool, slot: Arc<WorkerSlot>) {
             run_worker_job(job.call, job.data);
         }));
         if result.is_err() {
-            pool.worker_panicked.store(true, Ordering::Relaxed);
+            pool.remaining.fetch_or(1, Ordering::Relaxed);
         }
         if job.scrub {
             scrub_worker_stack();
         }
         // Transition back to IDLE_SPIN BEFORE decrementing `remaining` so that
-        // once `remaining` hits 0, all slots are ready for the next dispatch.
+        // once the outstanding count hits 0, all slots are ready for the next dispatch.
         slot.state.store(IDLE_SPIN, Ordering::Release);
-        if pool.remaining.fetch_sub(1, Ordering::SeqCst) == 1
+        if pool.remaining.fetch_sub(2, Ordering::SeqCst) < 4
             && pool.caller_parked.load(Ordering::SeqCst)
         {
             let _g = pool.done_lock.lock().unwrap_or_else(|e| e.into_inner());
@@ -228,7 +228,6 @@ fn global_pool() -> &'static Pool {
             park_lock: Mutex::new(()),
             park_cv: Condvar::new(),
             remaining: AtomicUsize::new(0),
-            worker_panicked: AtomicBool::new(false),
             caller_parked: AtomicBool::new(false),
             done_lock: Mutex::new(()),
             done_cv: Condvar::new(),
@@ -301,7 +300,8 @@ pub(crate) fn execute<F: Fn() + Sync>(max_threads: usize, scrub: bool, f: &F) {
             scrub,
         });
     }
-    pool.remaining.store(n_workers, Ordering::Relaxed);
+    // n_workers is bounded by the length of a Vec<Arc<WorkerSlot>>, so doubling fits.
+    pool.remaining.store(n_workers * 2, Ordering::Relaxed);
     pool.caller_parked.store(false, Ordering::Relaxed);
 
     let _guard = PoolGuard { pool };
