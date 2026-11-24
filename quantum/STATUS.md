@@ -11,9 +11,11 @@ assume capped messages and a tweakable-hash input cap at least the maximum of tw
 the WOTS length, and the FORS tree count. The signer handles classical queries.
 
 For SHA2-192s, 192f, 256s and 256f the [shared ideal-compression SUF and EUF theorems](Integration/SlhDsaCompressionWideClosed.lean)
-also give explicit bounds with no residual hash-game advantages. Their ITSR estimate
-keeps one FORS coordinate. Lean proves that the total bound is at least one at
-`2^40` public queries. These four sets still need a tighter estimate for benchmark security.
+also give explicit bounds with no residual hash-game advantages. The [arity-two collision term alone is at least one](Integration/SlhDsaCompressionWideFloor.lean)
+for every message limit and every query budget, even zero. Its query count includes the complete
+honest tree construction in a cubic quantum collision estimate. Independently, keeping one FORS
+coordinate in ITSR yields a term of at least one at `2^40` public queries. Both estimates need
+improvement for a nontrivial guarantee at that benchmark.
 The two SHA2-128 parameter sets still need closed shared-compression signature bounds.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
