@@ -4,13 +4,14 @@ namespace Reduction.ForsLifetime
 open MLink ENNReal Num
 set_option maxRecDepth 8192
 
-/-- A common denominator for the two amplitude terms in the adaptive ITSR
-bound. The signing budget is at most the full lifetime and at most 2^(2*l).
-The numerator keeps the actual query count, including reduction overhead. -/
-theorem digest_numerator (S : Sha2Set) (q s l : ℕ)
-    (lifetime : s ≤ 2^64) (signings : s ≤ 2^(2*l)) :
-    itsrBound S.vp.params q s ≤
-      (((2*(2*q+1) + 2*q*2^l)^2 : ℕ) : ℝ≥0∞) / 2^(8*S.vp.params.n) := by
+/-- Arithmetic for a hybrid which pays Q queries for digest search and q
+for randomizer programming. Coverage is the probability for independent
+uniform target digests. The two query counts coincide in the unsplit proof. -/
+theorem search_programming_numerator (S : Sha2Set) (Q q s l : ℕ) (p : ℝ≥0∞)
+    (covered : p ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹) (signings : s ≤ 2^(2*l)) :
+    (((2*(Q:ℝ≥0∞)+1)^2*p)^(2⁻¹:ℝ) +
+      2*q*((s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹)^(2⁻¹:ℝ))^2 ≤
+      (((2*(2*Q+1)+2*q*2^l)^2 : ℕ):ℝ≥0∞) / 2^(8*S.vp.params.n) := by
   let m := 4*S.vp.params.n
   let D : ℝ≥0∞ := (2:ℝ≥0∞)^m
   have width : m*2 = 8*S.vp.params.n := by dsimp [m]; omega
@@ -24,11 +25,11 @@ theorem digest_numerator (S : Sha2Set) (q s l : ℕ)
   have target : (s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹ ≤ ((2:ℝ≥0∞)^l/D)^2 := by
     apply (mul_le_mul' hs le_rfl).trans_eq
     simp only [D,div_eq_mul_inv,mul_pow,inv_two_pow_pow,← pow_mul,width,Nat.mul_comm 2 l]
-  apply (adaptive_digest_loss S q s lifetime).trans
-  calc _ ≤ ((2*(q:ℝ≥0∞)+1)*(2/D) + 2*q*((2:ℝ≥0∞)^l/D))^2 := by
+
+  calc _ ≤ ((2*(Q:ℝ≥0∞)+1)*(2/D) + 2*q*((2:ℝ≥0∞)^l/D))^2 := by
           apply pow_le_pow_left₀ zero_le _ 2
           apply add_le_add
-          · apply (ENNReal.rpow_le_rpow (mul_le_mul' le_rfl cover) (by norm_num : 0 ≤ (2⁻¹:ℝ))).trans_eq
+          · apply (ENNReal.rpow_le_rpow (mul_le_mul' le_rfl (covered.trans cover)) (by norm_num : 0 ≤ (2⁻¹:ℝ))).trans_eq
             rw [← mul_pow,sq_rpow_half]
           · exact mul_le_mul' le_rfl ((ENNReal.rpow_le_rpow target (by norm_num : 0 ≤ (2⁻¹:ℝ))).trans_eq (sq_rpow_half _))
        _ = _ := by
@@ -36,6 +37,16 @@ theorem digest_numerator (S : Sha2Set) (q s l : ℕ)
           rw [← width,pow_mul]
           simp only [D,div_eq_mul_inv,ENNReal.inv_pow]
           ring
+
+/-- A common denominator for the two amplitude terms in the adaptive ITSR
+bound. The signing budget is at most the full lifetime and at most 2^(2*l).
+The numerator keeps the actual query count, including reduction overhead. -/
+theorem digest_numerator (S : Sha2Set) (q s l : ℕ)
+    (lifetime : s ≤ 2^64) (signings : s ≤ 2^(2*l)) :
+    itsrBound S.vp.params q s ≤
+      (((2*(2*q+1) + 2*q*2^l)^2 : ℕ) : ℝ≥0∞) / 2^(8*S.vp.params.n) :=
+  (adaptive_digest_loss S q s lifetime).trans (search_programming_numerator S q q s l _ le_rfl signings)
+
 theorem fraction_certificate (n d bits : ℕ) (cert : n*d ≤ 2^bits) :
     (n:ℝ≥0∞) / 2^bits ≤ (d:ℝ≥0∞)⁻¹ := by
   by_cases zero : d = 0
