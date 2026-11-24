@@ -38,7 +38,7 @@ theorem rate_finite (S : Sha2Set) (q : ℕ) : rateBound S q ≠ ⊤ := by
   exact ENNReal.add_ne_top.mpr ⟨ENNReal.div_ne_top (ENNReal.natCast_ne_top _) h,
     ENNReal.div_ne_top (ENNReal.natCast_ne_top _) (pow_ne_zero _ (by norm_num))⟩
 
-private theorem growth_of_label {X Y : Type} [Fintype X] [Fintype Y] [Nonempty Y] [DecidableEq X] [DecidableEq Y]
+theorem growth_of_label {X Y : Type} [Fintype X] [Fintype Y] [Nonempty Y] [DecidableEq X] [DecidableEq Y]
     (tag : Database X Y → Bool) (q t : ℕ) (ht : t ≤ q) (δ : ℝ≥0∞) (fin : δ ≠ ⊤)
     (mono : ∀ D x, D x = none → ∀ v, tag D = false → tag (Function.update D x (some v)) = false)
     (step : ∀ D : Database X Y, D.size ≤ q+1 → ∀ x, D x = none → tag D = true →

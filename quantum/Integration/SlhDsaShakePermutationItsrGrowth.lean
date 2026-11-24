@@ -16,7 +16,7 @@ def rateBound (S : Sha2Set) (t : ℕ) : ℝ≥0∞ :=
   ((extensionBudget t + t : ℕ) : ℝ≥0∞) / Fintype.card Capacity +
     (t:ℝ≥0∞)/2^(S.vp.params.h+S.vp.params.a*S.vp.params.k)
 
-private theorem conditional {α : Type} [Fintype α] (p q : α → Prop) [DecidablePred p] [DecidablePred q]
+theorem conditional {α : Type} [Fintype α] (p q : α → Prop) [DecidablePred p] [DecidablePred q]
     (impl : ∀ x, p x → q x) : uniformMean (fun x => Classic.hit (p x)) ≤ uniformMean (fun x => Classic.hit (q x)) :=
   Classic.mean_mono fun x => by
     by_cases h : p x

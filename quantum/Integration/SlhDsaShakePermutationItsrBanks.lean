@@ -57,7 +57,7 @@ theorem slice_same {I V : Type} [DecidableEq I] (idx : I → Addr) (inj : Functi
   · subst j; simp [slice]
   · simp only [slice,Function.update_of_ne e,Function.update_of_ne (inj.ne e)]
 
-private theorem slice_extends {I V : Type} (idx : I → Addr) (rd : Words → V) (D : Bank) (x : Addr) (v : Words)
+theorem slice_extends {I V : Type} (idx : I → Addr) (rd : Words → V) (D : Bank) (x : Addr) (v : Words)
     (empty : D x = none) : Graph.Extends (slice idx rd D) (slice idx rd (Function.update D x (some v))) := by
   intro i a ha
   have ne : idx i ≠ x := by rintro e; simp [slice,e,empty] at ha

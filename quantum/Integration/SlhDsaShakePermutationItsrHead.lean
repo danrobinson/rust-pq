@@ -59,7 +59,7 @@ theorem good_head {S : Sha2Set} {π : Permutation} {L : ℕ} {k k' : Db} {h : He
       exact False.elim (miss ((at_x b).symm ▸ mem_targets g.1 (back hz a)))
     · exact g.2 z w d (back hz a) (back hw b)
 
-private theorem prefix_mean {n m : ℕ} (hb : n ≤ m) (f : Bytes n → ℝ≥0∞) :
+theorem prefix_mean {n m : ℕ} (hb : n ≤ m) (f : Bytes n → ℝ≥0∞) :
     uniformMean (fun v : Bytes m => f (ShakeXof.head hb v)) = uniformMean f := by
   have swap : Function.Involutive (fun z : Bytes m × Bytes n =>
       (ShakeXof.replaceHead z.1 z.2,ShakeXof.head hb z.1)) := by
