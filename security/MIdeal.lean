@@ -25,3 +25,4 @@ import MIdeal.SingletonHash
 import MIdeal.SingletonTcr
 import MIdeal.PureCompression
 import MIdeal.Class128f
+import MIdeal.Class128fFixed
