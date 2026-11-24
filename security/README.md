@@ -5,6 +5,8 @@ v4.36.0), attached to the verified Rust crate `../rust` (portable build; `../sec
 same files against the `hw-sha2` build). One Lake project; every library is a default target, so
 `lake build` builds all of it (about 4 minutes from scratch on a 36-core machine, dependencies prebuilt).
 
+This workspace supplies the classical security and Rust correspondence proofs. The project’s conditional post-quantum unforgeability theorem also requires the quantum reduction in the sibling workspace. Its twelve assumptions concern the fixed hash functions at the resources used by the constructed quantum adversaries. [Project security claim](../README.md#security) · [Quantum theorem](../quantum/Integration/SlhDsaFixedPrimitiveWitness.lean)
+
 - `MLink`: the parameterised FIPS 205 transcription (`../lean/Spec`) equals VCVio's executable scheme at
   `approvedPrimitives` for each set (keygen, sign, verify; internal and pure; byte level; SHA-256/SHA-512,
   HMAC, MGF1), plus the random-oracle bound and conformance.

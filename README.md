@@ -4,7 +4,11 @@ A Rust implementation of all twelve pure **SLH-DSA** parameter sets in FIPS 205
 (the standardised SPHINCS+). Lean 4 proofs connect the Rust SHA-2 and SHAKE256
 implementations to signing, verification, key generation
 and key parsing through this library’s RustCrypto-compatible API. All twelve sets pass NIST ACVP vectors and byte-for-byte
-comparisons with RustCrypto. All twelve sets also have source-level leakage proofs and classical unforgeability bounds under named hash assumptions. Lean also proves that the measured Apple arm64 public keygen, signing and verification drivers return the same keys, signature bytes and verdict as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
+comparisons with RustCrypto.
+
+**Post-quantum security.** For all twelve pure parameter sets, if the specified hash-function properties hold against the quantum adversaries constructed by the reduction, the modeled byte API is unforgeable against quantum attackers making adaptive classical signing requests. This is the forgery criterion used in FIPS 205. The standard’s concrete security categories also depend on the work needed to break the underlying primitives. [Security theorem and assumptions](#security)
+
+All twelve sets have source-level leakage proofs. Lean also proves that the measured Apple arm64 public keygen, signing and verification drivers return the same keys, signature bytes and verdict as the public Rust session for all twelve sets, under local cryptographic and runtime contracts. Linked Linux AArch64 and x86-64 proofs cover selected primitives. [End-to-end proof and remaining contracts](reports/Linked%20signer%20verification.md) · [Proof scope and artifact checks](reports/SHAKE%20and%20linked%20binary%20verification.md)
 [SHAKE256 proof](lean/Slhdsa/Proofs/Shake256.lean) · [Public API proofs](lean/Facade.lean)
 
 Until 2026-11-22 the repository's main tree covered SLH-DSA-SHA2-128s only, and the six-set tree
@@ -307,8 +311,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 
 ## What is not proven
 
-- **That SHA-2 has the properties the security proof needs.** Unforgeability is reduced to named
-  hash properties, which remain assumptions; see [Security](#security).
+- **Concrete hash hardness.** For fixed SHA-2 and SHAKE, primitive-game advantage at the relevant computational cost is an assumption of the signature guarantee. [Security](#security)
 - **The specification is the standard.** `lean/Spec` is a hand transcription of FIPS 205; it is
   checked against NIST's vectors, not proven against the PDF.
 - **The toolchain.** The proof is about Aeneas's translation of the Rust MIR. Charon, Aeneas and
@@ -380,16 +383,15 @@ opam; see the Aeneas README), and, for `security/`, VCVio at `.tools/VCVio-upstr
 
 ## Security
 
-Machine-checked security theorems, with standard axioms only, in one Lean workspace
-([security/](security)); [security-hw](security-hw) compiles the same files against the
-translation of the crate built with `hw-sha2`, so every statement here also holds for that build,
-given its instruction model. They go through one link: the Rust functions compute the same bytes
-as the executable SLH-DSA-SHA2 scheme of the [VCVio](https://github.com/Verified-zkEVM/VCVio)
-library at that set (`MLink`: `lean/Spec` equals VCVio's definitions, including SHA-256, SHA-512,
-HMAC and MGF1, for each of the six sets). All names below are per set,
-`ME2E.sha2_<set>.…`; [security/STATUS.md](security/STATUS.md) has the statements verbatim.
+The main claim concerns **existential unforgeability under adaptive chosen-message attack (EUF-CMA)**. A quantum attacker sees an honestly generated public key, asks for classical signatures of its choice, and wins by producing a valid signature on a fresh message. For all twelve pure SHA-2 and SHAKE parameter sets, Lean also proves strong unforgeability, which counts a fresh valid message/signature pair. The game uses the modeled pure byte API, including its context handling. [Quantum forgery experiments](quantum/PQ/Interactive/EUFCMA.lean) · [Pure byte scheme](security/Reduction/Bytes.lean)
 
-### Standard model: reduction to named hash properties
+For a given forger, let ε bound the advantage of each of the twelve primitive adversaries constructed from it. Lean proves that the forger’s success probability is at most 27ε. The games cover keyed pseudorandomness, the message digest that selects FORS targets, and multi-target properties of the addressed hashes used in FORS, WOTS+ and tree authentication. Applying a hardness estimate requires it to cover the work of the constructed machines, including simulating signatures. This reduction uses the fixed hash functions. The ideal-oracle results below give additional numerical bounds under their own assumptions. [Fixed-function theorem](quantum/Integration/SlhDsaFixedPrimitiveWitness.lean) · [Proof scope and FIPS comparison](reports/Post-quantum%20security%20claim.md)
+
+FIPS 205 uses EUF-CMA for its category claims at up to 2⁶⁴ signed messages per key. Categories 1, 3 and 5 also compare attack cost with block-cipher key search. Establishing that comparison for the fixed functions remains open. [FIPS 205, §11](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf)
+
+### Classical SHA-2 reduction and Rust correspondence
+
+The portable and hardware Lean workspaces check the SHA-2 correspondence against VCVio’s executable definitions, including SHA-256, SHA-512, HMAC and MGF1. The hardware results assume the instruction model. [Security workspace](security/) · [Hardware workspace](security-hw/) · [Per-set theorem statements](security/STATUS.md)
 
 `rust_security` and `rust_pure_security`: the Rust key generation, signing and verification (the
 internal functions, resp. the ones with context strings) never panic and are pointwise the

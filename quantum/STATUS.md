@@ -1,6 +1,8 @@
 # SLH-DSA quantum security proofs
 
-[Security claim, FIPS category assessment, and checked comparison with the SPHINCS+ submission](../reports/Post-quantum%20security%20claim.md)
+For all twelve pure SLH-DSA parameter sets, Lean reduces quantum chosen-message forgery of the modeled byte API to twelve primitive games on fixed SHA-2 or SHAKE. If every constructed primitive adversary has advantage at most ε, ordinary and strong forgery probabilities are at most 27ε. The hardness estimate must cover each reduction’s resource use. The experiment allows adaptive classical signing requests. [Quantum reduction](Integration/SlhDsaAllGeneral.lean) · [Concrete implication](Integration/SlhDsaFixedPrimitiveWitness.lean)
+
+The benchmarks below quantify security when the specified hash components, XOF, compression functions or permutation are idealized. They provide evidence about generic attacks. The conditional statement above requires the quantum-valid reduction and its primitive premises. [FIPS assessment and proof dependencies](../reports/Post-quantum%20security%20claim.md)
 
 ## SHAKE benchmark
 

@@ -1,5 +1,5 @@
 import Integration.SlhDsaAllGeneral
-import Integration.SlhDsaSetEuf
+import Integration.QuantumForgeryFreshness
 import MReduction.Instances
 import MReduction.Shake
 
@@ -83,6 +83,16 @@ theorem sha2_half_witness (S : Sha2Set)
     ∃ a ∈ reducedAdvantages (qPureBytesToInternal Q), 1/54 ≤ a :=
   half_witness (MReduction.structural S) (by cases S <;> decide) Q success
 
+/-- Conditional unforgeability for the pure byte scheme with fixed primitives.
+The common advantage bound applies to the twelve machines built from this forger. -/
+theorem fixed_hash_conditional_unforgeability (structural : Structural vp prims) (w : vp.params.w = 16)
+    (Q : QForger W (pureBytesAlg vp prims codec rand seeds)) (ε : ℝ≥0∞)
+    (hard : ∀ a ∈ reducedAdvantages (qPureBytesToInternal Q), a ≤ ε) :
+    qStrongUnforgeableAdvantage Q ≤ 27*ε ∧ qUnforgeableAdvantage Q ≤ 27*ε := by
+  obtain ⟨a, mem, strong, ordinary⟩ := fixed_primitive_witness structural w Q
+  have bound := mul_le_mul' (le_refl (27 : ℝ≥0∞)) (hard a mem)
+  exact ⟨strong.trans bound, ordinary.trans bound⟩
+
 /-- Concrete bit-security transfer for w=16. The hypothesis bounds the
 advantages of the twelve primitive adversaries constructed from this forger.
 A hardness estimate for a resource class can discharge it when that class
@@ -128,3 +138,4 @@ end Reduction
 #print axioms Reduction.fixed_hash_security_bits
 #print axioms Reduction.shake_security_of_hash_security
 #print axioms Reduction.sha2_security_of_hash_security
+#print axioms Reduction.fixed_hash_conditional_unforgeability
