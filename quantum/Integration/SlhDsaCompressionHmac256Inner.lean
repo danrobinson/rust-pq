@@ -8,7 +8,7 @@ open HmacKey (mean mean_sum mean_comm mean_bound bool_mean)
 variable {E : Type} [Fintype E] [DecidableEq E]
 local notation "Work" => WS Input Output E
 
-/-- Reduce the real wide-set message PRF to a private random function evaluated on
+/-- Reduce the real 128-bit message PRF to a private random function evaluated on
 the inner digest. Repeated digests receive the same answer. Both shared compression
 tables remain public throughout the two game hops. -/
 theorem hmac_to_inner
