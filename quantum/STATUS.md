@@ -94,7 +94,7 @@ The [combined wide-set SUF and EUF theorems](Integration/SlhDsaCompressionSearch
 leave two kinds of probability to bound: ITSR for the signature reduction and
 a public SHA-512 search game. The latter accepts a pair of distinct inputs with
 equal digest prefixes or a preimage of an independently sampled starting state.
-Its four applications have separate explicit budgets. For HMAC, the
+The [preimage theorem](Integration/SlhDsaCompressionPreimage.lean) bounds success against the revealed state by `(2q+1)²/2^512`, including superposition access to both tables. The [search reduction](Integration/SlhDsaCompressionSearchSplit.lean) adds this loss to the success bound for a machine that reports a prefix collision. Its four applications have separate explicit budgets. For HMAC, the
 [monitored message machine](Integration/SlhDsaCompressionHmacMonitor.lean) costs
 at most three times the signature message-PRF budget including witness extraction.
 
