@@ -27,4 +27,9 @@ import MIdeal.PureCompression
 import MIdeal.Class128f
 import MIdeal.Class128fFixed
 import MIdeal.Class128fBound
+import MIdeal.Wots128fPhase
+import MIdeal.Wots128fFirst
+import MIdeal.Wots128fFixed
+import MIdeal.Wots128fExperiments
+import MIdeal.Wots128fCounts
 import MIdeal.Wots128fBound
