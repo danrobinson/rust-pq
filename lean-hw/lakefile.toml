@@ -299,3 +299,6 @@ name = "Cacheops"
 
 [[lean_lib]]
 name = "Metal"
+
+[[lean_lib]]
+name = "Shakeopt"
