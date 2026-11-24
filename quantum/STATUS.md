@@ -2,13 +2,21 @@
 
 ## SHAKE benchmark
 
-For SHAKE-128s, 128f, 192s, 192f, 256s and 256f, the probability of either strong or existential forgery is at most `2^-36` with `2^40` coherent public queries, one classical signing query and 65,536 encoded message bytes. The public port and all signing primitives use the same ideal byte XOF. [Signature theorem](Integration/SlhDsaShakeXofSignature.lean)
+With `2^40` coherent public queries, one classical signing query and 65,536 encoded message bytes, Lean checks the following upper bounds for both strong and existential forgery. Each row covers both tree shapes.
+
+| SHAKE sets | Shared ideal byte XOF | Ideal endpoint of the permutation simulator |
+|---|---:|---:|
+| 128s, 128f | `2^-37` | `2^-9` |
+| 192s, 192f | `2^-101` | `2^-73` |
+| 256s, 256f | `2^-165` | `2^-137` |
+
+The simulator column charges up to 30,944 raw XOF calls per public permutation query and a further `2^40` calls for the signature reductions. The real permutation forgery probability still needs a separate comparison theorem. [Shared-XOF signature theorem](Integration/SlhDsaShakeSetPrecision.lean) · [Ideal endpoint](Integration/SlhDsaShakePermutationIdealEndpoint.lean)
 
 For the secret-key PRF in all six sets, a distinguisher with adaptive classical PRF calls and at most `2^41` coherent queries to the shared ideal permutation in either direction has real acceptance probability at most ideal acceptance probability plus `2^-42`. [Native PRF theorem and query-cost premise](Integration/SlhDsaShakePermutationSkSecurity.lean)
 
 For the shared ideal Keccak permutation, the forward and inverse public query circuits and the honest signature query budget have been checked. The numerical forgery bound remains open. In the current simulation, a recorded hash value can occupy a different capacity in each quantum branch. Moving the value to its common input path before or after local mask compression gives an output amplitude difference above `1/2`, even on a good database with one recorded value in each bank. The witness concerns the internal simulator operations. Relating the two observable signature experiments still requires a different argument. [Public port](Integration/SlhDsaShakePermutationPortMatrix.lean) · [Honest query budget](Integration/SlhDsaShakePermutationHonestBudget.lean) · [Checked witness](Integration/SlhDsaShakePermutationRelabelCorrelation.lean)
 
-The ideal simulator's signature game is bounded by `2^-7` after accounting for the extra table lookups. The real game uses the same capped byte inputs and the full two-way public permutation. A separate estimate bounds the mean squared state distance by `2^-430` when one uniformly hidden capacity is programmed during `2^40` coherent queries. Applying this estimate requires proving that the location is hidden from the incoming state. [Simulator signature bound](Integration/SlhDsaShakePermutationIdealEndpoint.lean) · [Real signature game](Integration/SlhDsaShakePermutationHonestGame.lean) · [Hidden-capacity estimate](Integration/SlhDsaShakePermutationHiddenQueries.lean)
+The real game uses the same capped byte inputs and the full two-way public permutation. A separate estimate bounds the mean squared state distance by `2^-430` when one uniformly hidden capacity is programmed during `2^40` coherent queries. Applying this estimate requires proving that the location is hidden from the incoming state. [Simulator signature bound](Integration/SlhDsaShakePermutationIdealEndpoint.lean) · [Real signature game](Integration/SlhDsaShakePermutationHonestGame.lean) · [Hidden-capacity estimate](Integration/SlhDsaShakePermutationHiddenQueries.lean)
 
 ## Six-set extensions (2026-11-23)
 

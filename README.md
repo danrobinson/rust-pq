@@ -481,14 +481,15 @@ For the four wider sets the [classical pure-byte SUF-CMA and EUF-CMA bounds](qua
 ### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
 
 For all six pure SHAKE parameter sets, Lean bounds both strong and existential
-forgery probability by `2^-36` with at most `2^40` coherent public queries,
+forgery probability by `2^-37` for the 128 sets, `2^-101` for the 192 sets and
+`2^-165` for the 256 sets with at most `2^40` coherent public queries,
 one classical signing query and 65,536 encoded message bytes. The signing
 algorithms and adversary share one ideal XOF on raw byte strings. The theorem
 allows any finite input cap large enough for the benchmark. The public port
 returns the full message-digest width for that set, and the signer takes shorter
 prefixes where required. A concrete numerical bound for the ideal Keccak
 permutation with coherent forward and inverse access remains open.
-[Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeXofSignature.lean)
+[Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeSetPrecision.lean)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
 pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA

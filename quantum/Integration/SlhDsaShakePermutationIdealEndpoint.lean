@@ -39,20 +39,20 @@ noncomputable def experiment (f : Fix.Table T) :=
 /-- All six SHAKE parameter sets, one capped signing request and 2^40
 two-way permutation calls on the expanded public-player circuit in the
 ideal simulator. The bound is uniform in the private permutation and mask. -/
-theorem ideal_endpoint (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
+theorem ideal_endpoint_precise (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
     (hl : Completion.blockCap N ≤ 483)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40))
     (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
-    SetOracle.uniformMean (fun f => qStrongUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^7)⁻¹ ∧
-    SetOracle.uniformMean (fun f => qUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+    SetOracle.uniformMean (fun f => qStrongUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ ∧
+    SetOracle.uniformMean (fun f => qUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ := by
   let game := experiment S cap π h F r seeds
   let player := forger π T h F
   have cost := bounds π T h F c _ _ hq hs hc
   have partialBound (g : Completion.Private T) :
-      SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (game (Completion.complete S cap g H))) ≤ ((2:ℝ≥0∞)^7)⁻¹ ∧
-      SetOracle.uniformMean (fun H => qUnforgeableAdvantage (game (Completion.complete S cap g H))) ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
-    have b := corrected_signature S N (Completion.blockCap N) (Completion.access S cap g) player r seeds c msg fit hl
+      SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (game (Completion.complete S cap g H))) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ ∧
+      SetOracle.uniformMean (fun H => qUnforgeableAdvantage (game (Completion.complete S cap g H))) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ := by
+    have b := corrected_signature_precise S N (Completion.blockCap N) (Completion.access S cap g) player r seeds c msg fit hl
       (fun pk => (cost pk).1) (fun pk => (cost pk).2.1) (fun pk => (cost pk).2.2)
     let sf := fun (HH : ShakeApi.RawTable S N) (f : List Rate → Rate) => qStrongUnforgeableAdvantage (playerGame (T := T) S π h F r seeds HH f)
     let ef := fun (HH : ShakeApi.RawTable S N) (f : List Rate → Rate) => qUnforgeableAdvantage (playerGame (T := T) S π h F r seeds HH f)
@@ -68,6 +68,19 @@ theorem ideal_endpoint (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.param
     exact ShakeXof.mean_le_const fun g => (partialBound g).1
   · rw [Completion.uniform_complete S cap (fits_rate S)]
     exact ShakeXof.mean_le_const fun g => (partialBound g).2
+
+theorem ideal_endpoint (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
+    (hl : Completion.blockCap N ≤ 483)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^40))
+    (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    SetOracle.uniformMean (fun f => qStrongUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^7)⁻¹ ∧
+    SetOracle.uniformMean (fun f => qUnforgeableAdvantage (experiment S cap π h F r seeds f)) ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+  have e := ideal_endpoint_precise S cap π h F r seeds c msg fit hl hq hs hc
+  have le : ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+    apply ENNReal.inv_le_inv.mpr
+    exact pow_le_pow_right₀ (by norm_num) (by cases S <;> decide)
+  exact ⟨e.1.trans le,e.2.trans le⟩
 
 end Reduction.ShakePermutation.IdealDriver
 #print axioms Reduction.ShakePermutation.IdealDriver.ideal_endpoint

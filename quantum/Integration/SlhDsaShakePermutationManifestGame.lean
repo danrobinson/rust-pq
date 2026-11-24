@@ -41,7 +41,7 @@ private theorem badMass {A : Type} [Fintype A] (p : A → Prop) [DecidablePred p
   simp only [ite_eq_left (yes _),ite_eq_right (no _),mul_zero,mul_one,Finset.sum_const_zero,zero_add,
     unifW,Finset.sum_const,Finset.card_univ,nsmul_eq_mul,div_eq_mul_inv]
 
-private theorem fraction (bad total n : ℕ) (ht : 0 < total) (h : 2^512 * bad ≤ n^2 * total) :
+theorem fraction (bad total n : ℕ) (ht : 0 < total) (h : 2^512 * bad ≤ n^2 * total) :
     (bad : ℝ≥0∞)/total ≤ (n : ℝ≥0∞)^2/2^512 := by
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp only [ENNReal.toReal_div,ENNReal.toReal_natCast,ENNReal.toReal_pow,ENNReal.toReal_ofNat]

@@ -1,4 +1,5 @@
 import Integration.SlhDsaShakePermutationFixSignature
+import Integration.SlhDsaShakeSetPrecision
 
 namespace Reduction.ShakePermutation.Fix.Machine
 open MLink SLHDSA SLHDSA.Security Quantum PQ.Interactive OracleComp OracleSpec ENNReal Classical
@@ -26,18 +27,18 @@ variable (F : Forger U T) (r : S.Node → S.Node → ProbComp S.Node) (seeds : P
 /-- Security of a simulator with a private completion, arbitrary intermediate
 quantum instruments, and up to eight corrected-table reads per benchmark
 permutation call. The signing oracle is the byte-level SHAKE API. -/
-theorem corrected_signature (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
+theorem corrected_signature_precise (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
     (hl : L ≤ 483) (hq : ∀ pk, CountBound (fun i => mark true (fun _ => false) i = true) (F.main pk) (8*2^40))
     (hs : ∀ pk, CountBound (fun i => mark false signingCost i = true) (F.main pk) 1)
     (hc : ∀ pk, AllQueries (allowed (signedCap c)) (capOut c) (F.main pk)) :
     let action := fun H => idealForger A L F H (ShakeApi.scheme S r seeds (ShakeApi.extend H))
-    SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^7)⁻¹ ∧
-    SetOracle.uniformMean (fun H => qUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+    SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ ∧
+    SetOracle.uniformMean (fun H => qUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ := by
   intro action
   let base : ShakeApi.Input N := BList.ofList [] (by simp)
   let G := rawForger A L base F
-  have number : (8*L+4)*(8*2^40) ≤ 2^55 := by omega
-  have ports (pk) : CountBound isPort (G.main pk) (2^55) := by
+  have number : (8*L+4)*(8*2^40) ≤ (8*483+4)*(8*2^40) := by omega
+  have ports (pk) : CountBound isPort (G.main pk) ((8*483+4)*(8*2^40)) := by
     apply count_mono _ _ number
     apply count_transfer (fun i => mark true (fun _ => false) i = true) _ ?_
     · exact raw_count A L base true _ _ _ (hq pk)
@@ -54,7 +55,8 @@ theorem corrected_signature (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.
       rcases i with _ | _ | _ | _ <;> rfl
     rw [eq]
     exact raw_cap A L base _ _ _ (hc pk)
-  have b := ShakeXof.signature_simulation S N r seeds G c msg fit ports signs cap
+  obtain ⟨bs,be⟩ := ShakeXof.signature_queries (Q := ShakeXof.expandedQueries) S N r seeds G (by decide) c msg fit ports signs cap
+  have b := And.intro (bs.trans (ShakeXof.precision S).2) (be.trans (ShakeXof.precision S).2)
   have strong (H : ShakeApi.RawTable S N) :
       qStrongUnforgeableAdvantage (action H) = qStrongUnforgeableAdvantage (ShakeApi.rawForger S N r seeds G H) := by
     unfold qStrongUnforgeableAdvantage qStrongUnforgeableExperiment
@@ -66,6 +68,19 @@ theorem corrected_signature (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.
     symm
     apply signature_weight
   simpa only [strong,regular] using b
+
+theorem corrected_signature (c : Caps) (msg : c.ml = 65536) (fit : 65536+3*S.vp.params.n ≤ N)
+    (hl : L ≤ 483) (hq : ∀ pk, CountBound (fun i => mark true (fun _ => false) i = true) (F.main pk) (8*2^40))
+    (hs : ∀ pk, CountBound (fun i => mark false signingCost i = true) (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (allowed (signedCap c)) (capOut c) (F.main pk)) :
+    let action := fun H => idealForger A L F H (ShakeApi.scheme S r seeds (ShakeApi.extend H))
+    SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^7)⁻¹ ∧
+    SetOracle.uniformMean (fun H => qUnforgeableAdvantage (action H)) ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+  have e := corrected_signature_precise S N L A F r seeds c msg fit hl hq hs hc
+  have le : ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ ≤ ((2:ℝ≥0∞)^7)⁻¹ := by
+    apply ENNReal.inv_le_inv.mpr
+    exact pow_le_pow_right₀ (by norm_num) (by cases S <;> decide)
+  exact ⟨e.1.trans le,e.2.trans le⟩
 
 end Reduction.ShakePermutation.Fix.Machine
 #print axioms Reduction.ShakePermutation.Fix.Machine.corrected_signature

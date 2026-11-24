@@ -83,17 +83,22 @@ private theorem right_card {I : Type} [Fintype I] :
     Nat.card (I ↪ Words) = ((2^512)*(2^1088)).descFactorial (Fintype.card I) := by
   rw [Nat.card_eq_fintype_card,Fintype.card_embedding_eq,word_card]
 
+theorem count_to_risk {I : Type} [Fintype I] (ok : Permutation → Prop)
+    (hn : Nat.card I ≤ 2^512) (hm : Nat.card (Caps I × (I → Rate)) * Nat.card Permutation ≤
+      Nat.card (I ↪ Words) * Nat.card {π : Permutation // ok π}) :
+    2^512 * Nat.card {π : Permutation // ¬ ok π} ≤ (Nat.card I)^2 * Nat.card Permutation := by
+  classical
+  rw [left_card,right_card] at hm
+  simp only [Nat.card_eq_fintype_card,Fintype.card_subtype_compl] at hm hn ⊢
+  exact counting _ _ _ _ _ (Nat.pow_pos (by decide : 0 < 2)) (Nat.pow_pos (by decide : 0 < 2)) hn hm
+
 /-- Probability of any zero or repeated prefix capacity is at most n²/2^512.
 The entire tree, including the values of all input blocks, is fixed before
 the uniform permutation is drawn. -/
 theorem missing_count {I : Type} [Fintype I] (t : Tree I) (hn : Nat.card I ≤ 2^512) :
     2^512 * Nat.card {π : Permutation // ¬ good t π} ≤
-      (Nat.card I)^2 * Nat.card Permutation := by
-  classical
-  have hm := good_count t
-  rw [left_card,right_card] at hm
-  simp only [Nat.card_eq_fintype_card,Fintype.card_subtype_compl] at hm hn ⊢
-  exact counting _ _ _ _ _ (Nat.pow_pos (by decide : 0 < 2)) (Nat.pow_pos (by decide : 0 < 2)) hn hm
+      (Nat.card I)^2 * Nat.card Permutation :=
+  count_to_risk (good t) hn (good_count t)
 
 end Reduction.ShakePermutation.Manifest
 #print axioms Reduction.ShakePermutation.Manifest.missing_count
