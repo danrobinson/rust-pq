@@ -503,11 +503,12 @@ supplies that budget from the byte-level forger's compression-query count, signi
 and encoded-message limit. The [WOTS+ reduction](quantum/Integration/SlhDsaCompressionWotsReduction.lean)
 also supplies explicit budgets for preimage resistance, chain target collisions, and
 undetectability on SHA2-192s, 192f, 256s, and 256f. For these four sets, Lean now proves
-[closed SUF-CMA and EUF-CMA bounds](quantum/Integration/SlhDsaCompressionWideClosed.lean)
-in the shared ideal-compression model. The [bound is at least one at every query budget](quantum/Integration/SlhDsaCompressionWideFloor.lean),
-even with zero adversary queries. The arity-two collision term charges the honest tree construction
-as quantum queries. Independently, the message-hash estimate keeps one FORS index and already
-reaches one at `2^40` public queries. A nontrivial shared-model guarantee remains open for these sets.
+[closed SUF-CMA and EUF-CMA bounds](quantum/Integration/SlhDsaCompressionWideMixed.lean)
+in the shared ideal-compression model. The proof charges honest construction classically and
+allows coherent access to the same tables afterward. The [class collision estimate](quantum/Integration/SlhDsaCompressionMixedBudget.lean)
+is at most 1/256 per nonsingleton arity at a 1 KiB message limit, `2^40` public queries and
+`2^20` signing queries. The message-hash estimate still reaches one at `2^40` public queries,
+so the overall theorem gives no quantitative forgery guarantee at that benchmark.
 
 `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
 ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):

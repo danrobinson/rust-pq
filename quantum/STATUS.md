@@ -10,20 +10,15 @@ forgery for all six pure byte schemes, including the reduction's own queries.
 assume capped messages and a tweakable-hash input cap at least the maximum of two,
 the WOTS length, and the FORS tree count. The signer handles classical queries.
 
-For SHA2-192s, 192f, 256s and 256f the [shared ideal-compression SUF and EUF theorems](Integration/SlhDsaCompressionWideClosed.lean)
-also give explicit bounds with no residual hash-game advantages. The [arity-two collision term alone is at least one](Integration/SlhDsaCompressionWideFloor.lean)
-for every message limit and every query budget, even zero. Its query count includes the complete
-honest tree construction in a cubic quantum collision estimate. Independently, keeping one FORS
-coordinate in ITSR yields a term of at least one at `2^40` public queries. Both estimates need
-improvement for a nontrivial guarantee at that benchmark.
-For the four wide sets, Lean now verifies that the [honest construction alone](Integration/SlhDsaCompressionClassicalWalk.lean)
-has a classical birthday bound of at most 1/256 for a repeated SHA-512 digest prefix or an IV-prefix hit.
-The [mixed classical/quantum collision theorem](Integration/SlhDsaCompressionMixedCollision.lean)
-now allows an adaptive classical reader to make `c` reads, then pass its output to a quantum
-machine making `q` queries to both compression tables. For an `n`-byte SHA-512 prefix the
-numerator is `c² + c(2q+1)² + 16(q+1)³`, over `2^(8n)`. The three terms cover collisions
-within the classical phase, matches with a recorded prefix, and collisions between fresh cells.
-Applying this theorem to the signature forger still requires identifying its two phases in the reduction.
+For SHA2-192s, 192f, 256s and 256f, the [shared ideal-compression SUF and EUF theorems](Integration/SlhDsaCompressionWideMixed.lean)
+give explicit forgery bounds. The earlier [fully quantum estimate](Integration/SlhDsaCompressionWideFloor.lean)
+exceeded or equaled one even at zero adversary queries because it charged the entire honest construction as quantum work.
+The [two-phase signature reduction](Integration/SlhDsaCompressionClassTwoPhase.lean) charges this work classically.
+With `c` classical reads followed by `q` quantum queries, the [prefix collision term](Integration/SlhDsaCompressionMixedCollision.lean)
+is `(c² + c(2q+1)² + 16(q+1)³) / 2^(8n)` for an `n`-byte prefix. At a 1 KiB message limit,
+`2^40` public queries and `2^20` signing queries, Lean [checks this cost is at most 1/256](Integration/SlhDsaCompressionMixedBudget.lean)
+per nonsingleton arity. The message-hash proof retains only one FORS coordinate, and its contribution
+makes the complete bound at least one at `2^40` public queries for any message or signing budget.
 
 For SHA2-128s and 128f, the [SHA-256 message PRF](Integration/SlhDsaCompressionHmac256Signature.lean)
 and [all four arity-specific target collision terms](Integration/SlhDsaCompressionSmallClass.lean)

@@ -95,7 +95,8 @@ theorem wide_euf_closed (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
     (MessageHash.signature_itsr_le S r seeds F hw c q qs hq hs hc))
 /-- The one-coordinate estimate is vacuous at the repository's benchmark
 of 2^40 public queries, even before adding the other security losses. -/
-theorem wideCoordinateBound_benchmark (L qs : ℕ) : 1 ≤ wideCoordinateBound S L (2^40) qs := by
+theorem MessageHash.coordinate_benchmark (L qs : ℕ) :
+    1 ≤ MessageHash.coordinateLoss S (MessageHash.queries S L (2^40) qs) := by
   let Q := MessageHash.queries S L (2^40) qs
   have hQ : 2^40 ≤ Q := by
     dsimp [Q,MessageHash.queries,MessageHash.machineBudget]
@@ -115,7 +116,10 @@ theorem wideCoordinateBound_benchmark (L qs : ℕ) : 1 ≤ wideCoordinateBound S
     linarith [show 0 ≤ ((Q:ℝ)+1)^3 by positivity]
   have ve := ENNReal.ofReal_le_ofReal v
   rw [ENNReal.ofReal_one] at ve
-  exact ve.trans (le_add_self.trans le_add_self)
+  exact ve.trans le_add_self
+
+theorem wideCoordinateBound_benchmark (L qs : ℕ) : 1 ≤ wideCoordinateBound S L (2^40) qs :=
+  (MessageHash.coordinate_benchmark S L qs).trans le_add_self
 
 end Reduction.Compression
 #print axioms Reduction.Compression.MessageHash.signature_itsr_le
