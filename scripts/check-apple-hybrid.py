@@ -78,21 +78,25 @@ def main():
         expressions = subprocess.check_output([tmp/"rounds"], text=True).splitlines()
         if len(expressions) != 100:
             raise ValueError("expected four complete Keccak rounds")
-        proofs = ["import Spec.Shake256", "import Std.Tactic.BVDecide", "open Spec.Keccak",
-                  "set_option linter.unusedSimpArgs false", "set_option maxRecDepth 8192", "set_option maxHeartbeats 2000000",
-                  """private theorem atFn (f : Fin 25 → Lane) (i : Nat) (h : i < 25) :
-    (Array.ofFn f)[i]! = f ⟨i,h⟩ := by
-  rw [getElem!_pos _ _ (by simpa using h), Array.getElem_ofFn]"""]
-        proofs.append(check_schedule(tmp, source))
-        for i, expr in enumerate(expressions):
-            w = i % 25
-            proofs.append(f"""example (a : State) (c : Lane) : {expr} = (round a c)[{w}]! := by
-  simp (disch := decide) only [round, Id.run, pure, atFn, chi, Nat.reduceMod, Nat.reduceAdd, Nat.reduceDiv, Nat.reduceMul, ite_true, ite_false]
-  change _ = {projected_round(w)}
-  bv_decide""")
-        lean = tmp/"Rounds.lean"
-        lean.write_text("\n".join(proofs))
-        subprocess.run(["lake", "env", "lean", lean], cwd=ROOT/"lean", check=True)
+        check_rounds(tmp, expressions, check_schedule(tmp, source))
+
+
+def check_rounds(tmp, expressions, schedule):
+          proofs = ["import Spec.Shake256", "import Std.Tactic.BVDecide", "open Spec.Keccak",
+                    "set_option linter.unusedSimpArgs false", "set_option maxRecDepth 8192", "set_option maxHeartbeats 2000000",
+                    """private theorem atFn (f : Fin 25 → Lane) (i : Nat) (h : i < 25) :
+      (Array.ofFn f)[i]! = f ⟨i,h⟩ := by
+    rw [getElem!_pos _ _ (by simpa using h), Array.getElem_ofFn]"""]
+          proofs.append(schedule)
+          for i, expr in enumerate(expressions):
+              w = i % 25
+              proofs.append(f"""example (a : State) (c : Lane) : {expr} = (round a c)[{w}]! := by
+    simp (disch := decide) only [round, Id.run, pure, atFn, chi, Nat.reduceMod, Nat.reduceAdd, Nat.reduceDiv, Nat.reduceMul, ite_true, ite_false]
+    change _ = {projected_round(w)}
+    bv_decide""")
+          lean = tmp/"Rounds.lean"
+          lean.write_text("\n".join(proofs))
+          subprocess.run(["lake", "env", "lean", lean], cwd=ROOT/"lean", check=True)
 
 
 if __name__ == "__main__":

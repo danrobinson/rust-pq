@@ -404,3 +404,12 @@ verify_set!(shake_192s_tests, "shake-192s", shake_192s, shake_192s, shake_keygen
 verify_set!(shake_192f_tests, "shake-192f", shake_192f, shake_192f, shake_keygen_internal_batch, shake_sign_internal_batch);
 verify_set!(shake_256s_tests, "shake-256s", shake_256s, shake_256s, shake_keygen_internal_batch, shake_sign_internal_batch);
 verify_set!(shake_256f_tests, "shake-256f", shake_256f, shake_256f, shake_keygen_internal_batch, shake_sign_internal_batch);
+
+#[test]
+fn rejects_nonstandard_geometry_before_dispatch() {
+    let mut p = slhdsa::params::SHA2_128F;
+    p.k += 1;
+    let gpu = shared_gpu();
+    assert!(gpu.keygen_internal_batch::<16>(&p, &[]).is_err());
+    assert!(gpu.shake_sign_internal_batch::<16>(&p, &[]).is_err());
+}

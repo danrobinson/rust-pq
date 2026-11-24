@@ -18,6 +18,45 @@ use slhdsa::params::Params;
 use slhdsa::shake256::shake256;
 use slhdsa::util::{base_2b, block, to_int};
 
+// GPU code specializes its arrays, reductions and layouts to FIPS 205 Table 2.
+fn validate_geometry<const N: usize>(p: &Params) -> Result<(), MetalError> {
+    use slhdsa::params::{SHA2_128F, SHA2_128S, SHA2_192F, SHA2_192S, SHA2_256F, SHA2_256S};
+    let row = match (N, p.hp) {
+        (16, 3) => SHA2_128F, (16, 9) => SHA2_128S,
+        (24, 3) => SHA2_192F, (24, 9) => SHA2_192S,
+        (32, 4) => SHA2_256F, (32, 8) => SHA2_256S,
+        _ => return Err(MetalError("unsupported SLH-DSA geometry".into())),
+    };
+    if (p.n, p.h, p.d, p.a, p.k, p.m) != (row.n, row.h, row.d, row.a, row.k, row.m) {
+        return Err(MetalError("unsupported SLH-DSA geometry".into()));
+    }
+    Ok(())
+}
+
+// Bound the largest per-item extent in the units actually indexed by MSL
+// (signature bytes, or SHA-2 u32 / SHAKE u64 lanes).
+fn check_grid(count: usize, stride: usize) -> Result<(), MetalError> {
+    if count > u32::MAX as usize / stride {
+        return Err(MetalError("batch exceeds Metal's 32-bit index range".into()));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod grid_tests {
+    use super::*;
+
+    #[test]
+    fn grid_limits_include_the_last_representable_batch() {
+        for stride in [1, 3, 4, 8, 7 * 512 * 35 * 4] {
+            let last = u32::MAX as usize / stride;
+            assert!(check_grid(last, stride).is_ok());
+            assert!(check_grid(last + 1, stride).is_err());
+            assert!(check_grid(usize::MAX, stride).is_err());
+        }
+    }
+}
+
 const SHADER_SRC: &str = concat!(
     include_str!("../shaders/slhdsa.metal"),
     "\n",
@@ -593,7 +632,7 @@ impl MetalSigner {
         p: &Params,
         batch: &[([u8; N], [u8; N], [u8; N])],
     ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, MetalError> {
-        assert_eq!(p.n, N);
+        validate_geometry::<N>(p)?;
         let count = batch.len();
         if count == 0 {
             return Ok(Vec::new());
@@ -601,9 +640,14 @@ impl MetalSigner {
 
         let pipes = self.pipelines::<N>(family)?;
         let leaves_per_tree = 1usize << p.hp;
+        let words = N / if family == HashFamily::Shake { 8 } else { 4 };
+        check_grid(count, leaves_per_tree * words)?;
         let total_leaves = count * leaves_per_tree;
         let wots_len = p.len();
         let use_two_phase = self.use_two_phase::<N>(family, total_leaves);
+        if use_two_phase {
+            check_grid(count, leaves_per_tree * wots_len * words)?;
+        }
 
         let mut pool = self.pool.lock().unwrap();
         let trees_bytes = count * std::mem::size_of::<XmssTreeDesc>();
@@ -663,49 +707,60 @@ impl MetalSigner {
         let out_sigs_buf = pool.out_sigs.as_ref().unwrap();
 
         let mut cmd = self.ctx.begin_cmd(false)?;
+        // SAFETY for the dispatches below: the pool guard retains exclusive host
+        // access through completion. Kernel bindings use the matching family and
+        // width, with allocations sized above for the validated geometry and grid.
         if use_two_phase {
             let tips_buf = pool.chain_tips.as_ref().unwrap();
             let total_chains = (total_leaves * wots_len) as u32;
             let tg_chains = choose_tg_size(&pipes.wots_chains, total_chains);
-            cmd.dispatch_threads(
-                &pipes.wots_chains,
-                &[keys_buf, trees_buf, tips_buf],
-                &[InlineBytes::of(3, &xmss_params)],
-                total_chains,
-                tg_chains,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.wots_chains,
+                    &[keys_buf, trees_buf, tips_buf],
+                    &[InlineBytes::of(3, &xmss_params)],
+                    total_chains,
+                    tg_chains,
+                    0,
+                );
+            }
             let tg_tlen = choose_tg_size(&pipes.wots_tlen, total_leaves as u32);
-            cmd.dispatch_threads(
-                &pipes.wots_tlen,
-                &[keys_buf, trees_buf, tips_buf, leaves_buf],
-                &[InlineBytes::of(4, &xmss_params)],
-                total_leaves as u32,
-                tg_tlen,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.wots_tlen,
+                    &[keys_buf, trees_buf, tips_buf, leaves_buf],
+                    &[InlineBytes::of(4, &xmss_params)],
+                    total_leaves as u32,
+                    tg_tlen,
+                    0,
+                );
+            }
         } else {
             let tg_leaves = choose_tg_size(&pipes.xmss_leaves_streaming, total_leaves as u32);
-            cmd.dispatch_threads(
-                &pipes.xmss_leaves_streaming,
-                &[keys_buf, trees_buf, leaves_buf],
-                &[InlineBytes::of(3, &xmss_params)],
-                total_leaves as u32,
-                tg_leaves,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.xmss_leaves_streaming,
+                    &[keys_buf, trees_buf, leaves_buf],
+                    &[InlineBytes::of(3, &xmss_params)],
+                    total_leaves as u32,
+                    tg_leaves,
+                    0,
+                );
+            }
         }
 
         let reduce_tg = 1u32 << (p.hp - 1);
         let reduce_tg_mem = reduce_tg * (N as u32);
-        cmd.dispatch_threadgroups(
-            &pipes.xmss_reduce,
-            &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
-            &[InlineBytes::of(5, &xmss_params)],
-            count as u32,
-            reduce_tg,
-            reduce_tg_mem,
-        );
+        unsafe {
+            cmd.dispatch_threadgroups(
+                &pipes.xmss_reduce,
+                &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
+                &[InlineBytes::of(5, &xmss_params)],
+                count as u32,
+                reduce_tg,
+                reduce_tg_mem,
+            );
+        }
 
         let gpu_res = cmd.commit_and_wait();
         pool.keys.as_mut().unwrap().zeroize_contents();
@@ -815,7 +870,7 @@ impl MetalSigner {
         p: &Params,
         requests: &[SignInternalReq<'_, N>],
     ) -> Result<Vec<Vec<u8>>, MetalError> {
-        assert_eq!(p.n, N);
+        validate_geometry::<N>(p)?;
         let num_sigs = requests.len();
         if num_sigs == 0 {
             return Ok(Vec::new());
@@ -829,6 +884,8 @@ impl MetalSigner {
         let d = p.d as usize;
         let hp = p.hp;
         let leaves_per_tree = 1usize << hp;
+        let words = N / if family == HashFamily::Shake { 8 } else { 4 };
+        check_grid(num_sigs, sig_bytes.max(d * leaves_per_tree * words))?;
         let total_trees = num_sigs * d;
         let total_xmss_leaves = total_trees * leaves_per_tree;
         let use_two_phase = self.use_two_phase::<N>(family, total_xmss_leaves);
@@ -837,6 +894,10 @@ impl MetalSigner {
         let s1 = if p.a <= 8 { p.a } else { 7 };
         let s2 = p.a - s1;
         let subtrees_per_tree = 1u32 << s2;
+        check_grid(num_sigs, p.k as usize * subtrees_per_tree as usize * words)?;
+        if use_two_phase {
+            check_grid(num_sigs, d * leaves_per_tree * wots_len * words)?;
+        }
 
         // CPU preprocessing: deduplicate keys + compute R, H_msg, FORS indices, HT descriptors
         let mut unique_seeds: Vec<([u8; N], [u8; N])> = Vec::new();
@@ -1056,43 +1117,52 @@ impl MetalSigner {
         let out_sigs_buf = pool.out_sigs.as_ref().unwrap();
 
         let mut cmd = self.ctx.begin_cmd(true)?;
+        // SAFETY for the dispatches below: the pool guard retains exclusive host
+        // access through completion. Kernel bindings use the matching family and
+        // width, with allocations sized above for the validated geometry and grid.
 
         // Stage 1: Launch XMSS leaves + FORS Pass 1 concurrently!
         if use_two_phase {
             let tips_buf = pool.chain_tips.as_ref().unwrap();
             let total_chains = (total_xmss_leaves * wots_len) as u32;
             let tg_chains = choose_tg_size(&pipes.wots_chains, total_chains);
-            cmd.dispatch_threads(
-                &pipes.wots_chains,
-                &[keys_buf, trees_buf, tips_buf],
-                &[InlineBytes::of(3, &xmss_params)],
-                total_chains,
-                tg_chains,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.wots_chains,
+                    &[keys_buf, trees_buf, tips_buf],
+                    &[InlineBytes::of(3, &xmss_params)],
+                    total_chains,
+                    tg_chains,
+                    0,
+                );
+            }
         } else {
             let tg_leaves = choose_tg_size(&pipes.xmss_leaves_streaming, total_xmss_leaves as u32);
-            cmd.dispatch_threads(
-                &pipes.xmss_leaves_streaming,
-                &[keys_buf, trees_buf, leaves_buf],
-                &[InlineBytes::of(3, &xmss_params)],
-                total_xmss_leaves as u32,
-                tg_leaves,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.xmss_leaves_streaming,
+                    &[keys_buf, trees_buf, leaves_buf],
+                    &[InlineBytes::of(3, &xmss_params)],
+                    total_xmss_leaves as u32,
+                    tg_leaves,
+                    0,
+                );
+            }
         }
 
         let fors1_tgs = (num_sigs as u32) * p.k * subtrees_per_tree;
         let fors1_tg_x = 1u32 << (s1 - 1);
         let fors1_tg_mem = fors1_tg_x * (N as u32);
-        cmd.dispatch_threadgroups(
-            &pipes.fors_pass1,
-            &[keys_buf, fjobs_buf, fsub_buf, out_sigs_buf],
-            &[InlineBytes::of(4, &fors_params)],
-            fors1_tgs,
-            fors1_tg_x,
-            fors1_tg_mem,
-        );
+        unsafe {
+            cmd.dispatch_threadgroups(
+                &pipes.fors_pass1,
+                &[keys_buf, fjobs_buf, fsub_buf, out_sigs_buf],
+                &[InlineBytes::of(4, &fors_params)],
+                fors1_tgs,
+                fors1_tg_x,
+                fors1_tg_mem,
+            );
+        }
 
         cmd.barrier();
 
@@ -1100,49 +1170,57 @@ impl MetalSigner {
         if use_two_phase {
             let tips_buf = pool.chain_tips.as_ref().unwrap();
             let tg_tlen = choose_tg_size(&pipes.wots_tlen, total_xmss_leaves as u32);
-            cmd.dispatch_threads(
-                &pipes.wots_tlen,
-                &[keys_buf, trees_buf, tips_buf, leaves_buf],
-                &[InlineBytes::of(4, &xmss_params)],
-                total_xmss_leaves as u32,
-                tg_tlen,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.wots_tlen,
+                    &[keys_buf, trees_buf, tips_buf, leaves_buf],
+                    &[InlineBytes::of(4, &xmss_params)],
+                    total_xmss_leaves as u32,
+                    tg_tlen,
+                    0,
+                );
+            }
         } else {
             let reduce_tg = 1u32 << (hp - 1);
             let reduce_tg_mem = reduce_tg * (N as u32);
-            cmd.dispatch_threadgroups(
-                &pipes.xmss_reduce,
-                &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
-                &[InlineBytes::of(5, &xmss_params)],
-                total_trees as u32,
-                reduce_tg,
-                reduce_tg_mem,
-            );
+            unsafe {
+                cmd.dispatch_threadgroups(
+                    &pipes.xmss_reduce,
+                    &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
+                    &[InlineBytes::of(5, &xmss_params)],
+                    total_trees as u32,
+                    reduce_tg,
+                    reduce_tg_mem,
+                );
+            }
         }
 
         if s2 > 0 {
             let fors2_tgs = (num_sigs as u32) * p.k;
             let fors2_tg_x = 1u32 << (s2 - 1);
             let fors2_tg_mem = fors2_tg_x * (N as u32);
-            cmd.dispatch_threadgroups(
-                &pipes.fors_pass2,
-                &[keys_buf, fjobs_buf, fsub_buf, froots_buf, out_sigs_buf],
-                &[InlineBytes::of(5, &fors_params)],
-                fors2_tgs,
-                fors2_tg_x,
-                fors2_tg_mem,
-            );
+            unsafe {
+                cmd.dispatch_threadgroups(
+                    &pipes.fors_pass2,
+                    &[keys_buf, fjobs_buf, fsub_buf, froots_buf, out_sigs_buf],
+                    &[InlineBytes::of(5, &fors_params)],
+                    fors2_tgs,
+                    fors2_tg_x,
+                    fors2_tg_mem,
+                );
+            }
         } else {
             let tg_fpk = choose_tg_size(&pipes.fors_pk, num_sigs as u32);
-            cmd.dispatch_threads(
-                &pipes.fors_pk,
-                &[keys_buf, fjobs_buf, froots_buf, pk_fors_buf],
-                &[InlineBytes::of(4, &fors_params)],
-                num_sigs as u32,
-                tg_fpk,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.fors_pk,
+                    &[keys_buf, fjobs_buf, froots_buf, pk_fors_buf],
+                    &[InlineBytes::of(4, &fors_params)],
+                    num_sigs as u32,
+                    tg_fpk,
+                    0,
+                );
+            }
         }
 
         cmd.barrier();
@@ -1152,26 +1230,30 @@ impl MetalSigner {
         if use_two_phase {
             let reduce_tg = 1u32 << (hp - 1);
             let reduce_tg_mem = reduce_tg * (N as u32);
-            cmd.dispatch_threadgroups(
-                &pipes.xmss_reduce,
-                &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
-                &[InlineBytes::of(5, &xmss_params)],
-                total_trees as u32,
-                reduce_tg,
-                reduce_tg_mem,
-            );
+            unsafe {
+                cmd.dispatch_threadgroups(
+                    &pipes.xmss_reduce,
+                    &[keys_buf, trees_buf, leaves_buf, roots_buf, out_sigs_buf],
+                    &[InlineBytes::of(5, &xmss_params)],
+                    total_trees as u32,
+                    reduce_tg,
+                    reduce_tg_mem,
+                );
+            }
             need_stage3_barrier = true;
         }
         if s2 > 0 {
             let tg_fpk = choose_tg_size(&pipes.fors_pk, num_sigs as u32);
-            cmd.dispatch_threads(
-                &pipes.fors_pk,
-                &[keys_buf, fjobs_buf, froots_buf, pk_fors_buf],
-                &[InlineBytes::of(4, &fors_params)],
-                num_sigs as u32,
-                tg_fpk,
-                0,
-            );
+            unsafe {
+                cmd.dispatch_threads(
+                    &pipes.fors_pk,
+                    &[keys_buf, fjobs_buf, froots_buf, pk_fors_buf],
+                    &[InlineBytes::of(4, &fors_params)],
+                    num_sigs as u32,
+                    tg_fpk,
+                    0,
+                );
+            }
             need_stage3_barrier = true;
         }
         if need_stage3_barrier {
@@ -1181,14 +1263,16 @@ impl MetalSigner {
         // Final Stage: WOTS+ signatures for all B * d layers written directly into out_sigs!
         let total_wots_chains = (total_trees * wots_len) as u32;
         let tg_wsig = choose_tg_size(&pipes.wots_sign, total_wots_chains);
-        cmd.dispatch_threads(
-            &pipes.wots_sign,
-            &[keys_buf, wlayers_buf, pk_fors_buf, roots_buf, out_sigs_buf],
-            &[InlineBytes::of(5, &wots_sign_params)],
-            total_wots_chains,
-            tg_wsig,
-            0,
-        );
+        unsafe {
+            cmd.dispatch_threads(
+                &pipes.wots_sign,
+                &[keys_buf, wlayers_buf, pk_fors_buf, roots_buf, out_sigs_buf],
+                &[InlineBytes::of(5, &wots_sign_params)],
+                total_wots_chains,
+                tg_wsig,
+                0,
+            );
+        }
 
         let gpu_res = cmd.commit_and_wait();
         pool.keys.as_mut().unwrap().zeroize_contents();

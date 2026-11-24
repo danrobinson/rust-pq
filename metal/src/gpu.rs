@@ -298,7 +298,13 @@ impl MetalCommand {
     }
 
     /// Dispatches exact `grid_x` threads with threadgroup size `tg_x`.
-    pub fn dispatch_threads(
+    ///
+    /// # Safety
+    /// All resources must belong to the command's device. Bindings, grid and
+    /// threadgroup memory must satisfy the kernel's layout and access bounds.
+    /// Keep buffers live until completion, order conflicting GPU accesses, and
+    /// exclude conflicting CPU accesses (including live references) until then.
+    pub unsafe fn dispatch_threads(
         &mut self,
         pipeline: &MetalPipeline,
         buffers: &[&MetalBuffer],
@@ -311,7 +317,13 @@ impl MetalCommand {
     }
 
     /// Dispatches `num_tgs` threadgroups, each with `tg_x` threads.
-    pub fn dispatch_threadgroups(
+    ///
+    /// # Safety
+    /// All resources must belong to the command's device. Bindings, grid and
+    /// threadgroup memory must satisfy the kernel's layout and access bounds.
+    /// Keep buffers live until completion, order conflicting GPU accesses, and
+    /// exclude conflicting CPU accesses (including live references) until then.
+    pub unsafe fn dispatch_threadgroups(
         &mut self,
         pipeline: &MetalPipeline,
         buffers: &[&MetalBuffer],
@@ -347,7 +359,7 @@ impl MetalCommand {
         let mut byte_indices = [0u32; 8];
         for (i, b) in inline_bytes.iter().enumerate() {
             byte_ptrs[i] = b.data.as_ptr() as *const c_void;
-            byte_lens[i] = b.data.len() as u32;
+            byte_lens[i] = u32::try_from(b.data.len()).expect("inline binding exceeds u32");
             byte_indices[i] = b.index;
         }
 
