@@ -118,70 +118,59 @@ const RC: [u64; 24] = [
     0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
 ];
 
+#[inline(always)]
+fn rho_pi(a: &[u64; 25], d: &[u64; 5]) -> [u64; 25] {
+    [
+        (a[0] ^ d[0]).rotate_left(0), (a[6] ^ d[1]).rotate_left(44), (a[12] ^ d[2]).rotate_left(43), (a[18] ^ d[3]).rotate_left(21), (a[24] ^ d[4]).rotate_left(14),
+        (a[3] ^ d[3]).rotate_left(28), (a[9] ^ d[4]).rotate_left(20), (a[10] ^ d[0]).rotate_left(3), (a[16] ^ d[1]).rotate_left(45), (a[22] ^ d[2]).rotate_left(61),
+        (a[1] ^ d[1]).rotate_left(1), (a[7] ^ d[2]).rotate_left(6), (a[13] ^ d[3]).rotate_left(25), (a[19] ^ d[4]).rotate_left(8), (a[20] ^ d[0]).rotate_left(18),
+        (a[4] ^ d[4]).rotate_left(27), (a[5] ^ d[0]).rotate_left(36), (a[11] ^ d[1]).rotate_left(10), (a[17] ^ d[2]).rotate_left(15), (a[23] ^ d[3]).rotate_left(56),
+        (a[2] ^ d[2]).rotate_left(62), (a[8] ^ d[3]).rotate_left(55), (a[14] ^ d[4]).rotate_left(39), (a[15] ^ d[0]).rotate_left(41), (a[21] ^ d[1]).rotate_left(2),
+    ]
+}
+
+#[inline(always)]
+fn chi(b: &[u64; 25]) -> [u64; 25] {
+    [
+        b[0] ^ (!b[1] & b[2]), b[1] ^ (!b[2] & b[3]), b[2] ^ (!b[3] & b[4]), b[3] ^ (!b[4] & b[0]), b[4] ^ (!b[0] & b[1]),
+        b[5] ^ (!b[6] & b[7]), b[6] ^ (!b[7] & b[8]), b[7] ^ (!b[8] & b[9]), b[8] ^ (!b[9] & b[5]), b[9] ^ (!b[5] & b[6]),
+        b[10] ^ (!b[11] & b[12]), b[11] ^ (!b[12] & b[13]), b[12] ^ (!b[13] & b[14]), b[13] ^ (!b[14] & b[10]), b[14] ^ (!b[10] & b[11]),
+        b[15] ^ (!b[16] & b[17]), b[16] ^ (!b[17] & b[18]), b[17] ^ (!b[18] & b[19]), b[18] ^ (!b[19] & b[15]), b[19] ^ (!b[15] & b[16]),
+        b[20] ^ (!b[21] & b[22]), b[21] ^ (!b[22] & b[23]), b[22] ^ (!b[23] & b[24]), b[23] ^ (!b[24] & b[20]), b[24] ^ (!b[20] & b[21]),
+    ]
+}
+
+fn round(a: &[u64; 25], rc: u64) -> [u64; 25] {
+    let mut parity = [0u64; 5];
+    let mut x = 0;
+    while x < 5 {
+        parity[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
+        x += 1;
+    }
+    let mut d = [0u64; 5];
+    let mut x = 0;
+    while x < 5 {
+        d[x] = parity[(x + 4) % 5] ^ parity[(x + 1) % 5].rotate_left(1);
+        x += 1;
+    }
+    let b = rho_pi(a, &d);
+    let mut out = chi(&b);
+    out[0] ^= rc;
+    out
+}
+
+/// Portable 24-round Keccak-f[1600] permutation (FIPS 202 §3.3).
 fn keccak_f1600_portable(state: &mut [u64; 25]) {
-    for &rc in &RC {
-        let mut parity = [0u64; 5];
-        for x in 0..5 {
-            parity[x] = state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20];
-        }
-        let mut d = [0u64; 5];
-        for x in 0..5 {
-            d[x] = parity[(x + 4) % 5] ^ parity[(x + 1) % 5].rotate_left(1);
-        }
-        let a = *state;
-        let b = [
-            (a[0] ^ d[0]).rotate_left(0),
-            (a[6] ^ d[1]).rotate_left(44),
-            (a[12] ^ d[2]).rotate_left(43),
-            (a[18] ^ d[3]).rotate_left(21),
-            (a[24] ^ d[4]).rotate_left(14),
-            (a[3] ^ d[3]).rotate_left(28),
-            (a[9] ^ d[4]).rotate_left(20),
-            (a[10] ^ d[0]).rotate_left(3),
-            (a[16] ^ d[1]).rotate_left(45),
-            (a[22] ^ d[2]).rotate_left(61),
-            (a[1] ^ d[1]).rotate_left(1),
-            (a[7] ^ d[2]).rotate_left(6),
-            (a[13] ^ d[3]).rotate_left(25),
-            (a[19] ^ d[4]).rotate_left(8),
-            (a[20] ^ d[0]).rotate_left(18),
-            (a[4] ^ d[4]).rotate_left(27),
-            (a[5] ^ d[0]).rotate_left(36),
-            (a[11] ^ d[1]).rotate_left(10),
-            (a[17] ^ d[2]).rotate_left(15),
-            (a[23] ^ d[3]).rotate_left(56),
-            (a[2] ^ d[2]).rotate_left(62),
-            (a[8] ^ d[3]).rotate_left(55),
-            (a[14] ^ d[4]).rotate_left(39),
-            (a[15] ^ d[0]).rotate_left(41),
-            (a[21] ^ d[1]).rotate_left(2),
-        ];
-        for row in (0..25).step_by(5) {
-            state[row] = b[row] ^ (!b[row + 1] & b[row + 2]);
-            state[row + 1] = b[row + 1] ^ (!b[row + 2] & b[row + 3]);
-            state[row + 2] = b[row + 2] ^ (!b[row + 3] & b[row + 4]);
-            state[row + 3] = b[row + 3] ^ (!b[row + 4] & b[row]);
-            state[row + 4] = b[row + 4] ^ (!b[row] & b[row + 1]);
-        }
-        state[0] ^= rc;
+    let mut i = 0;
+    while i < 24 {
+        *state = round(state, RC[i]);
+        i += 1;
     }
 }
 
+/// Applies one 24-round Keccak-f[1600] permutation in place.
 #[inline]
 fn keccak_f1600(state: &mut [u64; 25]) {
-    #[cfg(all(
-        target_arch = "aarch64",
-        target_endian = "little",
-        target_vendor = "apple"
-    ))]
-    if crate::shake256::parallel::available() && crate::sha512::hw::arm::available() {
-        let mut words = core::array::from_fn(|i| [state[i]; crate::shake256::parallel::WIDTH]);
-        crate::shake256::parallel::permute(&mut words);
-        for i in 0..25 {
-            state[i] = words[i][0];
-        }
-        return;
-    }
     keccak_f1600_portable(state);
 }
 
@@ -195,7 +184,16 @@ pub fn shake128(input: &[u8], output: &mut [u8]) {
 
     // Fast path: absorb full 8-byte words whenever lane-aligned.
     while input.len() - i >= 8 && pos % 8 == 0 {
-        let word = u64::from_le_bytes(input[i..i + 8].try_into().unwrap());
+        let word = u64::from_le_bytes([
+            input[i],
+            input[i + 1],
+            input[i + 2],
+            input[i + 3],
+            input[i + 4],
+            input[i + 5],
+            input[i + 6],
+            input[i + 7],
+        ]);
         lanes[pos / 8] ^= word;
         pos += 8;
         i += 8;
@@ -221,13 +219,15 @@ pub fn shake128(input: &[u8], output: &mut [u8]) {
 
     // Squeeze arbitrary-length output.
     let mut out_pos = 0usize;
-    for byte in output.iter_mut() {
+    let mut out_i = 0usize;
+    while out_i < output.len() {
         if out_pos == RATE_SHAKE128 {
             keccak_f1600(&mut lanes);
             out_pos = 0;
         }
-        *byte = (lanes[out_pos / 8] >> (8 * (out_pos % 8))) as u8;
+        output[out_i] = (lanes[out_pos / 8] >> (8 * (out_pos % 8))) as u8;
         out_pos += 1;
+        out_i += 1;
     }
 }
 
@@ -273,7 +273,9 @@ pub fn hash_slh_sign_prehashed<const N: usize>(
     sk: &[u8],
     addrnd: &[u8; N],
 ) -> Option<Vec<u8>> {
-    let (mp, len) = format_prehash_message(ctx, ph, digest)?;
+    let Some((mp, len)) = format_prehash_message(ctx, ph, digest) else {
+        return None;
+    };
     let sig = match family {
         HashFamily::Sha2 => crate::slh::slh_sign_internal::<N>(p, &mp[..len], sk, addrnd),
         HashFamily::Shake => crate::shake::slh::slh_sign_internal::<N>(p, &mp[..len], sk, addrnd),
@@ -387,7 +389,9 @@ pub fn hash_slh_sign_prehashed_cached<const N: usize>(
     addrnd: &[u8; N],
     cache: &TopTreeCache<N>,
 ) -> Option<Vec<u8>> {
-    let (mp, len) = format_prehash_message(ctx, ph, digest)?;
+    let Some((mp, len)) = format_prehash_message(ctx, ph, digest) else {
+        return None;
+    };
     Some(cache.sign_internal(p, &mp[..len], sk, addrnd))
 }
 
