@@ -23,12 +23,12 @@ fiber. Spectator and response amplitudes may be arbitrarily entangled. -/
 def after {E : Type} (π : Permutation) (ψ : Port → Words × E → ℂ) (p : Port) (w : Words × E) : ℂ :=
   ψ p (w.1 - oracle π p,w.2)
 
-private theorem fibers {E : Type} [Fintype E] (π : Permutation) (ψ : Port → Words × E → ℂ) (p : Port) :
+theorem fibers {E : Type} [Fintype E] (π : Permutation) (ψ : Port → Words × E → ℂ) (p : Port) :
     ∑ w, ‖after π ψ p w‖^2 = ∑ w, ‖ψ p w‖^2 := by
   let e : Equiv.Perm (Words × E) := (Equiv.subRight (oracle π p)).prodCongr (Equiv.refl E)
   exact Equiv.sum_comp e (fun w => ‖ψ p w‖^2)
 
-private theorem sq_diff (a b : ℂ) : ‖a-b‖^2 ≤ 2*(‖a‖^2+‖b‖^2) := by
+theorem sq_diff (a b : ℂ) : ‖a-b‖^2 ≤ 2*(‖a‖^2+‖b‖^2) := by
   have h := norm_sub_le a b
   have hh : ‖a-b‖^2 ≤ (‖a‖+‖b‖)^2 := by gcongr
   nlinarith [sq_nonneg (‖a‖-‖b‖)]

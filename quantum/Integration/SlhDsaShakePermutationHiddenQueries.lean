@@ -11,7 +11,7 @@ abbrev Vec (E : Type) [Fintype E] := EuclideanSpace ℂ ((Port × Words) × E)
 noncomputable def call (π : Permutation) : Vec E ≃ₗᵢ[ℂ] Vec E :=
   LinearIsometryEquiv.piLpCongrLeft 2 ℂ ℂ ((oracleEquiv (oracle π)).prodCongr (Equiv.refl E))
 
-private theorem norm_expand (x : Vec E) :
+theorem norm_expand (x : Vec E) :
     ‖x‖^2 = ∑ p : Port, ∑ w : Words × E, ‖x ((p,w.1),w.2)‖^2 := by
   rw [PiLp.norm_sq_eq_of_L2]
   simp only [Fintype.sum_prod_type,Finset.sum_comm (s:=Finset.univ) (t:=Finset.univ)
@@ -31,10 +31,10 @@ noncomputable def interact (π : Permutation) (op : ℕ → Vec E ≃ₗᵢ[ℂ]
   | 0 => x
   | t+1 => op t (call π (interact π op x t))
 
-private theorem interact_norm (π : Permutation) (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (t : ℕ) :
+theorem interact_norm (π : Permutation) (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (t : ℕ) :
     ‖interact π op x t‖ = ‖x‖ := by induction t <;> simp [interact, *]
 
-private theorem telescope (π τ : Permutation) (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (t : ℕ) :
+theorem telescope (π τ : Permutation) (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (t : ℕ) :
     ‖interact τ op x t - interact π op x t‖ ≤ ∑ j ∈ Finset.range t,
       ‖call τ (interact π op x j) - call π (interact π op x j)‖ := by
   induction t with
@@ -45,26 +45,31 @@ private theorem telescope (π τ : Permutation) (op : ℕ → Vec E ≃ₗᵢ[�
     rw [← map_sub,(call τ).norm_map] at tri
     exact tri.trans (add_le_add ih le_rfl)
 
-theorem hidden_queries (π : Permutation) (ki ko : Mask) (h : RateMask) (g : Capacity → RateMask)
-    (outside : ∀ c z, z ≠ c → g c z = h z)
+theorem query_hybrid {I : Type} [Fintype I] (base : Permutation) (g : I → Permutation) (cost : ℝ)
+    (step : ∀ y : Vec E, ∑ c, ‖call (g c) y - call base y‖^2 ≤ cost*‖y‖^2)
     (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (q : ℕ) :
-    ∑ c, ‖interact (salted ki ko (g c) π) op x q - interact (salted ki ko h π) op x q‖^2 ≤
-      4*(q:ℝ)^2*‖x‖^2 := by
-  let base := salted ki ko h π
-  let err (c : Capacity) (j : ℕ) := ‖call (salted ki ko (g c) π) (interact base op x j) -
+    ∑ c, ‖interact (g c) op x q - interact base op x q‖^2 ≤ cost*(q:ℝ)^2*‖x‖^2 := by
+  let err (c : I) (j : ℕ) := ‖call (g c) (interact base op x j) -
     call base (interact base op x j)‖
   calc
     _ ≤ ∑ c, (q:ℝ) * ∑ j ∈ Finset.range q, (err c j)^2 := by
       apply Finset.sum_le_sum
       intro c _
-      have b := telescope base (salted ki ko (g c) π) op x q
+      have b := telescope base (g c) op x q
       apply le_trans (pow_le_pow_left₀ (norm_nonneg _) b 2)
       simpa only [Finset.card_range] using sq_sum_le_card_mul_sum_sq (s:=Finset.range q) (f:=err c)
     _ = (q:ℝ) * ∑ j ∈ Finset.range q, ∑ c, (err c j)^2 := by rw [← Finset.mul_sum,Finset.sum_comm]
-    _ ≤ (q:ℝ) * ∑ _j ∈ Finset.range q, (4*‖x‖^2) := by
+    _ ≤ (q:ℝ) * ∑ _j ∈ Finset.range q, (cost*‖x‖^2) := by
       gcongr with j
-      simpa only [err,base,interact_norm] using call_sum π ki ko h g outside (interact base op x j)
+      simpa only [err,interact_norm] using step (interact base op x j)
     _ = _ := by simp; ring
+
+theorem hidden_queries (π : Permutation) (ki ko : Mask) (h : RateMask) (g : Capacity → RateMask)
+    (outside : ∀ c z, z ≠ c → g c z = h z)
+    (op : ℕ → Vec E ≃ₗᵢ[ℂ] Vec E) (x : Vec E) (q : ℕ) :
+    ∑ c, ‖interact (salted ki ko (g c) π) op x q - interact (salted ki ko h π) op x q‖^2 ≤
+      4*(q:ℝ)^2*‖x‖^2 :=
+  query_hybrid _ _ _ (call_sum π ki ko h g outside) op x q
 
 /-- At 2^40 two-way queries, the mean squared state distance caused
 by programming one uniformly hidden capacity is at most 2^-430. -/

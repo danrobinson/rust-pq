@@ -11,7 +11,7 @@ open Classical
 def imageTuple {I A : Type} (x : I ↪ A) (π : Equiv.Perm A) : I ↪ A :=
   x.trans π.toEmbedding
 
-private theorem embedding_fiber {I A : Type} [Fintype I] [Fintype A] (x y : I ↪ A) :
+theorem embedding_fiber {I A : Type} [Fintype I] [Fintype A] (x y : I ↪ A) :
     Fintype.card (I ↪ A) * Fintype.card {π : Equiv.Perm A // imageTuple x π = y} =
       Fintype.card (Equiv.Perm A) := by
   classical
@@ -33,6 +33,12 @@ private theorem embedding_fiber {I A : Type} [Fintype I] [Fintype A] (x y : I �
     exact Fintype.card_congr f
   have hcard := Fintype.card_congr (Equiv.sigmaFiberEquiv (imageTuple x))
   simpa only [Fintype.card_sigma,h,Finset.sum_const,Finset.card_univ,nsmul_eq_mul,Nat.cast_id] using hcard
+
+theorem nat_embedding_fiber {I A : Type} [Fintype I] [Fintype A] (x y : I ↪ A) :
+    Nat.card (I ↪ A) * Nat.card {π : Equiv.Perm A // imageTuple x π = y} =
+      Nat.card (Equiv.Perm A) := by
+  classical
+  simpa only [Nat.card_eq_fintype_card] using embedding_fiber x y
 
 def capOf (w : Words) : Capacity := fun i => w ⟨i.val+17,by omega⟩
 def join (r : Rate) (c : Capacity) : Words := fun i =>
