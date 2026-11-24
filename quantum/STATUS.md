@@ -88,7 +88,7 @@ For class TCR at arities two, WOTS length and FORS tree count, the
 a compression-port machine that outputs two distinct SHA-512 inputs with equal
 `n`-byte output prefixes. Its query count includes the honest first-phase
 transcript, the byte forger’s second phase, and the [collision extractor](Integration/SlhDsaCompressionClassCollision.lean).
-The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. Applying it to the signature game still requires the link to the actual public-table oracle and the final measured outputs.
+The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. The [measured-output theorem](Integration/SlhDsaCompressionReadout.lean) bounds the chance that the two reported inputs have colliding prefixes by `16(q+1)³/2^(8n)` for a paired ordinary-table and recording-oracle experiment. Applying that theorem to the signature reduction still requires compiling the public-port machine into this experiment.
 
 The [combined wide-set SUF and EUF theorems](Integration/SlhDsaCompressionSearch.lean)
 leave two kinds of probability to bound: ITSR for the signature reduction and
