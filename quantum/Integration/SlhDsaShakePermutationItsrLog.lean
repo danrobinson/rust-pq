@@ -60,7 +60,7 @@ private theorem step_cost (π : Permutation) (p : Report) (b : Rate) :
     PUE.eval (tailHead ((Tails.layout π).finish (mid a).2 (capOf v)))
       (fun y H => f (push π p b a v y) H) q (fun _ => hf _)))
 
-private theorem replay_cost (π : Permutation) (xs : List Rate) :
+theorem replay_cost (π : Permutation) (xs : List Rate) :
     EvalCost (fun H : Table => (pure (replay π H xs) : ProbComp Report)) (3*xs.length) := by
   induction xs with
   | nil => exact EvalCost.const (X := Addr) (Y := Words) (pure empty)

@@ -134,13 +134,10 @@ private theorem ideal_bound (pk : S.Node) (h : ar ≤ 2) (π : Permutation) (s :
   kexact (normalized S ar seeds A forge pk (f R) (H R) R).symm
 
 
-private theorem actual_eq (pk : S.Node) (h : ar ≤ 2) (π : Permutation) :
-    tcrInner (adversary S ar seeds A forge π) pk =
-      Phase.actual (SkFormat.split S) (Arity.input S ar pk h) (Select.prog S ar pk A.choose ([],[]))
-        (test S ar seeds A forge pk) π := by
-  let F := exactTable (SkFormat.split S) (Arity.input S ar pk h) π
-  have row (d : Bytes 32) (m : Msg S ar) : (primitives (lanes π) S.vp.params).Thash pk d m.val = F (d,m) :=
-    Arity.hash_eq S ar pk h π (d,m)
+theorem run_actual (pk : S.Node) (π : Permutation) (F : Row S ar → S.Node)
+    (row : ∀ d (m : Msg S ar), (primitives (lanes π) S.vp.params).Thash pk d m.val = F (d,m)) :
+    tcrInner (adversary S ar seeds A forge π) pk = Phase.run (fun _ => π)
+      (test S ar seeds A forge pk (oracle π) F) (Select.prog S ar pk A.choose ([],[])) := by
   have hnorm := normalized S ar seeds A forge pk (fun _ => π) (oracle π) F
   have vals : Select.value S (fun _ : Bytes 32 => (π : Words → Words)) = (primitives (lanes π) S.vp.params).Thash :=
     funext fun p => funext fun d => funext fun xs => Select.value_actual S π p d xs
@@ -167,6 +164,15 @@ private theorem actual_eq (pk : S.Node) (h : ar ≤ 2) (π : Permutation) :
       (primitives (lanes π) S.vp.params).Thash pk tm.1 tm.2.val)) = _
     let dec (u v : S.Node) : Closed (Work E) Bool := pure (decide (jm.2 ≠ tm.2 ∧ u=v))
     kexact congrArg₂ dec (row tm.1 jm.2) (row tm.1 tm.2)
+
+private theorem actual_eq (pk : S.Node) (h : ar ≤ 2) (π : Permutation) :
+    tcrInner (adversary S ar seeds A forge π) pk =
+      Phase.actual (SkFormat.split S) (Arity.input S ar pk h) (Select.prog S ar pk A.choose ([],[]))
+        (test S ar seeds A forge pk) π := by
+  let F := exactTable (SkFormat.split S) (Arity.input S ar pk h) π
+  have row (d : Bytes 32) (m : Msg S ar) : (primitives (lanes π) S.vp.params).Thash pk d m.val = F (d,m) :=
+    Arity.hash_eq S ar pk h π (d,m)
+  exact run_actual S ar seeds A forge pk π F row
 
 def loss (q Q : ℕ) : ℝ≥0∞ :=
   (2*((3*q : ℕ):ℝ≥0∞)+1)^2 / Fintype.card S.Node +

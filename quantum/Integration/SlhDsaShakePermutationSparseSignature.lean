@@ -52,7 +52,7 @@ theorem capAdv_eq (π : Permutation) : capAdv S ar rand seeds F π = qbTcrArM ar
   kexact congrArg₂ (fun c f => (⟨Open.TcrP1State S.vp P₀,c,f,F.ρ₀,F.posSemidef,F.trace_eq_one⟩ :
     QSM_DT_TCR_Adversary (ArityGame.Work E) (cappedGame S ar seeds π))) ch.symm fg
 
-theorem cap_inner (π : Permutation) (pk : S.Node) (h : ar ≤ 2) :
+theorem cap_inner (π : Permutation) (pk : S.Node) (h : ar ≤ 67) :
     tcrInner (capAdv S ar rand seeds F π) pk =
       tcrInner (ArityGame.adversary S ar seeds A M π) pk := by
   let r := (rpr π).Thash
@@ -74,12 +74,12 @@ theorem cap_inner (π : Permutation) (pk : S.Node) (h : ar ≤ 2) :
   cases v.2.1[jm.1]? with
   | none => rfl
   | some tm =>
-    have left := short S π pk tm.1 jm.2.val (jm.2.property.le.trans (h.trans (by decide : 2 ≤ 67)))
-    have right := short S π pk tm.1 tm.2.val (tm.2.property.le.trans (h.trans (by decide : 2 ≤ 67)))
+    have left := short S π pk tm.1 jm.2.val (jm.2.property.le.trans h)
+    have right := short S π pk tm.1 tm.2.val (tm.2.property.le.trans h)
     let dec (u v : S.Node) : Closed (ArityGame.Work E) Bool := pure (decide (jm.2 ≠ tm.2 ∧ u=v))
     kexact congrArg₂ dec left right
 
-theorem cap_advantage (π : Permutation) (h : ar ≤ 2) : qSM_DT_TCR_Advantage (qbTcrArM ar (B π)) =
+theorem cap_advantage (π : Permutation) (h : ar ≤ 67) : qSM_DT_TCR_Advantage (qbTcrArM ar (B π)) =
     qSM_DT_TCR_Advantage (ArityGame.adversary S ar seeds A M π) := by
   rw [← capAdv_eq S ar rand seeds F π]
   have eq : (∑' pk, PQ.Interactive.prob seeds (· = pk) * tcrInner (capAdv S ar rand seeds F π) pk) =
@@ -95,7 +95,7 @@ theorem signature_tcr (h : ar ≤ 2)
     uniformMean (fun π => qSM_DT_TCR_Advantage (qbTcrArM ar (B π))) ≤ ((2:ℝ≥0∞)^38)⁻¹ := by
   let q := 2^40 + 483 * tcrMHashes S.vp 1
   let Q := 17*tcrTargets S.vp
-  rw [show (fun π => qSM_DT_TCR_Advantage (qbTcrArM ar (B π))) = (fun π => qSM_DT_TCR_Advantage (ArityGame.adversary S ar seeds A M π)) from funext (fun π => cap_advantage S ar rand seeds F π h)]
+  rw [show (fun π => qSM_DT_TCR_Advantage (qbTcrArM ar (B π))) = (fun π => qSM_DT_TCR_Advantage (ArityGame.adversary S ar seeds A M π)) from funext (fun π => cap_advantage S ar rand seeds F π (h.trans (by decide)))]
   have phase2 (st : (A).State) (pk : S.Node) : PUE (spec := unifSpec) cnt0 (fun H => M H st pk) q := by
     kexact machine_cost S N rand F T₀ (le_refl N) ar st pk (2^40) 1 hq hs
   have phase1 (pk : S.Node) : CountBound (fun i => i.isRight = true)

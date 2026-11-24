@@ -25,12 +25,12 @@ local notation "B" => fun π : Permutation => qPureBytesToInternal (SkCost.cappe
 noncomputable def messageTerm := uniformMean (fun π => qItsrAdvantage (itsrProblem S.vp (P π)) (qbItsrL (B π)) F.ρ₀)
 noncomputable def arityTerm (ar : ℕ) := uniformMean (fun π => qSM_DT_TCR_Advantage (qbTcrArM ar (B π)))
 
-theorem three_remaining (c : Caps) (msg : c.ml = 65536)
+theorem three_remaining_precise (c : Caps) (msg : c.ml = 65536)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     let remaining := messageTerm S rand seeds F + arityTerm S rand seeds F S.vp.params.len + arityTerm S rand seeds F S.vp.params.k
-    strongAdvantage S rand seeds F ≤ remaining + ((2:ℝ≥0∞)^17)⁻¹ ∧
-    advantage S rand seeds F ≤ remaining + ((2:ℝ≥0∞)^17)⁻¹ := by
+    strongAdvantage S rand seeds F ≤ remaining + (((2:ℝ≥0∞)^18)⁻¹ + ((2:ℝ≥0∞)^29)⁻¹) ∧
+    advantage S rand seeds F ≤ remaining + (((2:ℝ≥0∞)^18)⁻¹ + ((2:ℝ≥0∞)^29)⁻¹) := by
   dsimp only
   let e : ℕ → ℝ≥0∞ := fun k => ((2:ℝ≥0∞)^k)⁻¹
   let d := e 42 + e 18
@@ -59,7 +59,7 @@ theorem three_remaining (c : Caps) (msg : c.ml = 65536)
   let z := arityTerm S rand seeds F S.vp.params.k
   have w : S.vp.params.w-2 = 14 := by cases S <;> decide
   rw [w] at both
-  have budget : d+0+(e 31+3*e 38)+(e 38+e 38)+(14:ℕ)*e 35+e 37+e 38 ≤ e 17 := by
+  have budget : d+0+(e 31+3*e 38)+(e 38+e 38)+(14:ℕ)*e 35+e 37+e 38 ≤ e 18 + e 29 := by
     dsimp only [d,e]
     apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
     simp (disch := finiteness) only [ENNReal.toReal_add,ENNReal.toReal_inv,ENNReal.toReal_pow,ENNReal.toReal_ofNat,
@@ -67,8 +67,22 @@ theorem three_remaining (c : Caps) (msg : c.ml = 65536)
     norm_num
   have arrange (d x y z a f u p t : ℝ≥0∞) :
       d+0+x+(a+3*f)+(f+f+y+z)+(14:ℕ)*u+p+t = x+y+z+(d+0+(a+3*f)+(f+f)+(14:ℕ)*u+p+t) := by ac_rfl
-  have strong : strongAdvantage S rand seeds F ≤ x+y+z+e 17 := both.trans (le_trans (le_of_eq (arrange d x y z (e 31) (e 38) (e 35) (e 37) (e 38))) (add_le_add le_rfl budget))
+  have strong : strongAdvantage S rand seeds F ≤ x+y+z+(e 18 + e 29) := both.trans (le_trans (le_of_eq (arrange d x y z (e 31) (e 38) (e 35) (e 37) (e 38))) (add_le_add le_rfl budget))
   exact ⟨strong,(Finset.sum_le_sum fun π _ => mul_le_mul' le_rfl (quantum_euf_le_suf (experiment S rand seeds F π))).trans strong⟩
 
+theorem three_remaining (c : Caps) (msg : c.ml = 65536)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    let remaining := messageTerm S rand seeds F + arityTerm S rand seeds F S.vp.params.len + arityTerm S rand seeds F S.vp.params.k
+    strongAdvantage S rand seeds F ≤ remaining + ((2:ℝ≥0∞)^17)⁻¹ ∧
+    advantage S rand seeds F ≤ remaining + ((2:ℝ≥0∞)^17)⁻¹ := by
+  have h := three_remaining_precise S rand seeds F c msg hq hs hc
+  have budget : ((2:ℝ≥0∞)^18)⁻¹ + ((2:ℝ≥0∞)^29)⁻¹ ≤ ((2:ℝ≥0∞)^17)⁻¹ := by
+    apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+    simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_inv, ENNReal.toReal_pow, ENNReal.toReal_ofNat]
+    norm_num
+  exact ⟨h.1.trans (add_le_add le_rfl budget), h.2.trans (add_le_add le_rfl budget)⟩
+
 end Reduction.ShakePermutation
+#print axioms Reduction.ShakePermutation.three_remaining_precise
 #print axioms Reduction.ShakePermutation.three_remaining
