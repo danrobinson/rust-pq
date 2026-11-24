@@ -23,17 +23,17 @@ private def pre (g : CompressionTables) : Ev → Prop
   | _ => False
 
 open Classical in
-private theorem split (i : Fin S.vp.params.k) (g : CompressionTables) (X : Closed Work Ev) (ρ : Matrix Work Work ℂ) :
-    qWeight (accepts S i g) X ρ ≤ qWeight (fun z => g.2 (readPre z) = MIdeal.Sha512.initial) X ρ +
-      qWeight (fun z => wins (coordinate S i) g (readPair z)) X ρ := by
+private theorem split {T : Type} (key : Chain512 → T) (g : CompressionTables) (X : Closed Work Ev) (ρ : Matrix Work Work ℂ) :
+    qWeight (acceptsBy key g) X ρ ≤ qWeight (fun z => g.2 (readPre z) = MIdeal.Sha512.initial) X ρ +
+      qWeight (fun z => wins key g (readPair z)) X ρ := by
   classical
-  let C := fun z => wins (coordinate S i) g (readPair z)
+  let C := fun z => wins key g (readPair z)
   have disj : ∀ z, pre g z → ¬ C z := by
     rintro (_ | u | p) <;> simp [C,pre,readPair,wins]
   have incl : ∀ z, pre g z → g.2 (readPre z) = MIdeal.Sha512.initial := by
     rintro (_ | u | p) <;> simp [pre,readPre]
-  have eq : ∀ z, accepts S i g z ↔ pre g z ∨ C z := by
-    rintro (_ | u | ⟨u,v⟩) <;> simp [accepts,pre,C,readPair,wins]
+  have eq : ∀ z, acceptsBy key g z ↔ pre g z ∨ C z := by
+    rintro (_ | u | ⟨u,v⟩) <;> simp [acceptsBy,pre,C,readPair,wins]
   calc _ = qWeight (fun z => pre g z ∨ C z) X ρ := qWeight_congr_ev eq _ _
        _ = _ := qWeight_or disj X ρ
        _ ≤ _ := add_le_add (qWeight_mono incl X ρ) le_rfl
@@ -42,16 +42,23 @@ noncomputable def coordinateLoss (q : ℕ) : ℝ≥0∞ :=
   (2*(q:ℝ≥0∞)+1)^2/2^512 + ENNReal.ofReal (16*((q:ℝ)+1)^3/2^(S.vp.params.h+S.vp.params.a))
 
 open Classical in
-theorem search_bound (i : Fin S.vp.params.k) (M : (Input → Output) → Closed Work Ev) (q : ℕ)
+theorem projected_search {T : Type} [DecidableEq T] (key : Chain512 → T) (bits : ℕ)
+    (balance : ∀ B : Finset T, ((Finset.univ.filter fun y => key y ∈ B).card : ℝ) / Fintype.card Chain512 ≤ (B.card:ℝ)/2^bits) (M : (Input → Output) → Closed Work Ev) (q : ℕ)
     (hq : PUE (spec := unifSpec) cnt0 M q) (ρ : Matrix Work Work ℂ) (hp : ρ.PosSemidef) (ht : ρ.trace = 1) :
-    uniformMean (fun g => qWeight (accepts S i g) (M (oracle g)) ρ) ≤ coordinateLoss S q := by
+    uniformMean (fun g => qWeight (acceptsBy key g) (M (oracle g)) ρ) ≤ (2*(q:ℝ≥0∞)+1)^2/2^512 + ENNReal.ofReal (16*((q:ℝ)+1)^3/2^bits) := by
   classical
   have pre := fixed_state_shared M readPre MIdeal.Sha512.initial ρ hp ht q hq
-  have col := shared_collision (coordinate S i) (2^(S.vp.params.h+S.vp.params.a)) (by positivity)
-    (fun B => (coordinate_fraction S i B).le) M readPair q hq ρ hp ht
+  have col := shared_collision key (2^bits) (by positivity)
+    balance M readPair q hq ρ hp ht
   apply le_trans _ (add_le_add pre col)
   simp only [uniformMean, ← Finset.sum_add_distrib, ← mul_add]
-  exact Finset.sum_le_sum fun g _ => mul_le_mul' le_rfl (split S i g _ ρ)
+  exact Finset.sum_le_sum fun g _ => mul_le_mul' le_rfl (split key g _ ρ)
+
+open Classical in
+theorem search_bound (i : Fin S.vp.params.k) (M : (Input → Output) → Closed Work Ev) (q : ℕ)
+    (hq : PUE (spec := unifSpec) cnt0 M q) (ρ : Matrix Work Work ℂ) (hp : ρ.PosSemidef) (ht : ρ.trace = 1) :
+    uniformMean (fun g => qWeight (accepts S i g) (M (oracle g)) ρ) ≤ coordinateLoss S q :=
+  projected_search (coordinate S i) _ (fun B => (coordinate_fraction S i B).le) M q hq ρ hp ht
 
 variable (r : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node) (F : PortForger Input Output E)
 def queries (L q qs : ℕ) := machineBudget S L q qs + (extractionBudget S L qs + extractionBudget S L qs)

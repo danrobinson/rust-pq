@@ -7,7 +7,7 @@ variable (S : Sha2Set)
 abbrev Cell := HmacKey.InputCell
 abbrev Entry := Cell × Chain512
 
-private theorem final_subset (hw : S.vp.params.n ≠ 16) (g : CompressionTables)
+theorem final_subset (hw : S.vp.params.n ≠ 16) (g : CompressionTables)
     (cand : Query S) (ts : List (Query S)) (u : Cell) (hu : u ∈ finalCells S g cand ts) :
     u ∈ cells S g cand ts := by
   obtain ⟨x,hx,rfl⟩ := List.mem_map.mp (List.mem_dedup.mp hu)
@@ -25,16 +25,19 @@ private theorem final_subset (hw : S.vp.params.n ≠ 16) (g : CompressionTables)
 def trace (g : CompressionTables) (cand : Query S) (ts : List (Query S)) : List Entry :=
   (cells S g cand ts).map fun u => (u,g.2 u)
 
-def select (i : Fin S.vp.params.k) (xs : List Entry) : Option HmacKey.Evidence :=
+def selectBy {T : Type} [DecidableEq T] (key : Chain512 → T) (xs : List Entry) : Option HmacKey.Evidence :=
   match xs.find? (fun z => decide (z.2 = MIdeal.Sha512.initial)) with
   | some z => some (.inl z.1)
   | none => ((xs.product xs).find? (fun p => decide
-      (p.1.1 ≠ p.2.1 ∧ coordinate S i p.1.2 = coordinate S i p.2.2))).map (fun p => .inr (p.1.1,p.2.1))
+      (p.1.1 ≠ p.2.1 ∧ key p.1.2 = key p.2.2))).map (fun p => .inr (p.1.1,p.2.1))
 
-def accepts (i : Fin S.vp.params.k) (g : CompressionTables) : Option HmacKey.Evidence → Prop
+def acceptsBy {T : Type} (key : Chain512 → T) (g : CompressionTables) : Option HmacKey.Evidence → Prop
   | none => False
   | some (.inl u) => g.2 u = MIdeal.Sha512.initial
-  | some (.inr (u,v)) => u ≠ v ∧ coordinate S i (g.2 u) = coordinate S i (g.2 v)
+  | some (.inr (u,v)) => u ≠ v ∧ key (g.2 u) = key (g.2 v)
+
+def select (i : Fin S.vp.params.k) := selectBy (coordinate S i)
+def accepts (i : Fin S.vp.params.k) := acceptsBy (coordinate S i)
 
 noncomputable local instance (g : CompressionTables) : SampleableType (tablePrimitives g S.vp.params).Y :=
   inferInstanceAs (SampleableType S.Node)
@@ -42,40 +45,51 @@ noncomputable local instance (g : CompressionTables) : SampleableType (tablePrim
 open Classical in
 /-- Reading the candidate and target paths extracts a fixed-IV preimage or two
 distinct compression addresses matching both the FIPS leaf and FORS index i. -/
-theorem selects_hit (hw : S.vp.params.n ≠ 16) (g : CompressionTables) (cand : Query S) (ts : List (Query S))
-    (win : (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand) (i : Fin S.vp.params.k) :
-    accepts S i g (select S i (trace S g cand ts)) := by
+theorem selects_witness {T : Type} [DecidableEq T] (key : Chain512 → T)
+    (g : CompressionTables) (cand : Query S) (ts : List (Query S))
+    (witness : (∃ u ∈ cells S g cand ts, ∃ v ∈ cells S g cand ts, u ≠ v ∧ key (g.2 u) = key (g.2 v)) ∨
+      (∃ u ∈ cells S g cand ts, g.2 u = MIdeal.Sha512.initial)) :
+    acceptsBy key g (selectBy key (trace S g cand ts)) := by
   let xs := trace S g cand ts
   have mem (e : Entry) (h : e ∈ xs) : g.2 e.1 = e.2 := by
     obtain ⟨u,_,rfl⟩ := List.mem_map.mp h
     rfl
   have entry (u : Cell) (h : u ∈ cells S g cand ts) : (u,g.2 u) ∈ xs := List.mem_map.mpr ⟨_,h,rfl⟩
-  change accepts S i g (select S i xs)
-  unfold select
+  change acceptsBy key g (selectBy key xs)
+  unfold selectBy
   cases he : xs.find? (fun z => decide (z.2 = MIdeal.Sha512.initial)) with
   | some z => exact (mem _ (List.mem_of_find?_eq_some he)).trans (of_decide_eq_true (List.find?_some (p := fun e : Entry => decide (e.2 = MIdeal.Sha512.initial)) he))
   | none =>
-    let ok := fun p : Entry × Entry => decide (p.1.1 ≠ p.2.1 ∧ coordinate S i p.1.2 = coordinate S i p.2.2)
-    change accepts S i g (((xs.product xs).find? ok).map _)
+    let ok := fun p : Entry × Entry => decide (p.1.1 ≠ p.2.1 ∧ key p.1.2 = key p.2.2)
+    change acceptsBy key g (((xs.product xs).find? ok).map _)
     cases hp : (xs.product xs).find? ok with
     | some p =>
       have m := List.mem_product.mp (List.mem_of_find?_eq_some hp)
-      have h : p.1.1 ≠ p.2.1 ∧ coordinate S i p.1.2 = coordinate S i p.2.2 := of_decide_eq_true (List.find?_some (p := ok) hp)
+      have h : p.1.1 ≠ p.2.1 ∧ key p.1.2 = key p.2.2 := of_decide_eq_true (List.find?_some (p := ok) hp)
       exact ⟨h.1,by rw [mem _ m.1,mem _ m.2]; exact h.2⟩
     | none =>
       exfalso
       have noPair (u v : Cell) (mu : u ∈ cells S g cand ts) (mv : v ∈ cells S g cand ts) (ne : u ≠ v)
-          (eq : coordinate S i (g.2 u) = coordinate S i (g.2 v)) : False := by
+          (eq : key (g.2 u) = key (g.2 v)) : False := by
         have hh := List.find?_eq_none.mp hp ((u,g.2 u),(v,g.2 v))
           (List.mem_product.mpr ⟨entry u mu,entry v mv⟩)
         simp [ok,ne,eq] at hh
-      rcases win_witness S hw g cand ts win with cov | ⟨u,mu,hit⟩ | ⟨u,mu,v,mv,ne,eq⟩
-      · obtain ⟨u,hu,h⟩ := cover_cells S g _ (List.nodup_dedup _) cov
-        obtain ⟨v,hv,ne,eq⟩ := h i
-        exact noPair _ _ (final_subset S hw g cand ts _ hu) (final_subset S hw g cand ts _ hv) ne eq
+      rcases witness with ⟨u,mu,v,mv,ne,eq⟩ | ⟨u,mu,hit⟩
+      · exact noPair _ _ mu mv ne eq
       · have hh := List.find?_eq_none.mp he (u,g.2 u) (entry _ mu)
         simp [hit] at hh
-      · exact noPair _ _ mu mv ne (congrArg (coordinate S i) eq)
+
+open Classical in
+theorem selects_hit (hw : S.vp.params.n ≠ 16) (g : CompressionTables) (cand : Query S) (ts : List (Query S))
+    (win : (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand) (i : Fin S.vp.params.k) :
+    accepts S i g (select S i (trace S g cand ts)) := by
+  apply selects_witness
+  rcases win_witness S hw g cand ts win with cov | iv | ⟨u,mu,v,mv,ne,eq⟩
+  · obtain ⟨u,hu,h⟩ := cover_cells S g _ (List.nodup_dedup _) cov
+    obtain ⟨v,hv,ne,eq⟩ := h i
+    exact Or.inl ⟨u,final_subset S hw g cand ts _ hu,v,final_subset S hw g cand ts _ hv,ne,eq⟩
+  · exact Or.inr iv
+  · exact Or.inl ⟨u,mu,v,mv,ne,congrArg (coordinate S i) eq⟩
 
 private theorem md_len (g : CF Chain512 Block512) (c : Chain512) (bs : List Block512) :
     (mdCells g c bs).length = bs.length := by
@@ -105,16 +119,21 @@ private theorem read_cost (xs : List Cell) :
 
 /-- Public query budget to report a witness, including the SHA-512 reads used
 to compare states and to check the FORS coordinate. -/
-theorem select_cost (hw : S.vp.params.n ≠ 16) (cand : Query S) (ts : List (Query S)) (i : Fin S.vp.params.k) :
-    EvalCost (fun H => (pure (select S i (trace S (tablesOf H) cand ts)) : ProbComp _))
+theorem selectBy_cost {T : Type} [DecidableEq T] (key : Chain512 → T) (hw : S.vp.params.n ≠ 16) (cand : Query S) (ts : List (Query S)) :
+    EvalCost (fun H => (pure (selectBy key (trace S (tablesOf H) cand ts)) : ProbComp _))
       (traceBudget S (cand::ts) + traceBudget S (cand::ts)) := by
   let B := traceBudget S (cand::ts)
-  have rd (xs : List Cell) := ((read_cost (xs.take B)).map (select S i)).mono (List.length_take_le B xs)
+  have rd (xs : List Cell) := ((read_cost (xs.take B)).map (selectBy key)).mono (List.length_take_le B xs)
   have h := EvalCost.bind (cells_cost S hw cand ts) rd
   have take (H : Input → Output) : (cells S (tablesOf H) cand ts).take B = cells S (tablesOf H) cand ts :=
     List.take_of_length_le (cells_len S hw _ cand ts)
   simp only [pure_bind,map_pure,take] at h
   exact h
+
+theorem select_cost (hw : S.vp.params.n ≠ 16) (cand : Query S) (ts : List (Query S)) (i : Fin S.vp.params.k) :
+    EvalCost (fun H => (pure (select S i (trace S (tablesOf H) cand ts)) : ProbComp _))
+      (traceBudget S (cand::ts) + traceBudget S (cand::ts)) :=
+  selectBy_cost S (coordinate S i) hw cand ts
 
 end Reduction.Compression.MessageHash
 #print axioms Reduction.Compression.MessageHash.selects_hit
