@@ -40,6 +40,21 @@ theorem submission_interval (S : Sha2Set) (s : ℕ) (life : s ≤ 2^64) :
   rw [width]
   cases S <;> norm_num [scaledCeiling,coverageBits]
 
+/-- Table 3 lists 133, 193 and 194 bits in these rows. Even the
+uniform-guess term rules out those thresholds for the combined coefficient.
+The conclusion holds for every number of independent signed targets. -/
+theorem submission_table_discrepancy (s : ℕ) :
+    ((2:ℝ≥0∞)^133)⁻¹ < submissionCoefficient .s128s s ∧
+    ((2:ℝ≥0∞)^193)⁻¹ < submissionCoefficient .s192s s ∧
+    ((2:ℝ≥0∞)^194)⁻¹ < submissionCoefficient .s192f s := by
+  have cap (S : Sha2Set) (b : ℕ) (wide : 8*S.vp.params.n < b) :
+      ((2:ℝ≥0∞)^b)⁻¹ < submissionCoefficient S s := by
+    apply lt_of_lt_of_le _ (show ((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹ ≤ submissionCoefficient S s from le_self_add)
+    apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
+    simp only [ENNReal.toReal_inv,ENNReal.toReal_pow,ENNReal.toReal_ofNat]
+    exact inv_lt_inv₀ (by positivity) (by positivity) |>.2 (pow_lt_pow_right₀ (by norm_num) wide)
+  exact ⟨cap _ _ (by decide),cap _ _ (by decide),cap _ _ (by decide)⟩
+
 /-- The 256f coefficient exceeds twice the uniform node-guess term. -/
 theorem submission_256f_floor :
     ((2:ℝ≥0∞)^255)⁻¹ < submissionCoefficient .s256f (2^64) := by
@@ -54,3 +69,4 @@ end Reduction.ForsLifetime
 #print axioms Reduction.ForsLifetime.submission_interval
 #print axioms Reduction.ForsLifetime.submission_256f_floor
 #print axioms Reduction.ForsLifetime.submission_binomial
+#print axioms Reduction.ForsLifetime.submission_table_discrepancy
