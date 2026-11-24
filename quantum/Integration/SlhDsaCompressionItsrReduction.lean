@@ -56,15 +56,17 @@ theorem projected_cost (hw : S.vp.params.n ≠ 16) {T : Type} [DecidableEq T] (k
   · exact PUE.pure none _
 
 open Classical in
-theorem projected_success {T : Type} [DecidableEq T] (key : Chain512 → T) (c : Caps) (qs : ℕ)
+theorem projected_event {T : Type} [DecidableEq T] (key : Chain512 → T) (c : Caps) (qs : ℕ)
     (hs : ∀ pk, CountBound isSign (F.main pk) qs) (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
     (g : CompressionTables)
-    (hit : ∀ cand ts, ts.length ≤ qs → (itsrProblem S.vp (randPrims (functions S g))).Wins ts cand →
+    (P : Query S × List (Query S) → Prop) [DecidablePred P]
+    (hit : ∀ cand ts, ts.length ≤ qs → P (cand,ts) →
       acceptsBy key g (selectBy key (trace S g cand ts))) :
-    qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S r seeds F g)) F.ρ₀ ≤
+    qWeight P (close (ITSROracles (itsrProblem S.vp (randPrims (functions S g))))
+      (qbItsrL (reduced S r seeds F g)) []) F.ρ₀ ≤
     qWeight (acceptsBy key g) (projectedMachine S r seeds F key c.ml qs (oracle g)) F.ρ₀ := by
   classical
-  unfold projectedMachine qItsrAdvantage
+  unfold projectedMachine
   rw [qWeight_map,tablesOf_oracle,machine_oracle]
   have eq : ITSROracles (itsrProblem S.vp (randPrims (carrier S))) =
       ITSROracles (itsrProblem S.vp (randPrims (functions S g))) := rfl
@@ -75,6 +77,16 @@ theorem projected_success {T : Type} [DecidableEq T] (key : Chain512 → T) (c :
   change acceptsBy key g (collectBy S key g _ z)
   rw [collectBy,ite_eq_left h]
   exact hit z.1 z.2 cap.2.1 win
+
+open Classical in
+theorem projected_success {T : Type} [DecidableEq T] (key : Chain512 → T) (c : Caps) (qs : ℕ)
+    (hs : ∀ pk, CountBound isSign (F.main pk) qs) (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
+    (g : CompressionTables)
+    (hit : ∀ cand ts, ts.length ≤ qs → (itsrProblem S.vp (randPrims (functions S g))).Wins ts cand →
+      acceptsBy key g (selectBy key (trace S g cand ts))) :
+    qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S r seeds F g)) F.ρ₀ ≤
+    qWeight (acceptsBy key g) (projectedMachine S r seeds F key c.ml qs (oracle g)) F.ρ₀ :=
+  projected_event S r seeds F key c qs hs hc g _ hit
 
 noncomputable def witnessMachine (i : Fin S.vp.params.k) (L qs : ℕ) (H : Input → Output) :
     Closed Work (Option HmacKey.Evidence) :=
