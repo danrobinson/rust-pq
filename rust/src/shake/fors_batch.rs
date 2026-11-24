@@ -14,7 +14,7 @@ fn word(input: &[u8], i: usize) -> u64 {
 
 /// Fused `FORS_PRF` followed immediately by level-0 `FORS_TREE` hashing in place,
 /// avoiding intermediate byte serialization between secret generation and leaf hashing.
-fn fors_leaves_fused<const N: usize>(
+pub(super) fn fors_leaves_fused<const N: usize>(
     sk: &[u8; N],
     seed: &[u8; N],
     addr: Adrs,
@@ -73,7 +73,7 @@ fn fors_leaves_fused<const N: usize>(
 
 /// Compute a FORS subtree of `height >= 3` horizontally in 8-way batches (zero heap
 /// allocation, zero wasted lanes, fused PRF -> leaf hash, and 8-way parent hashing).
-fn fors_subtree_horiz<const N: usize>(
+pub(super) fn fors_subtree_horiz<const N: usize>(
     sk: &[u8; N],
     seed: &[u8; N],
     addr: Adrs,

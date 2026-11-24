@@ -98,8 +98,8 @@ shake_only! {
         all(target_arch = "x86_64", target_feature = "sse2")
     ))]
     mod shake_fors_simd {
-        use super::super::super::batch::{pair, short};
-        use super::super::super::xmss::hash2;
+        use super::super::super::batch::{pair_active, short_active};
+        use super::super::super::fors_batch::{fors_leaves_fused, fors_subtree_horiz};
         use crate::address::{Adrs, FORS_PRF};
         use crate::shake256::parallel::WIDTH;
 
@@ -108,31 +108,15 @@ shake_only! {
             seed: &[u8; N],
             addr: Adrs,
             indices: [u32; WIDTH],
+            active: usize,
         ) -> [[u8; N]; WIDTH] {
             let prf = addr.with_type(FORS_PRF).with_keypair(addr.keypair);
-            short(seed, &indices.map(|i| prf.with_word3(i)), &[*sk; WIDTH])
+            short_active(seed, &indices.map(|i| prf.with_word3(i)), &[*sk; WIDTH], active)
         }
 
-        pub(super) fn nodes<const N: usize>(
-            sk: &[u8; N],
-            seed: &[u8; N],
-            addr: Adrs,
-            indices: [u32; WIDTH],
-            level: u32,
-        ) -> [[u8; N]; WIDTH] {
-            let addresses = indices.map(|i| addr.with_word2(level).with_word3(i));
-            if level == 0 {
-                short(seed, &addresses, &secrets(sk, seed, addr, indices))
-            } else {
-                let left = nodes(sk, seed, addr, indices.map(|i| i * 2), level - 1);
-                let right = nodes(sk, seed, addr, indices.map(|i| i * 2 + 1), level - 1);
-                pair(seed, &addresses, &left, &right)
-            }
-        }
-
-        /// Compute `active` (`1..=WIDTH`) FORS nodes at `level`. When `active == 1`
-        /// and `WIDTH` is a power of two, batch horizontally inside the single subtree
-        /// so all SIMD lanes stay full.
+        /// Compute `active` (`1..=WIDTH`) FORS nodes at `level`. When `WIDTH == 8`
+        /// and `level >= 3`, run each active subtree horizontally at full 8-way SIMD
+        /// width with zero wasted lanes.
         pub(super) fn nodes_active<const N: usize>(
             sk: &[u8; N],
             seed: &[u8; N],
@@ -141,28 +125,28 @@ shake_only! {
             active: usize,
             level: u32,
         ) -> [[u8; N]; WIDTH] {
-            if active == 1 && WIDTH.is_power_of_two() && level >= WIDTH.trailing_zeros() {
-                let shift = WIDTH.trailing_zeros();
-                let idx = indices[0];
-                let sub_idx = core::array::from_fn(|lane| (idx << shift) + lane as u32);
-                let mut vals = nodes(sk, seed, addr, sub_idx, level - shift);
-                let mut count = WIDTH / 2;
-                for s in 1..=shift {
-                    let lvl = level - shift + s;
-                    let base = idx << (shift - s);
-                    for k in 0..count {
-                        vals[k] = hash2(
-                            seed,
-                            &addr.with_word2(lvl).with_word3(base + k as u32),
-                            &vals[2 * k],
-                            &vals[2 * k + 1],
-                        );
-                    }
-                    count /= 2;
+            if WIDTH == 8 && level >= 3 {
+                let mut out = [[0u8; N]; WIDTH];
+                for lane in 0..active {
+                    out[lane] = fors_subtree_horiz(sk, seed, addr, indices[lane], level);
                 }
-                return [vals[0]; WIDTH];
+                return out;
             }
-            nodes(sk, seed, addr, indices, level)
+            if level == 0 {
+                fors_leaves_fused(sk, seed, addr, &indices, active)
+            } else {
+                let left = nodes_active(sk, seed, addr, indices.map(|i| i * 2), active, level - 1);
+                let right = nodes_active(
+                    sk,
+                    seed,
+                    addr,
+                    indices.map(|i| i * 2 + 1),
+                    active,
+                    level - 1,
+                );
+                let addresses = indices.map(|i| addr.with_word2(level).with_word3(i));
+                pair_active(seed, &addresses, &left, &right, active)
+            }
         }
     }
 }
@@ -323,67 +307,127 @@ pub(super) fn sign<const N: usize>(
         if super::super::batch::available::<N>() {
             use crate::shake256::parallel::WIDTH;
             built_shake_simd_fors = true;
-            // Split tall FORS trees (`a >= 9` on SHAKE) into height-9 (for `-s`)
-            // or height-8 (for 256f) subtrees across WIDTH-tree SIMD groups.
-            let fors_target: u32 = if a >= 10 {
-                9
-            } else if a >= 9 {
-                8
-            } else {
-                a
-            };
-            let low_h = a.min(fors_target);
-            for first in (0..k).step_by(WIDTH) {
-                let active = (k - first).min(WIDTH);
-                jobs.push(WorkItem {
-                    weight: 1u32 << low_h,
-                    kind: WorkKind::ForsShakeLow {
-                        first: first as u16,
-                        active: active as u8,
-                        low_h: low_h as u8,
-                    },
-                });
-                for j in low_h..a {
-                    let split = j - fors_target;
-                    let chunks = 1usize << split;
-                    if split == 0 {
-                        jobs.push(WorkItem {
-                            weight: 1u32 << j,
-                            kind: WorkKind::ForsShakeDirect {
-                                first: first as u16,
-                                active: active as u8,
-                                height: j as u8,
-                            },
-                        });
-                    } else {
-                        let split_base = fors_split_count;
-                        fors_split_count += active * chunks;
-                        for lane in 0..active {
-                            let t = (first + lane) as u32;
-                            let root_idx = (t << (a - j)) + ((fors_indices[t as usize] >> j) ^ 1);
+            if WIDTH == 8 {
+                // Heights 0..3 batch across trees in WIDTH-tree SIMD groups; every
+                // height >= 3 runs horizontally inside `fors_subtree_horiz` at full
+                // 8-way SIMD width, so emit fine-grained per-tree subtree jobs for
+                // optimal multicore load balancing across all cores.
+                let low_h = a.min(3);
+                for first in (0..k).step_by(WIDTH) {
+                    let active = (k - first).min(WIDTH);
+                    jobs.push(WorkItem {
+                        weight: (active as u32) << low_h,
+                        kind: WorkKind::ForsShakeLow {
+                            first: first as u16,
+                            active: active as u8,
+                            low_h: low_h as u8,
+                        },
+                    });
+                }
+                let fors_target: u32 = if a >= 10 { 9 } else if a >= 9 { 8 } else { a };
+                for t in 0..p.k {
+                    let idx = fors_indices[t as usize];
+                    for j in low_h..a {
+                        let root_idx = (t << (a - j)) + ((idx >> j) ^ 1);
+                        let split = j.saturating_sub(fors_target);
+                        if split == 0 {
+                            jobs.push(WorkItem {
+                                weight: 1u32 << j,
+                                kind: WorkKind::ForsNodeDirect {
+                                    idx: root_idx,
+                                    height: j,
+                                    slot: t as usize * fors_stride + 1 + j as usize,
+                                },
+                            });
+                        } else {
+                            let chunks = 1usize << split;
+                            let slot_start = fors_split_count;
+                            fors_split_count += chunks;
                             fors_split_meta.push(ForsSplitMeta {
                                 tree: t,
                                 height: j,
                                 root_idx,
                                 sub_h: fors_target,
-                                slot_start: split_base + lane * chunks,
+                                slot_start,
                                 chunks,
                             });
+                            let weight = 1u32 << fors_target;
+                            for c in 0..chunks {
+                                jobs.push(WorkItem {
+                                    weight,
+                                    kind: WorkKind::ForsNodeSplit {
+                                        idx: (root_idx << split) + c as u32,
+                                        height: fors_target,
+                                        slot: slot_start + c,
+                                    },
+                                });
+                            }
                         }
-                        let weight = 1u32 << fors_target;
-                        for c in 0..chunks {
+                    }
+                }
+            } else {
+                // Split tall FORS trees (`a >= 9` on SHAKE) into height-9 (for `-s`)
+                // or height-8 (for 256f) subtrees across WIDTH-tree SIMD groups.
+                let fors_target: u32 = if a >= 10 {
+                    9
+                } else if a >= 9 {
+                    8
+                } else {
+                    a
+                };
+                let low_h = a.min(fors_target);
+                for first in (0..k).step_by(WIDTH) {
+                    let active = (k - first).min(WIDTH);
+                    jobs.push(WorkItem {
+                        weight: 1u32 << low_h,
+                        kind: WorkKind::ForsShakeLow {
+                            first: first as u16,
+                            active: active as u8,
+                            low_h: low_h as u8,
+                        },
+                    });
+                    for j in low_h..a {
+                        let split = j - fors_target;
+                        let chunks = 1usize << split;
+                        if split == 0 {
                             jobs.push(WorkItem {
-                                weight,
-                                kind: WorkKind::ForsShakeSplit {
+                                weight: 1u32 << j,
+                                kind: WorkKind::ForsShakeDirect {
                                     first: first as u16,
                                     active: active as u8,
                                     height: j as u8,
-                                    sub_h: fors_target as u8,
-                                    chunk: c as u32,
-                                    split_base,
-                                    chunks,
                                 },
                             });
+                        } else {
+                            let split_base = fors_split_count;
+                            fors_split_count += active * chunks;
+                            for lane in 0..active {
+                                let t = (first + lane) as u32;
+                                let root_idx = (t << (a - j)) + ((fors_indices[t as usize] >> j) ^ 1);
+                                fors_split_meta.push(ForsSplitMeta {
+                                    tree: t,
+                                    height: j,
+                                    root_idx,
+                                    sub_h: fors_target,
+                                    slot_start: split_base + lane * chunks,
+                                    chunks,
+                                });
+                            }
+                            let weight = 1u32 << fors_target;
+                            for c in 0..chunks {
+                                jobs.push(WorkItem {
+                                    weight,
+                                    kind: WorkKind::ForsShakeSplit {
+                                        first: first as u16,
+                                        active: active as u8,
+                                        height: j as u8,
+                                        sub_h: fors_target as u8,
+                                        chunk: c as u32,
+                                        split_base,
+                                        chunks,
+                                    },
+                                });
+                            }
                         }
                     }
                 }
@@ -554,7 +598,8 @@ pub(super) fn sign<const N: usize>(
                                 let t = first + lane.min(active - 1);
                                 ((t as u32) << a) + fors_indices[t]
                             });
-                            let secret = shake_fors_simd::secrets(sk, seed, fors_addr, indices);
+                            let secret =
+                                shake_fors_simd::secrets(sk, seed, fors_addr, indices, active);
                             for lane in 0..active {
                                 fors_direct[(first + lane) * fors_stride]
                                     .set(secret[lane])

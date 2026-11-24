@@ -15,6 +15,10 @@ pub(super) fn fors_sk_gen<const N: usize>(sk: &[u8; N], seed: &Seed<N>, adrs: Ad
 }
 
 pub(super) fn fors_node<const N: usize>(sk: &[u8; N], i: u32, z: u32, seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
+    if z >= 3 && crate::shake256::parallel::WIDTH == 8 && super::batch::available::<N>() {
+        return super::fors_batch::fors_subtree_horiz(sk, seed, adrs, i, z);
+    }
     let a = adrs.with_word2(z).with_word3(i);
     if z == 0 {
         thash(seed, &a, &fors_sk_gen(sk, seed, adrs, i))
