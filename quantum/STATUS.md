@@ -76,7 +76,7 @@ replaces the two keyed starting states together in the actual message-PRF
 experiment. The loss is at most `8q²/2^(8n)` with the external compression port
 available throughout. The weighted budget charges each message evaluation for
 its remaining inner blocks and its outer compression. The ideal side of this
-hop continues HMAC from two independent chaining states.
+hop continues HMAC from two independent chaining states. The [signature-level message PRF theorem](Integration/SlhDsaCompressionHmacSignature.lean) derives the weighted budget from the actual byte forger’s queries and maximum encoded message length.
 
 For each wider set, the [composed HMAC theorem](Integration/SlhDsaCompressionHmac.lean)
 also replaces the outer compression with a private random function of the inner

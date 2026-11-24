@@ -27,3 +27,4 @@ import MIdeal.PureCompression
 import MIdeal.Class128f
 import MIdeal.Class128fFixed
 import MIdeal.Class128fBound
+import MIdeal.Wots128fPhase

@@ -8,6 +8,15 @@ variable {W D T R α : Type} [Fintype W] [DecidableEq D] [DecidableEq T]
 
 private abbrev PS (D R : Type) := PRFScheme.PRFOracleSpec D R
 
+/-- Handle a classical query after evaluating its digest. -/
+noncomputable def onQuery (d : D) (v : T)
+    (k : R → (T → Option D) → (D →ₒ R).QueryCache → Closed W (Option (D × D)))
+    (seen : T → Option D) (c : (D →ₒ R).QueryCache) : Closed W (Option (D × D)) :=
+  if (seen v).any (· != d) then pure ((seen v).map (·,d)) else
+    match c d with
+    | some r => k r seen c
+    | none => liftU ($ᵗ R) >>= fun r => k r (Function.update seen v (some d)) (c.cacheQuery d r)
+
 /-- A replay of the ideal message experiment that returns the first pair of distinct
 queries mapped to the same digest, or none when the machine finishes. -/
 noncomputable def watch (h : D → T) (Q : QOC W (PS D R) α) :
@@ -17,14 +26,10 @@ noncomputable def watch (h : D → T) (Q : QOC W (PS D R) α) :
     (fun t _ ih seen c => match t, ih with
       | .inl j, ih => liftM ((instrSpec W + unifSpec).query (.inl j)) >>= fun x => ih x seen c
       | .inr (.inl n), ih => liftM ((instrSpec W + unifSpec).query (.inr n)) >>= fun x => ih x seen c
-      | .inr (.inr d), ih =>
-        if (seen (h d)).any (· != d) then pure ((seen (h d)).map (·,d)) else
-        match c d with
-        | some v => ih v seen c
-        | none => liftU ($ᵗ R) >>= fun v => ih v (Function.update seen (h d) (some d)) (c.cacheQuery d v)) Q
+      | .inr (.inr d), ih => onQuery d (h d) ih seen c) Q
 
 omit [Inhabited R] [Fintype R] [DecidableEq R] in
-private theorem watch_query (h : D → T) (d : D) (k : R → QOC W (PS D R) α) (seen) (c) :
+theorem watch_query (h : D → T) (d : D) (k : R → QOC W (PS D R) α) (seen) (c) :
     watch h (liftM ((instrSpec W + PS D R).query (.inr (.inr d))) >>= k) seen c =
       if (seen (h d)).any (· != d) then pure ((seen (h d)).map (·,d)) else
       match c d with
