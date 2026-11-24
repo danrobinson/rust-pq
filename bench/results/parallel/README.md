@@ -1,6 +1,6 @@
 # Retest of the 122 previous SLH-DSA losses
 
-With the opt-in `parallel` feature, formal-sig finished ahead of the same peer in every measured round of all 122 comparisons it had previously lost. These comprised 41 deterministic signing, 40 hedged signing, 24 key generation and 17 verification comparisons. Each comparison fixes the CPU, peer configuration, parameter set, message size and operation. The smallest median lead was 1.056×. The two Graviton platforms had no previous losses and were outside this retest. [Original seven-platform results](../optimized-competitors/README.md) · [All 122 before, after and peer measurements](prior-losses.csv)
+With the opt-in `parallel` feature, rust-pq finished ahead of the same peer in every measured round of all 122 comparisons it had previously lost. These comprised 41 deterministic signing, 40 hedged signing, 24 key generation and 17 verification comparisons. Each comparison fixes the CPU, peer configuration, parameter set, message size and operation. The smallest median lead was 1.056×. The two Graviton platforms had no previous losses and were outside this retest. [Original seven-platform results](../optimized-competitors/README.md) · [All 122 before, after and peer measurements](prior-losses.csv)
 
 | CPU | Previous losses reversed | Peer |
 |---|---:|---|

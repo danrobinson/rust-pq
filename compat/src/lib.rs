@@ -7,7 +7,7 @@
 //! [`Sha2_256s`], [`Sha2_256f`]) can switch by changing the dependency:
 //!
 //! ```toml
-//! slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
+//! slh-dsa = { package = "slhdsa-compat", path = "…/rust-pq/compat" }
 //! ```
 //!
 //! ```

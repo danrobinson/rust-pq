@@ -1,4 +1,4 @@
-# formal-sig
+# rust-pq
 
 A Rust implementation of all twelve pure **SLH-DSA** parameter sets in FIPS 205
 (the standardised SPHINCS+). Lean 4 proofs connect the Rust SHA-2 and SHAKE256
@@ -13,11 +13,11 @@ All twelve sets have source-level leakage proofs. Lean also proves that the meas
 
 ## Use the 0.2.0 source release
 
-Extract `formal-sig-0.2.0.tar.gz` and point Cargo at the adapter to use the RustCrypto-style API. Keep the extracted directory together so Cargo can resolve the sibling core crate.
+Extract `rust-pq-0.2.0.tar.gz` and point Cargo at the adapter to use the RustCrypto-style API. Keep the extracted directory together so Cargo can resolve the sibling core crate.
 
 ```toml
 [dependencies]
-slh-dsa = { package = "slhdsa-compat", path = "formal-sig-0.2.0/compat" }
+slh-dsa = { package = "slhdsa-compat", path = "rust-pq-0.2.0/compat" }
 ```
 
 The portable implementation is the default. Enable `platform-sha2` for runtime-dispatched SHA-2 and SHAKE kernels, or `parallel` for CPU-parallel signing. [Usage examples](compat/README.md) · [Benchmark comparisons](#performance) · [Release contents and checks](RELEASE.md)
@@ -141,7 +141,7 @@ The Apple host ran under normal scheduling with concurrent work.
 
 ### Botan, Conduition and Fluhrer
 
-Each cell counts workloads where formal-sig had lower median latency, out of the workloads measured for that peer. Each workload fixes the processor, parameter set, operation and message size. The two CPU builds of Conduition support the four 128-bit sets. Its GPU results cover SHA2-128s and SHA2-128f on Apple. Fluhrer ran on the four x86 hosts. [Operation counts](bench/results/optimized-competitors/operations.csv) · [Absolute times, including losses](bench/results/optimized-competitors/workloads.csv)
+Each cell counts workloads where rust-pq had lower median latency, out of the workloads measured for that peer. Each workload fixes the processor, parameter set, operation and message size. The two CPU builds of Conduition support the four 128-bit sets. Its GPU results cover SHA2-128s and SHA2-128f on Apple. Fluhrer ran on the four x86 hosts. [Operation counts](bench/results/optimized-competitors/operations.csv) · [Absolute times, including losses](bench/results/optimized-competitors/workloads.csv)
 
 | Peer configuration | Key generation | Public-key extraction | Deterministic sign | Hedged sign | Verify |
 |---|---:|---:|---:|---:|---:|
@@ -156,7 +156,7 @@ Fluhrer’s two-thread signer was faster on EPYC 9R45 in the aggregate determini
 
 ### Earlier single-set comparisons
 
-The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable formal-sig, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
+The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable rust-pq, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
 
 ### Parallel CPU signing (`parallel`)
 
@@ -320,7 +320,7 @@ the PKCS#8 encodings. A program that uses `slh-dsa` with the SHA-2 sets switches
 dependency line:
 
 ```toml
-slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
+slh-dsa = { package = "slhdsa-compat", path = "…/rust-pq/compat" }
 ```
 
 The public SHA-2 and SHAKE proofs follow the production signer and verifier through message

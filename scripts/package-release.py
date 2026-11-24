@@ -26,7 +26,7 @@ def main():
     }
     if len(versions) != 1:
         parser.error("the Rust crates have different versions")
-    name = f"formal-sig-{versions.pop()}"
+    name = f"rust-pq-{versions.pop()}"
     dest = args.output.resolve()
     dest.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=dest) as stage:

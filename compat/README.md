@@ -8,9 +8,9 @@ Code written against `slh-dsa` that uses the named parameter sets switches by ch
 `Cargo.toml`; the source stays as it is:
 
 ```toml
-slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat" }
+slh-dsa = { package = "slhdsa-compat", path = "…/rust-pq/compat" }
 # with the ARMv8 SHA-256 instructions:
-slh-dsa = { package = "slhdsa-compat", path = "…/formal-sig/compat", features = ["hw-sha2"] }
+slh-dsa = { package = "slhdsa-compat", path = "…/rust-pq/compat", features = ["hw-sha2"] }
 ```
 
 ## What it provides

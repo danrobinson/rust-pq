@@ -1,10 +1,10 @@
 # Optimized SLH-DSA peers on seven platforms
 
-Measured November 23, 2026. Across deterministic signing workloads, formal-sig had lower paired median latency in **168/168** comparisons with Botan, **56/56** with single-threaded Conduition and **89/96** with single-threaded Fluhrer. Each comparison uses one CPU, one supported parameter set and one message size.
+Measured November 23, 2026. Across deterministic signing workloads, rust-pq had lower paired median latency in **168/168** comparisons with Botan, **56/56** with single-threaded Conduition and **89/96** with single-threaded Fluhrer. Each comparison uses one CPU, one supported parameter set and one message size.
 
 ## Deterministic signing
 
-Numbers are peer latency divided by formal-sig latency. **Above 1 favors formal-sig.** Each entry is a geometric mean of per-workload paired median ratios across the peer's supported sets and both message sizes. Botan and Fluhrer cover all twelve sets, Conduition's CPU builds cover four 128-bit sets, and its GPU build covers the two SHA2-128 sets on Apple. Each column compares the peer with formal-sig on the same workload.
+Numbers are peer latency divided by rust-pq latency. **Above 1 favors rust-pq.** Each entry is a geometric mean of per-workload paired median ratios across the peer's supported sets and both message sizes. Botan and Fluhrer cover all twelve sets, Conduition's CPU builds cover four 128-bit sets, and its GPU build covers the two SHA2-128 sets on Apple. Each column compares the peer with rust-pq on the same workload.
 
 | CPU | Botan | Conduition SIMD | Conduition cached + threaded | Fluhrer 1T | Fluhrer 2T | Conduition GPU |
 |---|---:|---:|---:|---:|---:|---:|
@@ -16,8 +16,8 @@ Numbers are peer latency divided by formal-sig latency. **Above 1 favors formal-
 | Graviton2 | 4.02× | 3.80× | 2.26× | — | — | — |
 | Graviton4 | 4.46× | 3.58× | 2.12× | — | — | — |
 
-- **Apple GPU.** On SHA2-128s signing of 32 bytes, Conduition OpenCL took **12.63 ms** and formal-sig took **32.92 ms**. On SHA2-128f, OpenCL took **4.10 ms** and formal-sig took **1.70 ms**. OpenCL context creation and kernel compilation were outside the timers. The six EC2 CPU instances have no GPU.
-- **EPYC multicore signing.** Across the six SHAKE sets and both message lengths, Fluhrer's two-thread implementation was **1.64× faster** than formal-sig. Across the six SHA-2 sets, formal-sig was **1.23× faster**. The EPYC instance has two physical cores. Intel instances expose two hardware threads on one physical core.
+- **Apple GPU.** On SHA2-128s signing of 32 bytes, Conduition OpenCL took **12.63 ms** and rust-pq took **32.92 ms**. On SHA2-128f, OpenCL took **4.10 ms** and rust-pq took **1.70 ms**. OpenCL context creation and kernel compilation were outside the timers. The six EC2 CPU instances have no GPU.
+- **EPYC multicore signing.** Across the six SHAKE sets and both message lengths, Fluhrer's two-thread implementation was **1.64× faster** than rust-pq. Across the six SHA-2 sets, rust-pq was **1.23× faster**. The EPYC instance has two physical cores. Intel instances expose two hardware threads on one physical core.
 - **Single-threaded x86 signing.** All seven workloads in which single-threaded Fluhrer had lower median latency were SHAKE on the Xeon 6975P-C. Its largest lead was about 7%, on SHAKE-192s with a 32-byte message.
 - **Repeated signing.** The cached Conduition build computes its root-tree cache during key generation and reuses it when signing. The separate cached sweep includes its construction cost in the key-generation measurement and enables the upstream multithread feature.
 
@@ -54,4 +54,4 @@ The operation-level CSV also includes hedged signing and public-key extraction. 
 - [Raw samples and host/compiler metadata](hosts/)
 - [Build commands, upstream revisions, thread placement, timing and validation](../../optimized-peers/README.md)
 
-Every recorded round passed full byte-for-byte comparisons of private keys, public keys, deterministic signatures and hedged signatures against formal-sig. All peers verified their deterministic signatures and rejected a changed message or context. The warm-up rounds are preserved in the raw files and excluded from the summary.
+Every recorded round passed full byte-for-byte comparisons of private keys, public keys, deterministic signatures and hedged signatures against rust-pq. All peers verified their deterministic signatures and rejected a changed message or context. The warm-up rounds are preserved in the raw files and excluded from the summary.
