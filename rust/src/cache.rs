@@ -119,24 +119,6 @@ fn with_pure_context(m: &[u8], ctx: &[u8]) -> Vec<u8> {
 }
 
 // ============================================================================
-// Worker stack hygiene for `parallel` builds
-// ============================================================================
-
-#[cfg(all(feature = "parallel", not(target_os = "none")))]
-#[inline(never)]
-fn run_worker(fill: &impl Fn()) {
-    fill();
-}
-
-#[cfg(all(feature = "parallel", not(target_os = "none")))]
-#[inline(never)]
-fn scrub_worker_stack() {
-    use zeroize::Zeroize;
-    let mut scratch = [0u8; 64 * 1024];
-    scratch.zeroize();
-}
-
-// ============================================================================
 // SHA-2 family helpers (reusing crate's public SHA-2 / HW / platform kernels)
 // ============================================================================
 
@@ -356,15 +338,11 @@ mod sha2_ops {
         leaves: &mut [[u8; N]],
     ) -> bool {
         use core::sync::atomic::{AtomicUsize, Ordering};
-        use std::thread;
 
         if num_leaves < 16 {
             return false;
         }
-        let workers = thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(1)
-            .min(num_leaves / 4);
+        let workers = crate::pool::available_threads().min(num_leaves / 4);
         if workers < 2 {
             return false;
         }
@@ -390,20 +368,7 @@ mod sha2_ops {
             let _ = slot.set(out);
         };
 
-        thread::scope(|scope| {
-            for _ in 1..workers {
-                if thread::Builder::new()
-                    .spawn_scoped(scope, || {
-                        run_worker(&fill);
-                        scrub_worker_stack();
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-            fill();
-        });
+        crate::pool::execute(workers, true, &fill);
 
         for (id, slot) in slots.into_iter().enumerate() {
             let start = id * chunk;
@@ -511,11 +476,11 @@ mod sha2_ops {
         layer_d2_hit: Option<&[[u8; N]]>,
     ) -> Option<Vec<u8>> {
         use core::sync::atomic::{AtomicUsize, Ordering};
-        use std::{sync::OnceLock, thread};
+        use std::sync::OnceLock;
 
         let cached_layers = if layer_d2_hit.is_some() && p.d >= 2 { 2 } else { 1 };
         let active_layers = (p.d as usize).saturating_sub(cached_layers);
-        let workers = thread::available_parallelism().ok()?.get();
+        let workers = crate::pool::available_threads();
         if workers < 2 || p.hp == 0 {
             return None;
         }
@@ -600,20 +565,7 @@ mod sha2_ops {
             }
         };
 
-        thread::scope(|scope| {
-            for _ in 1..active_workers {
-                if thread::Builder::new()
-                    .spawn_scoped(scope, || {
-                        run_worker(&fill);
-                        scrub_worker_stack();
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-            fill();
-        });
+        crate::pool::execute(active_workers, true, &fill);
 
         let mut sig = Vec::with_capacity(p.sig_bytes());
         sig.extend_from_slice(r);
@@ -1578,15 +1530,11 @@ mod shake_ops {
         leaves: &mut [[u8; N]],
     ) -> bool {
         use core::sync::atomic::{AtomicUsize, Ordering};
-        use std::thread;
 
         if num_leaves < 16 {
             return false;
         }
-        let workers = thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(1)
-            .min(num_leaves / 4);
+        let workers = crate::pool::available_threads().min(num_leaves / 4);
         if workers < 2 {
             return false;
         }
@@ -1605,20 +1553,7 @@ mod shake_ops {
             let _ = slot.set(out);
         };
 
-        thread::scope(|scope| {
-            for _ in 1..workers {
-                if thread::Builder::new()
-                    .spawn_scoped(scope, || {
-                        run_worker(&fill);
-                        scrub_worker_stack();
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-            fill();
-        });
+        crate::pool::execute(workers, true, &fill);
 
         for (id, slot) in slots.into_iter().enumerate() {
             let start = id * chunk;
@@ -1723,11 +1658,11 @@ mod shake_ops {
         layer_d2_hit: Option<&[[u8; N]]>,
     ) -> Option<Vec<u8>> {
         use core::sync::atomic::{AtomicUsize, Ordering};
-        use std::{sync::OnceLock, thread};
+        use std::sync::OnceLock;
 
         let cached_layers = if layer_d2_hit.is_some() && p.d >= 2 { 2 } else { 1 };
         let active_layers = (p.d as usize).saturating_sub(cached_layers);
-        let workers = thread::available_parallelism().ok()?.get();
+        let workers = crate::pool::available_threads();
         if workers < 2 || p.hp == 0 {
             return None;
         }
@@ -1914,20 +1849,7 @@ mod shake_ops {
             }
         };
 
-        thread::scope(|scope| {
-            for _ in 1..active_workers {
-                if thread::Builder::new()
-                    .spawn_scoped(scope, || {
-                        run_worker(&fill);
-                        scrub_worker_stack();
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-            fill();
-        });
+        crate::pool::execute(active_workers, true, &fill);
 
         let mut sig = Vec::with_capacity(p.sig_bytes());
         sig.extend_from_slice(r);
