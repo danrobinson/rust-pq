@@ -21,7 +21,11 @@ def main():
     parser.add_argument("--set", choices=[f"{f}_{s}" for f in ("sha2","shake") for s in SHAPES])
     parser.add_argument("--operation", choices=["hypertree","hypertree-sign","xmss"], default="hypertree")
     parser.add_argument("--harness", choices=["sign","recover","node","verify_layers","sign_layers","sign_step"])
+    parser.add_argument("--small-signatures", action="store_true",
+                        help="use a byte-sized observation type for hypertree signing")
     args = parser.parse_args()
+    if args.small_signatures and args.operation != "hypertree-sign":
+        parser.error("--small-signatures requires --operation hypertree-sign")
     valid = {"hypertree": {"verify_layers"}, "hypertree-sign": {"sign_layers", "sign_step"},
              "xmss": {"sign", "recover", "node"}}
     if args.harness and args.harness not in valid[args.operation]:
@@ -42,6 +46,9 @@ def main():
             source.write_text(expose(source.read_text()))
             step = (ROOT / "scripts/peer-hypertree/sign-step.rs").read_text()
             template = template[:template.index("#[kani::proof]")] + step
+        if args.small_signatures:
+            projection = (ROOT / "scripts/peer-hypertree/sign-projection.rs").read_text()
+            template = template.replace("type P = crate::PEER_TYPE;", projection).replace("PARAM_N", "1")
         if args.operation == "xmss":
             # Rename only the entry so that recursive calls in the original
             # body dispatch to the arbitrary children observed by the harness.
