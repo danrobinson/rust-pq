@@ -90,6 +90,14 @@ a compression-port machine that outputs two distinct SHA-512 inputs with equal
 transcript, the byte forger’s second phase, and the [collision extractor](Integration/SlhDsaCompressionClassCollision.lean).
 The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. Applying it to the signature game still requires the link to the actual public-table oracle and the final measured outputs.
 
+The [combined wide-set SUF and EUF theorems](Integration/SlhDsaCompressionSearch.lean)
+leave two kinds of probability to bound: ITSR for the signature reduction and
+a public SHA-512 search game. The latter accepts a pair of distinct inputs with
+equal digest prefixes or a preimage of an independently sampled starting state.
+Its four applications have separate explicit budgets. For HMAC, the
+[monitored message machine](Integration/SlhDsaCompressionHmacMonitor.lean) costs
+at most three times the signature message-PRF budget including witness extraction.
+
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
 > same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
