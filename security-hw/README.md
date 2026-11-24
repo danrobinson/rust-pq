@@ -53,8 +53,5 @@ Last run: see `../HANDOFF.md`, "Checks". `lake build` alone builds every library
   transcribed from the Arm ARM and tested against one processor by `ArmTest`, not proved).
 - Not covered here: constant time of the `hw-sha2` build (proved separately in `../lean-hw/Ct`)
   (nothing of the crate is left untranslated) and everything `../security/STATUS.md`
-  lists as not covered for the portable build — in particular the ideal-compression bound is for
-  SLH-DSA-SHA2-128s only (the ideal-model analysis of `../security/Ideal` is of SHA-256 with 16-byte
-  outputs; the other five sets would need it re-instantiated at their parameters, and for
-  n = 24, 32 an ideal SHA-512 compression function as well; `../security/STATUS.md` §5), and it
-  says nothing about the real compression function.
+  lists as not covered for the portable build — in particular the Rust-linked ideal-compression corollaries in §5 cover
+  SLH-DSA-SHA2-128s. The shared sources also include the [128f classical pure-byte bound](../security/MIdeal/Sha2_128f.lean). Both results assume ideal compression.

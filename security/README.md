@@ -17,13 +17,14 @@ same files against the `hw-sha2` build). One Lake project; every library is a de
   the context-string interface (`ME2E.sha2_<set>.pure_rom_security`, `rust_pure_rom_security_bytes`,
   `api_pure_rom_security(_bytes)`); for 128s also the forms for forgers over a general sampling
   spec (`ME2E.sha2_128s.rust_securityG`, …, `api_pure_securityG`; `STATUS.md` §5b).
-- `MIdeal` (SLH-DSA-SHA2-128s only): the closed ideal-compression bound of `Ideal` attached to
+- For SLH-DSA-SHA2-128s, `MIdeal` provides the closed ideal-compression bound of `Ideal` attached to
   `sets.sha2_128s.*`: `MIdeal.sha2_128s.rust_ideal_security_closed_tight8` (`slh_*_internal`),
   `rust_ideal_security_closed_pure_tight8` (`slh_keygen_internal`, `slh_sign`, `slh_verify`),
   `api_ideal_security_closed_pure_tight8` (`keygen`, `sign`, `sign_deterministic`, `verify`). Each is the
   single-set tree's `Ideal.*_tight8` statement with the Rust names renamed and the real scheme spelled at
   `Sha2Set.s128s` (textual check `scripts/check_ideal128s.py`); the bound is the same proved bound, about
   the ideal-model scheme only. `STATUS.md` §5.
+- For SHA2-128f, the [pure-byte classical forgery bounds](MIdeal/Sha2_128f.lean) cover both strong and existential unforgeability in the shared-table model under explicit query and message budgets.
 - Generic libraries, which the four above build on (they import nothing of `Spec` or `Slhdsa`):
   - `Reduction` (`Reduction/**`): the standard-model SUF-CMA / EUF-CMA reduction for SLH-DSA (no random
     oracle) for any parameter set and primitive bundle, with its SHA2-128s instances at `Link.vp`,

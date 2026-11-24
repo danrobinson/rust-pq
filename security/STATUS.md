@@ -2,8 +2,10 @@
 
 Lean 4.36.0, Lake project `security/`. Security results for SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}, attached to the Rust crate `../rust`
 (portable build here; the `hw-sha2` build in `../security-hw`, which compiles these files against `../lean-hw`). **State: closed** (2026-11-22).
-Everything below is proved for all six sets except the ideal-compression bound (§5, SLH-DSA-SHA2-128s only); no `sorry`, `axiom`,
+The 2026-11-22 report below describes what was proved for all six sets except the ideal-compression bound (§5, SLH-DSA-SHA2-128s only); no `sorry`, `axiom`,
 `native_decide`, `bv_decide`; nothing conditional. Re-run: `scripts/check.sh` (`scripts/check.sh clean` for a from-scratch build).
+
+**2026-11-23 update.** The [128f pure-byte theorems](MIdeal/Sha2_128f.lean) now give classical SUF-CMA and EUF-CMA bounds with both compression ports. Section 5 records the separate 128s Rust/API corollaries. [Quantum and shared-table results](../quantum/STATUS.md) track the six SHA-2 sets.
 
 **History.** Until 2026-11-22 this directory held the single-set development (SLH-DSA-SHA2-128s: its own `Link`, `E2E`, `Reduction`, `Ideal`
 over the single-set `Spec` of the single-set `lean/`), and the six-set libraries `MLink`, `MReduction`, `ME2E`, `MIdeal` lived in a
