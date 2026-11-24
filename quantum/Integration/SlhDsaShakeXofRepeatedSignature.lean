@@ -36,6 +36,6 @@ theorem repeated_queries (S : Sha2Set) (N : ℕ)
     SetOracle.uniformMean (fun H => qUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) ≤ bound := by
   obtain ⟨strong,ordinary⟩ := signature_repeated S N r seeds F q s c (by omega) fit hq hs hc
   have cover := ShakeSingle.signature_itsr_subset S N r seeds F c raw q s d many hq hs hc
-  apply And.intro (strong.trans ?_) (ordinary.trans ?_) <;> dsimp only [repeatedLoss] <;> gcongr <;> exact cover
+  apply And.intro (strong.trans ?_) (ordinary.trans ?_) <;> dsimp only [repeatedLoss,repeatedLossWithPrfs] <;> gcongr <;> exact cover
 end Reduction.ShakeXof
 #print axioms Reduction.ShakeXof.repeated_queries

@@ -15,7 +15,7 @@ private abbrev coordinates (S : Sha2Set) := (S.vp.params.k-1)/2
 theorem twoSignatureLoss (S : Sha2Set) :
     repeatedLoss S (2^40) 2 (ShakeSingle.subsetLoss S (2^40+itsrHashes S.vp 2) 2 (coordinates S)) ≤
       ((2:ℝ≥0∞)^(twoSignatureBits S))⁻¹ := by
-  unfold repeatedLoss epsTcr SetOracle.epsPreSet SetOracle.epsUdSet ShakeSingle.subsetLoss
+  unfold repeatedLoss repeatedLossWithPrfs epsTcr SetOracle.epsPreSet SetOracle.epsUdSet ShakeSingle.subsetLoss
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp (disch := first | finiteness | positivity) only [ENNReal.toReal_add,ENNReal.toReal_div,ENNReal.toReal_mul,
     ENNReal.toReal_inv,ENNReal.toReal_pow,ENNReal.toReal_ofNat,ENNReal.toReal_ofReal,ENNReal.toReal_one,

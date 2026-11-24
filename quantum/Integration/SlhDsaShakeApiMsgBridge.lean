@@ -77,6 +77,40 @@ private theorem restrict_inj (c : Caps) (d₁ d₂ : S.Node × List SLHDSA.Byte)
   have hb := congrArg (fun x : BList SLHDSA.Byte c.ml => List.ofFn x.2) h'.symm
   exact Prod.ext h.symm (by simpa only [BList.ofFn_ofList] using hb)
 
+/-- Restricting the PRF challenge domain to the capped encoded messages
+preserves both probabilities of the actual signature distinguisher. -/
+theorem capped_games (c : Caps)
+    (hcap : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) (H : RawTable S N) :
+    let P := primitives S (extend H)
+    let A := qbPrfMsgWL sufCheck (qPureBytesToInternal (rawForger S N rand seeds F H))
+    let short := wrap0 (Restrict.restrictImpl (SetOracle.restrictMessage S c)) A
+    qPrfRealPr (msgPrf S.vp P) A F.ρ₀ = qPrfRealPr (ShakeXof.boundedMsgScheme (L := c.ml) S H) short F.ρ₀ ∧
+      qPrfIdealPr A F.ρ₀ = qPrfIdealPr short F.ρ₀ := by
+  intro P A short
+  let res := SetOracle.restrictMessage S c
+  have dom : AllQueries (InDom (R := S.Node) res) (fun _ => True) A := by
+    apply allQ_mono _ (fun _ _ => trivial) (allQ_qLazyRun (W := WS (Input N) (Bytes S.vp.params.m) E)
+      (PublicHash.impl P) (fun d : S.Node × List SLHDSA.Byte => d.2.length ≤ c.ml) _
+      (allQ_qMsgOpenW P c.ml sufCheck (qPureBytesToInternal (rawForger S N rand seeds F H))
+        (allQ_qPureBytesToInternal c.ml _ fun pk => allQ_compileQ c _ (F.main pk) (hcap pk))))
+    rintro (j|n|d) ht
+    · trivial
+    · trivial
+    · have hd : d.2.length ≤ c.ml := ht
+      change (SetOracle.restrictMessage S c d).isSome
+      simp [SetOracle.restrictMessage,hd]
+  constructor
+  · unfold qPrfRealPr qPrfRealExperiment
+    congr 2
+    funext k
+    apply run_short res _ _ _ dom
+    rintro ⟨r,m⟩ ⟨z,b⟩ hz
+    unfold res SetOracle.restrictMessage at hz
+    split_ifs at hz with hl
+    cases hz
+    simp [P,BList.ofFn_ofList]
+  · exact qPrfIdealPr_restrict res (restrict_inj S c) _ dom _
+
 theorem real_le_ideal (c : Caps) (cap : 2*S.vp.params.n+c.ml ≤ N)
     (q qs : ℕ) (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hcap : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
@@ -95,30 +129,12 @@ theorem real_le_ideal (c : Caps) (cap : 2*S.vp.params.n+c.ml ≤ N)
     unfold short
     rw [same]
     exact PUE.wrap0 _ (fun t => wCount_zero _ _) (machine_cost S N base rand seeds F q qs hq hs)
-  have dom (H : RawTable S N) : AllQueries (InDom (R := S.Node) res) (fun _ => True) (A H) := by
-    apply allQ_mono _ (fun _ _ => trivial) (allQ_qLazyRun (W := WS (Input N) (Bytes S.vp.params.m) E)
-      (PublicHash.impl (P H)) (fun d : S.Node × List SLHDSA.Byte => d.2.length ≤ c.ml) _
-      (allQ_qMsgOpenW (P H) c.ml sufCheck (qPureBytesToInternal (rawForger S N rand seeds F H))
-        (allQ_qPureBytesToInternal c.ml _ fun pk => allQ_compileQ c _ (F.main pk) (hcap pk))))
-    rintro (j|n|d) ht
-    · trivial
-    · trivial
-    · have hd : d.2.length ≤ c.ml := ht
-      change (SetOracle.restrictMessage S c d).isSome
-      simp [SetOracle.restrictMessage,hd]
-  have hr (H : RawTable S N) : qPrfRealPr (msgPrf S.vp (P H)) (A H) F.ρ₀ =
-      qPrfRealPr (ShakeXof.boundedMsgScheme (L := c.ml) S H) (short H) F.ρ₀ := by
-    unfold qPrfRealPr qPrfRealExperiment
-    congr 2
-    funext k
-    apply run_short res _ _ _ (dom H)
-    rintro ⟨r,m⟩ ⟨z,b⟩ hz
-    unfold res SetOracle.restrictMessage at hz
-    split_ifs at hz with hl
-    cases hz
-    simp [P,BList.ofFn_ofList]
-  have hi (H : RawTable S N) : qPrfIdealPr (A H) F.ρ₀ = qPrfIdealPr (short H) F.ρ₀ :=
-    qPrfIdealPr_restrict res (restrict_inj S c) _ (dom H) _
+  have games := capped_games S N rand seeds F c hcap
+  have hr (H) := (games H).1
+  have hi (H) := (games H).2
+  change (SetOracle.uniformMean fun H => qPrfRealPr (msgPrf S.vp (P H)) (A H) F.ρ₀) ≤ _
+  change ∀ H, qPrfRealPr (msgPrf S.vp (P H)) (A H) F.ρ₀ = qPrfRealPr (ShakeXof.boundedMsgScheme S H) (short H) F.ρ₀ at hr
+  change ∀ H, qPrfIdealPr (A H) F.ρ₀ = qPrfIdealPr (short H) F.ρ₀ at hi
   simp_rw [hr,hi]
   obtain ⟨ρ,hρ⟩ := exists_subState (A := (Input N × Bytes S.vp.params.m) × E) F.ρ₀ F.posSemidef F.trace_eq_one
   rw [hρ]

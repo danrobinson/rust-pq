@@ -38,7 +38,7 @@ noncomputable def signImpl (pk : PublicKeyCore (P₀).core) :
   (QueryImpl.ofLift unifSpec (OracleComp OS)).liftTarget (StateT (SigLog S.vp P₀) (OracleComp OS)) +
     sigSignOracle (Lazy.msgSignO (signRand S rand base) pk)
 
-private theorem signCost (pk : PublicKeyCore (P₀).core) (t : (SG).Domain) (log : SigLog S.vp P₀) :
+theorem signCost (pk : PublicKeyCore (P₀).core) (t : (SG).Domain) (log : SigLog S.vp P₀) :
     WCount Wc ((signImpl S base rand pk t).run log) (sgnW (Lazy.signHashes S.vp) t) := by
   rcases t with n|m
   · exact WCount.map (wCount_liftM_query (sp := OS) Wc (.inl n) le_rfl) (fun x => (x,log))

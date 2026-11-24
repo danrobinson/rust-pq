@@ -16,7 +16,7 @@ def lifetimeRemainderBits : Sha2Set → ℕ
 theorem lifetime_remainder (S : Sha2Set) (width : 24 ≤ S.vp.params.n) (risk : ℝ≥0∞) :
     repeatedLoss S (2^40) (2^64) risk ≤ risk + ((2:ℝ≥0∞)^lifetimeRemainderBits S)⁻¹ := by
   have numeric : repeatedLoss S (2^40) (2^64) 0 ≤ ((2:ℝ≥0∞)^lifetimeRemainderBits S)⁻¹ := by
-    unfold repeatedLoss epsTcr SetOracle.epsPreSet SetOracle.epsUdSet
+    unfold repeatedLoss repeatedLossWithPrfs epsTcr SetOracle.epsPreSet SetOracle.epsUdSet
     apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
     simp (disch := first | finiteness | positivity) only [ENNReal.toReal_add, ENNReal.toReal_div,
       ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_pow, ENNReal.toReal_ofNat,
@@ -25,7 +25,7 @@ theorem lifetime_remainder (S : Sha2Set) (width : 24 ≤ S.vp.params.n) (risk : 
     norm_cast
     cases S <;> revert width <;> decide +kernel
   calc
-    _ = risk + repeatedLoss S (2^40) (2^64) 0 := by unfold repeatedLoss; simp only [add_zero]; ac_rfl
+    _ = risk + repeatedLoss S (2^40) (2^64) 0 := by unfold repeatedLoss repeatedLossWithPrfs; simp only [add_zero]; ac_rfl
     _ ≤ _ := add_le_add_right numeric risk
 
 /-- Both byte-level forgery probabilities are at most the actual adaptive

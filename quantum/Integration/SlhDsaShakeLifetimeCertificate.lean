@@ -23,7 +23,7 @@ theorem repeatedLoss_split (S : Sha2Set) (q s : ℕ) (risk : ℝ≥0∞) :
     rw [ENNReal.ofReal_div_of_pos (by positivity), ENNReal.ofReal_mul (by positivity),
       ENNReal.ofReal_pow (by positivity), ENNReal.ofReal_pow (by positivity)]
     simp
-  unfold repeatedLoss hashNumerator epsTcr SetOracle.epsPreSet SetOracle.epsUdSet
+  unfold repeatedLoss repeatedLossWithPrfs hashNumerator epsTcr SetOracle.epsPreSet SetOracle.epsUdSet
   simp only [← Nat.cast_ofNat (R := ℝ) (n := 8), ← Nat.cast_ofNat (R := ℝ) (n := 168), scaled]
   simp only [Nat.cast_add,Nat.cast_mul,Nat.cast_pow,Nat.cast_ofNat,Nat.cast_one,div_eq_mul_inv]
   ring
