@@ -44,13 +44,15 @@ theorem class_tcr_le (rand : S.Node → S.Node → ProbComp S.Node) (seeds : Pro
   exact b.trans (prefix_search S F.ρ₀ F.posSemidef F.trace_eq_one _ M cost)
 
 /-- Numeric losses from the shared compression tables for wide SHA2, excluding ITSR. -/
-noncomputable def wideCompressionLoss (ml q qs : ℕ) : ℝ≥0∞ :=
+noncomputable def wideLossWithClasses (ml q qs : ℕ) (classLoss : ℕ → ℝ≥0∞) : ℝ≥0∞ :=
   let b := HmacKey.budget S ml q qs
   let prefixLoss := fun (m : ℕ) => 16*((m:ℝ≥0∞)+1)^3/2^(8*S.vp.params.n)
   let hmac := (2*((b+(b+b) : ℕ):ℝ≥0∞)+1)^2/2^512 + prefixLoss (b+(b+b)) +
     ENNReal.ofReal (8*(b:ℝ)^2/2^512) + ENNReal.ofReal (8*(b:ℝ)^2/2^(8*S.vp.params.n))
-  wideProvedLoss S ml q qs + hmac + prefixLoss (classQueries S ml q qs 2) +
-    prefixLoss (classQueries S ml q qs S.vp.params.len) + prefixLoss (classQueries S ml q qs S.vp.params.k)
+  wideProvedLoss S ml q qs + hmac + classLoss 2 + classLoss S.vp.params.len + classLoss S.vp.params.k
+
+noncomputable def wideCompressionLoss (ml q qs : ℕ) : ℝ≥0∞ :=
+  wideLossWithClasses S ml q qs (fun a => 16*((classQueries S ml q qs a : ℝ≥0∞)+1)^3/2^(8*S.vp.params.n))
 
 variable (rand : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node)
     (F : PortForger Input Output E)
@@ -59,23 +61,35 @@ private theorem move_itsr (u h i a b c : ℝ≥0∞) : u + (h+i+a+b+c) = u+h+a+b
 
 /-- Every component of the wide shared-compression SUF bound except ITSR
 is now bounded solely as a function of the query and message budgets. -/
+theorem wide_suf_with_classes (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
+    (classLoss : ℕ → ℝ≥0∞)
+    (hclass : ∀ a, a ≠ 1 → uniformMean (fun g => qSM_DT_TCR_Advantage
+      (qbTcrArM a (reduced S rand seeds F g))) ≤ classLoss a) :
+    uniformMean (fun g => qStrongUnforgeableAdvantage (experimentForger S rand seeds F g)) ≤
+      wideLossWithClasses S c.ml q qs classLoss + uniformMean (fun g =>
+        qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S rand seeds F g)) F.ρ₀) := by
+  let b := HmacKey.budget S c.ml q qs
+  have hm := hmac_le_search S rand seeds F hw c q qs hq hs hc
+  have hash := searchRisk_le S F.ρ₀ F.posSemidef F.trace_eq_one (b+(b+b))
+  have hc2 := hclass 2 (by decide)
+  have hcl := hclass S.vp.params.len (by cases S <;> decide)
+  have hck := hclass S.vp.params.k (by cases S <;> decide)
+  apply (wide_suf_partial S rand seeds F hw c q qs hq hs hc).trans
+  unfold wideRemaining wideLossWithClasses
+  refine (add_le_add le_rfl (add_le_add (add_le_add (add_le_add (add_le_add
+    (hm.trans (add_le_add (add_le_add hash le_rfl) le_rfl)) le_rfl) hc2) hcl) hck)).trans_eq ?_
+  exact move_itsr _ _ _ _ _ _
+
 theorem wide_suf_itsr (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     uniformMean (fun g => qStrongUnforgeableAdvantage (experimentForger S rand seeds F g)) ≤
       wideCompressionLoss S c.ml q qs + uniformMean (fun g =>
-        qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S rand seeds F g)) F.ρ₀) := by
-  let b := HmacKey.budget S c.ml q qs
-  have hm := hmac_le_search S rand seeds F hw c q qs hq hs hc
-  have hash := searchRisk_le S F.ρ₀ F.posSemidef F.trace_eq_one (b+(b+b))
-  have hc2 := class_tcr_le S rand seeds F 2 hw (by decide) c q qs hq hs hc
-  have hcl := class_tcr_le S rand seeds F S.vp.params.len hw (by cases S <;> decide) c q qs hq hs hc
-  have hck := class_tcr_le S rand seeds F S.vp.params.k hw (by cases S <;> decide) c q qs hq hs hc
-  apply (wide_suf_partial S rand seeds F hw c q qs hq hs hc).trans
-  unfold wideRemaining wideCompressionLoss
-  refine (add_le_add le_rfl (add_le_add (add_le_add (add_le_add (add_le_add
-    (hm.trans (add_le_add (add_le_add hash le_rfl) le_rfl)) le_rfl) hc2) hcl) hck)).trans_eq ?_
-  exact move_itsr _ _ _ _ _ _
+        qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S rand seeds F g)) F.ρ₀) :=
+  wide_suf_with_classes S rand seeds F hw c q qs hq hs hc _ (fun a hn =>
+    class_tcr_le S rand seeds F a hw hn c q qs hq hs hc)
 
 theorem wide_euf_itsr (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
