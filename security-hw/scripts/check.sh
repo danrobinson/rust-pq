@@ -169,6 +169,11 @@ open MLink MReduction
 #print axioms MIdeal.Wots128f.ud_term
 #print axioms MIdeal.Itsr128f.term
 #print axioms MIdeal.Msg128f.term
+#print axioms MIdeal.Secret128f.term
+#print axioms MIdeal.Fors128f.tcr_term
+#print axioms MIdeal.Fors128f.dspr_term
+#print axioms MIdeal.Sha2_128f.suf
+#print axioms MIdeal.Sha2_128f.euf
 #print axioms ME2E.pureRomScheme_instantiation
 #print axioms ME2E.pure_security_sha2
 #print axioms ME2E.pure_security_sha2_euf
@@ -222,7 +227,7 @@ for s in $SETS; do
   grep -o "'ME2E.sha2_${s}.\(rust\|api\|pure\)[a-z_]*'" "$out/axioms.only" | tr '\n' ' '; echo
 done
 
-echo "-- ideal-compression bound (SLH-DSA-SHA2-128s only): $(grep -c "'MIdeal\." "$out/axioms.only") checked:"
+echo "-- ideal-compression bound (SLH-DSA-SHA2-128s and SHA2-128f): $(grep -c "'MIdeal\." "$out/axioms.only") checked:"
 grep -o "'MIdeal\.[A-Za-z0-9_.]*'" "$out/axioms.only" | tr '\n' ' '; echo
 
 if [ $fail -eq 0 ]; then echo "CHECK PASSED"; else echo "CHECK FAILED"; fi

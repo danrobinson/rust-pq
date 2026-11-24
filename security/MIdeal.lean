@@ -40,3 +40,5 @@ import MIdeal.MsgPrf128fSignature
 import MIdeal.Fors128fPhase
 import MIdeal.Fors128fFixed
 import MIdeal.Secret128fSignature
+import MIdeal.Fors128fSignature
+import MIdeal.Sha2_128f

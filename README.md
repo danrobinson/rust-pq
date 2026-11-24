@@ -457,6 +457,9 @@ calls, including the address, secret and padding bytes, at each width.
 [Both FORS-leaf games](security/MIdeal/Fors.lean) have bounds for every set,
 and [the SHA-512 message PRF](security/MIdeal/MsgPrf512.lean) has a two-sided
 bound at both wide node sizes, for any fixed public SHA-256 table.
+For SHA2-128f the [classical pure-byte SUF-CMA and EUF-CMA theorems](security/MIdeal/Sha2_128f.lean)
+combine all these terms under explicit SHA-256 query, signing, and message bounds and the condition
+`4 * Fors128f.budget q qs L ≤ 2^128`. The adversary also has access to the independent SHA-512 table.
 For 128f, Lean also checks the [HMAC-SHA-256 advantage](security/MIdeal/MsgPrf128f.lean),
 [fixed-arity and WOTS+ target-collision bounds](security/MIdeal/Hash128f.lean),
 and [WOTS+ preimage and undetectability bounds](security/MIdeal/Wots128f.lean)
