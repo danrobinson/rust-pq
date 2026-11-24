@@ -24,7 +24,7 @@ attribute [local irreducible] arityTargets tcrTargets
 /-- Composition for the actual SHAKE byte-level port. Each component hypothesis
 concerns the very same sampled XOF; distinguishing games are averaged before
 taking the difference. -/
-theorem compose_queries (room : q + 2^40 ≤ Q) (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N)
+theorem compose_queries (room : q + 2^22 ≤ Q) (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
     (sk : uniformMean (fun H => qPrfRealPr (skPrfC S.vp (P H)) (qbPrfWC sufCheck (B H)) F.ρ₀) ≤
@@ -45,7 +45,7 @@ theorem compose_queries (room : q + 2^40 ≤ Q) (c : Caps) (raw : 3*S.vp.params.
     (ShakeApi.structural S (ShakeApi.extend H)) (A H))
   simp only [qLinRealSuf,qLinIdealSuf] at hl
   have h := ShakeSingle.signature_itsr S N r seeds F c raw q hq hs hc
-  have honest : itsrHashes S.vp 1 ≤ 2^40 := by cases S <;> decide +kernel
+  have honest : itsrHashes S.vp 1 ≤ 2^22 := by cases S <;> decide +kernel
   have hn := (Nat.add_le_add_left honest q).trans room
   have hi := h.trans (ENNReal.ofReal_le_ofReal (show (16:ℝ)*(_+1)^3/_ ≤ 16*((Q:ℝ)+1)^3/2^(S.vp.params.h+S.vp.params.a*S.vp.params.k) by gcongr))
   have all := SetOracle.composeFamily S.vp P B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _

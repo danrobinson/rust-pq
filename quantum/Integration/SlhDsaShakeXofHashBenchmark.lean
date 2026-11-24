@@ -12,7 +12,7 @@ local notation "tcr" => ((2*(Q:ℝ≥0∞)+1)^2 / 2^(8*S.vp.params.n))
 
 /-- Actual FORS, tweak-arity and WOTS games of the shared-XOF signature
 forger, with one signing query and a common bound on all reduction query counts. -/
-theorem hash_games (room : q + 2^40 ≤ Q)
+theorem hash_games (room : q + 2^22 ≤ Q)
     (fit : ∀ k ∈ [1,2,S.vp.params.len,S.vp.params.k], S.vp.params.n+32+S.vp.params.n*k ≤ N)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) 1) :
     (uniformMean (fun H => qDsprFV_Success (qToDspr (B H))) ≤
@@ -28,9 +28,9 @@ theorem hash_games (room : q + 2^40 ≤ Q)
     simp only [Nat.mul_one] at h
     unfold FitsSingleton
     omega
-  have honest : forsMHashes S.vp 1 ≤ 2^40 ∧ tcrMHashes S.vp 1 ≤ 2^40 ∧
-      qmWotsUdHashes S.vp 1 ≤ 2^40 ∧ qmWotsPreHashes S.vp 1 ≤ 2^40 ∧
-      qmWotsTcrTHashes S.vp 1 ≤ 2^40 := by cases S <;> decide +kernel
+  have honest : forsMHashes S.vp 1 ≤ 2^22 ∧ tcrMHashes S.vp 1 ≤ 2^22 ∧
+      qmWotsUdHashes S.vp 1 ≤ 2^22 ∧ qmWotsPreHashes S.vp 1 ≤ 2^22 ∧
+      qmWotsTcrTHashes S.vp 1 ≤ 2^22 := by cases S <;> decide +kernel
   obtain ⟨f,a,u,p,c⟩ := honest
   replace f := (Nat.add_le_add_left f q).trans room
   replace a := (Nat.add_le_add_left a q).trans room

@@ -6,9 +6,9 @@ With `2^40` coherent public queries, one classical signing query and 65,536 enco
 
 | SHAKE sets | Shared ideal byte XOF | Ideal endpoint of the permutation simulator |
 |---|---:|---:|
-| 128s, 128f | `2^-37` | `2^-9` |
-| 192s, 192f | `2^-101` | `2^-73` |
-| 256s, 256f | `2^-165` | `2^-137` |
+| 128s, 128f | `2^-39` | `2^-9` |
+| 192s, 192f | `2^-103` | `2^-73` |
+| 256s, 256f | `2^-167` | `2^-137` |
 
 The simulator column charges up to 30,944 raw XOF calls per public permutation query and a further `2^40` calls for the signature reductions. The real permutation forgery probability still needs a separate comparison theorem. [Shared-XOF signature theorem](Integration/SlhDsaShakeSetPrecision.lean) · [Ideal endpoint](Integration/SlhDsaShakePermutationIdealEndpoint.lean)
 

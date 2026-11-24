@@ -36,7 +36,7 @@ private theorem finiteLoss (S : Sha2Set) (q : ℕ) : singleLoss S q ≠ ⊤ := b
   finiteness
 
 theorem precision (S : Sha2Set) :
-    singleLoss S (2^41) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-91))⁻¹ ∧
+    singleLoss S (2^40+2^22) ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-89))⁻¹ ∧
     singleLoss S expandedQueries ≤ ((2:ℝ≥0∞)^(8*S.vp.params.n-119))⁻¹ := by
   rcases parameters S with ⟨bits,hd⟩ | ⟨bits,hd⟩ | ⟨bits,hd⟩ <;>
     constructor <;>
@@ -53,10 +53,10 @@ theorem signature_benchmark_precise (S : Sha2Set) (N : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) ≤
-      ((2:ℝ≥0∞)^(8*S.vp.params.n-91))⁻¹ ∧
+      ((2:ℝ≥0∞)^(8*S.vp.params.n-89))⁻¹ ∧
     SetOracle.uniformMean (fun H => qUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) ≤
-      ((2:ℝ≥0∞)^(8*S.vp.params.n-91))⁻¹ := by
-  obtain ⟨s,e⟩ := signature_queries (Q := 2^41) S N r seeds F (by decide) c msg cap hq hs hc
+      ((2:ℝ≥0∞)^(8*S.vp.params.n-89))⁻¹ := by
+  obtain ⟨s,e⟩ := signature_queries (Q := 2^40+2^22) S N r seeds F (by decide) c msg cap hq hs hc
   exact ⟨s.trans (precision S).1,e.trans (precision S).1⟩
 
 end Reduction.ShakeXof

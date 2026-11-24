@@ -11,7 +11,7 @@ variable (S : Sha2Set) (N : ℕ) (r : S.Node → S.Node → ProbComp S.Node) (se
 /-- Strong and existential unforgeability of all six pure SHAKE byte APIs in
 the shared ideal XOF model. The public port returns the full digest-width
 prefix for any input up to N bytes. Shorter honest outputs read its prefix. -/
-theorem signature_queries {q Q : ℕ} (room : q+2^40 ≤ Q) (c : Caps) (msg : c.ml = 65536)
+theorem signature_queries {q Q : ℕ} (room : q+2^22 ≤ Q) (c : Caps) (msg : c.ml = 65536)
     (cap : 65536 + 3*S.vp.params.n ≤ N)
     (hq : ∀ pk, CountBound isPort (F.main pk) q)
     (hs : ∀ pk, CountBound isSign (F.main pk) 1)
@@ -25,7 +25,7 @@ theorem signature_queries {q Q : ℕ} (room : q+2^40 ≤ Q) (c : Caps) (msg : c.
     simp only [List.mem_cons,List.not_mem_nil,or_false] at hk
     rcases hk with rfl|rfl|rfl|rfl <;> cases S <;> decide +kernel
   obtain ⟨ds,fv,ar,ud,pre,chain⟩ := hash_games S N r seeds F room fit hq hs
-  have honest : ShakeApi.Sk.budget S 0 1 ≤ 2^40 ∧ ShakeApi.Msg.budget S 0 1 ≤ 2^40 := by cases S <;> decide +kernel
+  have honest : ShakeApi.Sk.budget S 0 1 ≤ 2^22 ∧ ShakeApi.Msg.budget S 0 1 ≤ 2^22 := by cases S <;> decide +kernel
   have sk : ShakeApi.Sk.budget S q 1 ≤ Q := by
     obtain ⟨h,_⟩ := honest
     unfold ShakeApi.Sk.budget at h ⊢
