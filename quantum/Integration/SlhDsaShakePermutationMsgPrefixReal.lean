@@ -62,11 +62,11 @@ theorem real_public_switch (pre : (Port → Words) → Closed (WS Port Words E) 
     uniformMean (fun π : Permutation => uniformMean (fun k : S.Node =>
       qWeight (· = true) (pre (oracle π) >>= post k π) M)) ≤
     uniformMean (fun π : Permutation => uniformMean (fun σ : Permutation => uniformMean (fun k : S.Node =>
-      qWeight (· = true) (pre (oracle π) >>= post k (programmed S k π σ)) M))) + ((2:ℝ≥0∞)^19)⁻¹ := by
+      qWeight (· = true) (pre (oracle π) >>= post k (programmed S k π σ)) M))) + ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ := by
   let test (k : S.Node) (π : Permutation) := qWeight (· = true) (pre (oracle π) >>= post k π) M
   let out (π σ : Permutation) (k : S.Node) := qWeight (· = true)
     (pre (oracle π) >>= post k (programmed S k π σ)) M
-  let ε : ℝ≥0∞ := ((2:ℝ≥0∞)^19)⁻¹
+  let ε : ℝ≥0∞ := ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹
   have each (π σ) := programmed_prefix S π σ pre hp (fun k => post k (programmed S k π σ)) M pos one
   have shuffle :
       uniformMean (fun π => uniformMean (fun k => test k π)) =

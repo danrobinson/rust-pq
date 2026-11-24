@@ -27,7 +27,7 @@ include hp eq ok hs in
 theorem native_real_prefix (M : Matrix Work Work ℂ) (pos : M.PosSemidef) (one : M.trace.re ≤ 1) :
     uniformMean (fun π => qPrfRealPr (msgPrf S.vp ((P₀) π)) (P (oracle π)) M) ≤
       uniformMean (fun π => uniformMean (fun σ => uniformMean (fun k =>
-        qWeight (· = true) (pre (oracle π) >>= real_post S (programmed S k π σ) k) M))) + ((2:ℝ≥0∞)^19)⁻¹ := by
+        qWeight (· = true) (pre (oracle π) >>= real_post S (programmed S k π σ) k) M))) + ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ := by
   have post_eq (π : Permutation) (k : S.Node) :
       callPost (E:=E) (A:=Bool) (Q:=2^41) (oracle π) (roundValue S π π k) = real_post S π k := by
     apply congrArg (callPost (E:=E) (A:=Bool) (Q:=2^41) (oracle π))

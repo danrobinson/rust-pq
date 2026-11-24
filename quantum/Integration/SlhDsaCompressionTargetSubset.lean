@@ -83,7 +83,7 @@ theorem mask_hit (hw : S.vp.params.n ≠ 16) (g : CompressionTables) (cand : Que
   · exact ⟨defmask,selects_witness S _ g cand ts (Or.inr iv)⟩
   · exact ⟨defmask,selects_witness S _ g cand ts (Or.inl ⟨u,mu,v,mv,ne,congrArg _ eq⟩)⟩
 
-private theorem union_weight {W A I : Type} [Fintype W] [DecidableEq W] [DecidableEq I]
+theorem union_weight {W A I : Type} [Fintype W] [DecidableEq W] [DecidableEq I]
     (X : Closed W A) (ρ : Matrix W W ℂ) (t : Finset I) (P : I → A → Prop) :
     qWeight (fun z => ∃ i ∈ t, P i z) X ρ ≤ ∑ i ∈ t, qWeight (P i) X ρ := by
   classical

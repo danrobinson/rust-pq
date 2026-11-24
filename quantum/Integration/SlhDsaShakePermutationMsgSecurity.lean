@@ -58,11 +58,20 @@ private theorem good_game (pre : Closed Work Stages) (valid : AllQueries (fun _ 
 
 /-- Pseudorandomness of the message randomizer in the actual one-signature
 SUF reduction with a shared, coherently accessible two-way permutation. -/
-theorem signature_component (c : Caps) (msg : c.ml = 65536)
+def messageFee (S : Sha2Set) : ℝ≥0∞ := ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ + ((2:ℝ≥0∞)^40)⁻¹
+
+theorem messageFee_le (S : Sha2Set) : messageFee S ≤ ((2:ℝ≥0∞)^18)⁻¹ := by
+  unfold messageFee
+  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+  simp (disch := finiteness) only [ENNReal.toReal_add,ENNReal.toReal_inv,ENNReal.toReal_pow,ENNReal.toReal_ofNat]
+  have size : S.vp.params.n = 16 ∨ S.vp.params.n = 24 ∨ S.vp.params.n = 32 := by cases S <;> decide
+  rcases size with h|h|h <;> norm_num [MsgEffect.prefixBits,h]
+
+theorem signature_component_width (c : Caps) (msg : c.ml = 65536)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     uniformMean (fun π => qPrfRealPr (msgPrf S.vp ((P₀) π)) (P (oracle π)) F.ρ₀) ≤
-      uniformMean (fun π => qPrfIdealPr (P (oracle π)) F.ρ₀) + ((2:ℝ≥0∞)^18)⁻¹ := by
+      uniformMean (fun π => qPrfIdealPr (P (oracle π)) F.ρ₀) + messageFee S := by
   classical
   obtain ⟨pre,limit,valid,exactCut⟩ := signature_cut S N rand seeds F c hc le_rfl hq hs
   rw [msg] at valid
@@ -81,18 +90,27 @@ theorem signature_component (c : Caps) (msg : c.ml = 65536)
       simpa only [real,ideal,bad,ite_eq_right e,add_zero,F.trace_eq_one,Complex.one_re,ENNReal.ofReal_one,mul_one] using h
   have avg := avg_mono per
   rw [avg_add,avg_add,avg_const] at avg
-  have num : (ε+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^19)⁻¹ ≤ ((2:ℝ≥0∞)^18)⁻¹ := by
-    apply (ENNReal.toReal_le_toReal (by unfold ε; finiteness) (by finiteness)).mp
-    unfold ε
+  have num : (ε+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ ≤ messageFee S := by
+    apply (ENNReal.toReal_le_toReal (by unfold ε; finiteness) (by unfold messageFee; finiteness)).mp
+    unfold ε messageFee
     simp (disch := finiteness) only [ENNReal.toReal_add,ENNReal.toReal_inv,ENNReal.toReal_pow,ENNReal.toReal_ofNat]
-    norm_num
+    linarith [show ((2:ℝ)^116)⁻¹+((2:ℝ)^41)⁻¹+((2:ℝ)^512)⁻¹ ≤ ((2:ℝ)^40)⁻¹ by norm_num]
   apply start.trans
   have exc : uniformMean bad ≤ ((2:ℝ≥0∞)^512)⁻¹ := Risk.exceptional_risk
   change uniformMean real + _ ≤ uniformMean ideal + _
   calc
-    _ ≤ ((uniformMean ideal+ε)+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^19)⁻¹ := add_le_add (avg.trans (add_le_add le_rfl exc)) le_rfl
-    _ = uniformMean ideal + ((ε+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^19)⁻¹) := by simp only [add_assoc]
+    _ ≤ ((uniformMean ideal+ε)+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ := add_le_add (avg.trans (add_le_add le_rfl exc)) le_rfl
+    _ = uniformMean ideal + ((ε+((2:ℝ≥0∞)^512)⁻¹)+((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹) := by simp only [add_assoc]
     _ ≤ _ := add_le_add le_rfl num
+
+theorem signature_component (c : Caps) (msg : c.ml = 65536)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    uniformMean (fun π => qPrfRealPr (msgPrf S.vp ((P₀) π)) (P (oracle π)) F.ρ₀) ≤
+      uniformMean (fun π => qPrfIdealPr (P (oracle π)) F.ρ₀) + ((2:ℝ≥0∞)^18)⁻¹ := by
+  apply (signature_component_width S rand seeds F c msg hq hs hc).trans
+  apply add_le_add le_rfl
+  exact messageFee_le S
 
 end
 end Reduction.ShakePermutation.MsgCost

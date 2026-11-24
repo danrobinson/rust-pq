@@ -27,12 +27,12 @@ private theorem remove_term {a i b r c e f : ℝ≥0∞}
 /-- Both secret-input SHAKE PRFs have been removed from the actual strong
 signature experiment. The outstanding public hash games retain their
 shared forward/inverse permutation. -/
-theorem after_prfs (c : Caps) (msg : c.ml = 65536)
+theorem after_prfs_width (c : Caps) (msg : c.ml = 65536)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40))
     (hs : ∀ pk, CountBound isSign (F.main pk) 1)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     strongAdvantage S rand seeds F + uniformMean (fun π => qLinearIdealSide (B π) 0 0) ≤
-      uniformMean (fun π => qLinearRealSide (B π) 0 0) + (((2:ℝ≥0∞)^42)⁻¹+((2:ℝ≥0∞)^18)⁻¹) := by
+      uniformMean (fun π => qLinearRealSide (B π) 0 0) + (((2:ℝ≥0∞)^42)⁻¹+messageFee S) := by
   have ideal (π : Permutation) : qLinearIdealSide (B π) 0 (I π) = I π + qLinearIdealSide (B π) 0 0 := by
     simp only [qLinearIdealSide,zero_add,add_assoc]
   have real (π : Permutation) : qLinearRealSide (B π) 0 (R π) = R π + qLinearRealSide (B π) 0 0 := by
@@ -42,11 +42,22 @@ theorem after_prfs (c : Caps) (msg : c.ml = 65536)
   have start := SkCost.after_sk S rand seeds F c msg hq hs hc
   simp_rw [ideal,real] at start
   rw [plus,plus] at start
-  have term : uniformMean R ≤ uniformMean I + ((2:ℝ≥0∞)^18)⁻¹ :=
-    signature_component S rand seeds F c msg hq hs hc
+  have term : uniformMean R ≤ uniformMean I + messageFee S :=
+    signature_component_width S rand seeds F c msg hq hs hc
   have fin : uniformMean I ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top
     (ShakeXof.mean_le_const (fun π : Permutation => qPrfIdealPr_le_one' _ F.posSemidef F.trace_eq_one))
   exact remove_term fin start term
+
+theorem after_prfs (c : Caps) (msg : c.ml = 65536)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^40))
+    (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    strongAdvantage S rand seeds F + uniformMean (fun π => qLinearIdealSide (B π) 0 0) ≤
+      uniformMean (fun π => qLinearRealSide (B π) 0 0) + (((2:ℝ≥0∞)^42)⁻¹+((2:ℝ≥0∞)^18)⁻¹) := by
+  apply (after_prfs_width S rand seeds F c msg hq hs hc).trans
+  apply add_le_add le_rfl
+  apply add_le_add le_rfl
+  exact messageFee_le S
 
 theorem euf_after_prfs (c : Caps) (msg : c.ml = 65536)
     (hq : ∀ pk, CountBound isPort (F.main pk) (2^40))

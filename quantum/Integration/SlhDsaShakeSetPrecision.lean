@@ -59,6 +59,27 @@ theorem signature_benchmark_precise (S : Sha2Set) (N : ℕ)
   obtain ⟨s,e⟩ := signature_queries (Q := 2^40+2^22) S N r seeds F (by decide) c msg cap hq hs hc
   exact ⟨s.trans (precision S).1,e.trans (precision S).1⟩
 
+/-- With one signing query, success probability one half requires more than
+2^59, 2^91, or 2^122 public quantum XOF queries, according to the node width. -/
+theorem signature_work_threshold (S : Sha2Set) (N : ℕ)
+    (r : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node)
+    {E : Type} [Fintype E] [DecidableEq E] (F : PortForger (ShakeApi.Input N) (Bytes S.vp.params.m) E)
+    (c : Caps) (msg : c.ml = 65536) (cap : 65536+3*S.vp.params.n ≤ N)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^(min (4*S.vp.params.n-5) 122)))
+    (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) < 1/2 ∧
+    SetOracle.uniformMean (fun H => qUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) < 1/2 := by
+  let Q := 2^(min (4*S.vp.params.n-5) 122)+2^22
+  obtain ⟨strong,ordinary⟩ := signature_queries (Q := Q) S N r seeds F le_rfl c msg cap hq hs hc
+  suffices small : singleLoss S Q < 1/2 from ⟨strong.trans_lt small,ordinary.trans_lt small⟩
+  apply (ENNReal.toReal_lt_toReal (finiteLoss _ _) (by norm_num)).mp
+  rcases parameters S with ⟨bits,hd⟩ | ⟨bits,hd⟩ | ⟨bits,hd⟩ <;>
+    apply (loss_le S Q _ hd).trans_lt <;>
+    simp only [Q,ENNReal.toReal_div,ENNReal.toReal_one,ENNReal.toReal_ofNat] <;>
+    rw [show 4*S.vp.params.n = 8*S.vp.params.n / 2 by omega,bits] <;> norm_num
+
 end Reduction.ShakeXof
 #print axioms Reduction.ShakeXof.precision
 #print axioms Reduction.ShakeXof.signature_benchmark_precise
+#print axioms Reduction.ShakeXof.signature_work_threshold

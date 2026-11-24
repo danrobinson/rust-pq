@@ -491,13 +491,19 @@ prefixes where required. At the same budget, a classical forger with forward and
 inverse access to the shared ideal Keccak permutation has forgery probability at
 most the corresponding XOF bound plus `2^-427`. With coherent forward and inverse
 access to that same uniform 1,600-bit permutation, both forgery probabilities are
-at most `2^-18 + 2^-25` for each of the six sets. Both the signed and forged
+at most `2^-19 + 2^-25` for the 128-bit sets, `2^-51 + 2^-25` for the 192-bit
+sets, and `2^-83 + 2^-25` for the 256-bit sets. Both the signed and forged
 messages must meet the encoded-length cap, including the context and two framing
 bytes. Applying the permutation-model bound to concrete Keccak-f[1600] requires
 a cryptographic assumption.
 [Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeSetPrecision.lean) ·
 [Classical permutation theorem](quantum/Integration/SlhDsaShakePermutationClassicalSignature.lean) ·
 [Quantum permutation theorem](quantum/Integration/SlhDsaShakePermutationLongBenchmark.lean)
+
+The shared ideal SHAKE XOF also has a bound with separate public-query and
+signing-query budgets, with numerical certificates for two signatures. The
+full-lifetime AES-category comparison remains open in this model.
+[Work thresholds and repeated-signing results](quantum/STATUS.md#shake-work-and-repeated-signing)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
 pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA

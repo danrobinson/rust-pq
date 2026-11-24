@@ -40,6 +40,35 @@ theorem uniform_switch (g : I → X → Y) (G : X → Y) (owners : X → Finset 
   · exact h
   · unfold fee cost; have := hM.trace_re_nonneg; positivity
 
+theorem column_bound (width : ℕ) (π : Permutation) {J : Type} [Fintype J] (u t : (I × J) ↪ Words)
+    (positive : 0 < width) (large : 2^(2*width) ≤ Fintype.card I)
+    (pre : (Port → Words) → Closed (WS Port Words E) A)
+    (hp : PUE (spec:=unifSpec) cnt0 pre (2^41)) (post : I → A → Closed (WS Port Words E) Bool)
+    (M : Matrix (WS Port Words E) (WS Port Words E) ℂ) (hM : M.PosSemidef) (one : M.trace.re ≤ 1) :
+    uniformMean (fun i => qWeight (· = true)
+      (pre (oracle (swapInjections (Program.slice u i) (π,Program.slice t i)).1) >>= post i) M) ≤
+      uniformMean (fun i => qWeight (· = true) (pre (oracle π) >>= post i) M) + ENNReal.ofReal (((2^41:ℕ):ℝ)*fee ((2^(width-1))⁻¹) ((2^(width-1))⁻¹)) := by
+  let r : ℝ := (2^(width-1))⁻¹
+  have ri : ∀ x, ((keyOwners π u t x).card:ℝ)/Fintype.card I ≤ r^2 := by
+    intro x
+    have d : ((keyOwners π u t x).card:ℝ) ≤ 2 := by exact_mod_cast keyOwners_card π u t x
+    have c : (2^(2*width):ℝ) ≤ Fintype.card I := by exact_mod_cast large
+    calc
+      _ ≤ 2/2^(2*width) := div_le_div₀ (by norm_num) d (by norm_num) c
+      _ ≤ _ := by
+        obtain ⟨v,rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt positive)
+        simp only [r,Nat.succ_sub_one,Nat.mul_succ,pow_add,pow_mul]
+        field_simp
+        ring_nf
+        rw [Nat.mul_comm v 2,pow_mul]
+        norm_num
+  have h := uniform_switch (fun i => oracle (swapInjections (Program.slice u i) (π,Program.slice t i)).1)
+    (oracle π) (keyOwners π u t) (outside_column π u t) r r (by unfold r; positivity)
+    (by unfold r; positivity) ri pre _ hp post M hM
+  refine h.trans (add_le_add le_rfl ?_)
+  apply ENNReal.ofReal_le_ofReal
+  exact (mul_le_mul_of_nonneg_left one (by unfold fee cost r; positivity)).trans_eq (mul_one _)
+
 /-- At the minimum 128-bit key size, an arbitrary private-key-dependent
 continuation costs at most 2⁻¹⁹ for up to 2⁴¹ prefix queries. -/
 theorem benchmark_column (π : Permutation) {J : Type} [Fintype J] (u t : (I × J) ↪ Words)
@@ -50,21 +79,12 @@ theorem benchmark_column (π : Permutation) {J : Type} [Fintype J] (u t : (I × 
     uniformMean (fun i => qWeight (· = true)
       (pre (oracle (swapInjections (Program.slice u i) (π,Program.slice t i)).1) >>= post i) M) ≤
       uniformMean (fun i => qWeight (· = true) (pre (oracle π) >>= post i) M) + ((2:ℝ≥0∞)^19)⁻¹ := by
-  let r : ℝ := (2^63)⁻¹
-  have ri : ∀ x, ((keyOwners π u t x).card:ℝ)/Fintype.card I ≤ r^2 := by
-    intro x
-    have d : ((keyOwners π u t x).card:ℝ) ≤ 2 := by exact_mod_cast keyOwners_card π u t x
-    have c : (2^128:ℝ) ≤ Fintype.card I := by exact_mod_cast large
-    calc
-      _ ≤ 2/2^128 := div_le_div₀ (by norm_num) d (by norm_num) c
-      _ ≤ _ := by norm_num [r]
-  have h := uniform_switch (fun i => oracle (swapInjections (Program.slice u i) (π,Program.slice t i)).1)
-    (oracle π) (keyOwners π u t) (outside_column π u t) r r (by unfold r; positivity)
-    (by unfold r; positivity) ri pre _ hp post M hM
-  refine h.trans (add_le_add le_rfl ?_)
-  have fee_bound : ((2^41 : ℕ):ℝ)*fee r r ≤ (2^19:ℝ)⁻¹ := by norm_num [fee,cost,r]
-  have tr := (mul_le_mul_of_nonneg_left one (show 0 ≤ ((2^41:ℕ):ℝ)*fee r r by norm_num [fee,cost,r])).trans_eq (mul_one _)
-  simpa only [ENNReal.ofReal_inv_of_pos (by norm_num : 0 < (2^19:ℝ)),ENNReal.ofReal_pow (by norm_num : (0:ℝ) ≤ 2),ENNReal.ofReal_ofNat] using ENNReal.ofReal_le_ofReal (tr.trans fee_bound)
+  apply (column_bound 64 π u t (by decide) large pre hp post M hM one).trans
+  apply add_le_add le_rfl
+  rw [← ENNReal.ofReal_ofNat (n := 2),← ENNReal.ofReal_pow (by norm_num),← ENNReal.ofReal_inv_of_pos (by positivity)]
+  apply ENNReal.ofReal_le_ofReal
+  norm_num [fee,cost]
+
 end
 end Reduction.ShakePermutation.MsgEffect
 #print axioms Reduction.ShakePermutation.MsgEffect.benchmark_column

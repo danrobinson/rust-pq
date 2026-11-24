@@ -4,7 +4,7 @@ import Integration.SlhDsaCompressionItsrSupport
 
 namespace Reduction.ShakeSingle
 open MLink Ideal SLHDSA SLHDSA.Security OracleComp OracleSpec PQ.Interactive Quantum QMsg QItsr KeyedHash
-open scoped ComplexOrder
+open scoped ComplexOrder ENNReal
 open Classical
 
 variable (S : Sha2Set) (N : ℕ) {E : Type} [Fintype E] [DecidableEq E]
@@ -13,20 +13,20 @@ variable (S : Sha2Set) (N : ℕ) {E : Type} [Fintype E] [DecidableEq E]
 local notation "Q" => fun H => qPureBytesToInternal (ShakeApi.rawForger S N r seeds F H)
 local notation "P" => fun H => ShakeApi.primitives S (ShakeApi.extend H)
 
-private theorem support (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N)
-    (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+theorem transcript_support (s : ℕ) (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N)
+    (hs : ∀ pk, CountBound isSign (F.main pk) s)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) (H : ShakeApi.RawTable S N) :
-    AllQueries (fun _ => True) (scopedTranscript S N)
+    AllQueries (fun _ => True) (fun z : Transcript S => z.2.length ≤ s ∧ (encode S z.1).length ≤ N ∧ ∀ y ∈ z.2, (encode S y).length ≤ N)
       (close (ITSROracles (itsrProblem S.vp (P H))) (qbItsrL (Q H)) []) := by
   let A := Q H
   have hQ (pk) : AllQueries (QG _ (Gint c.ml)) (fun z => z.1.length ≤ c.ml) (A.main pk) :=
     allQ_and (allQ_qPureBytesToInternal c.ml _ (fun pkb => allQ_compileQ c H _ (hc pkb)) pk)
       (out_qPureBytesToInternal _ c.ml (fun pkb => allQ_out_simulateQ (compileImplQ H) (hc pkb)) pk)
   have hO := allQ_qItsrOpen (P H) c.ml A hQ
-  have bound : CountBound (QC _ isR) (qbItsrL A) 1 := cb_qLazyRun _ _ (cb_qItsrOpen (P H) A fun pk =>
+  have bound : CountBound (QC _ isR) (qbItsrL A) s := cb_qLazyRun _ _ (cb_qItsrOpen (P H) A fun pk =>
     cb_qPureBytesToInternal _ (fun pkb => cb_compileQ H (F.main pkb) (hs pkb)) pk)
   have h := Compression.MessageHash.target_support (itsrProblem S.vp (P H)) (Ptgt _ c.ml) _
-    (qbItsrL A) 1 [] (allQ_and (allQ_qLazyRun _ (Ptgt (P H) c.ml) _
+    (qbItsrL A) s [] (allQ_and (allQ_qLazyRun _ (Ptgt (P H) c.ml) _
       (allQ_mono (fun _ h => h) (fun _ _ => trivial) hO)) (out_qLazyRun _ _ hO)) bound
   apply allQ_mono (fun _ _ => trivial) _ h
   intro z hz
@@ -38,11 +38,15 @@ private theorem support (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N)
   · rw [len]; exact (Nat.add_le_add_left hz.1 _).trans raw
   · rw [len]; exact (Nat.add_le_add_left (hz.2.2 y hy) _).trans raw
 
-theorem signature_itsr (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N) (q : ℕ)
-    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
-    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
-    SetOracle.uniformMean (fun H => qItsrAdvantage (itsrProblem S.vp (P H)) (qbItsrL (Q H)) F.ρ₀) ≤
-      ENNReal.ofReal (16*(((q+itsrHashes S.vp 1:ℕ):ℝ)+1)^3 / 2^(S.vp.params.h+S.vp.params.a*S.vp.params.k)) := by
+theorem signature_of_search (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N) (q s : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) s)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) (b : ℝ≥0∞)
+    (search : ∀ M : ShakeApi.RawTable S N → Closed (WS (ShakeApi.Input N) (Bytes S.vp.params.m) E) (Transcript S),
+      PUE (spec := unifSpec) cnt0 M (q+itsrHashes S.vp s) →
+      (∀ H, AllQueries (fun _ => True) (fun z : Transcript S => z.2.length ≤ s ∧ (encode S z.1).length ≤ N ∧
+        ∀ y ∈ z.2, (encode S y).length ≤ N) (M H)) →
+      SetOracle.uniformMean (fun H => qWeight (covered S (ShakeApi.extend H)) (M H) F.ρ₀) ≤ b) :
+    SetOracle.uniformMean (fun H => qItsrAdvantage (itsrProblem S.vp (P H)) (qbItsrL (Q H)) F.ρ₀) ≤ b := by
   classical
   let base : ShakeApi.Xof S := fun _ => default
   let mach := fun H => close (ITSROracles (itsrProblem S.vp (ShakeApi.primitives S base)))
@@ -52,9 +56,8 @@ theorem signature_itsr (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N) (q : ℕ)
     unfold mach
     rw [ShakeApi.itsrMach_oracle]
     rfl
-  have u := covered_search S N mach _ (PUE.close _ (fun t s => EvalCost.const _)
-    (ShakeApi.pue_itsrMach S N r seeds F base q 1 hq hs) []) (fun H => eq H ▸ support S N r seeds F c raw hs hc H)
-    F.ρ₀ F.posSemidef F.trace_eq_one
+  have u := search mach (PUE.close _ (fun t s => EvalCost.const _)
+    (ShakeApi.pue_itsrMach S N r seeds F base q s hq hs) []) (fun H => eq H ▸ transcript_support S N r seeds F s c raw hs hc H)
   apply le_trans _ u
   apply Finset.sum_le_sum
   intro H _
@@ -78,6 +81,14 @@ theorem signature_itsr (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N) (q : ℕ)
     exact Iff.rfl
   apply le_of_eq
   congr 1
+
+theorem signature_itsr (c : Caps) (raw : 3*S.vp.params.n+c.ml ≤ N) (q : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    SetOracle.uniformMean (fun H => qItsrAdvantage (itsrProblem S.vp (P H)) (qbItsrL (Q H)) F.ρ₀) ≤
+      ENNReal.ofReal (16*(((q+itsrHashes S.vp 1:ℕ):ℝ)+1)^3 / 2^(S.vp.params.h+S.vp.params.a*S.vp.params.k)) := by
+  apply signature_of_search S N r seeds F c raw q 1 hq hs hc
+  exact fun M cost scope => covered_search S N M _ cost scope F.ρ₀ F.posSemidef F.trace_eq_one
 
 /-- The actual one-signature reduction, charged for key generation and signing.
 The exponent is a common lower bound on the digest security across all six sets. -/

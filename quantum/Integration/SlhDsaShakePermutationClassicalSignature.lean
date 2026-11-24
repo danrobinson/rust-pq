@@ -1,4 +1,5 @@
 import Integration.SlhDsaShakePermutationClassicalSourceBounds
+import Integration.SlhDsaShakeXofRepeatedBenchmark
 
 /-! Nonvacuous classical byte-signature forgery bounds for all six
 FIPS 205 SHAKE sets in the public two-way ideal-permutation model. -/
@@ -67,6 +68,38 @@ local notation "F₀" => liftClassical (false,0) F
 
 private theorem block_fit : Completion.blockCap N ≤ T := by cases S <;> decide +kernel
 
+include c msg hc in
+theorem transfer_queries (q s t : ℕ) (cap : Completion.blockCap N ≤ t)
+    (room : q + 483*Honest.honestCharge S s ≤ t)
+    (ports : ∀ pk, CountBound (fun i => publicRead (X := Port) (Y := Words) i = true) (F pk) q)
+    (signs : ∀ pk, CountBound (fun i => signRead (X := Port) (Y := Words) i = true) (F pk) s)
+    (fresh : Fresh) (b : ℝ≥0∞) (source :
+    ∀ g : Completion.Private t, ∀ k : Fix.Domain t → Capacity, ∀ u : Port → Words,
+    let player := liftClassical (BList.ofList [] (by simp))
+      (sourceForger S N t cap g k u F)
+    uniformMean (fun raw => qWeight (·=true) (qSigExperiment fresh (ShakeApi.rawForger S N rand seeds player raw)) player.ρ₀)
+      ≤ b) :
+    uniformMean (fun π : Permutation => qWeight (·=true) (qSigExperiment fresh (experiment S rand seeds F₀ π)) (F₀).ρ₀)
+      ≤ b + classicalLoss t := by
+  let fixed : ShakeApi.Xof S := fun _ => default
+  let P := byteGame S N (Honest.rawScheme S N fixed rand seeds) F fresh
+  have sigcap : ShakeApi.rawCap S 67 c.ml ≤ N := by rw [msg]; cases S <;> decide +kernel
+  have hbounded : WCount (charge S N) P t := (byte_budget S N fixed rand seeds 483 (by cases S <;> decide +kernel)
+    F fresh q s ports signs).mono room
+  have real (π : Permutation) := byte_real S N fixed rand seeds F fresh c sigcap
+    (fun pk => (lift_bounds (false,0) F pk _ _ c (ports pk) (signs pk) (hc pk)).2.2) π
+  let am (g : Completion.Private t) (H : ShakeApi.RawTable S N) (k : Fix.Domain t → Capacity) (u : Port → Words) :=
+    idealOuter S N t (banks t (Completion.complete S cap g H) k u) H (fun v => hit (v=true)) P []
+  have sim (g : Completion.Private t) (k : Fix.Domain t → Capacity) (u : Port → Words) :
+      uniformMean (fun H => am g H k u) ≤ b := by
+    have eq (H : ShakeApi.RawTable S N) := byte_ideal S N t cap g k u H fixed rand seeds F fresh
+    exact (congrArg uniformMean (funext eq)).le.trans (source g k u)
+  have ideal : uniformMean (fun g => uniformMean (fun H => uniformMean (fun k => uniformMean (fun u => am g H k u)))) ≤ b := by
+    refine (mean_mono (fun g => (rotate (am g)).le.trans ?_)).trans_eq (avg_const _)
+    exact (mean_mono (fun k => (mean_mono (sim g k)).trans_eq (avg_const _))).trans_eq (avg_const _)
+  exact (congrArg uniformMean (funext real)).symm.le.trans
+    ((classical_crossing S N t cap P t hbounded le_rfl).trans (add_le_add ideal le_rfl))
+
 include c msg hp hs hc
 private theorem transfer (fresh : Fresh) (source :
     ∀ g : Completion.Private T, ∀ k : Fix.Domain T → Capacity, ∀ u : Port → Words,
@@ -76,25 +109,9 @@ private theorem transfer (fresh : Fresh) (source :
       ≤ directLimit S) :
     uniformMean (fun π : Permutation => qWeight (·=true) (qSigExperiment fresh (experiment S rand seeds F₀ π)) (F₀).ρ₀)
       ≤ byteLimit S := by
-  let fixed : ShakeApi.Xof S := fun _ => default
-  let P := byteGame S N (Honest.rawScheme S N fixed rand seeds) F fresh
-  let cap := block_fit S
-  have sigcap : ShakeApi.rawCap S 67 c.ml ≤ N := by rw [msg]; cases S <;> decide +kernel
-  have hbounded : WCount (charge S N) P T := (byte_budget S N fixed rand seeds 483 (by cases S <;> decide +kernel)
-    F fresh (2^40) 1 hp hs).mono (by have := Honest.benchmark_honest_blocks S; omega)
-  have real (π : Permutation) := byte_real S N fixed rand seeds F fresh c sigcap
-    (fun pk => (lift_bounds (false,0) F pk _ _ c (hp pk) (hs pk) (hc pk)).2.2) π
-  let am (g : Completion.Private T) (H : ShakeApi.RawTable S N) (k : Fix.Domain T → Capacity) (u : Port → Words) :=
-    idealOuter S N T (banks T (Completion.complete S cap g H) k u) H (fun v => hit (v=true)) P []
-  have sim (g : Completion.Private T) (k : Fix.Domain T → Capacity) (u : Port → Words) :
-      uniformMean (fun H => am g H k u) ≤ directLimit S := by
-    have eq (H : ShakeApi.RawTable S N) := byte_ideal S N T cap g k u H fixed rand seeds F fresh
-    exact (congrArg uniformMean (funext eq)).le.trans (source g k u)
-  have ideal : uniformMean (fun g => uniformMean (fun H => uniformMean (fun k => uniformMean (fun u => am g H k u)))) ≤ directLimit S := by
-    refine (mean_mono (fun g => (rotate (am g)).le.trans ?_)).trans_eq (avg_const _)
-    exact (mean_mono (fun k => (mean_mono (sim g k)).trans_eq (avg_const _))).trans_eq (avg_const _)
-  exact (congrArg uniformMean (funext real)).symm.le.trans
-    ((classical_crossing S N T cap P T hbounded le_rfl).trans (add_le_add ideal loss_benchmark))
+  have h := transfer_queries S rand seeds F c msg hc (2^40) 1 (2^41) (block_fit S)
+    (by have := Honest.benchmark_honest_blocks S; omega) hp hs fresh (directLimit S) source
+  exact h.trans (add_le_add le_rfl loss_benchmark)
 
 /-- Bounded byte messages, one signing query and 2^40 adaptive forward
 or inverse public permutation queries. Freshness is tested on the exact
@@ -116,6 +133,39 @@ theorem classical_signature_benchmark :
     intro g k u
     exact (existentialRaw S N rand seeds _).symm.le.trans (both g k u).2
 
+omit hp hs in
+theorem classical_repeated (q s d t : ℕ) (many : s*d < S.vp.params.k)
+    (cap : Completion.blockCap N ≤ t) (room : q+483*Honest.honestCharge S s ≤ t)
+    (ports : ∀ pk, CountBound (fun i => publicRead (X := Port) (Y := Words) i = true) (F pk) q)
+    (signs : ∀ pk, CountBound (fun i => signRead (X := Port) (Y := Words) i = true) (F pk) s) :
+    let bound := ShakeXof.repeatedLoss S q s (ShakeSingle.subsetLoss S (q+itsrHashes S.vp s) s d) + classicalLoss t
+    strongAdvantage S rand seeds F₀ ≤ bound ∧ advantage S rand seeds F₀ ≤ bound := by
+  have fit : ∀ k ∈ [1,2,S.vp.params.len,S.vp.params.k], S.vp.params.n+32+S.vp.params.n*k ≤ N := by
+    intro k hk
+    simp only [List.mem_cons,List.not_mem_nil,or_false] at hk
+    rcases hk with rfl|rfl|rfl|rfl <;> cases S <;> decide +kernel
+  have both (g : Completion.Private t) (k : Fix.Domain t → Capacity) (u : Port → Words) :=
+    ShakeXof.repeated_queries S N rand seeds (liftClassical (BList.ofList [] (by simp))
+      (sourceForger S N t cap g k u F)) q s d many c (by rw [msg]; unfold inputLimit; omega) fit
+      (fun pk => (source_bounds S N t cap g k u F pk _ _ c (ports pk) (signs pk) (hc pk)).1)
+      (fun pk => (source_bounds S N t cap g k u F pk _ _ c (ports pk) (signs pk) (hc pk)).2.1)
+      (fun pk => (source_bounds S N t cap g k u F pk _ _ c (ports pk) (signs pk) (hc pk)).2.2)
+  rw [strongMean,existentialMean]
+  exact ⟨transfer_queries S rand seeds F c msg hc q s t cap room ports signs strongFresh _ (fun g k u =>
+      (strongRaw S N rand seeds _).symm.le.trans (both g k u).1),
+    transfer_queries S rand seeds F c msg hc q s t cap room ports signs existentialFresh _ (fun g k u =>
+      (existentialRaw S N rand seeds _).symm.le.trans (both g k u).2)⟩
+
+omit hs in
+theorem classical_two_signature_benchmark
+    (signs : ∀ pk, CountBound (fun i => signRead (X := Port) (Y := Words) i = true) (F pk) 2) :
+    let b := ((2:ℝ≥0∞)^(ShakeXof.twoSignatureBits S))⁻¹ + ((2:ℝ≥0∞)^427)⁻¹
+    strongAdvantage S rand seeds F₀ ≤ b ∧ advantage S rand seeds F₀ ≤ b := by
+  have result := classical_repeated S rand seeds F c msg hc (2^40) 2 ((S.vp.params.k-1)/2) (2^41)
+    (by cases S <;> decide +kernel) (block_fit S) (by cases S <;> decide +kernel) hp signs
+  have limit := add_le_add (ShakeXof.twoSignatureLoss S) loss_benchmark
+  exact ⟨result.1.trans limit,result.2.trans limit⟩
+
 omit c msg hp hs hc in
 theorem byteLimit_nonvacuous (S : Sha2Set) : byteLimit S < 1 := by
   have bits : 8*S.vp.params.n = 128 ∨ 8*S.vp.params.n = 192 ∨ 8*S.vp.params.n = 256 := by cases S <;> decide +kernel
@@ -129,3 +179,5 @@ end
 end Reduction.ShakePermutation.Classic
 #print axioms Reduction.ShakePermutation.Classic.classical_signature_benchmark
 #print axioms Reduction.ShakePermutation.Classic.byteLimit_nonvacuous
+#print axioms Reduction.ShakePermutation.Classic.classical_repeated
+#print axioms Reduction.ShakePermutation.Classic.classical_two_signature_benchmark

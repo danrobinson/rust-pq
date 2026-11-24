@@ -34,6 +34,28 @@ theorem signature_benchmark (c : Caps) (msg : c.ml = 65536)
     strongAdvantage S rand seeds F ≤ bound ∧ advantage S rand seeds F ≤ bound :=
   compose S rand seeds F c msg hq hs hc (fun ar ha => signature_arity S rand seeds F ar ha hq hs)
 
+/-- The native two-way quantum estimate retains the message-PRF key width. -/
+theorem signature_benchmark_width (c : Caps) (msg : c.ml = 65536)
+    (hq : ∀ pk, CountBound isPort (F.main pk) (2^40)) (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    let bound := ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹ + ((2:ℝ≥0∞)^25)⁻¹
+    strongAdvantage S rand seeds F ≤ bound ∧ advantage S rand seeds F ≤ bound := by
+  have both := three_remaining_width S rand seeds F c msg hq hs hc
+  have m := signature_itsr S rand seeds F c msg hq hs hc
+  have charge ar (ha : ar ≤ 67) := signature_arity S rand seeds F ar ha hq hs
+  have l := charge S.vp.params.len (by cases S <;> decide +kernel)
+  have k := charge S.vp.params.k (by cases S <;> decide +kernel)
+  have total := add_le_add (add_le_add (add_le_add m l) k)
+    (le_refl (((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹+((2:ℝ≥0∞)^29)⁻¹))
+  have price : ((2:ℝ≥0∞)^81)⁻¹+((2:ℝ≥0∞)^27)⁻¹+((2:ℝ≥0∞)^27)⁻¹+
+      (((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹+((2:ℝ≥0∞)^29)⁻¹)
+      ≤ ((2:ℝ≥0∞)^(MsgEffect.prefixBits S))⁻¹+((2:ℝ≥0∞)^25)⁻¹ := by
+    apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+    simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_inv, ENNReal.toReal_pow, ENNReal.toReal_ofNat]
+    linarith [show ((2:ℝ)^81)⁻¹+((2:ℝ)^27)⁻¹+((2:ℝ)^27)⁻¹+((2:ℝ)^29)⁻¹ ≤ ((2:ℝ)^25)⁻¹ by norm_num]
+  exact ⟨both.1.trans (total.trans price),both.2.trans (total.trans price)⟩
+
 end Reduction.ShakePermutation.Long
 #print axioms Reduction.ShakePermutation.Long.signature_arity
 #print axioms Reduction.ShakePermutation.Long.signature_benchmark
+#print axioms Reduction.ShakePermutation.Long.signature_benchmark_width
