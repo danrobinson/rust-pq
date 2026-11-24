@@ -1,15 +1,15 @@
-# Post-quantum security workstream — status (end of phase 4 consolidation)
+# SLH-DSA quantum security proofs
 
 ## Six-set extensions (2026-11-23)
 
-Lean checks strong and existential forgery bounds for all six pure SHA-2 sets in each of the following models.
+Lean checks strong and existential forgery bounds for all six pure SHA-2 sets in each of the following models. The [all-set shared-compression theorems](Integration/SlhDsaCompressionAllSets.lean) state both forgery bounds directly for the classical and quantum byte forgers, with their query budgets and encoded-message cap.
 
 | Parameter sets | Classical ideal compression | Quantum independent components | Quantum shared ideal compression |
 |---|---|---|---|
-| SHA2-128s, 128f | [128s](../security/MIdeal/Sha2_128s.lean) · [128f](../security/MIdeal/Sha2_128f.lean) | [SUF](Integration/SlhDsaSetClosed.lean) · [EUF](Integration/SlhDsaSetEuf.lean) | [SUF and EUF](Integration/SlhDsaCompressionSmallClosed.lean) · [bound ≥ 1 at every budget](Integration/SlhDsaCompressionSmallFloor.lean) |
+| SHA2-128s, 128f | [128s](../security/MIdeal/Sha2_128s.lean) · [128f](../security/MIdeal/Sha2_128f.lean) | [SUF](Integration/SlhDsaSetClosed.lean) · [EUF](Integration/SlhDsaSetEuf.lean) | [General budgets and one signature](Integration/SlhDsaCompressionLongSignature.lean) · [numerical certificate](Integration/SlhDsaCompressionLongBenchmark.lean) |
 | SHA2-192s, 192f, 256s, 256f | [SUF and EUF for classical byte forgers](Integration/SlhDsaCompressionClassicalWide.lean) | [SUF](Integration/SlhDsaSetClosed.lean) · [EUF](Integration/SlhDsaSetEuf.lean) | [General budgets](Integration/SlhDsaCompressionWideMixed.lean) · [at most one signature](Integration/SlhDsaCompressionSingleTarget.lean) · [multiple signatures](Integration/SlhDsaCompressionTargetSubset.lean) |
 
-For the four wider sets, the classical proof prepares and measures a basis query for each classical table read. It preserves the public and signing budgets, the encoded-message cap, and the forgery probability at each fixed pair of tables. Consequently the quantum numerical certificates below also apply to these classical forgers. All compression-model probabilities are averaged over random compression tables. Security of the concrete SHA-2 functions remains a cryptographic assumption.
+For all six sets, the classical simulation prepares and measures a basis query for each classical table read. It preserves the public and signing budgets, the encoded-message cap, and the forgery probability at each fixed pair of tables. Consequently the shared-table quantum numerical certificates below also apply to these classical forgers. All compression-model probabilities are averaged over random compression tables. Security of the concrete SHA-2 functions remains a cryptographic assumption.
 
 [The concrete SHA-2 reduction](Integration/SlhDsaRustQuantum.lean) pairs the Rust
 API correspondence with strong and existential unforgeability in the quantum hash
@@ -33,12 +33,12 @@ With at most one signing query, the proof uses all decoded FORS coordinates. For
 
 The following entries give $b$ such that forgery probability is at most $2^{-b}$, with at most `2^40` public queries and encoded messages up to 64 KiB. The [multi-signature proof](Integration/SlhDsaCompressionTargetSubset.lean) counts the FORS coordinates that a single target must share with the forgery. [Benchmarks for two through four signatures](Integration/SlhDsaCompressionSubsetBenchmark.lean)
 
-| Maximum signing queries | 192s | 192f | 256s | 256f |
-|---:|---:|---:|---:|---:|
-| 1 | 19 | 22 | 78 | 79 |
-| 2 | 19 | 22 | 74 | 73 |
-| 3 | 9 | 2 | 33 | 22 |
-| 4 | — | — | 7 | — |
+| Maximum signing queries | 128s | 128f | 192s | 192f | 256s | 256f |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 39 | 39 | 19 | 22 | 78 | 79 |
+| 2 | — | — | 19 | 22 | 74 | 73 |
+| 3 | — | — | 9 | 2 | 33 | 22 |
+| 4 | — | — | — | — | 7 | — |
 
 A dash indicates that the certificate provides no value for that case.
 
@@ -48,7 +48,7 @@ have numerical bounds for the signature forger using both shared compression tab
 The [signature ITSR bound](Integration/SlhDsaCompressionSmallItsr.lean) uses a 75-bit projection
 on SHA2-128s and a 61-bit projection on SHA2-128f. These projections describe collision events
 in the reduction. Their widths alone give no forgery-security level.
-[The complete narrow shared-compression theorems](Integration/SlhDsaCompressionSmallClosed.lean) give strong and existential forgery bounds for both sets. Their class-collision cost already exceeds one at zero adversary queries. At one signature, a 64 KiB encoded-message cap, and `2^40` public queries, each of the [one- and two-node target-collision terms](Integration/SlhDsaCompressionShortClosed.lean) is at most `2^-45`. The [message-hash term](Integration/SlhDsaCompressionSmallSingle.lean) is at most `2^-43` for 128s and `2^-73` for 128f because all FORS indices must match the same target. The two longer hash-input classes still prevent an end-to-end numerical guarantee in that estimate.
+[The initial narrow shared-compression theorems](Integration/SlhDsaCompressionSmallClosed.lean) give strong and existential forgery bounds for both sets. Their class-collision cost already exceeds one at zero adversary queries. At one signature, a 64 KiB encoded-message cap, and `2^40` public queries, each of the [one- and two-node target-collision terms](Integration/SlhDsaCompressionShortClosed.lean) is at most `2^-45`. The [message-hash term](Integration/SlhDsaCompressionSmallSingle.lean) is at most `2^-43` for 128s and `2^-73` for 128f because all FORS indices must match the same target. For the WOTS public key and FORS roots, the [long-input proof](Integration/SlhDsaCompressionLongSignature.lean) conditions the quantum forgery on the honest transcript and charges the cells read to verify a specific forged path. The [complete numerical bound](Integration/SlhDsaCompressionLongBenchmark.lean) is `2^-39` for both narrow sets at that benchmark.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component
