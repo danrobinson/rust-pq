@@ -43,8 +43,9 @@ def accepts (g : CompressionTables) : Evidence → Prop
 
 def trace (g : CompressionTables) (xs : List (Query S)) : List Entry := (visits S hs g xs).map (fun u => (u,g.1 u))
 
-theorem selected (i : Fin S.vp.params.k) (c : Covers S hs key i) (g : CompressionTables) (cand : Query S)
-    (ts : List (Query S)) (win : (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand) :
+theorem selected_of_target (g : CompressionTables) (cand : Query S)
+    (ts : List (Query S)) (win : (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand)
+    (target : ∃ y ∈ ts, key (g.1 (last S hs g cand)) = key (g.1 (last S hs g y))) :
     accepts key g (select key (trace S hs g (cand::ts))) := by
   let vis := visits S hs g (cand::ts)
   let xs := trace S hs g (cand::ts)
@@ -75,14 +76,7 @@ theorem selected (i : Fin S.vp.params.k) (c : Covers S hs key i) (g : Compressio
         intro eq
         have hh := List.find?_eq_none.mp he (u,g.1 u) (entry u hu)
         simp [eq] at hh
-      let d := msg S g cand
-      let needle := ((splitDigest S.vp.params d).forsAdrs, i.val * 2^S.vp.params.a +
-        forsIdx S.vp.params (splitDigest S.vp.params d).md.toList i.val)
-      have hn : needle ∈ idxOf S.vp d := by
-        simp only [idxOf,Reduction.forsIndices,List.mem_map,List.mem_range]
-        exact ⟨i.val,i.isLt,rfl⟩
-      obtain ⟨y,hy,hit⟩ := List.mem_flatMap.mp (win.2 needle hn)
-      obtain ⟨h₁,h₂⟩ := match_of_mem_idxOf S.vp d (msg S g y) i hit
+      obtain ⟨y,hy,sameKey⟩ := target
       have last_in (x : Query S) (hx : x ∈ cand::ts) : last S hs g x ∈ vis :=
         incl x hx _ (by simp [last,Fast128.cells])
       have diff : last S hs g cand ≠ last S hs g y := by
@@ -92,7 +86,21 @@ theorem selected (i : Fin S.vp.params.k) (c : Covers S hs key i) (g : Compressio
           (incl _ (List.mem_cons_self ..)) (incl _ (List.mem_cons_of_mem _ hy)) rows
         exact win.1 ((raw_injective S hs same).symm ▸ hy)
       exact noPair _ _ (last_in _ (List.mem_cons_self ..)) (last_in _ (List.mem_cons_of_mem _ hy)) diff
-        (c.hit g cand y h₁.symm h₂.symm)
+        sameKey
+
+theorem selected (i : Fin S.vp.params.k) (c : Covers S hs key i) (g : CompressionTables) (cand : Query S)
+    (ts : List (Query S)) (win : (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand) :
+    accepts key g (select key (trace S hs g (cand::ts))) := by
+  apply selected_of_target S hs key g cand ts win
+  let d := msg S g cand
+  let needle := ((splitDigest S.vp.params d).forsAdrs, i.val * 2^S.vp.params.a +
+    forsIdx S.vp.params (splitDigest S.vp.params d).md.toList i.val)
+  have hn : needle ∈ idxOf S.vp d := by
+    simp only [idxOf,Reduction.forsIndices,List.mem_map,List.mem_range]
+    exact ⟨i.val,i.isLt,rfl⟩
+  obtain ⟨y,hy,hit⟩ := List.mem_flatMap.mp (win.2 needle hn)
+  obtain ⟨h₁,h₂⟩ := match_of_mem_idxOf S.vp d (msg S g y) i hit
+  exact ⟨y,hy,c.hit g cand y h₁.symm h₂.symm⟩
 
 end Reduction.Compression.SmallItsr
 #print axioms Reduction.Compression.SmallItsr.selected

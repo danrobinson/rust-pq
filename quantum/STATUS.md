@@ -48,7 +48,7 @@ have numerical bounds for the signature forger using both shared compression tab
 The [signature ITSR bound](Integration/SlhDsaCompressionSmallItsr.lean) uses a 75-bit projection
 on SHA2-128s and a 61-bit projection on SHA2-128f. These projections describe collision events
 in the reduction. Their widths alone give no forgery-security level.
-[The complete narrow shared-compression theorems](Integration/SlhDsaCompressionSmallClosed.lean) give strong and existential forgery bounds for both sets. Their class-collision cost already exceeds one at zero adversary queries.
+[The complete narrow shared-compression theorems](Integration/SlhDsaCompressionSmallClosed.lean) give strong and existential forgery bounds for both sets. Their class-collision cost already exceeds one at zero adversary queries. At one signature, a 64 KiB encoded-message cap, and `2^40` public queries, each of the [one- and two-node target-collision terms](Integration/SlhDsaCompressionShortClosed.lean) is at most `2^-45`. The [message-hash term](Integration/SlhDsaCompressionSmallSingle.lean) is at most `2^-43` for 128s and `2^-73` for 128f because all FORS indices must match the same target. The two longer hash-input classes still prevent an end-to-end numerical guarantee in that estimate.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component

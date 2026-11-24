@@ -7,6 +7,8 @@ open MLink Ideal SLHDSA SLHDSA.Security OracleComp OracleSpec PQ.Interactive Qua
 open scoped ComplexOrder
 variable (S : Sha2Set) (hn : S.vp.params.n = 16) {K : Type} [DecidableEq K] (key : St → K)
 variable {E : Type} [Fintype E] [DecidableEq E]
+noncomputable local instance (S : Sha2Set) (g : CompressionTables) : SampleableType (tablePrimitives g S.vp.params).Y :=
+  inferInstanceAs (SampleableType S.Node)
 local notation "Work" => WS Input Output E
 variable (r : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node) (F : PortForger Input Output E)
 
@@ -37,9 +39,12 @@ theorem witness_cost (c : Caps) (q qs : ℕ)
   · exact PUE.pure none _
 
 open Classical in
-theorem witness_success (i : Fin S.vp.params.k) (cover : Covers S hn key i) (c : Caps) (qs : ℕ)
+theorem witness_success_of (c : Caps) (qs : ℕ)
     (hs : ∀ pk, CountBound isSign (F.main pk) qs) (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
-    (g : CompressionTables) :
+    (g : CompressionTables)
+    (selectedWin : ∀ cand ts, ts.length ≤ qs →
+      (itsrProblem S.vp (tablePrimitives g S.vp.params)).Wins ts cand →
+      accepts key g (select key (trace S hn g (cand::ts)))) :
     qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S r seeds F g)) F.ρ₀ ≤
     qWeight (accepts key g) (witnessMachine S hn key r seeds F c.ml qs (oracle g)) F.ρ₀ := by
   classical
@@ -53,10 +58,18 @@ theorem witness_success (i : Fin S.vp.params.k) (cover : Covers S hn key i) (c :
   have h := budget_le S hn c.ml qs z.1 z.2 cap.1 cap.2.1 cap.2.2
   change accepts key g (collect S hn key g _ z)
   rw [collect,ite_eq_left h]
-  exact selected S hn key i cover g z.1 z.2 (by
+  exact selectedWin z.1 z.2 cap.2.1 (by
     constructor
     · exact win.1
     · kexact win.2)
+
+open Classical in
+theorem witness_success (i : Fin S.vp.params.k) (cover : Covers S hn key i) (c : Caps) (qs : ℕ)
+    (hs : ∀ pk, CountBound isSign (F.main pk) qs) (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk))
+    (g : CompressionTables) :
+    qItsrAdvantage (itsrProblem S.vp (randPrims (functions S g))) (qbItsrL (reduced S r seeds F g)) F.ρ₀ ≤
+    qWeight (accepts key g) (witnessMachine S hn key r seeds F c.ml qs (oracle g)) F.ρ₀ :=
+  witness_success_of S hn key r seeds F c qs hs hc g (fun cand ts _ => selected S hn key i cover g cand ts)
 
 end Reduction.Compression.SmallItsr
 #print axioms Reduction.Compression.SmallItsr.witness_success
