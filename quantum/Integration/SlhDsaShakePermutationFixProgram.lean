@@ -36,7 +36,7 @@ def transport (e : Equiv.Perm (Register X Y Z)) (M : Matrix (WS X Y Z) (WS X Y Z
   M.submatrix (fun p => (e.symm p.1,p.2)) (fun p => (e.symm p.1,p.2))
 
 omit [AddCommGroup Y] in
-private theorem local_branch (e : Equiv.Perm (Register X Y Z)) (i : Fin 1)
+theorem local_branch (e : Equiv.Perm (Register X Y Z)) (i : Fin 1)
     (M : Matrix (WS X Y Z) (WS X Y Z) ℂ) : (framedIdx (permIdx e)).2.1.branch i M = transport e M := by
   change ((unitaryInstr (basisMatrix e) (conjTranspose_basisMatrix_mul_self e.injective)).frame Unit).branch i M = _
   ext p q
