@@ -60,7 +60,7 @@ namespace Arity
 open MLink SLHDSA
 variable (S : Sha2Set) (pk : S.Node)
 
-private theorem tweak_byte (addr : Bytes 32) (l : List S.Node) (i : Fin 32) :
+theorem tweak_byte (addr : Bytes 32) (l : List S.Node) (i : Fin 32) :
     blockByte (rateBlock (padded (sp (thBytes S pk addr l))) 0)
       ⟨S.vp.params.n + i.val,by have : S.vp.params.n ≤ 32 := by cases S <;> decide
                                 omega⟩ = addr[i.val].toBitVec := by
