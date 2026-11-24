@@ -65,6 +65,8 @@
 'MIdeal.Sha512.msg_prf_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MIdeal.Fors.tcr_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MIdeal.Fors.dspr_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.PureCompression.suf_linear' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.PureCompression.euf_linear' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pureRomScheme_instantiation' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pure_security_sha2' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pure_security_sha2_euf' depends on axioms: [propext, Classical.choice, Quot.sound]
