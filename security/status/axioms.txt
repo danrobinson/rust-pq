@@ -83,6 +83,8 @@
 'MIdeal.Fors128f.dspr_term' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MIdeal.Sha2_128f.suf' depends on axioms: [propext, Classical.choice, Quot.sound]
 'MIdeal.Sha2_128f.euf' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.Sha2_128f.benchmark_loss' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MIdeal.Sha2_128f.benchmark' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pureRomScheme_instantiation' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pure_security_sha2' depends on axioms: [propext, Classical.choice, Quot.sound]
 'ME2E.pure_security_sha2_euf' depends on axioms: [propext, Classical.choice, Quot.sound]

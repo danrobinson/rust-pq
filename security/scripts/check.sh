@@ -167,6 +167,8 @@ open MLink MReduction
 #print axioms MIdeal.Fors128f.dspr_term
 #print axioms MIdeal.Sha2_128f.suf
 #print axioms MIdeal.Sha2_128f.euf
+#print axioms MIdeal.Sha2_128f.benchmark_loss
+#print axioms MIdeal.Sha2_128f.benchmark
 #print axioms ME2E.pureRomScheme_instantiation
 #print axioms ME2E.pure_security_sha2
 #print axioms ME2E.pure_security_sha2_euf
