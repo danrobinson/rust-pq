@@ -12,7 +12,7 @@ There are no proof sources here: `lakefile.toml` compiles in place, unmodified,
   files are links to `../lean`'s, so the Rust-function theorems `ME2E` builds on are the same
   statements, here about the `hw-sha2` functions.
 
-So the 284 headlines of `../security` (Rust functions = scheme cores, standard-model bounds, `api`
+So the 285 headlines of `../security` (Rust functions = scheme cores, standard-model bounds, `api`
 forms, the context-string random-oracle theorem, all six sets; and the
 closed ideal-compression bound, SLH-DSA-SHA2-128s only) hold, under the same names and
 statements, of the `hw-sha2` build. In particular, verbatim as in `../security/STATUS.md` §5
@@ -39,7 +39,7 @@ It checks that the libraries are `../security`'s (only `Slhdsa`'s source and the
 differ), builds every default target (all libraries), scans every source file the build compiled
 (links resolved) for `sorry` / `axiom` / `native_decide` / `bv_decide`, checks that the
 environments of `ME2E` and `MIdeal` contain the `hw-sha2` chain kernel
-`slhdsa.sha256.hw.chain_all`, prints the axioms of the 284 headlines (expected: `propext`, `Classical.choice`, `Quot.sound`; the list is written
+`slhdsa.sha256.hw.chain_all`, prints the axioms of the 285 headlines (expected: `propext`, `Classical.choice`, `Quot.sound`; the list is written
 to `status/axioms.txt`) and checks that they are the names of `../security/status/axioms.txt`.
 Last run: see `../HANDOFF.md`, "Checks". `lake build` alone builds every library, as in
 `../security`.
