@@ -24,3 +24,4 @@ import MIdeal.CellCollision
 import MIdeal.SingletonHash
 import MIdeal.SingletonTcr
 import MIdeal.PureCompression
+import MIdeal.Class128f

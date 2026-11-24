@@ -151,6 +151,10 @@ open MLink MReduction
 #print axioms MIdeal.Fors.dspr_bound
 #print axioms MIdeal.PureCompression.suf_linear
 #print axioms MIdeal.PureCompression.euf_linear
+#print axioms MIdeal.PureCompression.suf_internal_linear
+#print axioms MIdeal.PureCompression.euf_internal_linear
+#print axioms MIdeal.Class128f.forge_at
+#print axioms MIdeal.Class128f.forge_count
 #print axioms ME2E.pureRomScheme_instantiation
 #print axioms ME2E.pure_security_sha2
 #print axioms ME2E.pure_security_sha2_euf
