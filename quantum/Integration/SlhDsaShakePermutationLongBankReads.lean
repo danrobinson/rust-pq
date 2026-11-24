@@ -37,7 +37,7 @@ theorem eval_impl (π : Permutation) (H : Table) (p : OracleComp (Phase.Tagged T
       have hv : perm π H w=v := by
         conv_lhs => rw [← join_split w]
         simp only [perm,salted,masked,Equiv.trans_apply,maskEquiv,shearEquiv,
-          Function.Involutive.toPerm,Equiv.coe_fn_mk,cap_join,mask_join_eq,shear,rate_mask,cap_mask_eq,rate_join]
+          Function.Involutive.toPerm,Equiv.coe_fn_mk,mask_join_eq,shear,rate_mask,cap_mask_eq]
         rfl
       change eval H f (simulateQ (impl π) (k v)) = Phase.run _ f (k (perm π H w))
       rw [hv]; exact ih v
@@ -65,7 +65,8 @@ theorem read_step (π : Permutation) (H : Table) (D : Bank) (p : Report) (b : Ra
     (h : P (result (step π H p b)) (advance π H D p b)) :
     fixedAll H (read π (join (rateXor b (rateOf (result p))) (capOf (result p)))) D P := by
   unfold read; simp only [rate_join,cap_join,result] at *
-  exact h
+  simp only [advance,step,push,result,cap_join,rate_join] at h
+  kexact h
 
 theorem advance_ext (π H D p b) (pin : Pins D H) : Ext D (advance π H D p b) :=
   ext_trans (write_ext pin _) (ext_trans (write_ext (write_pins pin _) _) (write_ext (write_pins (write_pins pin _) _) _))
@@ -92,8 +93,9 @@ theorem advance_origin (π H D p b) (z : Capacity) (v : Words) (m : advance π H
   by_cases eq : z=(step π H p b).cap
   · exact Or.inr eq
   · apply Or.inl
+    simp only [step,push] at eq
     unfold advance write at m
-    rw [Function.update_of_ne (show tailHead z ≠ tailHead (step π H p b).cap from fun he => eq (Sum.inr.inj he)),
+    rw [Function.update_of_ne (show tailHead z ≠ tailHead _ from fun he => eq (Sum.inr.inj he)),
       Function.update_of_ne (by simp [ItsrLabel.mask,tailHead]),Function.update_of_ne (by simp [ItsrLabel.mask,tailHead])] at m
     exact m
 end

@@ -54,7 +54,7 @@ noncomputable def badLeft (π : Permutation) (k k' : Db) (x : Rate) : Finset Cap
 noncomputable def badRight (π : Permutation) (k k' : Db) (x : Rate) : Finset Capacity := by
   classical exact Finset.univ.filter (fun y => ¬Good (layout π) k (Function.update k' x (some y)))
 
-private theorem mem_badLeft (π : Permutation) (k k' : Db) (x : Rate) (y : Capacity) :
+theorem mem_badLeft (π : Permutation) (k k' : Db) (x : Rate) (y : Capacity) :
     y ∈ badLeft π k k' x ↔ ¬Good (layout π) (Function.update k x (some y)) k' := by classical simp [badLeft]
 theorem mem_badRight (π : Permutation) (k k' : Db) (x : Rate) (y : Capacity) :
     y ∈ badRight π k k' x ↔ ¬Good (layout π) k (Function.update k' x (some y)) := by classical simp [badRight]
