@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Apple Silicon Metal GPU compute backend for SLH-DSA (FIPS 205, SHA-2 parameter sets)"
 
 [dependencies]
+bytemuck = { version = "1", features = ["derive", "min_const_generics"] }
 slhdsa = { path = "../rust", features = ["platform-sha2"] }
 zeroize = "1"
 

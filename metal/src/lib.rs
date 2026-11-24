@@ -35,7 +35,7 @@ enum HashFamily {
 // ============================================================================
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
 struct KeyMaterial {
     sk_seed: [u32; 8],
     state256: [u32; 8],
@@ -43,14 +43,14 @@ struct KeyMaterial {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
 struct ShakeKeyMaterial {
     sk_seed: [u64; 4],
     pk_seed: [u64; 4],
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
 struct XmssTreeDesc {
     tree: u64,
     key_idx: u32,
@@ -60,7 +60,7 @@ struct XmssTreeDesc {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 struct ForsJobDesc {
     idx_tree: u64,
     key_idx: u32,
@@ -84,7 +84,7 @@ impl Default for ForsJobDesc {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
 struct WotsSignLayerDesc {
     tree: u64,
     key_idx: u32,
@@ -96,7 +96,7 @@ struct WotsSignLayerDesc {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 struct XmssParams {
     num_trees: u32,
     hp: u32,
@@ -105,7 +105,7 @@ struct XmssParams {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 struct ForsParams {
     num_sigs: u32,
     k: u32,
@@ -116,7 +116,7 @@ struct ForsParams {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy)]
 struct WotsSignParams {
     num_layers: u32,
     d: u32,

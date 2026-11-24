@@ -65,6 +65,7 @@ struct Pool {
     park_lock: Mutex<()>,
     park_cv: Condvar,
     remaining: AtomicUsize,
+    worker_panicked: AtomicBool,
     caller_parked: AtomicBool,
     done_lock: Mutex<()>,
     done_cv: Condvar,
@@ -115,7 +116,16 @@ impl Drop for PoolGuard<'_> {
         unsafe {
             *self.pool.job.get() = None;
         }
+        // The acquire on remaining observes every worker's completion. Consume
+        // the failure before making the pool available for another dispatch.
+        let failed = self.pool.worker_panicked.load(Ordering::Relaxed);
+        if failed {
+            self.pool.worker_panicked.store(false, Ordering::Relaxed);
+        }
         self.pool.busy.store(false, Ordering::Release);
+        if failed && !thread::panicking() {
+            panic!("SLH-DSA worker panicked");
+        }
     }
 }
 
@@ -170,9 +180,12 @@ fn worker_loop(pool: &'static Pool, slot: Arc<WorkerSlot>) {
         // SAFETY: Our Acquire load observed `WORK_PENDING`, which synchronizes-with
         // the dispatcher's AcqRel swap after initializing `pool.job`.
         let job = unsafe { (*pool.job.get()).expect("pool job present") };
-        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             run_worker_job(job.call, job.data);
         }));
+        if result.is_err() {
+            pool.worker_panicked.store(true, Ordering::Relaxed);
+        }
         if job.scrub {
             scrub_worker_stack();
         }
@@ -215,6 +228,7 @@ fn global_pool() -> &'static Pool {
             park_lock: Mutex::new(()),
             park_cv: Condvar::new(),
             remaining: AtomicUsize::new(0),
+            worker_panicked: AtomicBool::new(false),
             caller_parked: AtomicBool::new(false),
             done_lock: Mutex::new(()),
             done_cv: Condvar::new(),
@@ -306,4 +320,37 @@ pub(crate) fn execute<F: Fn() + Sync>(max_threads: usize, scrub: bool, f: &F) {
 
     f();
     // `_guard` drops here, joining all `n_workers` workers and releasing `busy`.
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn worker_failure_propagates_after_join_and_pool_is_reusable() {
+        let (_, workers) = ensure_workers();
+        if workers == 0 {
+            return;
+        }
+        let caller = thread::current().id();
+        // Another concurrent dispatch can trigger the serial fallback. Retry
+        // until this test owns a dispatch and actually runs on a worker.
+        loop {
+            let worker_ran = AtomicBool::new(false);
+            let failed = std::panic::catch_unwind(|| {
+                execute(2, false, &|| {
+                    if thread::current().id() != caller {
+                        worker_ran.store(true, Ordering::Relaxed);
+                        panic!("worker failure");
+                    }
+                });
+            });
+            if worker_ran.load(Ordering::Relaxed) {
+                assert!(failed.is_err());
+                break;
+            }
+            thread::yield_now();
+        }
+        execute(2, false, &|| {});
+    }
 }

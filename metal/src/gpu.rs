@@ -236,31 +236,25 @@ impl MetalBuffer {
         }
     }
 
-    /// Reinterprets the buffer contents as a typed mutable slice (caller must ensure
-    /// alignment and length are valid; Metal shared buffers are page-aligned).
-    pub fn as_mut_slice_of<T: Copy>(&mut self, count: usize) -> &mut [T] {
-        let byte_len = count * std::mem::size_of::<T>();
-        assert!(byte_len <= self.len(), "buffer too small for typed slice");
+    /// Borrows the prefix as aligned shader records. A record has no padding
+    /// and every bit pattern is valid, including bytes written by the GPU.
+    pub fn as_mut_slice_of<T: bytemuck::Pod>(&mut self, count: usize) -> &mut [T] {
         if count == 0 {
             return &mut [];
         }
-        unsafe {
-            let ptr = slh_metal_buffer_contents(self.raw.as_ptr()) as *mut T;
-            slice::from_raw_parts_mut(ptr, count)
-        }
+        let len = count.checked_mul(std::mem::size_of::<T>()).expect("record size overflow");
+        assert!(len > 0, "shader records must have a positive size");
+        bytemuck::cast_slice_mut(&mut self.as_mut_slice()[..len])
     }
 
-    /// Reinterprets the buffer contents as a typed slice.
-    pub fn as_slice_of<T: Copy>(&self, count: usize) -> &[T] {
-        let byte_len = count * std::mem::size_of::<T>();
-        assert!(byte_len <= self.len(), "buffer too small for typed slice");
+    /// Borrows the prefix as aligned shader records.
+    pub fn as_slice_of<T: bytemuck::Pod>(&self, count: usize) -> &[T] {
         if count == 0 {
             return &[];
         }
-        unsafe {
-            let ptr = slh_metal_buffer_contents(self.raw.as_ptr()) as *const T;
-            slice::from_raw_parts(ptr, count)
-        }
+        let len = count.checked_mul(std::mem::size_of::<T>()).expect("record size overflow");
+        assert!(len > 0, "shader records must have a positive size");
+        bytemuck::cast_slice(&self.as_slice()[..len])
     }
 
     /// Overwrites the entire backing memory with zeros using `zeroize`.
@@ -285,10 +279,8 @@ pub struct InlineBytes<'a> {
 }
 
 impl<'a> InlineBytes<'a> {
-    pub fn of<T: Copy>(index: u32, val: &'a T) -> Self {
-        let data = unsafe {
-            slice::from_raw_parts(val as *const T as *const u8, std::mem::size_of::<T>())
-        };
+    pub fn of<T: bytemuck::NoUninit>(index: u32, val: &'a T) -> Self {
+        let data = bytemuck::bytes_of(val);
         Self { index, data }
     }
 }

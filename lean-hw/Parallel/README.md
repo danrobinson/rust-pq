@@ -1,5 +1,7 @@
 # Functional correctness of the parallel SLH-DSA paths
 
+The source replay on this page targets the scoped-worker signer. See [persistent-worker proof coverage](Multicore.md) for the implementation on this branch.
+
 The signing theorem equates the signature byte string with the repository's FIPS 205 specification for every message, key and signing randomizer. It covers SHA-2 and SHAKE and every completion order admitted by the worker model. The subtree theorem equates the eight-leaf construction with the height-three XMSS node for arbitrary seeds, address and valid subtree index. The x86 permutation theorem covers both values of the AVX-512 feature test.
 
 | Path | What is checked |

@@ -281,3 +281,6 @@ name = "RcSlhSha2"
 
 [[lean_lib]]
 name = "Parallel"
+
+[[lean_lib]]
+name = "Prehash"
