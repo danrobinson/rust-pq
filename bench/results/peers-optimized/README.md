@@ -1,6 +1,6 @@
 # Optimized SLH-DSA peer benchmarks
 
-All twelve parameter sets ran on seven CPUs against OpenSSL 4.1.0 and RustCrypto SLH-DSA 0.2.0-rc.5. The matrix covers seeded key generation, public-key extraction, deterministic signing, hedged signing and verification at 32 bytes and 1 MiB, plus raw and DER key conversions. Each workload ran once as warm-up and six more times, once per provider order. [Reproduction and timing method](../../peers/README.md) · [Original baseline](../peers/README.md)
+All twelve parameter sets ran on seven CPUs against OpenSSL 4.1.0 and RustCrypto SLH-DSA 0.2.0-rc.5. The matrix covers seeded key generation, public-key extraction, deterministic signing, hedged signing and verification at 32 bytes and 1 MiB, plus raw and DER key conversions. Each workload ran once as warm-up and six more times, once per provider order. [Reproduction and timing method](../../peers/README.md)
 
 Linux ran each provider on CPU 0 of a dedicated EC2 instance. Apple used normal scheduling on a shared developer machine with concurrent Lean jobs. The paired sample ranges show the observed variation. Margins of a few percent on that host are sensitive to scheduling and load.
 

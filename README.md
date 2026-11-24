@@ -64,14 +64,6 @@ fixed prefix followed by the key). [lean/Slhdsa/EncodingTheorems.lean](lean/Slhd
 (12 statements per set) proves each against a literal statement of the bytes, that decoding
 accepts exactly the encoder's outputs and returns the key, and that the comparison is equality.
 
-**Against the single-set statements.** [lean/Spec/Old128.lean](lean/Spec/Old128.lean) is a
-verbatim copy of the single-set tree's SLH-DSA-SHA2-128s specification;
-[lean/Spec/Compat128.lean](lean/Spec/Compat128.lean) proves the parameterised specification at
-`Spec.sha2_128s` equal to it, function by function, and
-[lean/Slhdsa/Compat128.lean](lean/Slhdsa/Compat128.lean) restates the 12 128s theorems that mention
-the specification against it: literally the single-set tree's statements, up to the name of the
-Rust function.
-
 [lean/Spec/Correctness.lean](lean/Spec/Correctness.lean) proves the scheme correct at the level
 of the specification (signatures made with a well-formed key verify; key generation makes
 well-formed keys), for every valid parameter set.
@@ -108,7 +100,7 @@ Details, design decisions and measurements: [STATUS.md](STATUS.md).
 
 ## Performance
 
-Across seven processors and all twelve parameter sets, deterministic signing with `platform-sha2` was **6.01× as fast as RustCrypto** (`slh-dsa` 0.2.0-rc.5) and **3.52× as fast as OpenSSL** (4.1.0), aggregating 32-byte and 1 MiB messages. Speedup is peer latency divided by rust-pq latency. Above 1× favors rust-pq and below 1× favors the peer.
+Across seven processors and all twelve parameter sets, deterministic signing in the rust-pq core with `platform-sha2` was **6.01× as fast as RustCrypto** (`slh-dsa` 0.2.0-rc.5) and **3.52× as fast as OpenSSL** (4.1.0), aggregating 32-byte and 1 MiB messages. Speedup is peer latency divided by rust-pq latency. Above 1× favors rust-pq and below 1× favors the peer. The benchmark times individual API calls with keys in memory. OpenSSL signing includes creating and initializing an EVP context per signature.
 
 **Deterministic signing of a 32-byte message.** Each range gives the smallest and largest
 speedup across the twelve parameter sets. A 4× speedup means signing took one-quarter of
@@ -131,6 +123,7 @@ Speedups are medians of within-round peer/library latency ratios. Linux used a p
 The Apple host ran under normal scheduling with concurrent work.
 
 [Benchmark report](bench/results/peers-optimized/README.md) ·
+[Apple M5 Ultra replication](bench/results/apple-replay/README.md) ·
 [Method and reproduction](bench/peers/README.md) ·
 [Interactive comparison by processor and operation](https://chatgpt.com/space/page_c6515006f9348191989c73423bcb0fbb) ·
 [Signature and key-generation timings](bench/results/peers-optimized/workloads.csv) ·
@@ -151,16 +144,14 @@ Each cell is the geometric mean of the paired median speedups, giving each measu
 | Fluhrer parallel-sphincsplus, one thread | 1.58× | 10.84× | 1.46× | 1.46× | 1.54× |
 | Fluhrer parallel-sphincsplus, two threads | 1.59× | 11.04× | 1.19× | 1.19× | 1.55× |
 
+The key-conversion benchmarks measure different API costs. The rust-pq core uses fixed-size key buffers and a fixed DER prefix for each parameter set. OpenSSL imports keys into owned EVP objects and uses general ASN.1 routines. Those costs account for part of the large ratios below. [Rust driver](bench/peers/encodings.rs) · [OpenSSL driver](bench/peers/encodings.c)
+
 | Key conversion | Raw private import | Raw public import | PKCS#8 encode | PKCS#8 decode | SPKI encode | SPKI decode |
 |---|---:|---:|---:|---:|---:|---:|
 | RustCrypto | 2.01× | 1.86× | 17.59× | 26.28× | 11.73× | 27.33× |
 | OpenSSL | 639.13× | 744.87× | 1,192.33× | 575.18× | 1,034.67× | 654.30× |
 
-Fluhrer’s two-thread signer was faster on EPYC 9R45 in the aggregate deterministic-signing comparison (peer/library latency ratio 0.87×). The GPU comparison excludes OpenCL initialization and kernel compilation. The full reports give per-CPU speedup ratios, pinned peer revisions, validation and timing methods. [Per-platform results](bench/results/optimized-competitors/README.md) · [Peer build and reproduction](bench/optimized-peers/README.md)
-
-### Earlier single-set comparisons
-
-The original Apple M5 Ultra experiment also included the Rust `fips205` crate, portable `slhdsa-c`, and PQClean via `pqcrypto-sphincsplus`. In its default-build SHA2-128s run, median signing times for a 32-byte message were 789 ms for the original portable rust-pq, 62.6 ms for RustCrypto, 55.9 ms for OpenSSL, 473 ms for `fips205` 0.5.0, and 222 ms for `slhdsa-c`. PQClean took 272 ms using its round-3 SPHINCS+ variant. Relative to those peers in the same order, the original portable rust-pq signing speedups were 0.079×, 0.071×, 0.60×, 0.28× and 0.34×. These timings describe the early single-set implementation. The seven-platform tables above use later revisions. [Benchmark history](bench/results/README.md) · [Single-set benchmark driver](bench/run.sh) · [Earlier OpenSSL/RustCrypto baseline](bench/results/peers/README.md)
+Fluhrer’s two-thread signer was faster on EPYC 9R45 in the aggregate deterministic-signing comparison (peer/library latency ratio 0.87×). On 32-byte messages the Conduition GPU signed SHA2-128s 2.62× as fast as the single-threaded rust-pq core, while rust-pq signed SHA2-128f 2.39× as fast as the GPU. The OpenCL driver uses the GPU for key generation and signing. It verifies on the CPU and excludes GPU initialization and kernel compilation from the timings. The full reports give per-CPU speedup ratios, pinned peer revisions, validation and timing methods. [Per-platform results](bench/results/optimized-competitors/README.md) · [Peer build and reproduction](bench/optimized-peers/README.md)
 
 ### Parallel CPU signing (`parallel`)
 
@@ -244,7 +235,7 @@ For the SHA-256 FORS parent entry point, Lean checks all 16-byte parent outputs 
 
 
 The AVX-512 SHA-512 WOTS public-key digest theorem covers batches of one through eight already-padded inputs. Each active lane consumes its own 1,280 or 2,304 bytes and returns the first 24 or 32 bytes of the corresponding SHA-512 compression chain. The proof checks effective addresses against the allocation bounds and assumes the x86 little-endian layout, the modeled SIMD instructions, and an affirmative CPU/OS feature check. Given the specified public-seed state and padded address and endpoint bytes, the returned bytes equal the FIPS 205 tweakable hash T. The extracted XMSS message initializer writes the WOTS key address, delimiter and big-endian length. Lean checks that inserting the endpoint bytes at offset 22 then produces the FIPS padding at all three parameter sizes. The extracted x86 XMSS leaf generator composes this initializer with the WOTS endpoint computation, insertion and SHA-256 or SHA-512 digest. For every supported width, it returns the FIPS WOTS public key for each consecutive leaf, including a partially occupied final group. For a batch contained in any FIPS parameter set’s XMSS tree, Lean also proves that every prepared lane fits the 32-bit address field and each returned value is the corresponding height-zero Algorithm 9 node. The theorem assumes AVX-512 availability and a valid public-seed state. [Batched leaf theorem](lean-hw/Xmsskeys/Top.lean) · [Endpoint insertion](lean-hw/Wots/Payload.lean). [Padding theorem](lean-hw/Keypadding/Proof.lean) [FIPS 205 theorem](lean-hw/Gather512/Fips.lean) [Digest theorem](lean-hw/Gather512/Top.lean) · [Gather memory model](lean-hw/Gather512/FunsExternal.lean)
-· [Wide x86 benchmarks](bench/wide-x86.md) · [Original cross-platform comparison](bench/platforms.md)
+· [Wide x86 benchmarks](bench/wide-x86.md)
 
 ### Opt-in hardware SHA-2 (`hw-sha2`)
 
@@ -387,8 +378,7 @@ wiping have separate trust assumptions. [Adapter proof scope](compat/README.md#p
 - `compat/` — the RustCrypto-style adapter (forwarding to `rust/src/adapter.rs` and the rest of the
   verified crate; its own code is not verified, see above).
 - `bench/` — benchmarks against other libraries, with interoperability checks.
-- `ct-evidence/` — binary-level constant-time evidence (emulator traces, dudect timing,
-  disassembly), recorded on the single-set crate and repointed at this one.
+- `ct-evidence/` — binary-level constant-time test harness for emulator traces, dudect timing and disassembly.
 - `vectors/` — the NIST vectors for the twelve sets, and the record of the intrinsic wrappers on a
   processor.
 - `scripts/` — `extract.sh`, `extract-hw.sh` (regenerate the translations), `ct-gen.sh` (the
@@ -594,12 +584,7 @@ statement-level review is in [quantum/AUDIT-closed.md](quantum/AUDIT-closed.md).
 
 ## Binary-level evidence ([ct-evidence](ct-evidence))
 
-On the single-set crate (results of 2026-11-21, [ct-evidence/RESULTS.md](ct-evidence/RESULTS.md)):
-under an emulator, control flow, memory addresses, allocation sizes and copy lengths were identical
-across secrets in every comparison, in both builds; in timing (dudect), nothing above the hash
-level was distinguishable, and short hash calls were distinguishable only with the processor's
-data-independent-timing mode off. The harness now builds against this crate's 128s functions; on
-it only the emulator's self-check (`cttrace hwcheck`) has been run.
+The binary-level harness builds against the SHA2-128s functions. The emulator self-check (`cttrace hwcheck`) has run on this crate. The scope of the emulator traces and dudect measurements is documented in the [evidence report](ct-evidence/RESULTS.md).
 
 ## License
 

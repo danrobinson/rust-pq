@@ -1,10 +1,9 @@
 # Benchmark results
 
-The [main README](../../README.md#performance) summarizes the seven-processor comparison.
-The two CSVs in `peers-optimized/` come from commit `735c74b`, which also contains the
-benchmark drivers, per-round samples and host metadata. The measured sources were
-`deb57d6` for x86, `4ceac15` for Graviton and `424109e` for Apple.
+| Comparison | Coverage |
+|---|---|
+| [RustCrypto and OpenSSL](peers-optimized/README.md) | Seven processors, all twelve parameter sets, signing, verification, key operations and encodings |
+| [Botan, Conduition and Fluhrer](optimized-competitors/README.md) | Seven processors, with parameter sets and thread counts reported per peer |
+| [Parallel CPU signing](parallel/README.md) | Five processors, on workloads selected because a peer beat the single-threaded build |
 
-Running `./run.sh` from the benchmark directory writes a separate, local SHA2-128s
-comparison under `results/<stamp>/`. The earlier single-set reports are in Git at
-`be142b7:bench/RESULTS.md` and `be142b7:bench/results/`.
+The [performance summary](../../README.md#performance) reports speedups across workloads. Each linked report includes the measurements and reproduction method.
