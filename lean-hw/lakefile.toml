@@ -286,10 +286,16 @@ name = "Parallel"
 name = "Prehash"
 
 [[lean_lib]]
+name = "Prehashdigest"
+
+[[lean_lib]]
 name = "Cachepath"
 
 [[lean_lib]]
 name = "Cachesearch"
+
+[[lean_lib]]
+name = "Cacheops"
 
 [[lean_lib]]
 name = "Metal"
