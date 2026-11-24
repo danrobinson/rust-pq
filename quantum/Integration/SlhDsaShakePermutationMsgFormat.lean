@@ -47,7 +47,7 @@ theorem first_key (k rand : S.Node) (m : List SLHDSA.Byte) :
   rw [List.getElem?_append_left (by simpa [nd,sp] using hi)]
   simp [nd,sp,hi]
 
-private theorem random_image {A : Type} [Fintype A] [DecidableEq A] (x : A) (f : A → ℝ≥0∞) :
+theorem random_image {A : Type} [Fintype A] [DecidableEq A] (x : A) (f : A → ℝ≥0∞) :
     SetOracle.uniformMean (fun π : Equiv.Perm A => f (π x)) = SetOracle.uniformMean f := by
   let _ : Nonempty A := ⟨x⟩
   have same (v : A) : SetOracle.uniformMean (fun π : Equiv.Perm A => f (π x)) =
