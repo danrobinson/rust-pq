@@ -31,6 +31,91 @@ variable {rand : S.Node → S.Node → ProbComp S.Node} {seeds : ProbComp S.Node
 
 /-- Compose averaged hash games for any finite distribution obtained by uniform
 sampling of a world. The functions within each world may share tables. -/
+theorem composeFamily (vp : ValidatedParams) {Ω : Type} [Fintype Ω] [Nonempty Ω] (P : Ω → Primitives vp.params)
+    [∀ ω, SampleableType (P ω).SkSeed] [∀ ω, SampleableType (P ω).SkPrf] [∀ ω, SampleableType (P ω).Y]
+    [∀ ω, DecidableEq (P ω).Y] [∀ ω, DecidableEq (P ω).PkSeed] [∀ ω, DecidableEq (P ω).AdrsKey]
+    [∀ ω, Inhabited (P ω).Y] [∀ ω, Fintype (P ω).Y]
+    {coins : ∀ ω, PublicKeyCore (P ω).core → ProbComp (P ω).Y} {keys : ∀ ω, ProbComp (P ω).PkSeed}
+    (B : ∀ ω, QForger W (internalAlg vp (P ω) (coins ω) (keys ω)))
+    (adv R₁ I₁ R₂ I₂ : Ω → ℝ≥0∞)
+    (ePrf eMsg eItsr eDspr eFv e1 e2 eLen eK eUd ePre eT : ℝ≥0∞)
+    (hI₁ : ∀ ω, I₁ ω ≤ 1) (hI₂ : ∀ ω, I₂ ω ≤ 1)
+    (hlin : uniformMean adv + uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) ≤
+      uniformMean (fun ω ↦ qLinearRealSide (B ω) (R₁ ω) (R₂ ω)))
+    (hprf : uniformMean R₁ ≤ uniformMean I₁ + ePrf) (hmsg : uniformMean R₂ ≤ uniformMean I₂ + eMsg)
+    (hitsr : uniformMean (fun ω ↦
+      qItsrAdvantage (itsrProblem vp (P ω)) (qbItsrL (B ω)) (B ω).ρ₀) ≤ eItsr)
+    (hdspr : uniformMean (fun ω ↦ qDsprFV_Success (qToDspr (B ω))) ≤
+      uniformMean (fun ω ↦ qDsprFV_SPProbability (qToDspr (B ω))) + eDspr)
+    (hfv : uniformMean (fun ω ↦ qTcrFV_Advantage (qToTcr (B ω))) ≤ eFv)
+    (h1 : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 1 (B ω))) ≤ e1)
+    (h2 : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 2 (B ω))) ≤ e2)
+    (hLen : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM vp.params.len (B ω))) ≤ eLen)
+    (hK : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM vp.params.k (B ω))) ≤ eK)
+    (hud : uniformMean (fun ω ↦ qSM_DT_UD_RealSuccess (qrUd (B ω))) ≤
+      uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) + eUd)
+    (hpre : uniformMean (fun ω ↦ qSM_DT_PRE_Advantage (qrPre (B ω))) ≤ ePre)
+    (hT : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qrTcrT (B ω))) ≤ eT) :
+    uniformMean adv ≤ ePrf + eMsg + eItsr + (eDspr + 3 * eFv) + (e1 + e2 + eLen + eK) +
+      ((vp.params.w - 2 : ℕ) : ℝ≥0∞) * eUd + ePre + eT := by
+  have hfin : uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) ≠ ⊤ := by
+    refine mean_ne_top _ fun ω ↦ ?_
+    have h1 := hI₁ ω
+    have h2 := hI₂ ω
+    have h3 : qDsprFV_SPProbability (qToDspr (B ω)) ≤ 1 :=
+      qWeight_le_one _ _ (qToDspr (B ω)).posSemidef (qToDspr (B ω)).trace_eq_one
+    have h4 : qSM_DT_UD_IdealSuccess (qrUd (B ω)) ≤ 1 :=
+      qWeight_le_one _ _ (qrUd (B ω)).posSemidef (qrUd (B ω)).trace_eq_one
+    unfold qLinearIdealSide
+    refine ne_top_of_le_ne_top (b := 1 + 1 + 1 + ((vp.params.w - 2 : ℕ) : ℝ≥0∞) * 1) ?_ ?_
+    · simp
+    · gcongr
+  have hId : uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) =
+      uniformMean I₁ + uniformMean I₂ + uniformMean (fun ω ↦ qDsprFV_SPProbability (qToDspr (B ω))) +
+        ((vp.params.w - 2 : ℕ) : ℝ≥0∞) *
+          uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) := by
+    unfold qLinearIdealSide
+    simp only [mean_add, mean_const_mul]
+  have hRe : uniformMean (fun ω ↦ qLinearRealSide (B ω) (R₁ ω) (R₂ ω)) =
+      uniformMean R₁ + uniformMean R₂ +
+        uniformMean (fun ω ↦ qItsrAdvantage (itsrProblem vp (P ω)) (qbItsrL (B ω)) (B ω).ρ₀) +
+        (uniformMean (fun ω ↦ qDsprFV_Success (qToDspr (B ω))) +
+          3 * uniformMean (fun ω ↦ qTcrFV_Advantage (qToTcr (B ω)))) +
+        (uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 1 (B ω))) +
+          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 2 (B ω))) +
+          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM vp.params.len (B ω))) +
+          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM vp.params.k (B ω)))) +
+        ((vp.params.w - 2 : ℕ) : ℝ≥0∞) *
+          uniformMean (fun ω ↦ qSM_DT_UD_RealSuccess (qrUd (B ω))) +
+        uniformMean (fun ω ↦ qSM_DT_PRE_Advantage (qrPre (B ω))) +
+        uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qrTcrT (B ω))) := by
+    unfold qLinearRealSide
+    simp only [mean_add, mean_const_mul]
+  have hle : uniformMean (fun ω ↦ qLinearRealSide (B ω) (R₁ ω) (R₂ ω)) ≤
+      (ePrf + eMsg + eItsr + (eDspr + 3 * eFv) + (e1 + e2 + eLen + eK) +
+        ((vp.params.w - 2 : ℕ) : ℝ≥0∞) * eUd + ePre + eT) +
+        uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) := by
+    rw [hRe, hId]
+    have hud' : ((vp.params.w - 2 : ℕ) : ℝ≥0∞) *
+          uniformMean (fun ω ↦ qSM_DT_UD_RealSuccess (qrUd (B ω))) ≤
+        ((vp.params.w - 2 : ℕ) : ℝ≥0∞) *
+          (uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) + eUd) := by
+      gcongr
+    have hfv' : 3 * uniformMean (fun ω ↦ qTcrFV_Advantage (qToTcr (B ω))) ≤ 3 * eFv := by
+      gcongr
+    calc _ ≤ (uniformMean I₁ + ePrf) + (uniformMean I₂ + eMsg) + eItsr +
+          ((uniformMean (fun ω ↦ qDsprFV_SPProbability (qToDspr (B ω))) + eDspr) + 3 * eFv) +
+          (e1 + e2 + eLen + eK) +
+          ((vp.params.w - 2 : ℕ) : ℝ≥0∞) *
+            (uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) + eUd) +
+          ePre + eT :=
+        add_le_add (add_le_add (add_le_add (add_le_add (add_le_add (add_le_add
+          (add_le_add hprf hmsg) hitsr) (add_le_add hdspr hfv'))
+          (add_le_add (add_le_add (add_le_add h1 h2) hLen) hK)) hud') hpre) hT
+      _ = _ := by ring
+  exact (ENNReal.add_le_add_iff_right hfin).1 (hlin.trans hle)
+
+
 theorem composeUniform {Ω : Type} [Fintype Ω] [Nonempty Ω] (world : Ω → RandFns S.vp.params)
     (B : ∀ ω, QForger W (internalAlg S.vp (randPrims (world ω)) (fun pk => rand pk.pkSeed pk.pkRoot) seeds))
     (adv R₁ I₁ R₂ I₂ : Ω → ℝ≥0∞)
@@ -53,64 +138,10 @@ theorem composeUniform {Ω : Type} [Fintype Ω] [Nonempty Ω] (world : Ω → Ra
     (hpre : uniformMean (fun ω ↦ qSM_DT_PRE_Advantage (qrPre (B ω))) ≤ ePre)
     (hT : uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qrTcrT (B ω))) ≤ eT) :
     uniformMean adv ≤ ePrf + eMsg + eItsr + (eDspr + 3 * eFv) + (e1 + e2 + eLen + eK) +
-      ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) * eUd + ePre + eT := by
-  have hfin : uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) ≠ ⊤ := by
-    refine mean_ne_top _ fun ω ↦ ?_
-    have h1 := hI₁ ω
-    have h2 := hI₂ ω
-    have h3 : qDsprFV_SPProbability (qToDspr (B ω)) ≤ 1 :=
-      qWeight_le_one _ _ (qToDspr (B ω)).posSemidef (qToDspr (B ω)).trace_eq_one
-    have h4 : qSM_DT_UD_IdealSuccess (qrUd (B ω)) ≤ 1 :=
-      qWeight_le_one _ _ (qrUd (B ω)).posSemidef (qrUd (B ω)).trace_eq_one
-    unfold qLinearIdealSide
-    refine ne_top_of_le_ne_top (b := 1 + 1 + 1 + ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) * 1) ?_ ?_
-    · simp
-    · gcongr
-  have hId : uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) =
-      uniformMean I₁ + uniformMean I₂ + uniformMean (fun ω ↦ qDsprFV_SPProbability (qToDspr (B ω))) +
-        ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) *
-          uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) := by
-    unfold qLinearIdealSide
-    simp only [mean_add, mean_const_mul]
-  have hRe : uniformMean (fun ω ↦ qLinearRealSide (B ω) (R₁ ω) (R₂ ω)) =
-      uniformMean R₁ + uniformMean R₂ +
-        uniformMean (fun ω ↦ qItsrAdvantage (itsrProblem S.vp (randPrims (world ω))) (qbItsrL (B ω)) (B ω).ρ₀) +
-        (uniformMean (fun ω ↦ qDsprFV_Success (qToDspr (B ω))) +
-          3 * uniformMean (fun ω ↦ qTcrFV_Advantage (qToTcr (B ω)))) +
-        (uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 1 (B ω))) +
-          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM 2 (B ω))) +
-          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM S.vp.params.len (B ω))) +
-          uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qbTcrArM S.vp.params.k (B ω)))) +
-        ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) *
-          uniformMean (fun ω ↦ qSM_DT_UD_RealSuccess (qrUd (B ω))) +
-        uniformMean (fun ω ↦ qSM_DT_PRE_Advantage (qrPre (B ω))) +
-        uniformMean (fun ω ↦ qSM_DT_TCR_Advantage (qrTcrT (B ω))) := by
-    unfold qLinearRealSide
-    simp only [mean_add, mean_const_mul]
-  have hle : uniformMean (fun ω ↦ qLinearRealSide (B ω) (R₁ ω) (R₂ ω)) ≤
-      (ePrf + eMsg + eItsr + (eDspr + 3 * eFv) + (e1 + e2 + eLen + eK) +
-        ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) * eUd + ePre + eT) +
-        uniformMean (fun ω ↦ qLinearIdealSide (B ω) (I₁ ω) (I₂ ω)) := by
-    rw [hRe, hId]
-    have hud' : ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) *
-          uniformMean (fun ω ↦ qSM_DT_UD_RealSuccess (qrUd (B ω))) ≤
-        ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) *
-          (uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) + eUd) := by
-      gcongr
-    have hfv' : 3 * uniformMean (fun ω ↦ qTcrFV_Advantage (qToTcr (B ω))) ≤ 3 * eFv := by
-      gcongr
-    calc _ ≤ (uniformMean I₁ + ePrf) + (uniformMean I₂ + eMsg) + eItsr +
-          ((uniformMean (fun ω ↦ qDsprFV_SPProbability (qToDspr (B ω))) + eDspr) + 3 * eFv) +
-          (e1 + e2 + eLen + eK) +
-          ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) *
-            (uniformMean (fun ω ↦ qSM_DT_UD_IdealSuccess (qrUd (B ω))) + eUd) +
-          ePre + eT :=
-        add_le_add (add_le_add (add_le_add (add_le_add (add_le_add (add_le_add
-          (add_le_add hprf hmsg) hitsr) (add_le_add hdspr hfv'))
-          (add_le_add (add_le_add (add_le_add h1 h2) hLen) hK)) hud') hpre) hT
-      _ = _ := by ring
-  exact (ENNReal.add_le_add_iff_right hfin).1 (hlin.trans hle)
-
+      ((S.vp.params.w - 2 : ℕ) : ℝ≥0∞) * eUd + ePre + eT :=
+  composeFamily S.vp (fun ω => randPrims (world ω)) B adv R₁ I₁ R₂ I₂
+    ePrf eMsg eItsr eDspr eFv e1 e2 eLen eK eUd ePre eT hI₁ hI₂ hlin
+    hprf hmsg hitsr hdspr hfv h1 h2 hLen hK hud hpre hT
 
 /-- Forgery bound in the four-independent-component QROM, with the reduction's own
 hash evaluations included at each arity. -/

@@ -25,7 +25,7 @@ private theorem machine_support (c : Caps) (qs : ℕ)
 
 variable {X K Y Ix α : Type} {W : Type} [Fintype W]
 
-private theorem target_support (prob : ITSRProblem K X Y Ix) (P : X → Prop) (good : α → Prop)
+theorem target_support (prob : ITSRProblem K X Y Ix) (P : X → Prop) (good : α → Prop)
     (A : QOC W (unifSpec + ITSRTargetSpec X K) α) (n : ℕ) (ts : List (K × X))
     (ha : AllQueries (QG W (Gfin P)) good A) (hb : CountBound (QC W isR) A n) :
     AllQueries (fun _ => True) (fun z : α × List (K × X) => good z.1 ∧ z.2.length ≤ ts.length+n ∧

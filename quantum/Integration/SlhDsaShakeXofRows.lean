@@ -84,7 +84,7 @@ theorem different_at (g : X → Bytes m) (r s : J → Bytes n) (x : X)
   by_contra! han
   exact diff (local_at emb g r s x (fun j hj => han j (located emb hj)))
 
-variable [Fintype X] [Fintype J] [Nonempty J]
+variable [Fintype X] [DecidableEq X] [Fintype J] [DecidableEq J]
 theorem resample (hn : n ≤ m) (f : (X → Bytes m) → ℝ≥0∞) :
     SetOracle.uniformMean f = SetOracle.uniformMean (fun g =>
       SetOracle.uniformMean (fun r : J → Bytes n => f (write emb g r))) :=
