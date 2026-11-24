@@ -82,6 +82,15 @@ pub mod slh;
 pub mod util;
 pub mod wots;
 pub mod xmss;
+#[cfg(feature = "platform-sha2")]
+pub mod cache;
+#[cfg(feature = "platform-sha2")]
+pub mod prehash;
+
+#[cfg(feature = "platform-sha2")]
+pub use cache::{HashFamily, TopTreeCache};
+#[cfg(feature = "platform-sha2")]
+pub use prehash::PreHash;
 
 pub use sets::{sha2_128f, sha2_128s, sha2_192f, sha2_192s, sha2_256f, sha2_256s};
 
