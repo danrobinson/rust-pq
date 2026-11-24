@@ -15,6 +15,7 @@ def instructions(path, pc, words):
             "xcrun",
             "llvm-objdump",
             "-d",
+            "--disassemble-zeroes",
             f"--start-address={pc}",
             f"--stop-address={pc + 4 * len(words)}",
             path,

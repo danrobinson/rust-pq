@@ -17,6 +17,16 @@ from hypertree import verify as verify_hypertree
 from image import Image, require
 from permute import decode
 from reject import certificate as rejection_certificate
+from pure_wrapper_witness import certificate as pure_wrapper_certificate
+from pure_frame_witness import certificate as pure_frame_certificate
+from sha2_public_sign_witness import certificate as sha2_public_sign
+from sha2_public_verify_witness import certificate as sha2_public_verify
+from sha2_verify_witness import gate as sha2_verify_length, body as sha2_verify_body
+from keygen_witness import certificate as keygen_certificate
+from signer_witness import certificate as signer_certificate
+from segmented_frame_witness import certificate as segmented_frame_certificate
+from verify_length_witness import certificate as verify_length_certificate
+from verify_body_witness import certificate as verify_body_certificate
 from pure_sign import (
     verify as pure_sign_certificate,
     mutation_tests as pure_sign_mutations,
@@ -315,6 +325,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--certificate", type=Path, help="save the checked Lean certificate"
     )
+    parser.add_argument(
+        "--require-session-image", action="store_true",
+        help="require every generated session witness to match the imported Lean module",
+    )
     args = parser.parse_args()
     artifact = args.binary or release_consumer()
     require(
@@ -334,6 +348,12 @@ if __name__ == "__main__":
             "Spec.ShakeWords",
             "Spec.ArmSha3Binary",
             "Spec.ArmSignReject",
+            "Spec.ArmKeygen",
+            "Spec.ArmInternalSigner",
+            "Spec.ArmSha2InternalSigner",
+            "Spec.ArmSegmentedSigner",
+            "Spec.ArmVerifyLength",
+            "Spec.ArmVerifyBody",
             "Spec.ArmRateBlocks",
             "Spec.SlhDsa",
         ],
@@ -381,14 +401,40 @@ if __name__ == "__main__":
             text=True,
             check=True,
         )
-        subprocess.run(
-            ["lake", "env", "lean", "--stdin"],
-            cwd=ROOT / "lean",
-            env=env,
-            input=rejection_certificate(image),
-            text=True,
-            check=True,
-        )
+        witnesses = {
+            "AppleSignRejectWitness": rejection_certificate(image),
+            "AppleKeygenWitness": keygen_certificate(image),
+            "AppleVerifyLengthWitness": verify_length_certificate(image),
+            "AppleVerifyBodyWitness": verify_body_certificate(image),
+            "AppleSha2VerifyLengthWitness": sha2_verify_length(image),
+            "AppleSha2VerifyWitness": sha2_verify_body(image),
+            "AppleSha2PublicVerifyWitness": sha2_public_verify(image),
+            "AppleSha2PublicSignWitness": sha2_public_sign(image),
+            "AppleSegmentedFrameWitness": segmented_frame_certificate(image, snapshot),
+            "ApplePureFrameWitness": pure_frame_certificate(image, snapshot),
+            "ApplePureWrapperWitness": pure_wrapper_certificate(image),
+            "AppleInternalSignerWitness": signer_certificate(image, snapshot, family="shake"),
+            "AppleSha2InternalSignerWitness": signer_certificate(image, snapshot, family="sha2"),
+        }
+        # Session theorems import the checked-in words. Bind those imports to
+        # the supplied image before using Lake's compiled proof artifacts.
+        modules = []
+        for name, witness in witnesses.items():
+            if witness == (ROOT / "lean" / "Spec" / f"{name}.lean").read_text():
+                modules.append(f"Spec.{name}")
+            else:
+                require(not args.require_session_image, f"{name} differs from imported session proof")
+                # Independently validate newly linked images without attributing
+                # the checked-in image's composition theorem to the new build.
+                print(f"{name} differs from checked-in image. Replaying new witness.", flush=True)
+                subprocess.run(
+                    ["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean",
+                    env=env, input=witness, text=True, check=True,
+                )
+        if modules:
+            subprocess.run(["lake", "build", *modules], cwd=ROOT / "lean", env=env, check=True)
+        if len(modules) == len(witnesses):
+            print("All checked-in session witnesses match the supplied image.", flush=True)
         bulk_audit = subprocess.run(
             ["lake", "env", "lean", "--stdin"],
             cwd=ROOT / "lean",
@@ -414,6 +460,9 @@ if __name__ == "__main__":
             bulk_mutation_tests(image)
     if args.self_test:
         print("Rejected seventeen mutations in the linked image")
+    print("Verified six segmented SHA-2 signers across four allocator profiles and fifteen mutations")
+    print("Verified twelve internal SHAKE and SHA-2 signers across four allocator profiles and twelve mutations")
+    print("Verified 24 SHAKE and SHA-2 keygen replays and seven negative keygen controls")
     print("Verified 36 public signing rejection paths and four negative instruction controls")
     print(
         "Verified valid pure-sign framing, randomness and result forwarding for all twelve sets, including SHA-2 segmented dispatch"
