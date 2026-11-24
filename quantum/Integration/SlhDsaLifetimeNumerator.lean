@@ -7,11 +7,11 @@ set_option maxRecDepth 8192
 /-- Arithmetic for a hybrid which pays Q queries for digest search and q
 for randomizer programming. Coverage is the probability for independent
 uniform target digests. The two query counts coincide in the unsplit proof. -/
-theorem search_programming_numerator (S : Sha2Set) (Q q s l : ℕ) (p : ℝ≥0∞)
-    (covered : p ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹) (signings : s ≤ 2^(2*l)) :
+theorem search_programming_numerator_root (S : Sha2Set) (Q q s root : ℕ) (p : ℝ≥0∞)
+    (covered : p ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹) (signings : s ≤ root^2) :
     (((2*(Q:ℝ≥0∞)+1)^2*p)^(2⁻¹:ℝ) +
       2*q*((s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹)^(2⁻¹:ℝ))^2 ≤
-      (((2*(2*Q+1)+2*q*2^l)^2 : ℕ):ℝ≥0∞) / 2^(8*S.vp.params.n) := by
+      (((2*(2*Q+1)+2*q*root)^2 : ℕ):ℝ≥0∞) / 2^(8*S.vp.params.n) := by
   let m := 4*S.vp.params.n
   let D : ℝ≥0∞ := (2:ℝ≥0∞)^m
   have width : m*2 = 8*S.vp.params.n := by dsimp [m]; omega
@@ -21,12 +21,12 @@ theorem search_programming_numerator (S : Sha2Set) (Q q s l : ℕ) (p : ℝ≥0�
     rw [div_eq_mul_inv, show 2*D⁻¹ = ((2:ℝ≥0∞)^(m-1))⁻¹ by
       simpa [D] using two_pow_mul_inv 1 m pos,inv_two_pow_pow]
     exact inv_two_pow_le _ _ (by omega)
-  have hs : (s : ℝ≥0∞) ≤ 2^(2*l) := by exact_mod_cast signings
-  have target : (s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹ ≤ ((2:ℝ≥0∞)^l/D)^2 := by
+  have hs : (s : ℝ≥0∞) ≤ (root:ℝ≥0∞)^2 := by exact_mod_cast signings
+  have target : (s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹ ≤ ((root:ℝ≥0∞)/D)^2 := by
     apply (mul_le_mul' hs le_rfl).trans_eq
-    simp only [D,div_eq_mul_inv,mul_pow,inv_two_pow_pow,← pow_mul,width,Nat.mul_comm 2 l]
+    simp only [D,div_eq_mul_inv,mul_pow,inv_two_pow_pow,width]
 
-  calc _ ≤ ((2*(Q:ℝ≥0∞)+1)*(2/D) + 2*q*((2:ℝ≥0∞)^l/D))^2 := by
+  calc _ ≤ ((2*(Q:ℝ≥0∞)+1)*(2/D) + 2*q*((root:ℝ≥0∞)/D))^2 := by
           apply pow_le_pow_left₀ zero_le _ 2
           apply add_le_add
           · apply (ENNReal.rpow_le_rpow (mul_le_mul' le_rfl (covered.trans cover)) (by norm_num : 0 ≤ (2⁻¹:ℝ))).trans_eq
@@ -37,6 +37,14 @@ theorem search_programming_numerator (S : Sha2Set) (Q q s l : ℕ) (p : ℝ≥0�
           rw [← width,pow_mul]
           simp only [D,div_eq_mul_inv,ENNReal.inv_pow]
           ring
+
+theorem search_programming_numerator (S : Sha2Set) (Q q s l : ℕ) (p : ℝ≥0∞)
+    (covered : p ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹) (signings : s ≤ 2^(2*l)) :
+    (((2*(Q:ℝ≥0∞)+1)^2*p)^(2⁻¹:ℝ) +
+      2*q*((s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹)^(2⁻¹:ℝ))^2 ≤
+      (((2*(2*Q+1)+2*q*2^l)^2 : ℕ):ℝ≥0∞) / 2^(8*S.vp.params.n) :=
+  search_programming_numerator_root S Q q s (2^l) p covered
+    (by simpa only [← pow_mul, Nat.mul_comm l 2] using signings)
 
 /-- A common denominator for the two amplitude terms in the adaptive ITSR
 bound. The signing budget is at most the full lifetime and at most 2^(2*l).
