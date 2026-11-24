@@ -9,8 +9,13 @@ set_option maxHeartbeats 1800000
 private noncomputable def mass (s i : ℕ) (p : ℝ≥0∞) :=
   (s.choose i : ℝ≥0∞) * p^i * (1-p)^(s-i)
 
-private theorem factorial_moment (s j : ℕ) (p : ℝ≥0∞) (hj : j ≤ s) (hp : p ≤ 1) :
+private theorem factorial_moment (s j : ℕ) (p : ℝ≥0∞) (hp : p ≤ 1) :
     ∑ i ∈ range (s+1), mass s i p * (i.descFactorial j : ℝ≥0∞) = (s.descFactorial j : ℝ≥0∞)*p^j := by
+  by_cases hj : j ≤ s
+  case neg =>
+    rw [Nat.descFactorial_of_lt (by omega : s < j),Nat.cast_zero,zero_mul]
+    exact sum_eq_zero fun i hi => by
+      rw [Nat.descFactorial_of_lt (by have := mem_range.mp hi; omega : i < j),Nat.cast_zero,mul_zero]
   have shift : ∑ i ∈ range j, mass s i p * (i.descFactorial j : ℝ≥0∞) = 0 :=
     sum_eq_zero fun i hi => by rw [Nat.descFactorial_of_lt (mem_range.mp hi)]; simp
   have coeff (i : ℕ) : s.choose (j+i) * (j+i).descFactorial j = s.descFactorial j * (s-j).choose i := by
@@ -33,7 +38,7 @@ private theorem factorial_moment (s j : ℕ) (p : ℝ≥0∞) (hj : j ≤ s) (hp
 
 /-- The chance a fresh independent digest is covered by s independent digests.
 The sum has k+1 terms even when s is the full lifetime signing budget. -/
-theorem cover_moment (s k : ℕ) (p t : ℝ≥0∞) (hk : k ≤ s) (hp : p ≤ 1) (ht : t ≤ 1) :
+theorem cover_moment (s k : ℕ) (p t : ℝ≥0∞) (hp : p ≤ 1) (ht : t ≤ 1) :
     ∑ i ∈ range (s+1), ((s.choose i : ℝ≥0∞)*p^i*(1-p)^(s-i))*(1-(1-t)^i)^k ≤
       (∑ j ∈ range (k+1), (Nat.stirlingSecond k j : ℝ≥0∞)*((s:ℝ≥0∞)*p)^j)*t^k := by
   have powers (i : ℕ) : (i:ℝ≥0∞)^k = ∑ j ∈ range (k+1), (Nat.stirlingSecond k j : ℝ≥0∞)*(i.descFactorial j : ℝ≥0∞) := by
@@ -54,7 +59,7 @@ theorem cover_moment (s k : ℕ) (p t : ℝ≥0∞) (hk : k ≤ s) (hp : p ≤ 1
       rw [sum_comm]
       apply mul_le_mul' _ le_rfl
       apply sum_le_sum; intro j hj
-      rw [← mul_sum, factorial_moment s j p (by have := mem_range.mp hj; omega) hp,mul_pow]
+      rw [← mul_sum, factorial_moment s j p hp,mul_pow]
       gcongr
       exact_mod_cast Nat.descFactorial_le_pow s j
 
@@ -88,16 +93,37 @@ def coverageBits : Sha2Set → ℕ
   | .s128s => 133 | .s128f => 128 | .s192s => 193
   | .s192f => 194 | .s256s => 255 | .s256f => 255
 
-theorem lifetime_cover (S : Sha2Set) :
-    coverProb (Fin (2^64)) (SetDigest.idxCov S.vp) ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹ := by
-  have prob := SetDigest.coverProb_idxCov_le S.vp (2^64)
+private theorem lifetime_sum (S : Sha2Set) (s : ℕ) (limit : s ≤ 2^64) :
+    (∑ i ∈ range (s+1), (s.choose i : ℝ≥0∞) * ((2:ℝ≥0∞)^S.vp.params.h)⁻¹^i *
+      (1-((2:ℝ≥0∞)^S.vp.params.h)⁻¹)^(s-i) * (1-(1-((2:ℝ≥0∞)^S.vp.params.a)⁻¹)^i)^S.vp.params.k) ≤
+    ((2:ℝ≥0∞)^(coverageBits S))⁻¹ := by
+  apply (cover_moment _ _ _ _ (by simp; exact one_le_pow₀ (by norm_num)) (by simp; exact one_le_pow₀ (by norm_num))).trans
+  have certificate : (∑ j ∈ range (S.vp.params.k+1), Nat.stirlingSecond S.vp.params.k j *
+      (2^64)^j * (2^S.vp.params.h)^(S.vp.params.k-j)) * 2^(coverageBits S) ≤
+      (2^S.vp.params.h)^S.vp.params.k * (2^S.vp.params.a)^S.vp.params.k := by cases S <;> decide +kernel
+  apply moment_certificate
+  apply le_trans _ certificate
+  gcongr
+
+theorem lifetime_cover (S : Sha2Set) (s : ℕ) (limit : s ≤ 2^64) :
+    coverProb (Fin s) (SetDigest.idxCov S.vp) ≤ ((2:ℝ≥0∞)^(coverageBits S))⁻¹ := by
+  have prob := SetDigest.coverProb_idxCov_le S.vp s
   rw [coverProb_fors] at prob
   simp only [Fintype.card_fin,Nat.cast_pow,Nat.cast_ofNat] at prob
   apply prob.trans
-  apply (cover_moment _ _ _ _ (by cases S <;> decide +kernel) (by simp; exact one_le_pow₀ (by norm_num)) (by simp; exact one_le_pow₀ (by norm_num))).trans
-  apply moment_certificate
-  cases S <;> decide +kernel
+  exact lifetime_sum S s limit
+
+/-- In the adaptive digest-game estimate the randomizer-programming loss
+survives even after accounting tightly for the independent target digests. -/
+theorem adaptive_digest_loss (S : Sha2Set) (q s : ℕ) (limit : s ≤ 2^64) :
+    itsrBound S.vp.params q s ≤
+      (((2*(q:ℝ≥0∞)+1)^2*((2:ℝ≥0∞)^(coverageBits S))⁻¹)^(2⁻¹:ℝ) +
+        2*q*((s:ℝ≥0∞)*((2:ℝ≥0∞)^(8*S.vp.params.n))⁻¹)^(2⁻¹:ℝ))^2 := by
+  unfold itsrBound
+  gcongr
+  exact lifetime_sum S s limit
 
 end Reduction.ForsLifetime
 #print axioms Reduction.ForsLifetime.cover_moment
 #print axioms Reduction.ForsLifetime.lifetime_cover
+#print axioms Reduction.ForsLifetime.adaptive_digest_loss
