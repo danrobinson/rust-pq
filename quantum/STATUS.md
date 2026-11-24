@@ -81,15 +81,14 @@ hop continues HMAC from two independent chaining states.
 For each wider set, the [composed HMAC theorem](Integration/SlhDsaCompressionHmac.lean)
 also replaces the outer compression with a private random function of the inner
 digest, for an additional loss of `8q²/2^512`. A collision between inner
-digests of distinct messages can still cause equal answers. Bounding that event
-and deriving the message machine’s weighted budget from the forger remain open.
+digests of distinct messages can still cause equal answers. The [ideal-message comparison](Integration/SlhDsaCompressionHmacCollision.lean) bounds the remaining gap by the probability of observing two distinct message-oracle queries with the same inner digest. The [extractor](Integration/SlhDsaCompressionHmacExtract.lean) converts such a pair into a full SHA-512 compression collision or a compression input mapping back to the inner starting state, charging one query per block on each path.
 
 For class TCR at arities two, WOTS length and FORS tree count, the
 [signer reduction](Integration/SlhDsaCompressionClassCandidates.lean) constructs
 a compression-port machine that outputs two distinct SHA-512 inputs with equal
 `n`-byte output prefixes. Its query count includes the honest first-phase
 transcript, the byte forger’s second phase, and the [collision extractor](Integration/SlhDsaCompressionClassCollision.lean).
-A numerical bound on finding such a prefix collision would bound these three terms.
+The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. Applying it to the signature game still requires the link to the actual public-table oracle and the final measured outputs.
 
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
