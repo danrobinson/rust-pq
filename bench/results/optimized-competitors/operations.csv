@@ -1,0 +1,151 @@
+cpu,peer,operation,workloads,formal_faster,geomean_peer_over_formal
+Apple M5 Ultra,botan,keygen,24,24,2.947042292479096
+Apple M5 Ultra,botan,public_key,24,24,38.2026137321838
+Apple M5 Ultra,botan,sign,24,24,2.76525429784749
+Apple M5 Ultra,botan,sign_hedged,24,24,2.7649785304527503
+Apple M5 Ultra,botan,verify,24,24,2.0400424562595805
+Apple M5 Ultra,experiments,keygen,8,8,4.058494159757625
+Apple M5 Ultra,experiments,public_key,8,8,6.67983949166048
+Apple M5 Ultra,experiments,sign,8,8,4.1429858744535375
+Apple M5 Ultra,experiments,sign_hedged,8,8,4.107610591656524
+Apple M5 Ultra,experiments,verify,8,8,4.347486756945706
+Apple M5 Ultra,opencl,keygen,4,4,8.82871836998397
+Apple M5 Ultra,opencl,public_key,4,4,3.0745753084385568
+Apple M5 Ultra,opencl,sign,4,2,1.152078448562443
+Apple M5 Ultra,opencl,sign_hedged,4,2,1.1163798380489565
+Apple M5 Ultra,opencl,verify,4,4,6.56763841392553
+Apple M5 Ultra,cached,keygen,8,8,4.090636367220481
+Apple M5 Ultra,cached,public_key,8,8,6.570459875652812
+Apple M5 Ultra,cached,sign,8,8,2.4852385084060757
+Apple M5 Ultra,cached,sign_hedged,8,8,2.5711155866328417
+Apple M5 Ultra,cached,verify,8,8,4.4799786946388425
+Xeon 8275CL,botan,keygen,24,24,3.4216495085506233
+Xeon 8275CL,botan,public_key,24,24,12.90303578669785
+Xeon 8275CL,botan,sign,24,24,3.193966986226758
+Xeon 8275CL,botan,sign_hedged,24,24,3.19469086596119
+Xeon 8275CL,botan,verify,24,24,2.068030020185128
+Xeon 8275CL,experiments,keygen,8,8,6.607922937679266
+Xeon 8275CL,experiments,public_key,8,8,10.048834228819493
+Xeon 8275CL,experiments,sign,8,8,5.950686854941922
+Xeon 8275CL,experiments,sign_hedged,8,8,5.946246177299382
+Xeon 8275CL,experiments,verify,8,8,5.578597997456327
+Xeon 8275CL,fluhrer-1,keygen,24,24,1.6058880876480246
+Xeon 8275CL,fluhrer-1,public_key,24,24,10.577488611634799
+Xeon 8275CL,fluhrer-1,sign,24,24,1.4168937242439175
+Xeon 8275CL,fluhrer-1,sign_hedged,24,24,1.4168563094694835
+Xeon 8275CL,fluhrer-1,verify,24,24,1.4857279980945473
+Xeon 8275CL,fluhrer-2,keygen,24,24,1.6114343749223092
+Xeon 8275CL,fluhrer-2,public_key,24,24,10.676760981629467
+Xeon 8275CL,fluhrer-2,sign,24,21,1.3350502233442363
+Xeon 8275CL,fluhrer-2,sign_hedged,24,21,1.3336200269707261
+Xeon 8275CL,fluhrer-2,verify,24,24,1.4868635508602204
+Xeon 8275CL,cached,keygen,8,8,6.559696991152205
+Xeon 8275CL,cached,public_key,8,8,10.117223439102025
+Xeon 8275CL,cached,sign,8,8,5.55091297791527
+Xeon 8275CL,cached,sign_hedged,8,8,5.535820148393833
+Xeon 8275CL,cached,verify,8,8,5.603836550338834
+Xeon 8124M,botan,keygen,24,24,3.8700463009245083
+Xeon 8124M,botan,public_key,24,24,14.020155647053938
+Xeon 8124M,botan,sign,24,24,3.612474690738899
+Xeon 8124M,botan,sign_hedged,24,24,3.6116801471932174
+Xeon 8124M,botan,verify,24,24,2.3271490415896534
+Xeon 8124M,experiments,keygen,8,8,6.794714817746704
+Xeon 8124M,experiments,public_key,8,8,10.292790541328117
+Xeon 8124M,experiments,sign,8,8,6.2328174041799596
+Xeon 8124M,experiments,sign_hedged,8,8,6.2335604900307136
+Xeon 8124M,experiments,verify,8,8,5.62102068844845
+Xeon 8124M,fluhrer-1,keygen,24,24,1.6018908392906468
+Xeon 8124M,fluhrer-1,public_key,24,24,10.249455618513853
+Xeon 8124M,fluhrer-1,sign,24,24,1.4502491096900205
+Xeon 8124M,fluhrer-1,sign_hedged,24,24,1.4504722482449588
+Xeon 8124M,fluhrer-1,verify,24,24,1.5409012720186248
+Xeon 8124M,fluhrer-2,keygen,24,24,1.6050203997691046
+Xeon 8124M,fluhrer-2,public_key,24,24,10.44791824027556
+Xeon 8124M,fluhrer-2,sign,24,21,1.3674649854855916
+Xeon 8124M,fluhrer-2,sign_hedged,24,21,1.367016077157163
+Xeon 8124M,fluhrer-2,verify,24,24,1.5429636390328971
+Xeon 8124M,cached,keygen,8,8,6.84096159667397
+Xeon 8124M,cached,public_key,8,8,9.893900105882595
+Xeon 8124M,cached,sign,8,8,5.834974685678186
+Xeon 8124M,cached,sign_hedged,8,8,5.823977159929219
+Xeon 8124M,cached,verify,8,8,5.638325525511177
+Xeon 6975P-C,botan,keygen,24,24,1.9290397913328166
+Xeon 6975P-C,botan,public_key,24,24,13.049251754047834
+Xeon 6975P-C,botan,sign,24,24,2.0710495677263068
+Xeon 6975P-C,botan,sign_hedged,24,24,2.071375303227124
+Xeon 6975P-C,botan,verify,24,24,1.6043695326113578
+Xeon 6975P-C,experiments,keygen,8,8,5.193541143544622
+Xeon 6975P-C,experiments,public_key,8,8,12.891332274222622
+Xeon 6975P-C,experiments,sign,8,8,5.352723464609016
+Xeon 6975P-C,experiments,sign_hedged,8,8,5.35539218499509
+Xeon 6975P-C,experiments,verify,8,8,5.850996788684606
+Xeon 6975P-C,fluhrer-1,keygen,24,12,1.4708203022513846
+Xeon 6975P-C,fluhrer-1,public_key,24,24,9.476628678237438
+Xeon 6975P-C,fluhrer-1,sign,24,17,1.4184579033867488
+Xeon 6975P-C,fluhrer-1,sign_hedged,24,18,1.4188635523132427
+Xeon 6975P-C,fluhrer-1,verify,24,18,1.5384407530844344
+Xeon 6975P-C,fluhrer-2,keygen,24,12,1.474986434956487
+Xeon 6975P-C,fluhrer-2,public_key,24,24,9.62125969789313
+Xeon 6975P-C,fluhrer-2,sign,24,15,1.2590875302045041
+Xeon 6975P-C,fluhrer-2,sign_hedged,24,15,1.2598428898943177
+Xeon 6975P-C,fluhrer-2,verify,24,18,1.5493400898369771
+Xeon 6975P-C,cached,keygen,8,8,5.209460610684723
+Xeon 6975P-C,cached,public_key,8,8,11.587878784428407
+Xeon 6975P-C,cached,sign,8,8,4.51116258253225
+Xeon 6975P-C,cached,sign_hedged,8,8,4.515577667897898
+Xeon 6975P-C,cached,verify,8,8,5.896070310269422
+EPYC 9R45,botan,keygen,24,24,2.0353918663511035
+EPYC 9R45,botan,public_key,24,24,19.4348663451174
+EPYC 9R45,botan,sign,24,24,2.428103170985092
+EPYC 9R45,botan,sign_hedged,24,24,2.4319688629326737
+EPYC 9R45,botan,verify,24,24,1.9290654765997899
+EPYC 9R45,experiments,keygen,8,8,6.776714865309834
+EPYC 9R45,experiments,public_key,8,8,15.803544205992473
+EPYC 9R45,experiments,sign,8,8,6.607304817850588
+EPYC 9R45,experiments,sign_hedged,8,8,6.613608829615593
+EPYC 9R45,experiments,verify,8,8,6.037456650870541
+EPYC 9R45,fluhrer-1,keygen,24,24,1.6614084949577383
+EPYC 9R45,fluhrer-1,public_key,24,24,13.456223303375687
+EPYC 9R45,fluhrer-1,sign,24,24,1.5693651815650396
+EPYC 9R45,fluhrer-1,sign_hedged,24,24,1.5706135915608852
+EPYC 9R45,fluhrer-1,verify,24,21,1.5971880817978108
+EPYC 9R45,fluhrer-2,keygen,24,24,1.6647886929642413
+EPYC 9R45,fluhrer-2,public_key,24,24,13.84750656875599
+EPYC 9R45,fluhrer-2,sign,24,7,0.8666649468146199
+EPYC 9R45,fluhrer-2,sign_hedged,24,7,0.8662506512619056
+EPYC 9R45,fluhrer-2,verify,24,22,1.6131428879355878
+EPYC 9R45,cached,keygen,8,8,6.785345755518337
+EPYC 9R45,cached,public_key,8,8,17.947305698235088
+EPYC 9R45,cached,sign,8,8,4.097603462050126
+EPYC 9R45,cached,sign_hedged,8,8,4.086792058069432
+EPYC 9R45,cached,verify,8,8,6.0857836920998185
+Graviton2,botan,keygen,24,24,5.021733204810705
+Graviton2,botan,public_key,24,24,14.498702351596622
+Graviton2,botan,sign,24,24,4.0236409382240765
+Graviton2,botan,sign_hedged,24,24,4.025459258501817
+Graviton2,botan,verify,24,24,2.851030520922909
+Graviton2,experiments,keygen,8,8,3.9304607890637038
+Graviton2,experiments,public_key,8,8,5.264334494649932
+Graviton2,experiments,sign,8,8,3.803271141102423
+Graviton2,experiments,sign_hedged,8,8,3.8050521353149795
+Graviton2,experiments,verify,8,8,3.5117926056577233
+Graviton2,cached,keygen,8,8,3.928155733520851
+Graviton2,cached,public_key,8,8,5.364580515244717
+Graviton2,cached,sign,8,8,2.260979272070156
+Graviton2,cached,sign_hedged,8,8,2.2599862580394214
+Graviton2,cached,verify,8,8,3.519415563175265
+Graviton4,botan,keygen,24,24,5.1134207957576905
+Graviton4,botan,public_key,24,24,10.593456525434688
+Graviton4,botan,sign,24,24,4.455555929187953
+Graviton4,botan,sign_hedged,24,24,4.461084068528489
+Graviton4,botan,verify,24,24,3.1815031074477704
+Graviton4,experiments,keygen,8,8,3.661080316925582
+Graviton4,experiments,public_key,8,8,6.24805753941489
+Graviton4,experiments,sign,8,8,3.5839496883480995
+Graviton4,experiments,sign_hedged,8,8,3.5888994425544625
+Graviton4,experiments,verify,8,8,3.439067206465427
+Graviton4,cached,keygen,8,8,3.6579813016708917
+Graviton4,cached,public_key,8,8,6.335166517525138
+Graviton4,cached,sign,8,8,2.1196976090691884
+Graviton4,cached,sign_hedged,8,8,2.134813407859336
+Graviton4,cached,verify,8,8,3.4462481058806804

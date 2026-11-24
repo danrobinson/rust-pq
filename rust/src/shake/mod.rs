@@ -11,6 +11,9 @@ mod batch;
 #[cfg(all(feature = "platform-sha2", any(all(target_arch = "aarch64", target_endian = "little"), all(target_arch = "x86_64", target_feature = "sse2"))))]
 mod fors_batch;
 pub mod hash;
+macro_rules! shake_only {
+    ($($item:tt)*) => { $($item)* };
+}
 mod wots;
 mod fors;
 #[path = "../xmss.rs"]

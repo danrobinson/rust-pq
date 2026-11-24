@@ -278,3 +278,6 @@ name = "Rcsoft256"
 
 [[lean_lib]]
 name = "RcSlhSha2"
+
+[[lean_lib]]
+name = "Parallel"

@@ -1,0 +1,23 @@
+machdep.cpu.brand_string: Apple M5 Ultra
+hw.physicalcpu: 36
+hw.logicalcpu: 36
+ProductName:		macOS
+ProductVersion:		27.2
+BuildVersion:		26B118
+arm64
+      Chipset Model: Apple M5 Ultra
+      Total Number of Cores: 80
+      Metal Support: Metal 4
+rustc 1.100.0 (0ef1bc386 2026-11-09)
+binary: rustc
+commit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a
+commit-date: 2026-11-09
+host: aarch64-apple-darwin
+release: 1.100.0
+LLVM version: 23.1.5
+Apple clang version 21.0.0 (clang-2100.4.1.1)
+Target: arm64-apple-darwin27.2.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+28a5af9a3e829480b0fead5e4de51abd00eb11d4
+94bc2f5a0ff611b83df32e77a6f14f1d9c81d8be

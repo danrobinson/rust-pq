@@ -129,6 +129,14 @@ The Apple host ran under normal scheduling with concurrent work.
 [Signature and key-generation timings](bench/results/peers-optimized/workloads.csv) ·
 [Key conversion timings](bench/results/peers-optimized/encoding-workloads.csv)
 
+[Seven-platform comparison with Botan, parallel-sphincsplus, and Conduition, including multicore and Apple GPU signing](bench/results/optimized-competitors/README.md)
+
+### Parallel CPU signing (`parallel`)
+
+Enable the opt-in Cargo feature `parallel` on the core or compatibility crate to use spare CPU threads for a single signature. It includes `platform-sha2`. The caller computes FORS while scoped workers compute the independent XMSS authentication nodes. On AVX-512 CPUs, this build also batches eight SHAKE leaves and uses the vectorized Keccak round function for short inputs. Applications signing many independent messages can keep the single-threaded configuration to control concurrency.
+
+The five-platform rerun covers all 122 workloads where a peer previously had lower median latency. The new build won each comparison, including one-thread comparisons on the Xeon 6975P-C and Apple CPU signing against OpenCL. Lean proves that every joined worker schedule in the model yields the FIPS 205 signature bytes, the eight-leaf batch yields the specified XMSS node, and both x86 single-state dispatch branches yield Keccak-f. Source-bound symbolic checks cover the Rust signer and the compiled subtree at all three digest widths. [Proofs, assumptions and replay](lean-hw/Parallel/README.md) · [Measurements](bench/results/parallel/README.md)
+
 ### Multi-platform acceleration (`platform-sha2`)
 
 Enable `platform-sha2` on either the core crate or the compatibility crate.

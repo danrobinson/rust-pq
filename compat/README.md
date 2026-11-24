@@ -44,6 +44,7 @@ one with the caller's random source.
 | `zeroize` | no | accepted for upstream compatibility; keys are always wiped |
 | `hw-sha2` | no | passed to `../rust`: SHA-256 on the ARMv8 SHA-256 instructions and SHA-512 on the ARMv8.2 SHA-512 instructions, each where the CPU has them (proved relative to the instruction model of `../lean-hw`) |
 | `platform-sha2` | no | enables the multi-platform backend, including the tested Arm and x86-64 optimizations outside the existing Lean proofs |
+| `parallel` | no | enables CPU-parallel signing and the AVX-512 SHAKE optimizations in the core crate |
 
 `no_std`, always needs an allocator. Built for `aarch64-unknown-none` with
 `--no-default-features` and each of: nothing, `alloc`, `alloc,zeroize`, `hw-sha2`,
@@ -101,6 +102,8 @@ not build there (the `getrandom` crate has no backend for it).
   only the two inner digests; with a copy of the inner digest left below a 96 KiB frame,
   `tests/wipe.rs` fails for all six sets (first on the stack-depth check; with that check
   disabled, on the residue search, naming only the inner digest's forms).
+
+With `parallel`, each additional signing worker overwrites 64 KiB below its calling frame before returning. The stack-depth and residue tests inspect the calling thread. Worker-stack erasure has no separate measurement.
 
 It remains a best effort: processor registers are not cleared, the compiler may keep copies
 that the source does not show, the amount of stack overwritten is sized for an optimised build

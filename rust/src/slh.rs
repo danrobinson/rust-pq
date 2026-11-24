@@ -59,6 +59,10 @@ macro_rules! sign_digest {
         let adrs = Adrs::new().with_tree(idx_tree).with_type(FORS_TREE).with_keypair(idx_leaf);
         let seed = seed_ctx::<$N>(&$pk_seed);
         let md = &$digest[0..$p.md_bytes()];
+        #[cfg(all(feature = "parallel", not(target_os = "none")))]
+        if let Some(sig) = parallel::sign($p, md, &$sk_seed, &seed, adrs, &$r, idx_tree, idx_leaf) {
+            return sig;
+        }
         let sig_fors = fors_sign::<$N>($p, md, &$sk_seed, &seed, adrs);
         let pk_fors = fors_pk_from_sig::<$N>($p, &sig_fors, md, &seed, adrs);
         let sig_ht = ht_sign::<$N>($p, &pk_fors, &$sk_seed, &seed, idx_tree, idx_leaf);
@@ -152,4 +156,9 @@ pub fn slh_verify<const N: usize>(p: &Params, m: &[u8], sig: &[u8], ctx: &[u8], 
 sha2_only! {
     #[cfg(feature = "platform-sha2")]
     mod message;
+}
+
+#[cfg(all(feature = "parallel", not(target_os = "none")))]
+mod parallel {
+    include!("slh/parallel.rs");
 }

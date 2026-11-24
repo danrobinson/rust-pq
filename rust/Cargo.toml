@@ -16,6 +16,12 @@ hw-sha2 = []
 # Multi-platform tree and message kernels. The Lean proofs cover the default and hw-sha2 configurations.
 platform-sha2 = ["hw-sha2", "dep:sha2-platform", "dep:cpufeatures"]
 
+# Use hosted CPU workers for independent signature subtrees.
+parallel = ["platform-sha2", "dep:zeroize"]
+
+[target.'cfg(not(target_os = "none"))'.dependencies]
+zeroize = { version = "1", default-features = false, optional = true }
+
 [target.'cfg(all(target_arch = "x86_64", target_feature = "sse2"))'.dependencies]
 cpufeatures = { version = "0.3", optional = true }
 sha2-platform = { package = "sha2", version = "0.11", default-features = false, optional = true }

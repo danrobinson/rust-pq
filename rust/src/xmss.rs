@@ -20,6 +20,12 @@ pub fn xmss_node<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<
             return wide::batch_root(sk_seed, i, z, seed, adrs);
         }
     }
+    shake_only! {
+        #[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
+        if z == 3 && super::batch::available::<N>() {
+            return super::batch::subtree8(sk_seed, seed, i, adrs);
+        }
+    }
     if z == 0 {
         wots_pk_gen::<N>(sk_seed, seed, adrs.with_type(WOTS_HASH).with_keypair(i))
     } else {

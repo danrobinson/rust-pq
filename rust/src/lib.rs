@@ -14,6 +14,9 @@
 //! single-set crate: `sha2_128s::api::keygen`, `sha2_128s::slh_sign_internal`,
 //! `sha2_128s::encoding::pkcs8_encode`, ….
 //!
+//! The opt-in `parallel` configuration uses the standard library to share
+//! signature work across CPU threads on hosted systems.
+//!
 //! # The `hw-sha2` feature
 //!
 //! Off by default. With it on, SHA-256 runs on the ARMv8 SHA-256 instructions
@@ -37,6 +40,7 @@ extern crate alloc;
 // the feature tests of the `hw-sha2` backends ask the operating system, through `std`.
 #[cfg(any(
     test,
+    all(feature = "parallel", not(target_os = "none")),
     all(
         feature = "hw-sha2",
         target_arch = "aarch64",
@@ -55,6 +59,10 @@ extern crate std;
 // The shared SLH and XMSS sources use these blocks for SHA-2-specific kernels.
 macro_rules! sha2_only {
     ($($item:tt)*) => { $($item)* };
+}
+
+macro_rules! shake_only {
+    ($($item:tt)*) => {};
 }
 
 pub mod adapter;

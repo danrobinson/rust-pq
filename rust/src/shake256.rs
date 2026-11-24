@@ -139,6 +139,12 @@ fn round(a: &[u64; 25], rc: u64) -> [u64; 25] {
 }
 
 fn permute(state: &mut [u64; 25]) {
+    #[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
+    if crate::sha256::x86::avx512_available() {
+        // Absorbing an all-zero rate block applies exactly one Keccak permutation.
+        stream_x86::blocks(state, &[0; RATE]);
+        return;
+    }
     #[cfg(all(
         feature = "platform-sha2",
         target_arch = "aarch64",

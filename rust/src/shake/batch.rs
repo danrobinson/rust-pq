@@ -207,3 +207,66 @@ pub(super) fn recover<const N: usize>(
     }
     digest(pk)
 }
+
+/// For a height-three subtree, dedicate each AVX-512 lane to a whole WOTS key.
+/// Each chain has exactly 15 steps. The same lanes also hash the eight complete
+/// lists of endpoints, including each key's seed/address prefix and SHAKE padding.
+#[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
+pub(super) fn subtree8<const N: usize>(
+    sk: &[u8; N],
+    seed: &[u8; N],
+    tree_index: u32,
+    addr: Adrs,
+) -> [u8; N] {
+    use crate::address::{TREE, WOTS_HASH};
+    let keys: [_; WIDTH] = core::array::from_fn(|i| tree_index * 8 + i as u32);
+    let addresses = |typ| keys.map(|key| addr.with_type(typ).with_keypair(key));
+    let offset = N / 8 + 4;
+    let mut pk = header(seed, &addresses(WOTS_PK), N + 32);
+    // header also writes SHAKE's padding; the endpoints start here instead.
+    pk[offset] = [0; WIDTH];
+    pk[16] = [0; WIDTH];
+    let mut pos = offset;
+    let mut prf = header(seed, &addresses(WOTS_PRF), 2 * N + 32);
+    put(&mut prf, offset, &[*sk; WIDTH]);
+    let mut input = header(seed, &addresses(WOTS_HASH), 2 * N + 32);
+    for chain in 0..2 * N + LEN2 {
+        let id = u64::from((chain as u32).swap_bytes());
+        prf[offset - 1] = [id; WIDTH];
+        let mut state = prf;
+        parallel::permute(&mut state);
+        for step in 0..W - 1 {
+            input[offset - 1] = [id | (u64::from(step.swap_bytes()) << 32); WIDTH];
+            input[offset..offset + N / 8].copy_from_slice(&state[..N / 8]);
+            state = input;
+            parallel::permute(&mut state);
+        }
+        for word in &state[..N / 8] {
+            for lane in 0..WIDTH {
+                pk[pos][lane] ^= word[lane];
+            }
+            pos += 1;
+            if pos == 17 {
+                parallel::permute(&mut pk);
+                pos = 0;
+            }
+        }
+    }
+    for lane in 0..WIDTH {
+        pk[pos][lane] ^= 0x1f;
+        pk[16][lane] ^= 1 << 63;
+    }
+    parallel::permute(&mut pk);
+    let mut nodes = read::<N>(&pk);
+    for height in 1..=3 {
+        let count = 8 >> height;
+        for k in 0..count {
+            let parent = addr
+                .with_type(TREE)
+                .with_word2(height)
+                .with_word3(tree_index * count as u32 + k as u32);
+            nodes[k] = super::hash::thash_pair(seed, &parent, &nodes[2 * k], &nodes[2 * k + 1]);
+        }
+    }
+    nodes[0]
+}

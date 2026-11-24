@@ -344,6 +344,7 @@ dependencies = [
  "sha3",
  "signature",
  "slh-dsa",
+ "zeroize",
 ]
 
 [[package]]

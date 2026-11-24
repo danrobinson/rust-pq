@@ -8,7 +8,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.elan/bin:$PATH"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 (cd rust && CARGO_TARGET_DIR="$scratch/target" cargo rustc --locked --release \
-    --features platform-sha2 --target x86_64-unknown-linux-gnu --lib -- --emit asm)
+    --features "${1:-platform-sha2}" --target x86_64-unknown-linux-gnu --lib -- --emit asm)
 find "$scratch/target" -type f -name 'slhdsa*.s' > "$scratch/outputs"
 test "$(wc -l < "$scratch/outputs")" -eq 1
 python3 scripts/check-keccak-assembly.py "$(cat "$scratch/outputs")" "$scratch/Code.lean"
