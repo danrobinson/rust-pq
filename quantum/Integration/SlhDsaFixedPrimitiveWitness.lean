@@ -83,7 +83,48 @@ theorem sha2_half_witness (S : Sha2Set)
     ∃ a ∈ reducedAdvantages (qPureBytesToInternal Q), 1/54 ≤ a :=
   half_witness (MReduction.structural S) (by cases S <;> decide) Q success
 
+/-- Concrete bit-security transfer for w=16. The hypothesis bounds the
+advantages of the twelve primitive adversaries constructed from this forger.
+A hardness estimate for a resource class can discharge it when that class
+contains the reduction machines, including their signing-simulation work. -/
+theorem fixed_hash_security_bits (structural : Structural vp prims) (w : vp.params.w = 16)
+    (Q : QForger W (pureBytesAlg vp prims codec rand seeds)) (bits : ℕ)
+    (hard : ∀ a ∈ reducedAdvantages (qPureBytesToInternal Q),
+      a ≤ ((2 : ℝ≥0∞)^(bits+5))⁻¹) :
+    qStrongUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ ∧
+    qUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ := by
+  obtain ⟨a, mem, strong, ordinary⟩ := fixed_primitive_witness structural w Q
+  have transfer : 27*a ≤ ((2 : ℝ≥0∞)^bits)⁻¹ := calc
+    27*a ≤ 32*((2 : ℝ≥0∞)^(bits+5))⁻¹ := mul_le_mul' (by norm_num) (hard a mem)
+    _ = _ := by
+      rw [pow_add, mul_comm ((2 : ℝ≥0∞)^bits), ENNReal.mul_inv (by simp) (by simp), ← mul_assoc]
+      norm_num
+      rw [ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_mul]
+  exact ⟨strong.trans transfer, ordinary.trans transfer⟩
+
+theorem shake_security_of_hash_security (S : Sha2Set)
+    (r : PublicKeyCore (ShakeSecurity.prims S).core → ProbComp (ShakeSecurity.prims S).Y)
+    (seed : ProbComp (ShakeSecurity.prims S).PkSeed)
+    (Q : QForger W (pureBytesAlg S.vp (ShakeSecurity.prims S) (ShakeSecurity.wireCodec S.vp.params) r seed))
+    (bits : ℕ) (hard : ∀ a ∈ reducedAdvantages (qPureBytesToInternal Q),
+      a ≤ ((2 : ℝ≥0∞)^(bits+5))⁻¹) :
+    qStrongUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ ∧
+    qUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ :=
+  fixed_hash_security_bits (ShakeSecurity.structural S) (by cases S <;> decide) Q bits hard
+
+theorem sha2_security_of_hash_security (S : Sha2Set)
+    (r : PublicKeyCore S.prims.core → ProbComp S.prims.Y) (seed : ProbComp S.prims.PkSeed)
+    (Q : QForger W (pureBytesAlg S.vp S.prims (MReduction.codec S) r seed))
+    (bits : ℕ) (hard : ∀ a ∈ reducedAdvantages (qPureBytesToInternal Q),
+      a ≤ ((2 : ℝ≥0∞)^(bits+5))⁻¹) :
+    qStrongUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ ∧
+    qUnforgeableAdvantage Q ≤ ((2 : ℝ≥0∞)^bits)⁻¹ :=
+  fixed_hash_security_bits (MReduction.structural S) (by cases S <;> decide) Q bits hard
+
 end Reduction
 #print axioms Reduction.fixed_primitive_witness
 #print axioms Reduction.shake_half_witness
 #print axioms Reduction.sha2_half_witness
+#print axioms Reduction.fixed_hash_security_bits
+#print axioms Reduction.shake_security_of_hash_security
+#print axioms Reduction.sha2_security_of_hash_security
