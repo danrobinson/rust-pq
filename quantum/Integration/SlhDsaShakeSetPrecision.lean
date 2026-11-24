@@ -79,7 +79,47 @@ theorem signature_work_threshold (S : Sha2Set) (N : ℕ)
     simp only [Q,ENNReal.toReal_div,ENNReal.toReal_one,ENNReal.toReal_ofNat] <;>
     rw [show 4*S.vp.params.n = 8*S.vp.params.n / 2 by omega,bits] <;> norm_num
 
+/-- A path budget rules out a (q+1)-st counted operation if every counted
+operation costs at least one common charge. Other operations may have arbitrary costs. -/
+theorem countBound_of_charges {κ α : Type} {sp : OracleSpec κ} (p : κ → Prop)
+    [DecidablePred p] (w : κ → ℕ) (charge : ℕ) (floorCost : ∀ t, p t → charge ≤ w t)
+    (P : OracleComp sp α) (budget q : ℕ) (cost : WCount w P budget)
+    (limit : budget < (q+1)*charge) : CountBound p P q := by
+  induction P using OracleComp.inductionOn generalizing budget q with
+  | pure a => trivial
+  | query_bind t k ih =>
+    rw [wCount_query_bind] at cost
+    rw [countBound_query_bind]
+    by_cases counted : p t
+    · simp only [counted, ite_true]
+      have ht := floorCost t counted
+      cases q with
+      | zero => simp at limit; omega
+      | succ q =>
+        refine ⟨Nat.zero_lt_succ _, fun r ↦ ih r (budget-w t) q (cost.2 r) ?_⟩
+        rw [Nat.add_mul, Nat.one_mul] at limit
+        omega
+    · simp only [counted, ite_false]
+      exact fun r ↦ ih r (budget-w t) q (cost.2 r) (lt_of_le_of_lt (Nat.sub_le ..) limit)
+
+/-- One-signature ideal-XOF bound in a supplied path-cost model. Turning this
+into a circuit gate bound requires a sound charging argument for the circuit. -/
+theorem signature_charged_work_threshold (S : Sha2Set) (N : ℕ)
+    (r : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node)
+    {E : Type} [Fintype E] [DecidableEq E] (F : PortForger (ShakeApi.Input N) (Bytes S.vp.params.m) E)
+    (c : Caps) (msg : c.ml = 65536) (cap : 65536+3*S.vp.params.n ≤ N)
+    (w : FIdx (ShakeApi.Input N) (Bytes S.vp.params.m) E → ℕ) (charge budget : ℕ)
+    (floorCost : ∀ t, isPort t → charge ≤ w t) (cost : ∀ pk, WCount w (F.main pk) budget)
+    (limit : budget < (2^(min (4*S.vp.params.n-5) 122)+1)*charge)
+    (hs : ∀ pk, CountBound isSign (F.main pk) 1)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    SetOracle.uniformMean (fun H => qStrongUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) < 1/2 ∧
+    SetOracle.uniformMean (fun H => qUnforgeableAdvantage (ShakeApi.rawForger S N r seeds F H)) < 1/2 :=
+  signature_work_threshold S N r seeds F c msg cap
+    (fun pk ↦ countBound_of_charges isPort w charge floorCost _ budget _ (cost pk) limit) hs hc
+
 end Reduction.ShakeXof
 #print axioms Reduction.ShakeXof.precision
 #print axioms Reduction.ShakeXof.signature_benchmark_precise
 #print axioms Reduction.ShakeXof.signature_work_threshold
+#print axioms Reduction.ShakeXof.signature_charged_work_threshold
