@@ -164,6 +164,9 @@ open MLink MReduction
 #print axioms MIdeal.Class128f.forge_count
 #print axioms MIdeal.Class128f.forge_fixed
 #print axioms MIdeal.Class128f.class_term
+#print axioms MIdeal.Wots128f.pre_term
+#print axioms MIdeal.Wots128f.tcr_term
+#print axioms MIdeal.Wots128f.ud_term
 #print axioms ME2E.pureRomScheme_instantiation
 #print axioms ME2E.pure_security_sha2
 #print axioms ME2E.pure_security_sha2_euf

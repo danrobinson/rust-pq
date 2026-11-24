@@ -460,7 +460,7 @@ bound at both wide node sizes, for any fixed public SHA-256 table.
 For 128f, Lean also checks the [HMAC-SHA-256 advantage](security/MIdeal/MsgPrf128f.lean),
 [fixed-arity and WOTS+ target-collision bounds](security/MIdeal/Hash128f.lean),
 and [WOTS+ preimage and undetectability bounds](security/MIdeal/Wots128f.lean)
-with the 128f reduction’s target counts. The [message-hash layouts](security/MIdeal/Hmsg.lean)
+with the 128f reduction’s target counts. The [three WOTS bounds for the byte forger](security/MIdeal/Wots128fBound.lean) include both phases and derive their query budgets from the adversary’s compression and signing queries. The [message-hash layouts](security/MIdeal/Hmsg.lean)
 account for both MGF1 counters in 128f and the SHA-512 path in the four wider sets.
 For those four sets, the [message-hash security bound](security/MIdeal/Itsr512.lean)
 counts compression queries, target queries, and the maximum message length.

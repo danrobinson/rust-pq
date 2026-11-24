@@ -98,6 +98,8 @@ The [preimage theorem](Integration/SlhDsaCompressionPreimage.lean) bounds succes
 [monitored message machine](Integration/SlhDsaCompressionHmacMonitor.lean) costs
 at most three times the signature message-PRF budget including witness extraction.
 
+For ITSR on the four wider sets, [a winning transcript](Integration/SlhDsaCompressionItsrEvidence.lean) yields a covered digest among distinct final compression inputs, a full-state collision, or a preimage of the initial SHA-512 state. The [path budgets](Integration/SlhDsaCompressionItsrWalk.lean) count the compression calls needed to recover those addresses. The [FORS coordinate theorem](Integration/SlhDsaCompressionItsrCover.lean) identifies one candidate cell covered across all FORS trees and proves the distribution of its decoded coordinates for a fresh uniform state. The probability of adaptive coverage still enters the forgery bound.
+
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
 > same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
