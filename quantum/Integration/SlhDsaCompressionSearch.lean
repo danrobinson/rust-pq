@@ -68,7 +68,7 @@ private theorem reorder {a b : ℝ≥0∞} (hb : a ≤ b) (i l r : ℝ≥0∞) :
   rw [← add_assoc i (b+l), ← add_assoc i b]
   gcongr
 
-private theorem hmac_le_search (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+theorem hmac_le_search (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
     let Q := fun g => reduced S rand seeds F g

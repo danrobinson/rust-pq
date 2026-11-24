@@ -15,7 +15,7 @@ local notation "Wc" => openCharge S f SecIdx
 variable (rand : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node)
     (F : PortForger Input Output E)
 
-private theorem wrap_congr_on {ι κ σ α β W : Type} [Fintype W] {sp : OracleSpec ι} {sp' : OracleSpec κ}
+theorem wrap_congr_on {ι κ σ α β W : Type} [Fintype W] {sp : OracleSpec ι} {sp' : OracleSpec κ}
     (a b : QueryImpl sp (StateT σ (OracleComp (unifSpec + sp')))) {G : ι → Prop} {ok : α → Prop}
     (ha : ∀ t, G t → a t = b t) (ka kb : α × σ → QOC W (unifSpec + sp') β)
     (hk : ∀ x, ok x.1 → ka x = kb x) (P : QOC W sp α)
