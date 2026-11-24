@@ -15,7 +15,7 @@ noncomputable def loss (S : Sha2Set) (L q qs : ℕ) : ℝ≥0∞ :=
 
 private theorem card : (Fintype.card Node : ℝ≥0∞) = 2^128 := by rw [card_bytes]; norm_num
 
-private theorem measured_slow (rand : Node → Node → ProbComp Node) (seeds : ProbComp Node) (F : PortForger Input Output E)
+theorem measured_slow (rand : Node → Node → ProbComp Node) (seeds : ProbComp Node) (F : PortForger Input Output E)
     (ar : ℕ) (g : CompressionTables) :
     qSM_DT_TCR_Advantage (qbTcrArM ar (reduced Sha2Set.s128s rand seeds F g)) =
       mean seeds (tcrValue seeds (arityTargets Sha2Set.s128s.vp ar) (Open.tcrPhase1 Sha2Set.s128s.vp (randPrims (carrier Sha2Set.s128s)) ar) (ClassOne.classEnd Sha2Set.s128s rand F ar) F.ρ₀ g) := by
@@ -38,7 +38,7 @@ private theorem fixed_slow (rand : Node → Node → ProbComp Node) (seeds : Pro
   unfold loss epsTcr
   simpa only [card,show 8*Sha2Set.s128s.vp.params.n = 128 from rfl] using b
 
-private theorem measured_fast (rand : Node → Node → ProbComp Node) (seeds : ProbComp Node) (F : PortForger Input Output E)
+theorem measured_fast (rand : Node → Node → ProbComp Node) (seeds : ProbComp Node) (F : PortForger Input Output E)
     (ar : ℕ) (g : CompressionTables) :
     qSM_DT_TCR_Advantage (qbTcrArM ar (reduced Sha2Set.s128f rand seeds F g)) =
       mean seeds (tcrValue seeds (arityTargets Sha2Set.s128f.vp ar) (Open.tcrPhase1 Sha2Set.s128f.vp (randPrims (carrier Sha2Set.s128f)) ar) (ClassOne.classEnd Sha2Set.s128f rand F ar) F.ρ₀ g) := by
