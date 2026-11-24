@@ -338,6 +338,11 @@ advantage against the context-string interface the Rust functions implement is a
 `securityBound params (256^n) 2 1 qh qs` for `qh` hash and `qs` signing queries, at every set.
 Nothing transfers this bound to the SHA-2 instantiation (that is the random-oracle methodology).
 
+[The six-set range theorems](security/ME2E/RomBounds.lean) bound strong and existential forgery at the pure
+byte interface by `qh / 2^(8n−2)` for `2^32 ≤ qh ≤ 2^64` and `qs ≤ 2^64` in this
+three-oracle model. For example, at `qh = 2^40` the bounds are `2^-86`, `2^-150`, and
+`2^-214` at 16, 24, and 32 bytes respectively, for both tree shapes.
+
 ### Ideal compression function (SLH-DSA-SHA2-128s)
 
 With SHA-256's compression function a random table that every adversary may query, and
@@ -360,11 +365,64 @@ hypothesis. See [HANDOFF.md](HANDOFF.md) and [security/status/DIRECT.md](securit
 
 Limits: the subset-resilience leg is vacuous once `qf + 4·qs + 2` (compression queries plus four
 times the signatures) reaches about 2^70; the statement averages over random tables and says
-nothing about the real compression function; no Davies–Meyer model; 128s only (the other sets
-would need the counting re-instantiated and, at n = 24, 32, an ideal SHA-512 compression
-function). What would tighten it: `security/status/TIGHT.md`.
+nothing about the real compression function. The closed forgery bound covers 128s.
+The other sets still need bounds for the remaining hash games in the
+[shared SHA-256 and SHA-512 table model](security/MIdeal/MixedTables.lean).
+See [the tightening work](security/status/TIGHT.md).
+
+[The secret-address PRF bound](security/MIdeal/SkPrf.lean) extends to all six sets.
+For `q` classical compression queries and `qo` PRF requests the advantage is at most
+`q / 2^(8n) + (q + qo)² / 2^256`. The proof identifies the two SHA-256 compression
+calls, including the address, secret and padding bytes, at each width.
+[Both FORS-leaf games](security/MIdeal/Fors.lean) have bounds for every set,
+and [the SHA-512 message PRF](security/MIdeal/MsgPrf512.lean) has a two-sided
+bound at both wide node sizes, for any fixed public SHA-256 table.
+For 128f, Lean also checks the [HMAC-SHA-256 advantage](security/MIdeal/MsgPrf128f.lean),
+[fixed-arity and WOTS+ target-collision bounds](security/MIdeal/Hash128f.lean),
+and [WOTS+ preimage and undetectability bounds](security/MIdeal/Wots128f.lean)
+with the 128f reduction’s target counts. The [message-hash layouts](security/MIdeal/Hmsg.lean)
+account for both MGF1 counters in 128f and the SHA-512 path in the four wider sets.
+For those four sets, the [message-hash security bound](security/MIdeal/Itsr512.lean)
+counts compression queries, target queries, and the maximum message length.
+The [128f message-hash security bound](security/MIdeal/Itsr128fBound.lean) covers the
+34-byte digest from both MGF1 counters. With at most `q` compression queries,
+`qs` target queries, and messages of at most `L` bytes, it bounds ITSR success
+by `reuseSum 66 6 33 Q + Q²/2^256`, where
+`Q = q + (qs + 1)(⌊(L+56)/64⌋ + 4)`.
+The [wide-set target-collision bound](security/MIdeal/ArityTcr512.lean) covers
+all fixed arities other than one, including H, T_len and T_k. It charges both
+phases and verification, and allows the adversary to know the SHA-256 table.
+For the same four sets, the [arity-one and WOTS+ target-collision proofs](security/MIdeal/SingletonTcr.lean)
+charge SHA-256 queries and allow the adversary to know the SHA-512 table.
 
 ### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
+
+[The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
+pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA
+reductions for the same pure byte scheme. The signer accepts classical queries. The right-hand
+sides are quantum hash-game advantages for the actual SHA-2 functions.
+
+[The complete quantum random-oracle proof](quantum/Integration/SlhDsaSetClosed.lean)
+covers all six sets when the four hash components are independent random functions
+on capped inputs. At `2^40` quantum oracle queries and `2^20` classical signing
+queries the checked forgery bounds for 128s, 128f, 192s, 192f, 256s and 256f are
+respectively `2^-22`, `2^-21`, `2^-81`, `2^-85`, `2^-147` and `2^-149`.
+See [the numerical certificate](quantum/Integration/SlhDsaSetNumeric.lean).
+
+[The shared-compression experiment](quantum/Integration/SlhDsaCompressionQuantum.lean)
+gives the forger one quantum port for the two compression tables. The honest hash components
+use those same tables, and [substituting the real tables](security/MIdeal/MixedTables.lean)
+recovers the FIPS functions for every set. The theorem bounds forgery by hash-game advantages
+averaged over the tables. [The secret-address PRF step](quantum/Integration/SlhDsaCompressionPrfBudget.lean)
+contributes at most `8 B² / 2^(8n)` for all six sets. Its compression-query budget
+`B` includes the forger, key generation, signing, and verification. The [FORS target-collision](quantum/Integration/SlhDsaCompressionFors.lean)
+and [decisional second-preimage](quantum/Integration/SlhDsaCompressionDspr.lean) theorems
+cover all six sets with a classical selection phase and a quantum second phase
+making at most `q` compression queries. The [FORS reduction](quantum/Integration/SlhDsaCompressionForsReduction.lean)
+supplies that budget from the byte-level forger's compression-query count, signing-query count,
+and encoded-message limit. The [WOTS+ reduction](quantum/Integration/SlhDsaCompressionWotsReduction.lean)
+also supplies explicit budgets for preimage resistance, chain target collisions, and
+undetectability on SHA2-192s, 192f, 256s, and 256f. A numerical bound for the full signature remains open.
 
 `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
 ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):
@@ -376,8 +434,7 @@ advantage, averaged over the functions, at most an explicit bound; hypotheses on
 and `35 ≤ c.tl`. Machine-checked numeric point: at most 2^-22 at 2^40 oracle calls and 2^20
 signatures. The scheme in it is `Reduction.pureBytesAlg Link.vp (randPrims ω) …`, the same generic
 definition whose real-SHA-2 instance the Rust functions compute (`MIdeal.sha2_128s.pure_bytes_end_to_end`),
-but no theorem relates the capped random functions to SHA-2 or to the Rust code: there is no
-Rust-level quantum statement (there was none in the single-set tree either). Limits: the
+but transferring this numerical bound to concrete SHA-2 remains open. The
 reduction's own hash evaluations are charged as quantum queries, so the bound exceeds 1 from
 about 2^28 signatures; equivalence with unbounded random oracles is informal; an independent
 statement-level review is in [quantum/AUDIT-closed.md](quantum/AUDIT-closed.md).

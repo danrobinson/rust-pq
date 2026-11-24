@@ -1,5 +1,67 @@
 # Post-quantum security workstream — status (end of phase 4 consolidation)
 
+## Six-set extensions (2026-11-23)
+
+[The concrete SHA-2 reduction](Integration/SlhDsaRustQuantum.lean) pairs the Rust
+API correspondence with strong and existential unforgeability in the quantum hash
+games for every set. [The full component-oracle proof](Integration/SlhDsaSetClosed.lean) bounds strong
+forgery for all six pure byte schemes, including the reduction's own queries.
+[Existential forgery](Integration/SlhDsaSetEuf.lean) has the same bound. Both results
+assume capped messages and a tweakable-hash input cap at least the maximum of two,
+the WOTS length, and the FORS tree count. The signer handles classical queries.
+
+At `2^40` quantum port calls and `2^20` signatures Lean checks the following
+upper bounds. The first row is for the entire signature scheme in the four-component
+model. The second is for the exact ITSR digest game alone. The sharper 128s signature
+entry uses the existing specialized numerical estimate.
+
+| SHA-2 set | 128s | 128f | 192s | 192f | 256s | 256f |
+|---|---:|---:|---:|---:|---:|---:|
+| [Strong or existential forgery](Integration/SlhDsaSetNumeric.lean) | 2^-22 | 2^-21 | 2^-81 | 2^-85 | 2^-147 | 2^-149 |
+| [Exact ITSR game](Integration/SlhDsaItsrWidths.lean) | 2^-20 | 2^-22 | 2^-82 | 2^-86 | 2^-148 | 2^-150 |
+
+[The compression-table experiment](Integration/SlhDsaCompressionQuantum.lean) gives the
+forger superposition access to the same tables the signer uses. Its linear theorem
+reduces forgery to comparisons of averaged hash games. [The fixed-public-seed address PRF](Integration/SlhDsaCompressionPrf.lean) now
+has a bound of `8 q² / 2^(8n)` with quantum access to both compression tables
+and classical requests to the exact truncated PRF. The port-uniform distinguisher
+can make at most `q` quantum port calls. The [public-seed average](Integration/SlhDsaCompressionPrfSeed.lean) permits an arbitrary independent public-seed distribution
+and uses the scheme’s full PRF domain. The [signature reduction’s address-PRF step](Integration/SlhDsaCompressionPrfBudget.lean)
+has loss at most `8 B² / 2^(8n)` for all six sets. The [budget `B`](Integration/SlhDsaCompressionPrfMachine.lean)
+counts key generation, the forger’s compression queries, a signing cost per signing
+query, and the final forgery check. Each signing cost includes the message PRF.
+Its inputs are the byte forger’s query limits and the maximum encoded message length. The [FORS target-collision](Integration/SlhDsaCompressionFors.lean) and
+[decisional second-preimage](Integration/SlhDsaCompressionDspr.lean) games now also have bounds
+in the shared-compression model. For all six sets, the bounds are `(2q+1)² / 2^(8n)`
+and `168q² / 2^(8n)` above the DSPR baseline, respectively. Here `q` bounds the
+quantum compression queries of the second phase. The [public hash interpreter](Integration/SlhDsaCompressionOpen.lean)
+charges the FORS reduction's final answer one `Hmsg` evaluation and `k` singleton
+hashes. The [tweakable hash](Integration/SlhDsaCompressionCost.lean) and
+[message hash and PRF](Integration/SlhDsaCompressionMsgCost.lean) costs count the
+compression blocks used by each set. [Open key generation](Integration/SlhDsaCompressionKeygen.lean)
+and [each FORS signing request](Integration/SlhDsaCompressionForsSign.lean) have
+compression-query budgets for all six sets. The [signature reduction](Integration/SlhDsaCompressionForsReduction.lean)
+instantiates both FORS bounds with `forsBudget S L q qs`. Here `L` bounds the
+encoded signing and forgery messages, `q` bounds the forger's compression queries,
+and `qs` bounds its signing queries. The budget counts honest compression calls
+during key generation, each signing request, and the final answer. For SHA2-192s, 192f, 256s, and 256f, the WOTS+ [preimage](Integration/SlhDsaCompressionWotsPre.lean),
+[chain target-collision](Integration/SlhDsaCompressionWotsTcr.lean), and
+[undetectability](Integration/SlhDsaCompressionWotsUd.lean) games also have
+shared-compression bounds. With `q` second-phase queries and an `n`-byte node,
+the bounds are `2(2q+1)²/2^(8n)`, `(2q+1)²/2^(8n)`, and `8q²/2^(8n)`
+above ideal for undetectability. The first phase can use its challenge and
+collection oracles. The [WOTS+ signature reduction](Integration/SlhDsaCompressionWotsReduction.lean)
+instantiates all three budgets from the byte-level forger's compression queries,
+signing queries and encoded-message limit. Its budget includes the cost of each
+game's final answer. For the same four sets the [arity-one class TCR theorem](Integration/SlhDsaCompressionClassOne.lean)
+bounds the component game by `(2q+1)²/2^(8n)` for a second phase making at most
+`q` compression queries. The [arity-one signature reduction](Integration/SlhDsaCompressionClassReduction.lean) derives this
+query count from key generation, signing, verification, and the byte forger’s budgets. The two 128-bit sets also need
+a separate argument for collection queries that hash multiple nodes with SHA-256. In particular, `shared_singleton` proves that the secret-address PRF and
+a singleton tweakable-hash call agree on the corresponding inputs. An independent
+four-component oracle does not preserve this identity. Any transfer must account for
+which inputs the reduction exposes or analyze the compression games directly.
+
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
 > same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
@@ -9,7 +71,7 @@
 > modules checked, 46 Integration files, 348 theorems, standard axioms only; the last run is
 > recorded in `../HANDOFF.md`, "Checks"). The quantum theorems are about SLH-DSA-SHA2-128s at
 > VCVio's level (`Reduction.pureBytesAlg Link.vp (randPrims ω) …` averaged over capped random
-> functions `ω`); there is no statement about the Rust functions (`../README.md`, "Quantum
+> functions `ω`); that numerical result is separate from the real-SHA-2 Rust reduction (`../README.md`, "Quantum
 > adversaries").
 
 > **Update (2026-11-21): the composed QROM theorem is finished. Read this first; everything

@@ -728,27 +728,25 @@ def tgtOK (OK : K × X → Prop) : ℕ ⊕ ((St × Blk) ⊕ X) → Prop
   | .inr (.inr x) => ∀ k, OK (k, x)
   | _ => True
 
-theorem gameProg_bound_aux [SampleableType K] [DecidableEq K] [DecidableEq X]
-    [DecidableEq Index] (hpl : ∀ n, ¬ p (.inl n))
-    (IV : St) (ib : K × X → List Blk) (ob : K × X → St → List Blk) (od : St → Y)
-    (idx : Y → List Index) (c : ℕ) (OK : K × X → Prop)
-    (hOK : ∀ kx, OK kx → IsQueryBoundP (hashM IV ib ob od kx) p c)
+/-- Target selection with an arbitrary final check costing at most one budget per input. -/
+theorem targetRun_bound [SampleableType K] (hpl : ∀ n, ¬ p (.inl n))
+    (c : ℕ) (OK : K × X → Prop)
+    (finish : (K × X) × List (K × X) → OracleComp (unifSpec + mS St Blk) Bool)
+    (hfinish : ∀ x s, OK x → (∀ t ∈ s, OK t) → IsQueryBoundP (finish (x,s)) p ((s.length + 1) * c))
     (A : OracleComp (unifSpec + (hS St Blk + ITSRTargetSpec X K)) (K × X)) :
     ∀ (q qs : ℕ) (s : List (K × X)),
       IsQueryBoundP A (fun i => isCompI i = true) q →
       IsQueryBoundP A (fun i => isTgtI i = true) qs →
       AllQueriesSatisfy A (tgtOK OK) →
       (∀ kx ∈ support A, OK kx) → (∀ kx ∈ s, OK kx) →
-      IsQueryBoundP ((simulateQ tgtImpl A).run s >>= finM IV ib ob od idx) p
+      IsQueryBoundP ((simulateQ tgtImpl A).run s >>= finish) p
         (q + (qs + s.length + 1) * c) := by
   induction A using OracleComp.inductionOn with
   | pure x =>
     intro q qs s _ _ _ hout hs
-    simp only [simulateQ_pure, StateT.run_pure, pure_bind, finM]
-    refine (isQueryBoundP_bind (hashAllM_bound IV ib ob od c s fun kx h => hOK kx (hs kx h))
-      fun ds _ => isQueryBoundP_bind (m := 0) (hOK x (hout x (by simp))) fun d _ => by
-        simp).mono ?_
-    have : (qs + s.length + 1) * c = qs * c + s.length * c + c := by ring
+    simp only [simulateQ_pure, StateT.run_pure, pure_bind]
+    apply (hfinish x s (hout x (by simp)) hs).mono
+    rw [Nat.add_assoc qs s.length 1, Nat.add_mul qs (s.length + 1) c]
     omega
   | query_bind t k ih =>
     intro q qs s hq hqs htgt hout hs
@@ -809,6 +807,26 @@ theorem gameProg_bound_aux [SampleableType K] [DecidableEq K] [DecidableEq X]
       simp only [List.length_append, List.length_cons, List.length_nil]
       have : qs - 1 + (s.length + (0 + 1)) + 1 = qs + s.length + 1 := by omega
       rw [this]
+
+theorem gameProg_bound_aux [SampleableType K] [DecidableEq K] [DecidableEq X]
+    [DecidableEq Index] (hpl : ∀ n, ¬ p (.inl n))
+    (IV : St) (ib : K × X → List Blk) (ob : K × X → St → List Blk) (od : St → Y)
+    (idx : Y → List Index) (c : ℕ) (OK : K × X → Prop)
+    (hOK : ∀ kx, OK kx → IsQueryBoundP (hashM IV ib ob od kx) p c)
+    (A : OracleComp (unifSpec + (hS St Blk + ITSRTargetSpec X K)) (K × X)) :
+    ∀ (q qs : ℕ) (s : List (K × X)),
+      IsQueryBoundP A (fun i => isCompI i = true) q →
+      IsQueryBoundP A (fun i => isTgtI i = true) qs →
+      AllQueriesSatisfy A (tgtOK OK) →
+      (∀ kx ∈ support A, OK kx) → (∀ kx ∈ s, OK kx) →
+      IsQueryBoundP ((simulateQ tgtImpl A).run s >>= finM IV ib ob od idx) p
+        (q + (qs + s.length + 1) * c) := by
+  apply targetRun_bound hpl c OK _ _ A
+  intro x s hx hs
+  unfold finM
+  refine (isQueryBoundP_bind (hashAllM_bound IV ib ob od c s fun kx h => hOK kx (hs kx h))
+    fun ds _ => isQueryBoundP_bind (m := 0) (hOK x hx) fun d _ => by simp).mono ?_
+  simp [Nat.add_mul]
 
 /-- **Query bound of the experiment.**  If the adversary makes at most `q` compression queries
 and `qs` target queries, all its target queries and candidates satisfy `OK`, and hashing an `OK`

@@ -104,6 +104,37 @@ open MLink MReduction
 #print axioms MReduction.final_resources_final_sha2
 #print axioms ME2E.seeds_split
 #print axioms ME2E.sk_split
+#print axioms ME2E.pure_bytes_rom_range
+#print axioms ME2E.pure_bytes_rom_range_euf
+#print axioms Ideal.tablePrimitives_real
+#print axioms MIdeal.SkPrf.mixed_shape
+#print axioms MIdeal.SkPrf.bound
+#print axioms MIdeal.msg_prf_128f
+#print axioms MIdeal.Hash128f.thashArityProblemT_eq_tcrProb
+#print axioms MIdeal.Hash128f.tcrArityT_bound_multi
+#print axioms MIdeal.Hash128f.wotsTcr_bound
+#print axioms MIdeal.Hash128f.wotsPre_bound
+#print axioms MIdeal.Hash128f.wotsUd_bound
+#print axioms MIdeal.Hash128f.wotsUd_bound_ge
+#print axioms MIdeal.Hmsg.hmsg_128f
+#print axioms MIdeal.Hmsg.Fast128.itsr_bound
+#print axioms MIdeal.Hmsg.hmsg_wide
+#print axioms MIdeal.Hmsg.itsr_problem
+#print axioms MIdeal.Hmsg.itsr_query_bound
+#print axioms MIdeal.Sha512.thash_wide
+#print axioms MIdeal.Sha512.collision_bound
+#print axioms MIdeal.Sha512.ArityTcr.arity_bound
+#print axioms MIdeal.Sha512.ArityTcr.mixed_bound
+#print axioms MIdeal.SingletonHash.bound
+#print axioms MIdeal.SingletonTcr.arityOne_bound
+#print axioms MIdeal.SingletonTcr.wots_bound
+#print axioms MIdeal.Sha512.readThash_eval
+#print axioms MIdeal.Sha512.readThash_bound
+#print axioms MIdeal.Sha512.thashBlocks_injective
+#print axioms MIdeal.Sha512.readAddress_first
+#print axioms MIdeal.Sha512.msg_prf_bound
+#print axioms MIdeal.Fors.tcr_bound
+#print axioms MIdeal.Fors.dspr_bound
 #print axioms ME2E.pureRomScheme_instantiation
 #print axioms ME2E.pure_security_sha2
 #print axioms ME2E.pure_security_sha2_euf
@@ -146,7 +177,7 @@ for s in $SETS; do
   grep -o "'ME2E.sha2_${s}.\(rust\|api\|pure\)[a-z_]*'" "$out/axioms.txt" | tr '\n' ' '; echo
 done
 
-echo "-- ideal-compression bound (SLH-DSA-SHA2-128s only): $(grep -c "'MIdeal\." "$out/axioms.txt") checked:"
+echo "-- ideal-compression theorems (closed signature bound for SHA2-128s): $(grep -c "'MIdeal\." "$out/axioms.txt") checked:"
 grep -o "'MIdeal\.[A-Za-z0-9_.]*'" "$out/axioms.txt" | tr '\n' ' '; echo
 
 if [ $fail -eq 0 ]; then echo "CHECK PASSED"; else echo "CHECK FAILED"; fi

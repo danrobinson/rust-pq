@@ -388,5 +388,5 @@ open(os.path.join(ROOT, 'ME2E.lean'), 'w').write(
     'import ME2E.Api\nimport ME2E.PureRom\n' +
     ''.join('import ME2E.Api.Sha2_%s\n' % s[0] for s in SETS) +
     ''.join('import ME2E.Rom.Sha2_%s\n' % s[0] for s in SETS) +
-    'import ME2E.Gen128s\n')
+    'import ME2E.Gen128s\nimport ME2E.RomBounds\n')
 print('ok')

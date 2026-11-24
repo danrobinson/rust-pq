@@ -79,6 +79,15 @@ inductive PUE (cnt : spec.Domain → ℕ) {α : Type} :
   | eval (x : X) (k : Y → (X → Y) → QOC (WS X Y E) spec α) (q : ℕ)
       (h : ∀ y, PUE cnt (k y) q) : PUE cnt (fun H ↦ k (H x) H) (q + 1)
 
+/-- A port-uniform machine is also a machine with a budget for classical port evaluations. -/
+theorem PU.toPUE {α : Type} {A : (X → Y) → QOC (WS X Y E) spec α} {q : ℕ} (h : PU A q) :
+    PUE (fun _ => 0) A q := by
+  induction h with
+  | pure a q => exact PUE.pure a q
+  | instr j k q _ ih => exact PUE.instr j k q ih
+  | port k q _ ih => exact PUE.port k q ih
+  | query t k q _ ih => exact PUE.query t k q ih
+
 namespace PUE
 
 variable {cnt : spec.Domain → ℕ}

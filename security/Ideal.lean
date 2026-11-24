@@ -197,3 +197,4 @@ import Ideal.Direct.CoupleUnif
 import Ideal.Direct.CoupleRun
 import Ideal.Direct.CoupleDomH
 import Ideal.Direct.CoupleDomP
+import Ideal.Sha.Mixed

@@ -1,4 +1,4 @@
-import PQ.Interactive.QromBridgeUnif
+import PQ.Interactive.QromBridgeEvalProg
 import PQ.QROM.ExactPrfStruct
 
 /-!
@@ -289,10 +289,21 @@ variable {X Y E : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] 
 noncomputable def keyedScheme (key : D → Dm) (g : K × Dm → R) : PRFScheme K D R :=
   ⟨$ᵗ K, fun k d ↦ g (k, key d)⟩
 
-/-- **The PRF bound in the Part-1 model, structured oracle, port-uniform machines.** -/
-theorem prf_PU_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonempty X]
+/-- Count port queries after each classical PRF query is answered by a fixed function.
+The same budget applies uniformly to every such function. -/
+def PrfAnswerCost
+    (A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool) (q : ℕ) : Prop :=
+  ∀ f : D → R, PUE (spec := unifSpec) cnt0 (fun H ↦ ansRun f (A H)) q
+
+theorem PUE.prfAnswerCost
+    {A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool} {q : ℕ}
+    (hA : PUE (fun _ => 0) A q) : PrfAnswerCost A q :=
+  fun _ ↦ PUE.map Prod.fst (PUE.close _ (fun _ _ => EvalCost.const _) hA ())
+
+/-- Structured PRF bound charging both quantum port calls and classical evaluations of that port. -/
+theorem prf_answer_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonempty X]
     (key : D → Dm) (hkey : Function.Injective key)
-    (A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool) (q : ℕ) (hA : PU A q)
+    (A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool) (q : ℕ) (hA : PrfAnswerCost A q)
     (Hf : (K × Dm → R) → X → Y) (loc : X → Option (K × Dm))
     (hloc : ∀ g g' x, (∀ p, loc x = some p → g p = g' p) → Hf g x = Hf g' x)
     (ρ : SubState ((X × Y) × E)) :
@@ -302,9 +313,7 @@ theorem prf_PU_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonemp
         qPrfIdealPr (A (Hf g)) (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) +
         ENNReal.ofReal (8 * (q : ℝ) ^ 2 / Fintype.card K) := by
   set M := ρ.matrix ⊗ₖ (SubState.basis ()).matrix with hM
-  have hPU : ∀ f : D → R, PU (spec := unifSpec) (fun H ↦ ansRun f (A H)) q := fun f ↦
-    PU.map Prod.fst (PU.close _ hA ())
-  choose x hx hxe using fun f ↦ (hPU f).exists_prog_qprob
+  choose x hx hxe using fun f ↦ (hA f).exists_prog_qprob
   have hreal : ∀ g : K × Dm → R, qPrfRealPr (keyedScheme key g) (A (Hf g)) M =
       (Fintype.card K : ℝ≥0∞)⁻¹ * ∑ k : K, PQ.QROM.qprob LocalSig.Interp.instruments (Hf g)
         (x fun d ↦ g (k, key d)) ρ (fun p ↦ p.2 = true) := by
@@ -338,6 +347,35 @@ theorem prf_PU_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonemp
     refine Finset.sum_congr rfl fun g _ ↦ ?_
     rw [Finset.mul_sum, Finset.mul_sum]
     exact Finset.sum_congr rfl fun R' _ ↦ by ring
+
+/-- Structured PRF bound charging both quantum port calls and classical evaluations of that port. -/
+theorem prf_PUE_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonempty X]
+    (key : D → Dm) (hkey : Function.Injective key)
+    (A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool) (q : ℕ) (hA : PUE (fun _ => 0) A q)
+    (Hf : (K × Dm → R) → X → Y) (loc : X → Option (K × Dm))
+    (hloc : ∀ g g' x, (∀ p, loc x = some p → g p = g' p) → Hf g x = Hf g' x)
+    (ρ : SubState ((X × Y) × E)) :
+    (∑ g : K × Dm → R, (Fintype.card (K × Dm → R) : ℝ≥0∞)⁻¹ *
+        qPrfRealPr (keyedScheme key g) (A (Hf g)) (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) ≤
+      (∑ g : K × Dm → R, (Fintype.card (K × Dm → R) : ℝ≥0∞)⁻¹ *
+        qPrfIdealPr (A (Hf g)) (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) +
+        ENNReal.ofReal (8 * (q : ℝ) ^ 2 / Fintype.card K) := by
+
+  exact prf_answer_real_le_ideal_add key hkey A q hA.prfAnswerCost Hf loc hloc ρ
+
+/-- **The PRF bound in the Part-1 model, structured oracle, port-uniform machines.** -/
+theorem prf_PU_real_le_ideal_add [Nonempty K] [Nonempty Dm] [Nonempty R] [Nonempty X]
+    (key : D → Dm) (hkey : Function.Injective key)
+    (A : (X → Y) → QOC (WS X Y E) (PRFScheme.PRFOracleSpec D R) Bool) (q : ℕ) (hA : PU A q)
+    (Hf : (K × Dm → R) → X → Y) (loc : X → Option (K × Dm))
+    (hloc : ∀ g g' x, (∀ p, loc x = some p → g p = g' p) → Hf g x = Hf g' x)
+    (ρ : SubState ((X × Y) × E)) :
+    (∑ g : K × Dm → R, (Fintype.card (K × Dm → R) : ℝ≥0∞)⁻¹ *
+        qPrfRealPr (keyedScheme key g) (A (Hf g)) (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) ≤
+      (∑ g : K × Dm → R, (Fintype.card (K × Dm → R) : ℝ≥0∞)⁻¹ *
+        qPrfIdealPr (A (Hf g)) (ρ.matrix ⊗ₖ (SubState.basis ()).matrix)) +
+        ENNReal.ofReal (8 * (q : ℝ) ^ 2 / Fintype.card K) := by
+  exact prf_PUE_real_le_ideal_add key hkey A q hA.toPUE Hf loc hloc ρ
 
 end prf
 

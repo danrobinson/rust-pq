@@ -158,34 +158,39 @@ def _root_.Reduction.FinFns.withHmsg {p : Params} {c : Caps} (ω : FinFns p c)
     (g : Bytes p.n → Bytes p.n → Bytes p.n → BList Byte c.ml → Bytes p.m) : FinFns p c :=
   { ω with hmsg := g }
 
+namespace SetDigest
+
+variable (vp : ValidatedParams)
+
 /-- The FORS index list of a digest (the index map of `itsrProblem`). -/
-def idxOf (d : BM) : List (Adrs × ℕ) := forsIndices Link.vp (splitDigest Link.vp.params d)
+def idxOf (d : Bytes vp.params.m) : List (Adrs × ℕ) := forsIndices vp (splitDigest vp.params d)
 
 /-- The ITSR cover relation of `itsrProblem`, on digests. -/
-def idxCov (S : Finset BM) (u : BM) : Prop := ∀ i ∈ idxOf u, ∃ d ∈ S, i ∈ idxOf d
+def idxCov (S : Finset (Bytes vp.params.m)) (u : Bytes vp.params.m) : Prop :=
+  ∀ i ∈ idxOf vp u, ∃ d ∈ S, i ∈ idxOf vp d
 
-instance (S : Finset BM) : DecidablePred (idxCov S) := fun u ↦ by
+instance (S : Finset (Bytes vp.params.m)) : DecidablePred (idxCov vp S) := fun u ↦ by
   unfold idxCov; infer_instance
 
-theorem match_of_mem_idxOf (y z : BM) (i : Fin Link.vp.params.k)
-    (h : ((splitDigest Link.vp.params y).forsAdrs,
-        i.val * 2 ^ Link.vp.params.a +
-          forsIdx Link.vp.params (splitDigest Link.vp.params y).md.toList i.val) ∈ idxOf z) :
-    (coveringDigest Link.vp z).1 = (coveringDigest Link.vp y).1 ∧
-      (coveringDigest Link.vp z).2 i = (coveringDigest Link.vp y).2 i := by
+theorem match_of_mem_idxOf (y z : Bytes vp.params.m) (i : Fin vp.params.k)
+    (h : ((splitDigest vp.params y).forsAdrs,
+        i.val * 2 ^ vp.params.a +
+          forsIdx vp.params (splitDigest vp.params y).md.toList i.val) ∈ idxOf vp z) :
+    (coveringDigest vp z).1 = (coveringDigest vp y).1 ∧
+      (coveringDigest vp z).2 i = (coveringDigest vp y).2 i := by
   simp only [idxOf, forsIndices, List.mem_map, List.mem_range] at h
   obtain ⟨j, hj, he⟩ := h
   obtain ⟨hadr, hnum⟩ := Prod.mk.inj he
-  have ht : (splitDigest Link.vp.params z).idxTree.val =
-      (splitDigest Link.vp.params y).idxTree.val := by
+  have ht : (splitDigest vp.params z).idxTree.val =
+      (splitDigest vp.params y).idxTree.val := by
     have := congrArg Adrs.tree hadr
     simpa using this
-  have hl : (splitDigest Link.vp.params z).idxLeaf.val =
-      (splitDigest Link.vp.params y).idxLeaf.val := by
+  have hl : (splitDigest vp.params z).idxLeaf.val =
+      (splitDigest vp.params y).idxLeaf.val := by
     have := congrArg Adrs.getKeyPairAddress hadr
     simpa using this
-  have hz := forsIdx_lt Link.vp.params (splitDigest Link.vp.params z).md.toList j
-  have hy := forsIdx_lt Link.vp.params (splitDigest Link.vp.params y).md.toList i.val
+  have hz := forsIdx_lt vp.params (splitDigest vp.params z).md.toList j
+  have hy := forsIdx_lt vp.params (splitDigest vp.params y).md.toList i.val
   have key : ∀ j i fz fy A : ℕ, 0 < A → fz < A → fy < A → j * A + fz = i * A + fy →
       j = i ∧ fz = fy := by
     intro j i fz fy A hA hz hy h
@@ -196,28 +201,52 @@ theorem match_of_mem_idxOf (y z : BM) (i : Fin Link.vp.params.k)
     exact ⟨rfl, by omega⟩
   obtain ⟨hji, hf⟩ := key _ _ _ _ _ (Nat.two_pow_pos _) hz hy hnum
   subst hji
-  refine ⟨(coveringDigest_fst_eq_iff Link.vp z y).2 ⟨Fin.ext ht, Fin.ext hl⟩, Fin.ext ?_⟩
+  refine ⟨(coveringDigest_fst_eq_iff vp z y).2 ⟨Fin.ext ht, Fin.ext hl⟩, Fin.ext ?_⟩
   rw [coveringDigest_snd_val, coveringDigest_snd_val, hf]
 
-theorem idxCov_forsCov (S : Finset BM) (u : BM) (h : idxCov S u) :
-    forsCov (S.image (coveringDigest Link.vp)) (coveringDigest Link.vp u) := by
+theorem idxCov_forsCov (S : Finset (Bytes vp.params.m)) (u : Bytes vp.params.m) (h : idxCov vp S u) :
+    forsCov (S.image (coveringDigest vp)) (coveringDigest vp u) := by
   intro j
-  obtain ⟨d, hd, hmem⟩ := h ((splitDigest Link.vp.params u).forsAdrs,
-      j.val * 2 ^ Link.vp.params.a +
-        forsIdx Link.vp.params (splitDigest Link.vp.params u).md.toList j.val) (by
+  obtain ⟨d, hd, hmem⟩ := h ((splitDigest vp.params u).forsAdrs,
+      j.val * 2 ^ vp.params.a +
+        forsIdx vp.params (splitDigest vp.params u).md.toList j.val) (by
     simp only [idxOf, forsIndices, List.mem_map, List.mem_range]
     exact ⟨j.val, j.isLt, rfl⟩)
-  obtain ⟨h1, h2⟩ := match_of_mem_idxOf u d j hmem
-  exact ⟨coveringDigest Link.vp d, Finset.mem_image_of_mem _ hd, h1, h2⟩
+  obtain ⟨h1, h2⟩ := match_of_mem_idxOf vp u d j hmem
+  exact ⟨coveringDigest vp d, Finset.mem_image_of_mem _ hd, h1, h2⟩
 
 /-- **The ITSR cover probability on `H_msg` digests is at most the FORS cover probability**:
 uniform digests decode to uniform covering digests (`card_fiber_coveringDigest`). -/
 theorem coverProb_idxCov_le (s : ℕ) :
+    coverProb (Fin s) (idxCov vp) ≤
+      coverProb (Fin s) (forsCov (I := Fin (2 ^ vp.params.h))
+        (L := Fin (2 ^ vp.params.a)) (k := vp.params.k)) :=
+  coverProb_le_of_fiber (coveringDigest vp) _ (Nat.two_pow_pos _)
+    (card_fiber_coveringDigest vp) (idxCov vp) _ (idxCov_forsCov vp)
+
+end SetDigest
+
+abbrev idxOf := SetDigest.idxOf Link.vp
+
+abbrev idxCov := SetDigest.idxCov Link.vp
+
+theorem match_of_mem_idxOf (y z : BM) (i : Fin Link.vp.params.k)
+    (h : ((splitDigest Link.vp.params y).forsAdrs,
+        i.val * 2 ^ Link.vp.params.a +
+          forsIdx Link.vp.params (splitDigest Link.vp.params y).md.toList i.val) ∈ idxOf z) :
+    (coveringDigest Link.vp z).1 = (coveringDigest Link.vp y).1 ∧
+      (coveringDigest Link.vp z).2 i = (coveringDigest Link.vp y).2 i :=
+  SetDigest.match_of_mem_idxOf Link.vp y z i h
+
+theorem idxCov_forsCov (S : Finset BM) (u : BM) (h : idxCov S u) :
+    forsCov (S.image (coveringDigest Link.vp)) (coveringDigest Link.vp u) :=
+  SetDigest.idxCov_forsCov Link.vp S u h
+
+theorem coverProb_idxCov_le (s : ℕ) :
     coverProb (Fin s) idxCov ≤
       coverProb (Fin s) (forsCov (I := Fin (2 ^ Link.vp.params.h))
         (L := Fin (2 ^ Link.vp.params.a)) (k := Link.vp.params.k)) :=
-  coverProb_le_of_fiber (coveringDigest Link.vp) _ (Nat.two_pow_pos _)
-    (card_fiber_coveringDigest Link.vp) idxCov _ idxCov_forsCov
+  SetDigest.coverProb_idxCov_le Link.vp s
 
 section term
 variable {E : Type} [Fintype E] [DecidableEq E] (c : Caps)
