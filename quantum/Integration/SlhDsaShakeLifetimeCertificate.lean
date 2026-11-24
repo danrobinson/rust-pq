@@ -41,14 +41,7 @@ theorem adaptive_loss_certificate (S : Sha2Set) (q s l divisor : ℕ)
   rw [repeatedLoss_split]
   apply (add_le_add (ForsLifetime.digest_numerator S _ s l life signings) le_rfl).trans
   rw [← ENNReal.add_div,← Nat.cast_add]
-  change (adaptiveNumerator S q s l : ℝ≥0∞) / _ ≤ _
-  by_cases zero : divisor = 0
-  · simp [zero]
-  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-  simp only [ENNReal.toReal_div, ENNReal.toReal_natCast, ENNReal.toReal_pow,
-    ENNReal.toReal_inv, ENNReal.toReal_ofNat]
-  rw [div_le_iff₀ (by positivity), ← div_eq_inv_mul, le_div_iff₀ (by positivity)]
-  exact_mod_cast cert
+  exact ForsLifetime.fraction_certificate _ _ _ cert
 /-- Even with no public queries, the randomizer-programming term alone
 exceeds the probability budget for the four narrower sets at a full lifetime.
 This lower bound concerns the analytic estimate. -/

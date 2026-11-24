@@ -21,14 +21,7 @@ theorem lifetime_certificate (S : Sha2Set) (q s l divisor : ℕ) (limit : s ≤ 
   rw [componentForgeryBound_split]
   apply (add_le_add (ForsLifetime.digest_numerator S _ s l limit signings) le_rfl).trans
   rw [← ENNReal.add_div, ← Nat.cast_add]
-  change (lifetimeNumerator S q s l : ℝ≥0∞) / _ ≤ _
-  by_cases hd : divisor = 0
-  · simp [hd]
-  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-  simp only [ENNReal.toReal_div, ENNReal.toReal_natCast, ENNReal.toReal_pow,
-    ENNReal.toReal_inv, ENNReal.toReal_ofNat]
-  rw [div_le_iff₀ (by positivity), ← div_eq_inv_mul, le_div_iff₀ (by positivity)]
-  exact_mod_cast cert
+  exact ForsLifetime.fraction_certificate _ _ _ cert
 
 /-- Each pair gives (log₂ signing budget, forgery probability exponent) for
 2^40 public quantum queries in the independent-component model. -/

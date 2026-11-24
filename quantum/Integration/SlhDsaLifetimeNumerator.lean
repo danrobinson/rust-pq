@@ -36,5 +36,15 @@ theorem digest_numerator (S : Sha2Set) (q s l : ℕ)
           rw [← width,pow_mul]
           simp only [D,div_eq_mul_inv,ENNReal.inv_pow]
           ring
+theorem fraction_certificate (n d bits : ℕ) (cert : n*d ≤ 2^bits) :
+    (n:ℝ≥0∞) / 2^bits ≤ (d:ℝ≥0∞)⁻¹ := by
+  by_cases zero : d = 0
+  · simp [zero]
+  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+  simp only [ENNReal.toReal_div, ENNReal.toReal_natCast, ENNReal.toReal_pow,
+    ENNReal.toReal_inv, ENNReal.toReal_ofNat]
+  rw [div_le_iff₀ (by positivity), ← div_eq_inv_mul, le_div_iff₀ (by positivity)]
+  exact_mod_cast cert
+
 end Reduction.ForsLifetime
 #print axioms Reduction.ForsLifetime.digest_numerator

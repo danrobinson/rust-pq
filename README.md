@@ -500,10 +500,9 @@ a cryptographic assumption.
 [Classical permutation theorem](quantum/Integration/SlhDsaShakePermutationClassicalSignature.lean) ·
 [Quantum permutation theorem](quantum/Integration/SlhDsaShakePermutationLongBenchmark.lean)
 
-The shared ideal SHAKE XOF also has a bound with separate public-query and
-signing-query budgets, with numerical certificates for two signatures. The
-full-lifetime AES-category comparison remains open in this model.
-[Work thresholds and repeated-signing results](quantum/STATUS.md#shake-work-and-repeated-signing)
+For all six SHAKE sets in the classical random-oracle model, Lean checks full-lifetime bounds for deterministic and hedged signatures in a fixed pure-mode context. With up to `2^64` signatures under one key, strong forgery stays below 50% through `2^125`, `2^124`, `2^189`, `2^189`, `2^252`, and `2^252` direct classical hash queries, in 128s, 128f, 192s, 192f, 256s, 256f order. [Classical wire-game theorems](quantum/Integration/SlhDsaShakeClassicalProfiles.lean)
+
+For SHAKE-256s and SHAKE-256f, Lean also checks full-lifetime quantum bounds using a single shared ideal XOF. At up to `2^64` adaptive classical signing requests and `2^40` public quantum queries, strong and existential forgery have probability at most `2^-19` and `2^-25`, respectively by parameter set. Both sets stay at or below one third through `2^94` public queries. These theorems use the 65,536-byte encoded-message cap. The 128- and 192-bit quantum results cover smaller signing budgets. A full-lifetime gate-cost comparison with AES for fixed Keccak remains open. [Adaptive signature proof](quantum/Integration/SlhDsaShakeAdaptiveSignature.lean) · [All budgets and models](quantum/STATUS.md#adaptive-signing-and-key-lifetimes)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
 pairs the Rust API correspondence for every SHA-2 set with EUF-CMA and SUF-CMA
