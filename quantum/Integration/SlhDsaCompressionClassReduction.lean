@@ -14,7 +14,7 @@ private def ref (g : CompressionTables) : RandFns S.vp.params :=
 variable (rand : S.Node → S.Node → ProbComp S.Node) (seeds : ProbComp S.Node)
     {E : Type} [Fintype E] [DecidableEq E] (F : PortForger Input Output E)
 
-private theorem atOracle (g : CompressionTables) (n : ℕ) (st : State S f₀) (pk : S.Node) :
+theorem atOracle (g : CompressionTables) (n : ℕ) (st : State S f₀) (pk : S.Node) :
     machine S f₀ rand F n st pk (oracle g) = qMemoForge n (reduced S rand seeds F g) st pk := by
   let real := functions S g
   let r := fun (k : PublicKeyCore (randPrims (ref S g)).core) => rand k.pkSeed k.pkRoot

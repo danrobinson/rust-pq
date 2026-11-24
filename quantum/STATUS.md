@@ -78,6 +78,19 @@ available throughout. The weighted budget charges each message evaluation for
 its remaining inner blocks and its outer compression. The ideal side of this
 hop continues HMAC from two independent chaining states.
 
+For each wider set, the [composed HMAC theorem](Integration/SlhDsaCompressionHmac.lean)
+also replaces the outer compression with a private random function of the inner
+digest, for an additional loss of `8q²/2^512`. A collision between inner
+digests of distinct messages can still cause equal answers. Bounding that event
+and deriving the message machine’s weighted budget from the forger remain open.
+
+For class TCR at arities two, WOTS length and FORS tree count, the
+[signer reduction](Integration/SlhDsaCompressionClassCandidates.lean) constructs
+a compression-port machine that outputs two distinct SHA-512 inputs with equal
+`n`-byte output prefixes. Its query count includes the honest first-phase
+transcript, the byte forger’s second phase, and the [collision extractor](Integration/SlhDsaCompressionClassCollision.lean).
+A numerical bound on finding such a prefix collision would bound these three terms.
+
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the
 > same sources as before, but `Link.Basic`, `Link.Hash`, `Link.Verify`, `Link.Sha256` are now the
