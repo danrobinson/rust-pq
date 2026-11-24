@@ -1,13 +1,12 @@
-//! Apple Silicon Metal GPU compute backend for SLH-DSA (FIPS 205, SHA-2 sets).
+//! Apple Silicon Metal GPU compute backend for SLH-DSA (FIPS 205, all 12 SHA-2 & SHAKE sets).
 //!
-//! Supports all six FIPS 205 SHA-2 parameter sets:
-//! - `SLH-DSA-SHA2-128s` & `SLH-DSA-SHA2-128f` (`N = 16`, SHA-256 everywhere)
-//! - `SLH-DSA-SHA2-192s` & `SLH-DSA-SHA2-192f` (`N = 24`, SHA-256 + SHA-512)
-//! - `SLH-DSA-SHA2-256s` & `SLH-DSA-SHA2-256f` (`N = 32`, SHA-256 + SHA-512)
+//! Supports all twelve FIPS 205 parameter sets:
+//! - SHA-2: `SLH-DSA-SHA2-{128s,128f,192s,192f,256s,256f}`
+//! - SHAKE: `SLH-DSA-SHAKE-{128s,128f,192s,192f,256s,256f}`
 //!
 //! Uses Apple Silicon Unified Memory (`MTLResourceStorageModeShared`) for zero-copy
-//! CPU/GPU handoff, executes all FORS, XMSS, and WOTS+ work inside a single Metal
-//! command buffer, and zeroizes all secret key material buffers after GPU completion.
+//! CPU/GPU handoff, executes all FORS, XMSS, and WOTS+ work inside a single concurrent
+//! Metal command buffer, and zeroizes all secret key material buffers after GPU completion.
 
 pub mod gpu;
 
@@ -16,12 +15,23 @@ use std::sync::Mutex;
 use gpu::{InlineBytes, MetalBuffer, MetalContext, MetalError, MetalPipeline};
 use slhdsa::hash::{h_msg, prf_msg, seed_ctx};
 use slhdsa::params::Params;
+use slhdsa::shake256::shake256;
 use slhdsa::util::{base_2b, block, to_int};
 
-const SHADER_SRC: &str = include_str!("../shaders/slhdsa.metal");
+const SHADER_SRC: &str = concat!(
+    include_str!("../shaders/slhdsa.metal"),
+    "\n",
+    include_str!("../shaders/slhdsa_shake.metal"),
+);
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HashFamily {
+    Sha2,
+    Shake,
+}
 
 // ============================================================================
-// Shared C-ABI Structs (matching shaders/slhdsa.metal)
+// Shared C-ABI Structs (matching shaders/slhdsa.metal & slhdsa_shake.metal)
 // ============================================================================
 
 #[repr(C)]
@@ -30,6 +40,13 @@ struct KeyMaterial {
     sk_seed: [u32; 8],
     state256: [u32; 8],
     state512: [u64; 8],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+struct ShakeKeyMaterial {
+    sk_seed: [u64; 4],
+    pk_seed: [u64; 4],
 }
 
 #[repr(C)]
@@ -122,16 +139,16 @@ struct PipelinesForN {
 }
 
 impl PipelinesForN {
-    fn load(ctx: &MetalContext, suffix: &str) -> Result<Self, MetalError> {
+    fn load(ctx: &MetalContext, prefix: &str, suffix: &str) -> Result<Self, MetalError> {
         Ok(Self {
-            wots_chains: ctx.pipeline(&format!("wots_chains_{suffix}"))?,
-            wots_tlen: ctx.pipeline(&format!("wots_tlen_{suffix}"))?,
-            xmss_leaves_streaming: ctx.pipeline(&format!("xmss_leaves_streaming_{suffix}"))?,
-            xmss_reduce: ctx.pipeline(&format!("xmss_reduce_{suffix}"))?,
-            fors_pass1: ctx.pipeline(&format!("fors_pass1_{suffix}"))?,
-            fors_pass2: ctx.pipeline(&format!("fors_pass2_{suffix}"))?,
-            fors_pk: ctx.pipeline(&format!("fors_pk_{suffix}"))?,
-            wots_sign: ctx.pipeline(&format!("wots_sign_{suffix}"))?,
+            wots_chains: ctx.pipeline(&format!("{prefix}wots_chains_{suffix}"))?,
+            wots_tlen: ctx.pipeline(&format!("{prefix}wots_tlen_{suffix}"))?,
+            xmss_leaves_streaming: ctx.pipeline(&format!("{prefix}xmss_leaves_streaming_{suffix}"))?,
+            xmss_reduce: ctx.pipeline(&format!("{prefix}xmss_reduce_{suffix}"))?,
+            fors_pass1: ctx.pipeline(&format!("{prefix}fors_pass1_{suffix}"))?,
+            fors_pass2: ctx.pipeline(&format!("{prefix}fors_pass2_{suffix}"))?,
+            fors_pk: ctx.pipeline(&format!("{prefix}fors_pk_{suffix}"))?,
+            wots_sign: ctx.pipeline(&format!("{prefix}wots_sign_{suffix}"))?,
         })
     }
 }
@@ -213,48 +230,51 @@ pub struct SignReq<'a, const N: usize> {
 // MetalSigner
 // ============================================================================
 
-/// Apple Silicon Metal GPU compute engine for SLH-DSA-SHA2.
+/// Apple Silicon Metal GPU compute engine for all 12 FIPS 205 SLH-DSA parameter sets
+/// (both SHA-2 and SHAKE families).
 ///
 /// Compiles shaders and caches compute pipelines once on creation; safe to reuse
 /// across any number of single or batched keygen and signing operations.
 pub struct MetalSigner {
     ctx: MetalContext,
-    p16: PipelinesForN,
-    p24: PipelinesForN,
-    p32: PipelinesForN,
+    sha2_p16: PipelinesForN,
+    sha2_p24: PipelinesForN,
+    sha2_p32: PipelinesForN,
+    shake_p16: PipelinesForN,
+    shake_p24: PipelinesForN,
+    shake_p32: PipelinesForN,
     pool: Mutex<ScratchPool>,
     /// Leaf count threshold below which XMSS uses the two-phase per-chain kernel
     /// (`wots_chains` + `wots_tlen`) for maximum GPU thread occupancy; at or above
     /// this threshold it uses the zero-temp-memory `xmss_leaves_streaming` kernel.
-    /// Set to `None` to use the per-`N` Apple Silicon tuned default (`4096` for
-    /// `N = 16`, `49152` for `N = 24, 32` where splitting 32-bit WOTS chains from
-    /// 64-bit SHA-512 `T_len` halves register pressure).
+    /// Set to `None` to use the Apple Silicon tuned default (`4096` for SHA2-128,
+    /// `49152` for SHA2-192/256, and `65536` for SHAKE where splitting 64-bit
+    /// Keccak/SHA-512 state halves register pressure).
     pub two_phase_leaf_limit: Option<usize>,
 }
 
 impl MetalSigner {
-    /// Initializes the default Apple Metal GPU device and compiles all SLH-DSA shaders.
+    /// Initializes the default Apple Metal GPU device and compiles all SLH-DSA
+    /// SHA-2 and SHAKE compute shaders.
     pub fn new() -> Result<Self, MetalError> {
         let ctx = MetalContext::new(SHADER_SRC)?;
-        let p16 = PipelinesForN::load(&ctx, "N16")?;
-        let p24 = PipelinesForN::load(&ctx, "N24")?;
-        let p32 = PipelinesForN::load(&ctx, "N32")?;
+        let sha2_p16 = PipelinesForN::load(&ctx, "", "N16")?;
+        let sha2_p24 = PipelinesForN::load(&ctx, "", "N24")?;
+        let sha2_p32 = PipelinesForN::load(&ctx, "", "N32")?;
+        let shake_p16 = PipelinesForN::load(&ctx, "shake_", "N16")?;
+        let shake_p24 = PipelinesForN::load(&ctx, "shake_", "N24")?;
+        let shake_p32 = PipelinesForN::load(&ctx, "shake_", "N32")?;
         Ok(Self {
             ctx,
-            p16,
-            p24,
-            p32,
+            sha2_p16,
+            sha2_p24,
+            sha2_p32,
+            shake_p16,
+            shake_p24,
+            shake_p32,
             pool: Mutex::new(ScratchPool::new()),
             two_phase_leaf_limit: None,
         })
-    }
-
-    fn use_two_phase<const N: usize>(&self, total_leaves: usize) -> bool {
-        let limit = self.two_phase_leaf_limit.unwrap_or(match N {
-            16 => 4096,
-            _ => 49152,
-        });
-        total_leaves < limit
     }
 
     /// Returns the name of the active Metal GPU (e.g. `"Apple M4"`).
@@ -267,20 +287,32 @@ impl MetalSigner {
         self.ctx.has_unified_memory()
     }
 
-    fn pipelines<const N: usize>(&self) -> Result<&PipelinesForN, MetalError> {
-        match N {
-            16 => Ok(&self.p16),
-            24 => Ok(&self.p24),
-            32 => Ok(&self.p32),
+    fn pipelines<const N: usize>(&self, family: HashFamily) -> Result<&PipelinesForN, MetalError> {
+        match (family, N) {
+            (HashFamily::Sha2, 16) => Ok(&self.sha2_p16),
+            (HashFamily::Sha2, 24) => Ok(&self.sha2_p24),
+            (HashFamily::Sha2, 32) => Ok(&self.sha2_p32),
+            (HashFamily::Shake, 16) => Ok(&self.shake_p16),
+            (HashFamily::Shake, 24) => Ok(&self.shake_p24),
+            (HashFamily::Shake, 32) => Ok(&self.shake_p32),
             _ => Err(MetalError(format!("unsupported SLH-DSA N={N}"))),
         }
     }
 
+    fn use_two_phase<const N: usize>(&self, family: HashFamily, total_leaves: usize) -> bool {
+        let limit = self.two_phase_leaf_limit.unwrap_or(match (family, N) {
+            (HashFamily::Sha2, 16) => 4096,
+            (HashFamily::Sha2, _) => 49152,
+            (HashFamily::Shake, _) => 65536,
+        });
+        total_leaves < limit
+    }
+
     // ------------------------------------------------------------------------
-    // Keygen (Single & Batch)
+    // SHA-2 Keygen & Signing Public API
     // ------------------------------------------------------------------------
 
-    /// Algorithm 18, `slh_keygen_internal` on Metal GPU.
+    /// Algorithm 18, `slh_keygen_internal` (SHA-2) on Metal GPU.
     pub fn keygen_internal<const N: usize>(
         &self,
         p: &Params,
@@ -292,9 +324,251 @@ impl MetalSigner {
         Ok(res.pop().unwrap())
     }
 
-    /// Algorithm 21, `slh_keygen` on Metal GPU, writing into caller buffers `sk` (4N) and `pk` (2N).
+    /// Algorithm 21, `slh_keygen` (SHA-2) on Metal GPU, writing into `sk` (4N) and `pk` (2N).
     pub fn keygen<const N: usize>(
         &self,
+        p: &Params,
+        seeds: &[u8],
+        sk: &mut [u8],
+        pk: &mut [u8],
+    ) -> Result<(), MetalError> {
+        self.keygen_family::<N>(HashFamily::Sha2, p, seeds, sk, pk)
+    }
+
+    /// Batch key generation (SHA-2) in a single Metal GPU command buffer.
+    pub fn keygen_internal_batch<const N: usize>(
+        &self,
+        p: &Params,
+        batch: &[([u8; N], [u8; N], [u8; N])],
+    ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, MetalError> {
+        self.keygen_internal_batch_family::<N>(HashFamily::Sha2, p, batch)
+    }
+
+    /// Algorithm 19, `slh_sign_internal` (SHA-2) on Metal GPU.
+    pub fn sign_internal<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        sk: &[u8],
+        addrnd: &[u8; N],
+    ) -> Result<Vec<u8>, MetalError> {
+        let mut sigs = self.sign_internal_batch::<N>(
+            p,
+            &[SignInternalReq {
+                msg: m,
+                sk,
+                addrnd,
+            }],
+        )?;
+        Ok(sigs.pop().unwrap())
+    }
+
+    /// Algorithm 22, `slh_sign` (SHA-2, pure hedged signing) on Metal GPU.
+    pub fn sign<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sk: &[u8],
+        addrnd: &[u8; N],
+    ) -> Result<Option<Vec<u8>>, MetalError> {
+        if ctx.len() > 255 {
+            return Ok(None);
+        }
+        let mp = with_context(m, ctx);
+        self.sign_internal::<N>(p, &mp, sk, addrnd).map(Some)
+    }
+
+    /// Algorithm 22, `slh_sign` (SHA-2, pure deterministic signing) on Metal GPU.
+    pub fn sign_deterministic<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sk: &[u8],
+    ) -> Result<Option<Vec<u8>>, MetalError> {
+        if ctx.len() > 255 {
+            return Ok(None);
+        }
+        let pk_seed = block::<N>(sk, 2);
+        self.sign::<N>(p, m, ctx, sk, &pk_seed)
+    }
+
+    /// Batch pure-mode signing (SHA-2) in a single Metal GPU command buffer.
+    pub fn sign_batch<const N: usize>(
+        &self,
+        p: &Params,
+        requests: &[SignReq<'_, N>],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_batch_family::<N>(HashFamily::Sha2, p, requests)
+    }
+
+    /// Same-key batch hedged signing (SHA-2) in a single Metal GPU command buffer.
+    pub fn sign_batch_same_key<const N: usize>(
+        &self,
+        p: &Params,
+        sk: &[u8],
+        messages: &[&[u8]],
+        ctx: &[u8],
+        addrnds: &[&[u8; N]],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_batch_same_key_family::<N>(HashFamily::Sha2, p, sk, messages, ctx, addrnds)
+    }
+
+    /// Same-key batch deterministic signing (SHA-2) in a single Metal GPU command buffer.
+    pub fn sign_deterministic_batch_same_key<const N: usize>(
+        &self,
+        p: &Params,
+        sk: &[u8],
+        messages: &[&[u8]],
+        ctx: &[u8],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_deterministic_batch_same_key_family::<N>(HashFamily::Sha2, p, sk, messages, ctx)
+    }
+
+    /// Batch internal-mode signing (SHA-2) in ONE single Metal GPU command buffer.
+    pub fn sign_internal_batch<const N: usize>(
+        &self,
+        p: &Params,
+        requests: &[SignInternalReq<'_, N>],
+    ) -> Result<Vec<Vec<u8>>, MetalError> {
+        self.sign_internal_batch_family::<N>(HashFamily::Sha2, p, requests)
+    }
+
+    // ------------------------------------------------------------------------
+    // SHAKE Keygen & Signing Public API
+    // ------------------------------------------------------------------------
+
+    /// Algorithm 18, `slh_keygen_internal` (SHAKE) on Metal GPU.
+    pub fn shake_keygen_internal<const N: usize>(
+        &self,
+        p: &Params,
+        sk_seed: &[u8; N],
+        sk_prf: &[u8; N],
+        pk_seed: &[u8; N],
+    ) -> Result<(Vec<u8>, Vec<u8>), MetalError> {
+        let mut res = self.shake_keygen_internal_batch::<N>(p, &[(*sk_seed, *sk_prf, *pk_seed)])?;
+        Ok(res.pop().unwrap())
+    }
+
+    /// Algorithm 21, `slh_keygen` (SHAKE) on Metal GPU, writing into `sk` (4N) and `pk` (2N).
+    pub fn shake_keygen<const N: usize>(
+        &self,
+        p: &Params,
+        seeds: &[u8],
+        sk: &mut [u8],
+        pk: &mut [u8],
+    ) -> Result<(), MetalError> {
+        self.keygen_family::<N>(HashFamily::Shake, p, seeds, sk, pk)
+    }
+
+    /// Batch key generation (SHAKE) in a single Metal GPU command buffer.
+    pub fn shake_keygen_internal_batch<const N: usize>(
+        &self,
+        p: &Params,
+        batch: &[([u8; N], [u8; N], [u8; N])],
+    ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, MetalError> {
+        self.keygen_internal_batch_family::<N>(HashFamily::Shake, p, batch)
+    }
+
+    /// Algorithm 19, `slh_sign_internal` (SHAKE) on Metal GPU.
+    pub fn shake_sign_internal<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        sk: &[u8],
+        addrnd: &[u8; N],
+    ) -> Result<Vec<u8>, MetalError> {
+        let mut sigs = self.shake_sign_internal_batch::<N>(
+            p,
+            &[SignInternalReq {
+                msg: m,
+                sk,
+                addrnd,
+            }],
+        )?;
+        Ok(sigs.pop().unwrap())
+    }
+
+    /// Algorithm 22, `slh_sign` (SHAKE, pure hedged signing) on Metal GPU.
+    pub fn shake_sign<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sk: &[u8],
+        addrnd: &[u8; N],
+    ) -> Result<Option<Vec<u8>>, MetalError> {
+        if ctx.len() > 255 {
+            return Ok(None);
+        }
+        let mp = with_context(m, ctx);
+        self.shake_sign_internal::<N>(p, &mp, sk, addrnd).map(Some)
+    }
+
+    /// Algorithm 22, `slh_sign` (SHAKE, pure deterministic signing) on Metal GPU.
+    pub fn shake_sign_deterministic<const N: usize>(
+        &self,
+        p: &Params,
+        m: &[u8],
+        ctx: &[u8],
+        sk: &[u8],
+    ) -> Result<Option<Vec<u8>>, MetalError> {
+        if ctx.len() > 255 {
+            return Ok(None);
+        }
+        let pk_seed = block::<N>(sk, 2);
+        self.shake_sign::<N>(p, m, ctx, sk, &pk_seed)
+    }
+
+    /// Batch pure-mode signing (SHAKE) in a single Metal GPU command buffer.
+    pub fn shake_sign_batch<const N: usize>(
+        &self,
+        p: &Params,
+        requests: &[SignReq<'_, N>],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_batch_family::<N>(HashFamily::Shake, p, requests)
+    }
+
+    /// Same-key batch hedged signing (SHAKE) in a single Metal GPU command buffer.
+    pub fn shake_sign_batch_same_key<const N: usize>(
+        &self,
+        p: &Params,
+        sk: &[u8],
+        messages: &[&[u8]],
+        ctx: &[u8],
+        addrnds: &[&[u8; N]],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_batch_same_key_family::<N>(HashFamily::Shake, p, sk, messages, ctx, addrnds)
+    }
+
+    /// Same-key batch deterministic signing (SHAKE) in a single Metal GPU command buffer.
+    pub fn shake_sign_deterministic_batch_same_key<const N: usize>(
+        &self,
+        p: &Params,
+        sk: &[u8],
+        messages: &[&[u8]],
+        ctx: &[u8],
+    ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
+        self.sign_deterministic_batch_same_key_family::<N>(HashFamily::Shake, p, sk, messages, ctx)
+    }
+
+    /// Batch internal-mode signing (SHAKE) in ONE single Metal GPU command buffer.
+    pub fn shake_sign_internal_batch<const N: usize>(
+        &self,
+        p: &Params,
+        requests: &[SignInternalReq<'_, N>],
+    ) -> Result<Vec<Vec<u8>>, MetalError> {
+        self.sign_internal_batch_family::<N>(HashFamily::Shake, p, requests)
+    }
+
+    // ------------------------------------------------------------------------
+    // Unified Family Implementation (SHA-2 and SHAKE)
+    // ------------------------------------------------------------------------
+
+    fn keygen_family<const N: usize>(
+        &self,
+        family: HashFamily,
         p: &Params,
         seeds: &[u8],
         sk: &mut [u8],
@@ -306,16 +580,16 @@ impl MetalSigner {
         let sk_seed = block::<N>(seeds, 0);
         let sk_prf = block::<N>(seeds, 1);
         let pk_seed = block::<N>(seeds, 2);
-        let (sk_out, pk_out) = self.keygen_internal::<N>(p, &sk_seed, &sk_prf, &pk_seed)?;
+        let mut res = self.keygen_internal_batch_family::<N>(family, p, &[(sk_seed, sk_prf, pk_seed)])?;
+        let (sk_out, pk_out) = res.pop().unwrap();
         sk.copy_from_slice(&sk_out);
         pk.copy_from_slice(&pk_out);
         Ok(())
     }
 
-    /// Batch key generation: generates `batch.len()` independent SLH-DSA keypairs
-    /// in a single Metal GPU command buffer.
-    pub fn keygen_internal_batch<const N: usize>(
+    fn keygen_internal_batch_family<const N: usize>(
         &self,
+        family: HashFamily,
         p: &Params,
         batch: &[([u8; N], [u8; N], [u8; N])],
     ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, MetalError> {
@@ -325,24 +599,33 @@ impl MetalSigner {
             return Ok(Vec::new());
         }
 
-        let pipes = self.pipelines::<N>()?;
-        let nw = N / 4;
+        let pipes = self.pipelines::<N>(family)?;
         let leaves_per_tree = 1usize << p.hp;
         let total_leaves = count * leaves_per_tree;
         let wots_len = p.len();
-        let use_two_phase = self.use_two_phase::<N>(total_leaves);
+        let use_two_phase = self.use_two_phase::<N>(family, total_leaves);
 
         let mut pool = self.pool.lock().unwrap();
-        let keys_bytes = count * std::mem::size_of::<KeyMaterial>();
         let trees_bytes = count * std::mem::size_of::<XmssTreeDesc>();
         let leaves_bytes = total_leaves * N;
         let roots_bytes = count * N;
 
-        {
-            let keys_buf = ScratchPool::ensure(&self.ctx, &mut pool.keys, keys_bytes, true)?;
-            let km_slice = keys_buf.as_mut_slice_of::<KeyMaterial>(count);
-            for (i, (sk_seed, _sk_prf, pk_seed)) in batch.iter().enumerate() {
-                km_slice[i] = build_key_material::<N>(sk_seed, pk_seed);
+        match family {
+            HashFamily::Sha2 => {
+                let keys_bytes = count * std::mem::size_of::<KeyMaterial>();
+                let keys_buf = ScratchPool::ensure(&self.ctx, &mut pool.keys, keys_bytes, true)?;
+                let km_slice = keys_buf.as_mut_slice_of::<KeyMaterial>(count);
+                for (i, (sk_seed, _sk_prf, pk_seed)) in batch.iter().enumerate() {
+                    km_slice[i] = build_key_material::<N>(sk_seed, pk_seed);
+                }
+            }
+            HashFamily::Shake => {
+                let keys_bytes = count * std::mem::size_of::<ShakeKeyMaterial>();
+                let keys_buf = ScratchPool::ensure(&self.ctx, &mut pool.keys, keys_bytes, true)?;
+                let km_slice = keys_buf.as_mut_slice_of::<ShakeKeyMaterial>(count);
+                for (i, (sk_seed, _sk_prf, pk_seed)) in batch.iter().enumerate() {
+                    km_slice[i] = build_shake_key_material::<N>(sk_seed, pk_seed);
+                }
             }
         }
         {
@@ -364,7 +647,6 @@ impl MetalSigner {
         }
         ScratchPool::ensure(&self.ctx, &mut pool.xmss_leaves, leaves_bytes, false)?;
         ScratchPool::ensure(&self.ctx, &mut pool.xmss_roots, roots_bytes, false)?;
-        // Dummy 16-byte out_sigs buffer for xmss_reduce binding (never written when target_leaf == MAX)
         ScratchPool::ensure(&self.ctx, &mut pool.out_sigs, 16, false)?;
 
         let xmss_params = XmssParams {
@@ -426,87 +708,34 @@ impl MetalSigner {
         );
 
         let gpu_res = cmd.commit_and_wait();
-        // Always scrub secret key material immediately after GPU finishes.
         pool.keys.as_mut().unwrap().zeroize_contents();
         gpu_res?;
 
-        let roots_words = pool.xmss_roots.as_ref().unwrap().as_slice_of::<u32>(count * nw);
         let mut out = Vec::with_capacity(count);
-        for (i, (sk_seed, sk_prf, pk_seed)) in batch.iter().enumerate() {
-            let pk_root = words_to_bytes::<N>(&roots_words[i * nw..(i + 1) * nw]);
-            let mut sk = Vec::with_capacity(4 * N);
-            sk.extend_from_slice(sk_seed);
-            sk.extend_from_slice(sk_prf);
-            sk.extend_from_slice(pk_seed);
-            sk.extend_from_slice(&pk_root);
-            let mut pk = Vec::with_capacity(2 * N);
-            pk.extend_from_slice(pk_seed);
-            pk.extend_from_slice(&pk_root);
-            out.push((sk, pk));
+        match family {
+            HashFamily::Sha2 => {
+                let nw = N / 4;
+                let roots_words = pool.xmss_roots.as_ref().unwrap().as_slice_of::<u32>(count * nw);
+                for (i, (sk_seed, sk_prf, pk_seed)) in batch.iter().enumerate() {
+                    let pk_root = words_to_bytes::<N>(&roots_words[i * nw..(i + 1) * nw]);
+                    out.push(pack_keypair(sk_seed, sk_prf, pk_seed, &pk_root));
+                }
+            }
+            HashFamily::Shake => {
+                let nl = N / 8;
+                let roots_lanes = pool.xmss_roots.as_ref().unwrap().as_slice_of::<u64>(count * nl);
+                for (i, (sk_seed, sk_prf, pk_seed)) in batch.iter().enumerate() {
+                    let pk_root = lanes_to_bytes::<N>(&roots_lanes[i * nl..(i + 1) * nl]);
+                    out.push(pack_keypair(sk_seed, sk_prf, pk_seed, &pk_root));
+                }
+            }
         }
         Ok(out)
     }
 
-    // ------------------------------------------------------------------------
-    // Signing (Single & Batch, Internal & Pure)
-    // ------------------------------------------------------------------------
-
-    /// Algorithm 19, `slh_sign_internal` on Metal GPU.
-    pub fn sign_internal<const N: usize>(
+    fn sign_batch_family<const N: usize>(
         &self,
-        p: &Params,
-        m: &[u8],
-        sk: &[u8],
-        addrnd: &[u8; N],
-    ) -> Result<Vec<u8>, MetalError> {
-        let mut sigs = self.sign_internal_batch::<N>(
-            p,
-            &[SignInternalReq {
-                msg: m,
-                sk,
-                addrnd,
-            }],
-        )?;
-        Ok(sigs.pop().unwrap())
-    }
-
-    /// Algorithm 22, `slh_sign` (pure hedged signing) on Metal GPU.
-    /// Returns `Ok(None)` if `ctx.len() > 255`.
-    pub fn sign<const N: usize>(
-        &self,
-        p: &Params,
-        m: &[u8],
-        ctx: &[u8],
-        sk: &[u8],
-        addrnd: &[u8; N],
-    ) -> Result<Option<Vec<u8>>, MetalError> {
-        if ctx.len() > 255 {
-            return Ok(None);
-        }
-        let mp = with_context(m, ctx);
-        self.sign_internal::<N>(p, &mp, sk, addrnd).map(Some)
-    }
-
-    /// Algorithm 22, `slh_sign` (pure deterministic signing) on Metal GPU.
-    /// Returns `Ok(None)` if `ctx.len() > 255`.
-    pub fn sign_deterministic<const N: usize>(
-        &self,
-        p: &Params,
-        m: &[u8],
-        ctx: &[u8],
-        sk: &[u8],
-    ) -> Result<Option<Vec<u8>>, MetalError> {
-        if ctx.len() > 255 {
-            return Ok(None);
-        }
-        let pk_seed = block::<N>(sk, 2);
-        self.sign::<N>(p, m, ctx, sk, &pk_seed)
-    }
-
-    /// Batch pure-mode signing (`slh_sign`) for arbitrary `(msg, ctx, sk, addrnd)` requests
-    /// in a single Metal GPU command buffer. Returns `Ok(None)` if any `ctx.len() > 255`.
-    pub fn sign_batch<const N: usize>(
-        &self,
+        family: HashFamily,
         p: &Params,
         requests: &[SignReq<'_, N>],
     ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
@@ -526,13 +755,13 @@ impl MetalSigner {
                 addrnd: r.addrnd,
             })
             .collect();
-        self.sign_internal_batch::<N>(p, &internal_reqs).map(Some)
+        self.sign_internal_batch_family::<N>(family, p, &internal_reqs)
+            .map(Some)
     }
 
-    /// Convenience helper: batch-sign multiple messages under the same secret key `sk`
-    /// with context `ctx` and per-message randomness `addrnds`.
-    pub fn sign_batch_same_key<const N: usize>(
+    fn sign_batch_same_key_family<const N: usize>(
         &self,
+        family: HashFamily,
         p: &Params,
         sk: &[u8],
         messages: &[&[u8]],
@@ -553,12 +782,12 @@ impl MetalSigner {
                 addrnd,
             })
             .collect();
-        self.sign_batch::<N>(p, &reqs)
+        self.sign_batch_family::<N>(family, p, &reqs)
     }
 
-    /// Convenience helper: deterministic batch-sign multiple messages under the same `sk`.
-    pub fn sign_deterministic_batch_same_key<const N: usize>(
+    fn sign_deterministic_batch_same_key_family<const N: usize>(
         &self,
+        family: HashFamily,
         p: &Params,
         sk: &[u8],
         messages: &[&[u8]],
@@ -577,12 +806,12 @@ impl MetalSigner {
                 addrnd: &pk_seed,
             })
             .collect();
-        self.sign_batch::<N>(p, &reqs)
+        self.sign_batch_family::<N>(family, p, &reqs)
     }
 
-    /// Batch internal-mode signing (`slh_sign_internal`) in ONE single Metal GPU command buffer.
-    pub fn sign_internal_batch<const N: usize>(
+    fn sign_internal_batch_family<const N: usize>(
         &self,
+        family: HashFamily,
         p: &Params,
         requests: &[SignInternalReq<'_, N>],
     ) -> Result<Vec<Vec<u8>>, MetalError> {
@@ -592,7 +821,7 @@ impl MetalSigner {
             return Ok(Vec::new());
         }
 
-        let pipes = self.pipelines::<N>()?;
+        let pipes = self.pipelines::<N>(family)?;
         let sig_bytes = p.sig_bytes();
         let fors_sig_bytes = p.fors_sig_bytes();
         let xmss_sig_bytes = p.xmss_sig_bytes();
@@ -602,15 +831,15 @@ impl MetalSigner {
         let leaves_per_tree = 1usize << hp;
         let total_trees = num_sigs * d;
         let total_xmss_leaves = total_trees * leaves_per_tree;
-        let use_two_phase = self.use_two_phase::<N>(total_xmss_leaves);
+        let use_two_phase = self.use_two_phase::<N>(family, total_xmss_leaves);
 
-        // FORS two-pass split: s1 <= 8 (max 256 threads/TG), s2 <= 7 (max 128 threads/TG)
+        // FORS two-pass split: s1 <= 8 (max 128 threads/TG with 2-leaf), s2 <= 7
         let s1 = if p.a <= 8 { p.a } else { 7 };
         let s2 = p.a - s1;
         let subtrees_per_tree = 1u32 << s2;
 
-        // CPU preprocessing: deduplicate KeyMaterial + compute R, H_msg, FORS indices, HT descriptors
-        let mut unique_keys: Vec<([u8; N], [u8; N], KeyMaterial)> = Vec::new();
+        // CPU preprocessing: deduplicate keys + compute R, H_msg, FORS indices, HT descriptors
+        let mut unique_seeds: Vec<([u8; N], [u8; N])> = Vec::new();
         let mut r_values: Vec<[u8; N]> = Vec::with_capacity(num_sigs);
         let mut fors_jobs_host: Vec<ForsJobDesc> = Vec::with_capacity(num_sigs);
         let mut xmss_trees_host: Vec<XmssTreeDesc> = Vec::with_capacity(total_trees);
@@ -623,20 +852,30 @@ impl MetalSigner {
             let pk_seed = block::<N>(req.sk, 2);
             let pk_root = block::<N>(req.sk, 3);
 
-            let key_idx = match unique_keys
+            let key_idx = match unique_seeds
                 .iter()
-                .position(|(ss, ps, _)| ss == &sk_seed && ps == &pk_seed)
+                .position(|(ss, ps)| ss == &sk_seed && ps == &pk_seed)
             {
                 Some(idx) => idx as u32,
                 None => {
-                    let km = build_key_material::<N>(&sk_seed, &pk_seed);
-                    unique_keys.push((sk_seed, pk_seed, km));
-                    (unique_keys.len() - 1) as u32
+                    unique_seeds.push((sk_seed, pk_seed));
+                    (unique_seeds.len() - 1) as u32
                 }
             };
 
-            let r = prf_msg::<N>(&sk_prf, req.addrnd, req.msg);
-            let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, req.msg);
+            let (r, digest) = match family {
+                HashFamily::Sha2 => {
+                    let r = prf_msg::<N>(&sk_prf, req.addrnd, req.msg);
+                    let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, req.msg);
+                    (r, digest)
+                }
+                HashFamily::Shake => {
+                    let r = shake_prf_msg::<N>(&sk_prf, req.addrnd, req.msg);
+                    let digest = shake_h_msg::<N>(p, &r, &pk_seed, &pk_root, req.msg);
+                    (r, digest)
+                }
+            };
+
             let idx_tree = digest_tree(p, &digest);
             let idx_leaf = digest_leaf(p, &digest);
             let md = &digest[0..p.md_bytes()];
@@ -684,18 +923,32 @@ impl MetalSigner {
         }
 
         let mut pool = self.pool.lock().unwrap();
-        let num_keys = unique_keys.len();
+        let num_keys = unique_seeds.len();
 
-        {
-            let keys_buf = ScratchPool::ensure(
-                &self.ctx,
-                &mut pool.keys,
-                num_keys * std::mem::size_of::<KeyMaterial>(),
-                true,
-            )?;
-            let km_slice = keys_buf.as_mut_slice_of::<KeyMaterial>(num_keys);
-            for (i, (_, _, km)) in unique_keys.iter().enumerate() {
-                km_slice[i] = *km;
+        match family {
+            HashFamily::Sha2 => {
+                let keys_buf = ScratchPool::ensure(
+                    &self.ctx,
+                    &mut pool.keys,
+                    num_keys * std::mem::size_of::<KeyMaterial>(),
+                    true,
+                )?;
+                let km_slice = keys_buf.as_mut_slice_of::<KeyMaterial>(num_keys);
+                for (i, (sk_seed, pk_seed)) in unique_seeds.iter().enumerate() {
+                    km_slice[i] = build_key_material::<N>(sk_seed, pk_seed);
+                }
+            }
+            HashFamily::Shake => {
+                let keys_buf = ScratchPool::ensure(
+                    &self.ctx,
+                    &mut pool.keys,
+                    num_keys * std::mem::size_of::<ShakeKeyMaterial>(),
+                    true,
+                )?;
+                let km_slice = keys_buf.as_mut_slice_of::<ShakeKeyMaterial>(num_keys);
+                for (i, (sk_seed, pk_seed)) in unique_seeds.iter().enumerate() {
+                    km_slice[i] = build_shake_key_material::<N>(sk_seed, pk_seed);
+                }
             }
         }
         {
@@ -802,10 +1055,9 @@ impl MetalSigner {
         let wlayers_buf = pool.wots_layers.as_ref().unwrap();
         let out_sigs_buf = pool.out_sigs.as_ref().unwrap();
 
-        // Single concurrent command buffer overlapping XMSS and FORS across all M4 GPU cores!
         let mut cmd = self.ctx.begin_cmd(true)?;
 
-        // Stage 1: Launch XMSS leaves (phase 1 or streaming) + FORS Pass 1 concurrently!
+        // Stage 1: Launch XMSS leaves + FORS Pass 1 concurrently!
         if use_two_phase {
             let tips_buf = pool.chain_tips.as_ref().unwrap();
             let total_chains = (total_xmss_leaves * wots_len) as u32;
@@ -844,9 +1096,7 @@ impl MetalSigner {
 
         cmd.barrier();
 
-        // Stage 2:
-        // - XMSS: wots_tlen (if two-phase) or xmss_reduce (if streaming)
-        // - FORS: fors_pass2 (if s2 > 0) or fors_pk (if s2 == 0)
+        // Stage 2: XMSS (wots_tlen or xmss_reduce) + FORS (fors_pass2 or fors_pk)
         if use_two_phase {
             let tips_buf = pool.chain_tips.as_ref().unwrap();
             let tg_tlen = choose_tg_size(&pipes.wots_tlen, total_xmss_leaves as u32);
@@ -941,7 +1191,6 @@ impl MetalSigner {
         );
 
         let gpu_res = cmd.commit_and_wait();
-        // Scrub secret key buffer immediately after GPU execution completes.
         pool.keys.as_mut().unwrap().zeroize_contents();
         gpu_res?;
 
@@ -977,11 +1226,76 @@ fn build_key_material<const N: usize>(sk_seed: &[u8; N], pk_seed: &[u8; N]) -> K
     }
 }
 
+fn build_shake_key_material<const N: usize>(sk_seed: &[u8; N], pk_seed: &[u8; N]) -> ShakeKeyMaterial {
+    let mut sk_lanes = [0u64; 4];
+    let mut pk_lanes = [0u64; 4];
+    for i in 0..(N / 8) {
+        sk_lanes[i] = u64::from_le_bytes(sk_seed[8 * i..8 * i + 8].try_into().unwrap());
+        pk_lanes[i] = u64::from_le_bytes(pk_seed[8 * i..8 * i + 8].try_into().unwrap());
+    }
+    ShakeKeyMaterial {
+        sk_seed: sk_lanes,
+        pk_seed: pk_lanes,
+    }
+}
+
 fn words_to_bytes<const N: usize>(words: &[u32]) -> [u8; N] {
     let mut out = [0u8; N];
     for i in 0..(N / 4) {
         out[4 * i..4 * i + 4].copy_from_slice(&words[i].to_be_bytes());
     }
+    out
+}
+
+fn lanes_to_bytes<const N: usize>(lanes: &[u64]) -> [u8; N] {
+    let mut out = [0u8; N];
+    for i in 0..(N / 8) {
+        out[8 * i..8 * i + 8].copy_from_slice(&lanes[i].to_le_bytes());
+    }
+    out
+}
+
+fn pack_keypair<const N: usize>(
+    sk_seed: &[u8; N],
+    sk_prf: &[u8; N],
+    pk_seed: &[u8; N],
+    pk_root: &[u8; N],
+) -> (Vec<u8>, Vec<u8>) {
+    let mut sk = Vec::with_capacity(4 * N);
+    sk.extend_from_slice(sk_seed);
+    sk.extend_from_slice(sk_prf);
+    sk.extend_from_slice(pk_seed);
+    sk.extend_from_slice(pk_root);
+    let mut pk = Vec::with_capacity(2 * N);
+    pk.extend_from_slice(pk_seed);
+    pk.extend_from_slice(pk_root);
+    (sk, pk)
+}
+
+fn shake_prf_msg<const N: usize>(sk_prf: &[u8; N], opt_rand: &[u8; N], msg: &[u8]) -> [u8; N] {
+    let mut input = Vec::with_capacity(2 * N + msg.len());
+    input.extend_from_slice(sk_prf);
+    input.extend_from_slice(opt_rand);
+    input.extend_from_slice(msg);
+    let mut out = [0u8; N];
+    shake256(&input, &mut out);
+    out
+}
+
+fn shake_h_msg<const N: usize>(
+    p: &Params,
+    r: &[u8; N],
+    pk_seed: &[u8; N],
+    pk_root: &[u8; N],
+    msg: &[u8],
+) -> Vec<u8> {
+    let mut input = Vec::with_capacity(3 * N + msg.len());
+    input.extend_from_slice(r);
+    input.extend_from_slice(pk_seed);
+    input.extend_from_slice(pk_root);
+    input.extend_from_slice(msg);
+    let mut out = vec![0u8; p.m];
+    shake256(&input, &mut out);
     out
 }
 
@@ -1018,11 +1332,11 @@ fn choose_tg_size(pipe: &MetalPipeline, total_threads: u32) -> u32 {
 }
 
 // ============================================================================
-// Typed Per-Set Convenience Modules
+// Typed Per-Set Convenience Modules (All 12 SHA-2 & SHAKE Parameter Sets)
 // ============================================================================
 
 macro_rules! metal_set {
-    ($mod_name:ident, $slh_mod:ident) => {
+    ($mod_name:ident, $slh_mod:ident, $kg_int:ident, $kg:ident, $sg_int:ident, $sg:ident, $sg_det:ident, $sg_batch:ident, $sg_det_batch:ident) => {
         pub mod $mod_name {
             use super::{MetalError, MetalSigner};
             pub use slhdsa::$slh_mod::params;
@@ -1034,7 +1348,7 @@ macro_rules! metal_set {
                 sk_prf: &[u8; N],
                 pk_seed: &[u8; N],
             ) -> Result<([u8; SK_BYTES], [u8; PK_BYTES]), MetalError> {
-                let (sk, pk) = gpu.keygen_internal::<N>(&PARAMS, sk_seed, sk_prf, pk_seed)?;
+                let (sk, pk) = gpu.$kg_int::<N>(&PARAMS, sk_seed, sk_prf, pk_seed)?;
                 Ok((sk.try_into().unwrap(), pk.try_into().unwrap()))
             }
 
@@ -1044,7 +1358,7 @@ macro_rules! metal_set {
                 sk: &mut [u8; SK_BYTES],
                 pk: &mut [u8; PK_BYTES],
             ) -> Result<(), MetalError> {
-                gpu.keygen::<N>(&PARAMS, seeds, sk, pk)
+                gpu.$kg::<N>(&PARAMS, seeds, sk, pk)
             }
 
             pub fn sign_internal(
@@ -1053,7 +1367,7 @@ macro_rules! metal_set {
                 sk: &[u8; SK_BYTES],
                 addrnd: &[u8; N],
             ) -> Result<Vec<u8>, MetalError> {
-                gpu.sign_internal::<N>(&PARAMS, m, sk, addrnd)
+                gpu.$sg_int::<N>(&PARAMS, m, sk, addrnd)
             }
 
             pub fn sign(
@@ -1063,7 +1377,7 @@ macro_rules! metal_set {
                 sk: &[u8; SK_BYTES],
                 addrnd: &[u8; N],
             ) -> Result<Option<Vec<u8>>, MetalError> {
-                gpu.sign::<N>(&PARAMS, m, ctx, sk, addrnd)
+                gpu.$sg::<N>(&PARAMS, m, ctx, sk, addrnd)
             }
 
             pub fn sign_deterministic(
@@ -1072,7 +1386,7 @@ macro_rules! metal_set {
                 ctx: &[u8],
                 sk: &[u8; SK_BYTES],
             ) -> Result<Option<Vec<u8>>, MetalError> {
-                gpu.sign_deterministic::<N>(&PARAMS, m, ctx, sk)
+                gpu.$sg_det::<N>(&PARAMS, m, ctx, sk)
             }
 
             pub fn sign_batch_same_key(
@@ -1082,7 +1396,7 @@ macro_rules! metal_set {
                 ctx: &[u8],
                 addrnds: &[&[u8; N]],
             ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
-                gpu.sign_batch_same_key::<N>(&PARAMS, sk, messages, ctx, addrnds)
+                gpu.$sg_batch::<N>(&PARAMS, sk, messages, ctx, addrnds)
             }
 
             pub fn sign_deterministic_batch_same_key(
@@ -1091,7 +1405,7 @@ macro_rules! metal_set {
                 messages: &[&[u8]],
                 ctx: &[u8],
             ) -> Result<Option<Vec<Vec<u8>>>, MetalError> {
-                gpu.sign_deterministic_batch_same_key::<N>(&PARAMS, sk, messages, ctx)
+                gpu.$sg_det_batch::<N>(&PARAMS, sk, messages, ctx)
             }
 
             pub fn verify(m: &[u8], sig: &[u8], ctx: &[u8], pk: &[u8; PK_BYTES]) -> bool {
@@ -1101,9 +1415,16 @@ macro_rules! metal_set {
     };
 }
 
-metal_set!(sha2_128s, sha2_128s);
-metal_set!(sha2_128f, sha2_128f);
-metal_set!(sha2_192s, sha2_192s);
-metal_set!(sha2_192f, sha2_192f);
-metal_set!(sha2_256s, sha2_256s);
-metal_set!(sha2_256f, sha2_256f);
+metal_set!(sha2_128s, sha2_128s, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+metal_set!(sha2_128f, sha2_128f, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+metal_set!(sha2_192s, sha2_192s, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+metal_set!(sha2_192f, sha2_192f, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+metal_set!(sha2_256s, sha2_256s, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+metal_set!(sha2_256f, sha2_256f, keygen_internal, keygen, sign_internal, sign, sign_deterministic, sign_batch_same_key, sign_deterministic_batch_same_key);
+
+metal_set!(shake_128s, shake_128s, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);
+metal_set!(shake_128f, shake_128f, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);
+metal_set!(shake_192s, shake_192s, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);
+metal_set!(shake_192f, shake_192f, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);
+metal_set!(shake_256s, shake_256s, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);
+metal_set!(shake_256f, shake_256f, shake_keygen_internal, shake_keygen, shake_sign_internal, shake_sign, shake_sign_deterministic, shake_sign_batch_same_key, shake_sign_deterministic_batch_same_key);

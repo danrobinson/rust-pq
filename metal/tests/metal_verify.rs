@@ -89,8 +89,53 @@ fn batch_64_keygen_and_sign_verify() {
     );
 }
 
+#[test]
+fn shake_batch_64_keygen_and_sign_verify() {
+    use slhdsa::shake_128f as cpu;
+    use slhdsa_metal::shake_128f as gpu_api;
+
+    let gpu = shared_gpu();
+    let seeds: Vec<([u8; 16], [u8; 16], [u8; 16])> = (0..64u8)
+        .map(|i| ([i; 16], [i.wrapping_add(3); 16], [i.wrapping_add(7); 16]))
+        .collect();
+    let keys = gpu
+        .shake_keygen_internal_batch::<16>(&cpu::params::PARAMS, &seeds)
+        .unwrap();
+    assert_eq!(keys.len(), 64);
+
+    for &idx in &[0usize, 31, 63] {
+        let (s0, s1, s2) = seeds[idx];
+        let (cpu_sk, cpu_pk) = cpu::slh_keygen_internal(&s0, &s1, &s2);
+        assert_eq!(keys[idx].0.as_slice(), &cpu_sk);
+        assert_eq!(keys[idx].1.as_slice(), &cpu_pk);
+    }
+
+    let sk: [u8; 64] = keys[0].0.as_slice().try_into().unwrap();
+    let pk: [u8; 32] = keys[0].1.as_slice().try_into().unwrap();
+    let msgs_owned: Vec<Vec<u8>> = (0..64u8).map(|i| vec![i; 48]).collect();
+    let msgs: Vec<&[u8]> = msgs_owned.iter().map(|m| m.as_slice()).collect();
+    let rnds_owned: Vec<[u8; 16]> = (0..64u8).map(|i| [i.wrapping_mul(19); 16]).collect();
+    let rnds: Vec<&[u8; 16]> = rnds_owned.iter().collect();
+
+    let sigs = gpu_api::sign_batch_same_key(gpu, &sk, &msgs, b"shake64", &rnds)
+        .unwrap()
+        .unwrap();
+    assert_eq!(sigs.len(), 64);
+    for (i, (m, sig)) in msgs.iter().zip(sigs.iter()).enumerate() {
+        assert!(cpu::verify(m, sig, b"shake64", &pk), "shake batch64 sig {i} failed verify");
+    }
+    assert_eq!(
+        sigs[0],
+        cpu::sign(msgs[0], b"shake64", &sk, rnds[0]).unwrap()
+    );
+    assert_eq!(
+        sigs[63],
+        cpu::sign(msgs[63], b"shake64", &sk, rnds[63]).unwrap()
+    );
+}
+
 macro_rules! verify_set {
-    ($mod_name:ident, $set:literal, $cpu:ident, $gpu_mod:ident) => {
+    ($mod_name:ident, $set:literal, $cpu:ident, $gpu_mod:ident, $kg_batch:ident, $sg_batch:ident) => {
         mod $mod_name {
             use super::{arr, h, shared_gpu, vectors};
             use slhdsa::$cpu as cpu;
@@ -136,7 +181,7 @@ macro_rules! verify_set {
 
                 // All 10 ACVP keys in ONE single GPU batch dispatch!
                 let batch_out = gpu
-                    .keygen_internal_batch::<N>(&PARAMS, &batch_inputs)
+                    .$kg_batch::<N>(&PARAMS, &batch_inputs)
                     .expect("GPU keygen batch failed");
                 assert_eq!(batch_out.len(), 10);
                 for (i, ((sk, pk), (want_sk, want_pk))) in
@@ -252,7 +297,7 @@ macro_rules! verify_set {
                     })
                     .collect();
                 let batch_sigs = gpu
-                    .sign_internal_batch::<N>(&PARAMS, &reqs)
+                    .$sg_batch::<N>(&PARAMS, &reqs)
                     .expect("GPU batch sign failed");
                 assert_eq!(batch_sigs.len(), 28);
                 for (c, sig) in cases.iter().zip(batch_sigs.iter()) {
@@ -346,9 +391,16 @@ macro_rules! verify_set {
     };
 }
 
-verify_set!(sha2_128s_tests, "sha2-128s", sha2_128s, sha2_128s);
-verify_set!(sha2_128f_tests, "sha2-128f", sha2_128f, sha2_128f);
-verify_set!(sha2_192s_tests, "sha2-192s", sha2_192s, sha2_192s);
-verify_set!(sha2_192f_tests, "sha2-192f", sha2_192f, sha2_192f);
-verify_set!(sha2_256s_tests, "sha2-256s", sha2_256s, sha2_256s);
-verify_set!(sha2_256f_tests, "sha2-256f", sha2_256f, sha2_256f);
+verify_set!(sha2_128s_tests, "sha2-128s", sha2_128s, sha2_128s, keygen_internal_batch, sign_internal_batch);
+verify_set!(sha2_128f_tests, "sha2-128f", sha2_128f, sha2_128f, keygen_internal_batch, sign_internal_batch);
+verify_set!(sha2_192s_tests, "sha2-192s", sha2_192s, sha2_192s, keygen_internal_batch, sign_internal_batch);
+verify_set!(sha2_192f_tests, "sha2-192f", sha2_192f, sha2_192f, keygen_internal_batch, sign_internal_batch);
+verify_set!(sha2_256s_tests, "sha2-256s", sha2_256s, sha2_256s, keygen_internal_batch, sign_internal_batch);
+verify_set!(sha2_256f_tests, "sha2-256f", sha2_256f, sha2_256f, keygen_internal_batch, sign_internal_batch);
+
+verify_set!(shake_128s_tests, "shake-128s", shake_128s, shake_128s, shake_keygen_internal_batch, shake_sign_internal_batch);
+verify_set!(shake_128f_tests, "shake-128f", shake_128f, shake_128f, shake_keygen_internal_batch, shake_sign_internal_batch);
+verify_set!(shake_192s_tests, "shake-192s", shake_192s, shake_192s, shake_keygen_internal_batch, shake_sign_internal_batch);
+verify_set!(shake_192f_tests, "shake-192f", shake_192f, shake_192f, shake_keygen_internal_batch, shake_sign_internal_batch);
+verify_set!(shake_256s_tests, "shake-256s", shake_256s, shake_256s, shake_keygen_internal_batch, shake_sign_internal_batch);
+verify_set!(shake_256f_tests, "shake-256f", shake_256f, shake_256f, shake_keygen_internal_batch, shake_sign_internal_batch);

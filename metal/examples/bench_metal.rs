@@ -1,8 +1,10 @@
 //! Head-to-head benchmark: Apple Silicon Metal GPU vs CPU single-thread (`platform-sha2`)
-//! across all six FIPS 205 SLH-DSA-SHA2 parameter sets.
+//! across all twelve FIPS 205 SLH-DSA parameter sets (6 SHA-2 + 6 SHAKE).
 //!
 //! Run with:
-//!   cargo run --release --example bench_metal
+//!   cargo run --release --example bench_metal          # all 12 sets
+//!   cargo run --release --example bench_metal -- sha2  # SHA-2 sets only
+//!   cargo run --release --example bench_metal -- shake # SHAKE sets only
 
 use std::hint::black_box;
 use std::time::{Duration, Instant};
@@ -47,13 +49,22 @@ struct SetSummary {
     gpu_sign64_per: Duration,
 }
 
-fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) -> SetSummary {
+fn bench_set<const N: usize>(
+    gpu: &MetalSigner,
+    name: &'static str,
+    p: &Params,
+    is_shake: bool,
+) -> SetSummary {
     let sk_seed = [0x11u8; N];
     let sk_prf = [0x22u8; N];
     let pk_seed = [0x33u8; N];
     let mut sk = vec![0u8; 4 * N];
     let mut pk = vec![0u8; 2 * N];
-    slhdsa::slh::slh_keygen_internal::<N>(p, &sk_seed, &sk_prf, &pk_seed, &mut sk, &mut pk);
+    if is_shake {
+        slhdsa::shake::slh::slh_keygen_internal::<N>(p, &sk_seed, &sk_prf, &pk_seed, &mut sk, &mut pk);
+    } else {
+        slhdsa::slh::slh_keygen_internal::<N>(p, &sk_seed, &sk_prf, &pk_seed, &mut sk, &mut pk);
+    }
 
     let msg_storage: Vec<Vec<u8>> = (0..64)
         .map(|i| {
@@ -66,11 +77,20 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
     let rnd_storage: Vec<[u8; N]> = (0..64).map(|i| [i as u8; N]).collect();
 
     // Sanity check byte-for-byte identity before timing
-    let cpu_sig0 = slhdsa::slh::slh_sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0]).unwrap();
-    let gpu_sig0 = gpu
-        .sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0])
-        .unwrap()
-        .unwrap();
+    let cpu_sig0 = if is_shake {
+        slhdsa::shake::slh::slh_sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0]).unwrap()
+    } else {
+        slhdsa::slh::slh_sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0]).unwrap()
+    };
+    let gpu_sig0 = if is_shake {
+        gpu.shake_sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0])
+            .unwrap()
+            .unwrap()
+    } else {
+        gpu.sign::<N>(p, &msg_storage[0], b"", &sk, &rnd_storage[0])
+            .unwrap()
+            .unwrap()
+    };
     assert_eq!(cpu_sig0, gpu_sig0, "GPU/CPU mismatch on {name}");
 
     let min_time = Duration::from_millis(250);
@@ -80,14 +100,25 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
         || {
             let mut s = vec![0u8; 4 * N];
             let mut k = vec![0u8; 2 * N];
-            slhdsa::slh::slh_keygen_internal::<N>(
-                p,
-                black_box(&sk_seed),
-                black_box(&sk_prf),
-                black_box(&pk_seed),
-                &mut s,
-                &mut k,
-            );
+            if is_shake {
+                slhdsa::shake::slh::slh_keygen_internal::<N>(
+                    p,
+                    black_box(&sk_seed),
+                    black_box(&sk_prf),
+                    black_box(&pk_seed),
+                    &mut s,
+                    &mut k,
+                );
+            } else {
+                slhdsa::slh::slh_keygen_internal::<N>(
+                    p,
+                    black_box(&sk_seed),
+                    black_box(&sk_prf),
+                    black_box(&pk_seed),
+                    &mut s,
+                    &mut k,
+                );
+            }
             black_box((s, k));
         },
         1,
@@ -97,14 +128,25 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
 
     let cpu_sign = measure_median(
         || {
-            let sig = slhdsa::slh::slh_sign::<N>(
-                p,
-                black_box(&msg_storage[0]),
-                b"",
-                black_box(&sk),
-                black_box(&rnd_storage[0]),
-            )
-            .unwrap();
+            let sig = if is_shake {
+                slhdsa::shake::slh::slh_sign::<N>(
+                    p,
+                    black_box(&msg_storage[0]),
+                    b"",
+                    black_box(&sk),
+                    black_box(&rnd_storage[0]),
+                )
+                .unwrap()
+            } else {
+                slhdsa::slh::slh_sign::<N>(
+                    p,
+                    black_box(&msg_storage[0]),
+                    b"",
+                    black_box(&sk),
+                    black_box(&rnd_storage[0]),
+                )
+                .unwrap()
+            };
             black_box(sig);
         },
         1,
@@ -115,9 +157,13 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
     // 2. Metal GPU Single-op Keygen & Sign
     let gpu_kg1 = measure_median(
         || {
-            let res = gpu
-                .keygen_internal::<N>(p, black_box(&sk_seed), black_box(&sk_prf), black_box(&pk_seed))
-                .unwrap();
+            let res = if is_shake {
+                gpu.shake_keygen_internal::<N>(p, black_box(&sk_seed), black_box(&sk_prf), black_box(&pk_seed))
+                    .unwrap()
+            } else {
+                gpu.keygen_internal::<N>(p, black_box(&sk_seed), black_box(&sk_prf), black_box(&pk_seed))
+                    .unwrap()
+            };
             black_box(res);
         },
         2,
@@ -127,8 +173,8 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
 
     let gpu_sign1 = measure_median(
         || {
-            let sig = gpu
-                .sign::<N>(
+            let sig = if is_shake {
+                gpu.shake_sign::<N>(
                     p,
                     black_box(&msg_storage[0]),
                     b"",
@@ -136,7 +182,18 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
                     black_box(&rnd_storage[0]),
                 )
                 .unwrap()
-                .unwrap();
+                .unwrap()
+            } else {
+                gpu.sign::<N>(
+                    p,
+                    black_box(&msg_storage[0]),
+                    b"",
+                    black_box(&sk),
+                    black_box(&rnd_storage[0]),
+                )
+                .unwrap()
+                .unwrap()
+            };
             black_box(sig);
         },
         2,
@@ -171,7 +228,11 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
             .collect();
         let dt = measure_median(
             || {
-                let res = gpu.keygen_internal_batch::<N>(p, black_box(&seeds)).unwrap();
+                let res = if is_shake {
+                    gpu.shake_keygen_internal_batch::<N>(p, black_box(&seeds)).unwrap()
+                } else {
+                    gpu.keygen_internal_batch::<N>(p, black_box(&seeds)).unwrap()
+                };
                 black_box(res);
             },
             1,
@@ -206,10 +267,15 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
         let rnds: Vec<&[u8; N]> = rnd_storage[..b].iter().collect();
         let dt = measure_median(
             || {
-                let sigs = gpu
-                    .sign_batch_same_key::<N>(p, black_box(&sk), black_box(&msgs), b"", black_box(&rnds))
-                    .unwrap()
-                    .unwrap();
+                let sigs = if is_shake {
+                    gpu.shake_sign_batch_same_key::<N>(p, black_box(&sk), black_box(&msgs), b"", black_box(&rnds))
+                        .unwrap()
+                        .unwrap()
+                } else {
+                    gpu.sign_batch_same_key::<N>(p, black_box(&sk), black_box(&msgs), b"", black_box(&rnds))
+                        .unwrap()
+                        .unwrap()
+                };
                 black_box(sigs);
             },
             1,
@@ -244,25 +310,38 @@ fn bench_set<const N: usize>(gpu: &MetalSigner, name: &'static str, p: &Params) 
 }
 
 fn main() {
+    let filter = std::env::args().nth(1).unwrap_or_default().to_lowercase();
+    let run_sha2 = filter.is_empty() || filter == "sha2" || filter == "all";
+    let run_shake = filter.is_empty() || filter == "shake" || filter == "all";
+
     let gpu = MetalSigner::new().expect("failed to initialize Metal GPU");
     println!(
         "SLH-DSA Metal GPU Benchmark on {} (Unified Memory: {})",
         gpu.device_name(),
         gpu.has_unified_memory()
     );
-    println!("CPU baseline: slhdsa single-threaded with `platform-sha2` (ARMv8 SHA-256/SHA-512)");
+    println!("CPU baseline: slhdsa single-threaded with `platform-sha2` (ARMv8 SHA-2 + SHA3/NEON)");
 
     // Warm up Metal GPU clocks once before timing
     let _ = gpu.keygen_internal::<16>(&SHA2_128S, &[1u8; 16], &[2u8; 16], &[3u8; 16]);
 
-    let summaries = [
-        bench_set::<16>(&gpu, "SHA2-128s", &SHA2_128S),
-        bench_set::<16>(&gpu, "SHA2-128f", &SHA2_128F),
-        bench_set::<24>(&gpu, "SHA2-192s", &SHA2_192S),
-        bench_set::<24>(&gpu, "SHA2-192f", &SHA2_192F),
-        bench_set::<32>(&gpu, "SHA2-256s", &SHA2_256S),
-        bench_set::<32>(&gpu, "SHA2-256f", &SHA2_256F),
-    ];
+    let mut summaries = Vec::new();
+    if run_sha2 {
+        summaries.push(bench_set::<16>(&gpu, "SHA2-128s", &SHA2_128S, false));
+        summaries.push(bench_set::<16>(&gpu, "SHA2-128f", &SHA2_128F, false));
+        summaries.push(bench_set::<24>(&gpu, "SHA2-192s", &SHA2_192S, false));
+        summaries.push(bench_set::<24>(&gpu, "SHA2-192f", &SHA2_192F, false));
+        summaries.push(bench_set::<32>(&gpu, "SHA2-256s", &SHA2_256S, false));
+        summaries.push(bench_set::<32>(&gpu, "SHA2-256f", &SHA2_256F, false));
+    }
+    if run_shake {
+        summaries.push(bench_set::<16>(&gpu, "SHAKE-128s", &SHA2_128S, true));
+        summaries.push(bench_set::<16>(&gpu, "SHAKE-128f", &SHA2_128F, true));
+        summaries.push(bench_set::<24>(&gpu, "SHAKE-192s", &SHA2_192S, true));
+        summaries.push(bench_set::<24>(&gpu, "SHAKE-192f", &SHA2_192F, true));
+        summaries.push(bench_set::<32>(&gpu, "SHAKE-256s", &SHA2_256S, true));
+        summaries.push(bench_set::<32>(&gpu, "SHAKE-256f", &SHA2_256F, true));
+    }
 
     println!("\n=== Summary (Apple M4 Metal GPU vs Single-Thread CPU `platform-sha2`) ===");
     println!(

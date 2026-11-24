@@ -5,6 +5,7 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=src/bridge.m");
     println!("cargo:rerun-if-changed=shaders/slhdsa.metal");
+    println!("cargo:rerun-if-changed=shaders/slhdsa_shake.metal");
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     if target_os != "macos" {
