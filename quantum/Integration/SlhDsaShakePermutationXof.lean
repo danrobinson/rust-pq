@@ -31,7 +31,7 @@ theorem hash_prefix (S : Sha2Set) (p : State → State) (x : List SLHDSA.Byte) :
   rw [← List.map_take]
   exact congrArg _ (squeeze_prefix p _ _ _ _ h)
 
-private theorem flatten_nodes {n : Nat} (xs : List (Bytes n)) :
+theorem flatten_nodes {n : Nat} (xs : List (Bytes n)) :
     sp (xs.map Vector.toList).flatten = nds xs := by
   induction xs with
   | nil => rfl
