@@ -68,13 +68,14 @@ theorem shared_search (p : Chain512 → T) (M : (Input → Output) → Closed (W
 open PQ.QROM.Purify
 
 /-- An initial mixed state admits one decomposition for all oracle and event choices. -/
-theorem mixed_mean_over {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.Interp)
-    (x : QuantumComp L (qromSpec Input Output) W A) (ρ : SubState A) (q : ℕ)
-    (hq : x.IsQueryBound (fun _ => q)) (world : Full → Input → Output) (ev : Full → (Σ u, W u) → Prop)
+theorem mixed_mean_over {B X Z : Type} [Fintype B] [Nonempty B] [Nonempty X] [Fintype X] [DecidableEq X]
+    [Fintype Z] [DecidableEq Z] [AddCommGroup Z] {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.Interp)
+    (x : QuantumComp L (qromSpec X Z) W A) (ρ : SubState A) (q : ℕ)
+    (hq : x.IsQueryBound (fun _ => q)) (world : B → X → Z) (ev : B → (Σ u, W u) → Prop)
     (C : ℝ) (hC : 0 ≤ C)
-    (pure_bound : ∀ v : EuclideanSpace ℂ (A × Unit), (∑ h : Full, (Fintype.card Full : ℝ)⁻¹ *
+    (pure_bound : ∀ v : EuclideanSpace ℂ (A × Unit), (∑ h : B, (Fintype.card B : ℝ)⁻¹ *
       pv I (world h) x (ev h) v) ≤ C * ‖v‖ ^ 2) :
-    (∑ h : Full, unifW _ h * qprob I (world h) x ρ (ev h)) ≤ ENNReal.ofReal C := by
+    (∑ h : B, unifW _ h * qprob I (world h) x ρ (ev h)) ≤ ENNReal.ofReal C := by
   classical
   obtain ⟨vs,hvs⟩ := exists_ketBra_sum (ρ.prod (SubState.basis ())).posSemidef
   have mass : ∑ j, ‖vs j‖ ^ 2 ≤ 1 := by
@@ -83,11 +84,11 @@ theorem mixed_mean_over {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I
     exact le_trans (le_of_eq (Finset.sum_congr rfl fun j _ => (trace_re_ketBra_self _).symm)) ht
   have finite : ∀ h, qprob I (world h) x ρ (ev h) ≠ ⊤ := fun h =>
     ne_top_of_le_ne_top one_ne_top ((HybridModel.ofProgram I x ρ q hq (ev h)).prob_le_one _ id)
-  have wfinite (h : Full) : unifW Full h ≠ ⊤ := by
+  have wfinite (h : B) : unifW B h ≠ ⊤ := by
     exact ENNReal.inv_ne_top.mpr (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
-  have wf (h : Full) : (unifW Full h).toReal = (Fintype.card Full : ℝ)⁻¹ := by
+  have wf (h : B) : (unifW B h).toReal = (Fintype.card B : ℝ)⁻¹ := by
     rw [unifW,ENNReal.toReal_inv,ENNReal.toReal_natCast]
-  have decomp (h : Full) : (qprob I (world h) x ρ (ev h)).toReal =
+  have decomp (h : B) : (qprob I (world h) x ρ (ev h)).toReal =
       ∑ j, pv I (world h) x (ev h) (vs j) := by
     rw [qprob_toReal_eq_DW,hvs,map_sum,Complex.re_sum]
     rfl

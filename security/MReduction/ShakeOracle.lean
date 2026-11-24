@@ -39,7 +39,7 @@ private theorem flatten_nodes {n : Nat} (xs : List (Bytes n)) :
     rw [sp_append, ih]
     rfl
 
-private theorem thash_layout (S : Sha2Set) (pk : S.Node) (key : Bytes 32) (xs : List S.Node) :
+theorem thash_layout (S : Sha2Set) (pk : S.Node) (key : Bytes 32) (xs : List S.Node) :
     prefixBytes S.vp.params.n (answer S (pk.toList ++ key.toList ++ (xs.map Vector.toList).flatten)) =
       (prims S).Thash pk key xs := by
   rw [hashPrefix]
@@ -47,13 +47,13 @@ private theorem thash_layout (S : Sha2Set) (pk : S.Node) (key : Bytes 32) (xs : 
   rw [sp_append, sp_append, flatten_nodes]
   rfl
 
-private theorem hmsg_layout (S : Sha2Set) (r pk root : S.Node) (msg : List Byte) :
+theorem hmsg_layout (S : Sha2Set) (r pk root : S.Node) (msg : List Byte) :
     answer S (r.toList ++ pk.toList ++ root.toList ++ msg) = (prims S).Hmsg r pk root msg := by
   apply congrArg (fun b => hash b _)
   simp only [sp_append]
   rfl
 
-private theorem prfmsg_layout (S : Sha2Set) (sk rand : S.Node) (msg : List Byte) :
+theorem prfmsg_layout (S : Sha2Set) (sk rand : S.Node) (msg : List Byte) :
     prefixBytes S.vp.params.n (answer S (sk.toList ++ rand.toList ++ msg)) =
       (prims S).PRFmsg sk rand msg := by
   rw [hashPrefix]
