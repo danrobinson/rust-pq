@@ -62,6 +62,7 @@ theorem state_trace (base : X) (M : Matrix U U ℂ) : (state (Y := Y) (T := T) b
   rw [MatrixMap.conj_apply,Matrix.trace_mul_cycle,conjTranspose_basisMatrix_mul_self (embed_injective _),
     Matrix.one_mul]
 
+omit [DecidableEq U] in
 theorem state_pos (base : X) (M : Matrix U U ℂ) (hm : M.PosSemidef) :
     (state (Y := Y) (T := T) base M).PosSemidef :=
   (MatrixMap.isCP_conj _).posSemidef hm

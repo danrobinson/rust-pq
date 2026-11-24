@@ -104,7 +104,7 @@ theorem headRead_clean (enabled : Bool) (k : MaskAddr → Capacity) (h : RateMas
     by_cases eq : s.1.1 = enabled
     · change capOf ((if s.1.1 = enabled then headGate r else Equiv.refl _) _) = _
       rw [ite_eq_left eq]
-      exact cap_join .. 
+      exact cap_join ..
     · simp only [chooseHead,eq,ite_false,Equiv.refl_apply]; rfl
   have he := lookup_clean 0 select act hs h (a,y,w)
   change ((baseMask,0),((lookup 0 select act).run h) ((0,0),a,y,w)) = _

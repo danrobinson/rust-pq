@@ -99,7 +99,7 @@ theorem selected_clean (sel : U → Domain T) (act : Rate → Equiv.Perm U)
   rfl
 
 open PQ.Interactive OracleSpec OracleComp Quantum Classical
-variable [Fintype X] [Fintype Y] [Fintype U] [DecidableEq Y] [DecidableEq U]
+variable [Fintype X] [Fintype Y] [Fintype U] [DecidableEq Y]
 
 /-- Born semantics of one selected corrected table query, in the exact
 program interface used by the signature theorem and in the presence of a signer. -/
