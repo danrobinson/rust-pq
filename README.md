@@ -487,8 +487,11 @@ one classical signing query and 65,536 encoded message bytes. The signing
 algorithms and adversary share one ideal XOF on raw byte strings. The theorem
 allows any finite input cap large enough for the benchmark. The public port
 returns the full message-digest width for that set, and the signer takes shorter
-prefixes where required. A concrete numerical bound for the ideal Keccak
-permutation with coherent forward and inverse access remains open.
+prefixes where required. At the same budget, a classical forger with forward and
+inverse access to the shared ideal Keccak permutation has forgery probability at
+most the corresponding XOF bound plus `2^-427`. The full signature bound with
+quantum access to that permutation remains open.
+[Classical permutation theorem](quantum/Integration/SlhDsaShakePermutationClassicalSignature.lean)
 [Shared-XOF signature theorem](quantum/Integration/SlhDsaShakeSetPrecision.lean)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)

@@ -16,7 +16,7 @@ private theorem read_count (xs : List SLHDSA.Byte) : WCount hashWeight (readRaw 
   · exact wCount_liftM_query _ _ le_rfl
   · trivial
 
-private theorem raw_count {α : Type} {a : OracleComp ROM α} {n : ℕ}
+theorem raw_count {α : Type} {a : OracleComp ROM α} {n : ℕ}
     (h : IsQueryBoundP a (fun t => t.isRight = true) n) :
     WCount hashWeight (simulateQ (rawImpl S N base) a) n := by
   refine WCount.simulateQ (w := fun t => if t.isRight = true then 1 else 0) _ ?_ (wCount_of_isQueryBoundP _ _ _ h)
