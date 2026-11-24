@@ -278,7 +278,7 @@ theorem readout_pair (p : Y → T) (N : ℝ) (hN : 0 < N)
 def reports (p : Y → T) (pair : Option (X × X)) (H : X → Y) : Prop :=
   ∃ a b, pair = some (a,b) ∧ a ≠ b ∧ p (H a) = p (H b)
 
-private theorem leaf_amp (p : Y → T) (N : ℝ) (hN : 0 < N)
+theorem leaf_amp (p : Y → T) (N : ℝ) (hN : 0 < N)
     (uniform : ∀ B : Finset T, ((Finset.univ.filter fun y => p y ∈ B).card : ℝ) /
       Fintype.card Y ≤ (B.card : ℝ)/N) (pair : Option (X × X)) (v : DB X Y → V) :
     Real.sqrt (sumWeight (reports p pair) (fun H => tensor v (fun j => some (H j)))) ≤
@@ -299,7 +299,7 @@ private theorem leaf_amp (p : Y → T) (N : ℝ) (hN : 0 < N)
       rw [he]
       exact readout_pair p N hN uniform a b hab v
 
-private theorem numeric (q : ℕ) (N : ℝ) (hN : 0 < N) :
+theorem numeric (q : ℕ) (N : ℝ) (hN : 0 < N) :
     (Real.sqrt (16*(q:ℝ)^3/N) + 2 * Real.sqrt (4/N))^2 ≤ 16*((q:ℝ)+1)^3/N := by
   have nno := Real.sqrt_pos.mpr hN
   have qno : 0 ≤ (q : ℝ) := Nat.cast_nonneg _
