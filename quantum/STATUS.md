@@ -18,12 +18,20 @@ coordinate in ITSR yields a term of at least one at `2^40` public queries. Both 
 improvement for a nontrivial guarantee at that benchmark.
 For the four wide sets, Lean now verifies that the [honest construction alone](Integration/SlhDsaCompressionClassicalWalk.lean)
 has a classical birthday bound of at most 1/256 for a repeated SHA-512 digest prefix or an IV-prefix hit.
-The end-to-end proof still needs to connect this transcript to the subsequent quantum queries.
+The [mixed classical/quantum collision theorem](Integration/SlhDsaCompressionMixedCollision.lean)
+now allows an adaptive classical reader to make `c` reads, then pass its output to a quantum
+machine making `q` queries to both compression tables. For an `n`-byte SHA-512 prefix the
+numerator is `c² + c(2q+1)² + 16(q+1)³`, over `2^(8n)`. The three terms cover collisions
+within the classical phase, matches with a recorded prefix, and collisions between fresh cells.
+Applying this theorem to the signature forger still requires identifying its two phases in the reduction.
 
 For SHA2-128s and 128f, the [SHA-256 message PRF](Integration/SlhDsaCompressionHmac256Signature.lean)
 and [all four arity-specific target collision terms](Integration/SlhDsaCompressionSmallClass.lean)
 have numerical bounds for the signature forger using both shared compression tables.
-Their full shared-compression signature bounds remain open.
+The [signature ITSR bound](Integration/SlhDsaCompressionSmallItsr.lean) uses a 75-bit projection
+on SHA2-128s and a 61-bit projection on SHA2-128f. These projections describe collision events
+in the reduction. Their widths alone give no forgery-security level.
+The full shared-compression signature bounds for both narrow sets remain open.
 
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component
