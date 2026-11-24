@@ -2,6 +2,15 @@
 
 ## Six-set extensions (2026-11-23)
 
+Lean checks strong and existential forgery bounds for all six pure SHA-2 sets in each of the following models.
+
+| Parameter sets | Classical ideal compression | Quantum independent components | Quantum shared ideal compression |
+|---|---|---|---|
+| SHA2-128s, 128f | [128s](../security/MIdeal/Sha2_128s.lean) · [128f](../security/MIdeal/Sha2_128f.lean) | [SUF](Integration/SlhDsaSetClosed.lean) · [EUF](Integration/SlhDsaSetEuf.lean) | [SUF and EUF](Integration/SlhDsaCompressionSmallClosed.lean) · [bound ≥ 1 at every budget](Integration/SlhDsaCompressionSmallFloor.lean) |
+| SHA2-192s, 192f, 256s, 256f | [SUF and EUF for classical byte forgers](Integration/SlhDsaCompressionClassicalWide.lean) | [SUF](Integration/SlhDsaSetClosed.lean) · [EUF](Integration/SlhDsaSetEuf.lean) | [General budgets](Integration/SlhDsaCompressionWideMixed.lean) · [at most one signature](Integration/SlhDsaCompressionSingleTarget.lean) · [multiple signatures](Integration/SlhDsaCompressionTargetSubset.lean) |
+
+For the four wider sets, the classical proof prepares and measures a basis query for each classical table read. It preserves the public and signing budgets, the encoded-message cap, and the forgery probability at each fixed pair of tables. Consequently the quantum numerical certificates below also apply to these classical forgers. All compression-model probabilities are averaged over random compression tables. Security of the concrete SHA-2 functions remains a cryptographic assumption.
+
 [The concrete SHA-2 reduction](Integration/SlhDsaRustQuantum.lean) pairs the Rust
 API correspondence with strong and existential unforgeability in the quantum hash
 games for every set. [The full component-oracle proof](Integration/SlhDsaSetClosed.lean) bounds strong

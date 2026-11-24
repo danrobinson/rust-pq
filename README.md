@@ -476,6 +476,8 @@ phases and verification, and allows the adversary to know the SHA-256 table.
 For the same four sets, the [arity-one and WOTS+ target-collision proofs](security/MIdeal/SingletonTcr.lean)
 charge SHA-256 queries and allow the adversary to know the SHA-512 table.
 
+For the four wider sets the [classical pure-byte SUF-CMA and EUF-CMA bounds](quantum/Integration/SlhDsaCompressionClassicalWide.lean) use an exact simulation of each classical compression read. These inherit the shared-compression query and signing budgets and the numerical certificates below.
+
 ### Quantum adversaries ([quantum/](quantum), see `quantum/STATUS.md`)
 
 [The quantum standard-model reduction](quantum/Integration/SlhDsaRustQuantum.lean)
