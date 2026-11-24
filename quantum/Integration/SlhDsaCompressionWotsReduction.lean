@@ -45,7 +45,7 @@ private theorem wOracle {β : Type} (g : CompressionTables) (st : WState S f₀)
     cases t <;> rfl
   rw [interp, mainAt_eq S (ref S g) F rand seeds]
 
-private noncomputable def preSelect : QSM_DT_PRE_Adversary (WS Input Output E) (basePre S seeds) where
+noncomputable def preSelect : QSM_DT_PRE_Adversary (WS Input Output E) (basePre S seeds) where
   State := Open.RState S.vp P₀
   choose := Open.prePhase1 (vp := S.vp) (prims := P₀) seeds
   invert := fun _ _ => pure default
@@ -53,10 +53,10 @@ private noncomputable def preSelect : QSM_DT_PRE_Adversary (WS Input Output E) (
   posSemidef := F.posSemidef
   trace_eq_one := F.trace_eq_one
 
-private noncomputable def preMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
+noncomputable def preMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
   wMachine S f₀ rand F st.1 pk (fun x => wotsPreAnswerO (prims := P₀) pk st.2 x.1 x.2.1 x.2.2) H
 
-private theorem preGame_eq (g : CompressionTables) :
+theorem preGame_eq (g : CompressionTables) :
     preAdversary S seeds (preSelect S seeds F) (preMachine S rand F) g = qrPre (reduced S rand seeds F g) := by
   let real := functions S g
   let hf : Open.HashFns P₀ := ⟨real.thash,real.hmsg,real.prf,real.prfMsg⟩
@@ -71,13 +71,11 @@ private theorem preGame_eq (g : CompressionTables) :
   kexact congrArg₂ (fun ch fo => (⟨Open.RState S.vp P₀,ch,fo,F.ρ₀,F.posSemidef,F.trace_eq_one⟩ :
     QSM_DT_PRE_Adversary (WS Input Output E) (preProblem S seeds g))) choose.symm last.symm
 
-theorem wide_pre_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+theorem preMachine_budget (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
-    (∑ g : CompressionTables, unifW _ g * qSM_DT_PRE_Advantage (qrPre (reduced S rand seeds F g))) ≤
-      SetOracle.epsPreSet S (wotsBudget S c.ml q qs (wotsPreHashes S.vp)) := by
-  simp_rw [← preGame_eq S rand seeds F]
-  apply wide_pre_port _ _ _ _ hw
+    ∀ st pk, PUE (spec := unifSpec) cnt0 (fun H => preMachine S rand F H st pk)
+      (wotsBudget S c.ml q qs (wotsPreHashes S.vp)) := by
   intro st pk
   apply wMachine_pue S f₀ rand F c st.1 pk _ _ q qs _ _ hq hs hc
   · intro x
@@ -85,7 +83,16 @@ theorem wide_pre_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
   · intro x L
     exact Realize.Wots.pw_pre _ (okLength_cost S f₀ L) pk st.2 x.1 x.2.1 x.2.2
 
-private noncomputable def chainTcrSelect : QSM_DT_TCR_Adversary (WS Input Output E) (baseWotsTcr S seeds) where
+theorem wide_pre_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    (∑ g : CompressionTables, unifW _ g * qSM_DT_PRE_Advantage (qrPre (reduced S rand seeds F g))) ≤
+      SetOracle.epsPreSet S (wotsBudget S c.ml q qs (wotsPreHashes S.vp)) := by
+  simp_rw [← preGame_eq S rand seeds F]
+  apply wide_pre_port _ _ _ _ hw
+  exact preMachine_budget S rand F c q qs hq hs hc
+
+noncomputable def chainTcrSelect : QSM_DT_TCR_Adversary (WS Input Output E) (baseWotsTcr S seeds) where
   State := Open.RState S.vp P₀
   choose := Open.wotsTcrPhase1 (vp := S.vp) (prims := P₀) seeds
   forge := fun _ _ => pure default
@@ -93,10 +100,10 @@ private noncomputable def chainTcrSelect : QSM_DT_TCR_Adversary (WS Input Output
   posSemidef := F.posSemidef
   trace_eq_one := F.trace_eq_one
 
-private noncomputable def chainTcrMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
+noncomputable def chainTcrMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
   wMachine S f₀ rand F st.1 pk (fun x => wotsTcrAnswerO (prims := P₀) pk st.2 x.1 x.2.1 x.2.2) H
 
-private theorem chainTcrGame_eq (g : CompressionTables) :
+theorem chainTcrGame_eq (g : CompressionTables) :
     chainTcrAdversary S seeds (chainTcrSelect S seeds F) (chainTcrMachine S rand F) g = qrTcrT (reduced S rand seeds F g) := by
   let real := functions S g
   let hf : Open.HashFns P₀ := ⟨real.thash,real.hmsg,real.prf,real.prfMsg⟩
@@ -111,13 +118,11 @@ private theorem chainTcrGame_eq (g : CompressionTables) :
   kexact congrArg₂ (fun ch fo => (⟨Open.RState S.vp P₀,ch,fo,F.ρ₀,F.posSemidef,F.trace_eq_one⟩ :
     QSM_DT_TCR_Adversary (WS Input Output E) (chainTcrProblem S seeds g))) choose.symm last.symm
 
-theorem wide_chainTcr_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+theorem chainTcrMachine_budget (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
-    (∑ g : CompressionTables, unifW _ g * qSM_DT_TCR_Advantage (qrTcrT (reduced S rand seeds F g))) ≤
-      epsTcr S (wotsBudget S c.ml q qs (wotsTcrHashes S.vp)) := by
-  simp_rw [← chainTcrGame_eq S rand seeds F]
-  apply wide_chain_tcr_port _ _ _ _ hw
+    ∀ st pk, PUE (spec := unifSpec) cnt0 (fun H => chainTcrMachine S rand F H st pk)
+      (wotsBudget S c.ml q qs (wotsTcrHashes S.vp)) := by
   intro st pk
   apply wMachine_pue S f₀ rand F c st.1 pk _ _ q qs _ _ hq hs hc
   · intro x
@@ -125,7 +130,16 @@ theorem wide_chainTcr_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : �
   · intro x L
     exact Realize.Wots.pw_tcr (prims := P₀) (gspec := []ₒ) (exceeds S f₀ L) (okLength_cost S f₀ L) pk st.2 x.1 x.2.1 x.2.2
 
-private noncomputable def udSelect : QSM_DT_UD_Adversary (WS Input Output E) (baseUd S seeds) where
+theorem wide_chainTcr_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    (∑ g : CompressionTables, unifW _ g * qSM_DT_TCR_Advantage (qrTcrT (reduced S rand seeds F g))) ≤
+      epsTcr S (wotsBudget S c.ml q qs (wotsTcrHashes S.vp)) := by
+  simp_rw [← chainTcrGame_eq S rand seeds F]
+  apply wide_chain_tcr_port _ _ _ _ hw
+  exact chainTcrMachine_budget S rand F c q qs hq hs hc
+
+noncomputable def udSelect : QSM_DT_UD_Adversary (WS Input Output E) (baseUd S seeds) where
   State := Open.RState S.vp P₀
   pick := Open.udPhase1 (vp := S.vp) (prims := P₀) seeds
   distinguish := fun _ _ => pure default
@@ -133,10 +147,10 @@ private noncomputable def udSelect : QSM_DT_UD_Adversary (WS Input Output E) (ba
   posSemidef := F.posSemidef
   trace_eq_one := F.trace_eq_one
 
-private noncomputable def udMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
+noncomputable def udMachine (H : Input → Output) (st : Open.RState S.vp P₀) (pk : S.Node) :=
   wMachine S f₀ rand F st.1 pk (fun x => wotsWinO (prims := P₀) pk st.2 x.1 x.2.1 x.2.2) H
 
-private theorem udGame_eq (g : CompressionTables) :
+theorem udGame_eq (g : CompressionTables) :
     udAdversary S seeds (udSelect S seeds F) (udMachine S rand F) g = qrUd (reduced S rand seeds F g) := by
   let real := functions S g
   let hf : Open.HashFns P₀ := ⟨real.thash,real.hmsg,real.prf,real.prfMsg⟩
@@ -151,6 +165,18 @@ private theorem udGame_eq (g : CompressionTables) :
   kexact congrArg₂ (fun ch fo => (⟨Open.RState S.vp P₀,ch,fo,F.ρ₀,F.posSemidef,F.trace_eq_one⟩ :
     QSM_DT_UD_Adversary (WS Input Output E) (udProblem S seeds g))) choose.symm last.symm
 
+theorem udMachine_budget (c : Caps) (q qs : ℕ)
+    (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
+    (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
+    ∀ st pk, PUE (spec := unifSpec) cnt0 (fun H => udMachine S rand F H st pk)
+      (wotsBudget S c.ml q qs (wotsWinHashes S.vp)) := by
+  intro st pk
+  apply wMachine_pue S f₀ rand F c st.1 pk _ _ q qs _ _ hq hs hc
+  · intro x
+    exact (wotsWinO_kindBound (prims := P₀) .hash pk st.2 x.1 x.2.1 x.2.2).mono (by simp [Lazy.ind,wotsWinHashes])
+  · intro x L
+    exact Realize.Wots.pw_win _ (okLength_cost S f₀ L) pk st.2 x.1 x.2.1 x.2.2
+
 theorem wide_ud_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
     (hq : ∀ pk, CountBound isPort (F.main pk) q) (hs : ∀ pk, CountBound isSign (F.main pk) qs)
     (hc : ∀ pk, AllQueries (capIdx c) (capOut c) (F.main pk)) :
@@ -158,12 +184,7 @@ theorem wide_ud_reduction (hw : S.vp.params.n ≠ 16) (c : Caps) (q qs : ℕ)
       (∑ g : CompressionTables, unifW _ g * qSM_DT_UD_IdealSuccess (qrUd (reduced S rand seeds F g))) + SetOracle.epsUdSet S (wotsBudget S c.ml q qs (wotsWinHashes S.vp)) := by
   simp_rw [← udGame_eq S rand seeds F]
   apply wide_ud_port _ _ _ _ hw
-  intro st pk
-  apply wMachine_pue S f₀ rand F c st.1 pk _ _ q qs _ _ hq hs hc
-  · intro x
-    exact (wotsWinO_kindBound (prims := P₀) .hash pk st.2 x.1 x.2.1 x.2.2).mono (by simp [Lazy.ind,wotsWinHashes])
-  · intro x L
-    exact Realize.Wots.pw_win _ (okLength_cost S f₀ L) pk st.2 x.1 x.2.1 x.2.2
+  exact udMachine_budget S rand F c q qs hq hs hc
 
 end Reduction.Compression
 #print axioms Reduction.Compression.wide_pre_reduction
