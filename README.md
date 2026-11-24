@@ -502,7 +502,11 @@ making at most `q` compression queries. The [FORS reduction](quantum/Integration
 supplies that budget from the byte-level forger's compression-query count, signing-query count,
 and encoded-message limit. The [WOTS+ reduction](quantum/Integration/SlhDsaCompressionWotsReduction.lean)
 also supplies explicit budgets for preimage resistance, chain target collisions, and
-undetectability on SHA2-192s, 192f, 256s, and 256f. A numerical bound for the full signature remains open.
+undetectability on SHA2-192s, 192f, 256s, and 256f. For these four sets, Lean now proves
+[closed SUF-CMA and EUF-CMA bounds](quantum/Integration/SlhDsaCompressionWideClosed.lean)
+in the shared ideal-compression model. The message-hash term uses a collision on the hypertree
+position and one FORS index. At `2^40` public queries the resulting bound is at least one
+for every message limit and signing budget. A useful bound at that benchmark remains open.
 
 `slhdsa_sha2_128s_pure_bytes_{suf,euf}_cma_qrom_enc_closed`
 ([quantum/Integration/SlhDsaComposedClosed.lean](quantum/Integration/SlhDsaComposedClosed.lean)):

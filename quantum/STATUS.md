@@ -10,6 +10,12 @@ forgery for all six pure byte schemes, including the reduction's own queries.
 assume capped messages and a tweakable-hash input cap at least the maximum of two,
 the WOTS length, and the FORS tree count. The signer handles classical queries.
 
+For SHA2-192s, 192f, 256s and 256f the [shared ideal-compression SUF and EUF theorems](Integration/SlhDsaCompressionWideClosed.lean)
+also give explicit bounds with no residual hash-game advantages. Their ITSR estimate
+keeps one FORS coordinate. Lean proves that the total bound is at least one at
+`2^40` public queries. These four sets still need a tighter estimate for benchmark security.
+The two SHA2-128 parameter sets still need closed shared-compression signature bounds.
+
 At `2^40` quantum port calls and `2^20` signatures Lean checks the following
 upper bounds. The first row is for the entire signature scheme in the four-component
 model. The second is for the exact ITSR digest game alone. The sharper 128s signature
@@ -65,7 +71,7 @@ which inputs the reduction exposes or analyze the compression games directly.
 The [shared-compression forgery bounds](Integration/SlhDsaCompressionCompose.lean)
 now substitute the address-PRF and both FORS estimates directly into the averaged
 byte-level SUF and EUF theorems for all six sets. For the four wider sets they
-also substitute the three WOTS estimates and arity-one TCR. Five terms remain in
+also substitute the three WOTS estimates and arity-one TCR. This intermediate theorem groups five terms in
 `wideRemaining`: the averaged message-PRF gap, ITSR, and class TCR at arities
 two, WOTS length, and FORS tree count. All seven discharged terms use budgets
 from the byte forger. The narrower sets also retain the three WOTS games and
@@ -88,17 +94,17 @@ For class TCR at arities two, WOTS length and FORS tree count, the
 a compression-port machine that outputs two distinct SHA-512 inputs with equal
 `n`-byte output prefixes. Its query count includes the honest first-phase
 transcript, the byte forger’s second phase, and the [collision extractor](Integration/SlhDsaCompressionClassCollision.lean).
-The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. The [measured-output theorem](Integration/SlhDsaCompressionReadout.lean) bounds the chance that the two reported inputs have colliding prefixes by `16(q+1)³/2^(8n)` for a paired ordinary-table and recording-oracle experiment. Applying that theorem to the signature reduction still requires compiling the public-port machine into this experiment.
+The [adaptive recording-oracle bound](Integration/SlhDsaCompressionDatabaseAdaptive.lean) proves collision mass at most `16q³/2^(8n)` after `q` coherent queries with intermediate measurements. The [measured-output theorem](Integration/SlhDsaCompressionReadout.lean) bounds the chance that the two reported inputs have colliding prefixes by `16(q+1)³/2^(8n)` for a paired ordinary-table and recording-oracle experiment. The [native program proof](Integration/SlhDsaCompressionCompileShared.lean) establishes this measured-event bound for the actual public-port machine on arbitrary normalized mixed input states.
 
 The [combined wide-set SUF and EUF theorems](Integration/SlhDsaCompressionSearch.lean)
-leave two kinds of probability to bound: ITSR for the signature reduction and
+reduce forgery to ITSR for the signature reduction and
 a public SHA-512 search game. The latter accepts a pair of distinct inputs with
 equal digest prefixes or a preimage of an independently sampled starting state.
 The [preimage theorem](Integration/SlhDsaCompressionPreimage.lean) bounds success against the revealed state by `(2q+1)²/2^512`, including superposition access to both tables. The [search reduction](Integration/SlhDsaCompressionSearchSplit.lean) adds this loss to the success bound for a machine that reports a prefix collision. Its four applications have separate explicit budgets. For HMAC, the
 [monitored message machine](Integration/SlhDsaCompressionHmacMonitor.lean) costs
 at most three times the signature message-PRF budget including witness extraction.
 
-For ITSR on the four wider sets, [a winning transcript](Integration/SlhDsaCompressionItsrEvidence.lean) yields a covered digest among distinct final compression inputs, a full-state collision, or a preimage of the initial SHA-512 state. The [path budgets](Integration/SlhDsaCompressionItsrWalk.lean) count the compression calls needed to recover those addresses. The [FORS coordinate theorem](Integration/SlhDsaCompressionItsrCover.lean) identifies one candidate cell covered across all FORS trees and proves the distribution of its decoded coordinates for a fresh uniform state. The probability of adaptive coverage still enters the forgery bound.
+For ITSR on the four wider sets, [a winning transcript](Integration/SlhDsaCompressionItsrEvidence.lean) yields a covered digest among distinct final compression inputs, a full-state collision, or a preimage of the initial SHA-512 state. The [path budgets](Integration/SlhDsaCompressionItsrWalk.lean) count the compression calls needed to recover those addresses. The [FORS coordinate theorem](Integration/SlhDsaCompressionItsrCover.lean) identifies one candidate cell covered across all FORS trees and proves the distribution of its decoded coordinates for a fresh uniform state. The [signer reduction](Integration/SlhDsaCompressionItsrReduction.lean) extracts a preimage of the initial state or a pair matching on a chosen coordinate. Applying the native collision and preimage estimates gives the closed forgery bound above.
 
 > **Update (2026-11-22): `../security` is now the six-set tree's security project.** The
 > `Reduction`, `Reduction.Open` and `Ideal.Transport` modules these Integration files import are the

@@ -33,3 +33,6 @@ import MIdeal.Wots128fFixed
 import MIdeal.Wots128fExperiments
 import MIdeal.Wots128fCounts
 import MIdeal.Wots128fBound
+
+import MIdeal.Itsr128fFixed
+import MIdeal.Itsr128fSignature
