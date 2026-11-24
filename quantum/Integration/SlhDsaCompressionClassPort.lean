@@ -68,27 +68,27 @@ theorem shared_search (p : Chain512 → T) (M : (Input → Output) → Closed (W
 open PQ.QROM.Purify
 
 /-- An initial mixed state admits one decomposition for all oracle and event choices. -/
-theorem mixed_mean {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.Interp)
+theorem mixed_mean_over {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.Interp)
     (x : QuantumComp L (qromSpec Input Output) W A) (ρ : SubState A) (q : ℕ)
-    (hq : x.IsQueryBound (fun _ => q)) (a : CF St Blk) (ev : Full → (Σ u, W u) → Prop)
+    (hq : x.IsQueryBound (fun _ => q)) (world : Full → Input → Output) (ev : Full → (Σ u, W u) → Prop)
     (C : ℝ) (hC : 0 ≤ C)
     (pure_bound : ∀ v : EuclideanSpace ℂ (A × Unit), (∑ h : Full, (Fintype.card Full : ℝ)⁻¹ *
-      pv I (project a h) x (ev h) v) ≤ C * ‖v‖ ^ 2) :
-    (∑ h : Full, unifW _ h * qprob I (project a h) x ρ (ev h)) ≤ ENNReal.ofReal C := by
+      pv I (world h) x (ev h) v) ≤ C * ‖v‖ ^ 2) :
+    (∑ h : Full, unifW _ h * qprob I (world h) x ρ (ev h)) ≤ ENNReal.ofReal C := by
   classical
   obtain ⟨vs,hvs⟩ := exists_ketBra_sum (ρ.prod (SubState.basis ())).posSemidef
   have mass : ∑ j, ‖vs j‖ ^ 2 ≤ 1 := by
     have ht := (ρ.prod (SubState.basis ())).trace_re_le_one
     rw [hvs,Matrix.trace_sum,Complex.re_sum] at ht
     exact le_trans (le_of_eq (Finset.sum_congr rfl fun j _ => (trace_re_ketBra_self _).symm)) ht
-  have finite : ∀ h, qprob I (project a h) x ρ (ev h) ≠ ⊤ := fun h =>
+  have finite : ∀ h, qprob I (world h) x ρ (ev h) ≠ ⊤ := fun h =>
     ne_top_of_le_ne_top one_ne_top ((HybridModel.ofProgram I x ρ q hq (ev h)).prob_le_one _ id)
   have wfinite (h : Full) : unifW Full h ≠ ⊤ := by
     exact ENNReal.inv_ne_top.mpr (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
   have wf (h : Full) : (unifW Full h).toReal = (Fintype.card Full : ℝ)⁻¹ := by
     rw [unifW,ENNReal.toReal_inv,ENNReal.toReal_natCast]
-  have decomp (h : Full) : (qprob I (project a h) x ρ (ev h)).toReal =
-      ∑ j, pv I (project a h) x (ev h) (vs j) := by
+  have decomp (h : Full) : (qprob I (world h) x ρ (ev h)).toReal =
+      ∑ j, pv I (world h) x (ev h) (vs j) := by
     rw [qprob_toReal_eq_DW,hvs,map_sum,Complex.re_sum]
     rfl
   apply (ENNReal.toReal_le_toReal (ENNReal.sum_ne_top.mpr (fun h _ =>
@@ -98,6 +98,15 @@ theorem mixed_mean {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.
   rw [Finset.sum_comm]
   calc _ ≤ ∑ j, C * ‖vs j‖^2 := Finset.sum_le_sum fun j _ => pure_bound (vs j)
        _ ≤ C := by rw [← Finset.mul_sum]; simpa using mul_le_mul_of_nonneg_left mass hC
+
+theorem mixed_mean {A : QReg} {L : LocalSig.{u,v}} {W : QReg → Type w} (I : L.Interp)
+    (x : QuantumComp L (qromSpec Input Output) W A) (ρ : SubState A) (q : ℕ)
+    (hq : x.IsQueryBound (fun _ => q)) (a : CF St Blk) (ev : Full → (Σ u, W u) → Prop)
+    (C : ℝ) (hC : 0 ≤ C)
+    (pure_bound : ∀ v : EuclideanSpace ℂ (A × Unit), (∑ h : Full, (Fintype.card Full : ℝ)⁻¹ *
+      pv I (project a h) x (ev h) v) ≤ C * ‖v‖ ^ 2) :
+    (∑ h : Full, unifW _ h * qprob I (project a h) x ρ (ev h)) ≤ ENNReal.ofReal C :=
+  mixed_mean_over I x ρ q hq (project a) ev C hC pure_bound
 
 open Classical in
 /-- Transfer a homogeneous bound for bounded pure-state program runs to the

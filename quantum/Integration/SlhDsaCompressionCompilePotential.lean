@@ -75,7 +75,7 @@ variable {X Y V W U : Type} [Fintype X] [DecidableEq X] [Fintype Y] [Nonempty Y]
   [NormedAddCommGroup V] [InnerProductSpace ℝ V] [NormedAddCommGroup W] [InnerProductSpace ℝ W]
   [NormedAddCommGroup U] [InnerProductSpace ℝ U]
 
-private theorem decoded (L : V ≃ₗᵢ[ℝ] Work X U) (R : Work X U ≃ₗᵢ[ℝ] W)
+theorem decoded (L : V ≃ₗᵢ[ℝ] Work X U) (R : Work X U ≃ₗᵢ[ℝ] W)
     (O : X → Option Y → U ≃ₗᵢ[ℝ] U) (v : DB X Y → V) (h : X → Y) :
     tensor (reindexCall L R.symm O v) (fun j => some (h j)) =
       R (WithLp.toLp 2 fun j => O j (some (h j)) (L (tensor v (fun j => some (h j))) j)) :=

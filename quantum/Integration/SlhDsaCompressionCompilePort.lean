@@ -68,7 +68,7 @@ private def translate {Y : Type} [AddCommGroup Y] (z : Y) : Y × U ≃ Y × U :=
 noncomputable def shift {Y : Type} [Fintype Y] [AddCommGroup Y] (z : Y) : Fiber U Y ≃ₗᵢ[ℝ] Fiber U Y :=
   LinearIsometryEquiv.piLpCongrLeft 2 ℝ ℂ (translate U z)
 
-private theorem slice_oracle {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
+theorem slice_oracle {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     [AddCommGroup Y] (H : X → Y) (v : EuclideanSpace ℂ (Tight.Reg X Y U)) (x : X) :
     slice U ((Tight.stdOracle X Y U).O H v) x = shift U (H x) (slice U v x) := by
   ext p

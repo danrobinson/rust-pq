@@ -22,12 +22,12 @@ private theorem ans_embed (f : Bool → R) (Q : Closed W α) : ansRun f (embed Q
     · rw [ansRun_unif]; exact bind_congr ih
 
 /-- Read both key states and then run a continuation with no further key-state access. -/
-private def readBoth (B : (Bool → R) → Closed W α) : QOC W (PRFScheme.PRFOracleSpec Bool R) α := do
+def readBoth (B : (Bool → R) → Closed W α) : QOC W (PRFScheme.PRFOracleSpec Bool R) α := do
   let i ← liftM ((instrSpec W + PRFScheme.PRFOracleSpec Bool R).query (.inr (.inr false)))
   let o ← liftM ((instrSpec W + PRFScheme.PRFOracleSpec Bool R).query (.inr (.inr true)))
   embed (B (fun b => if b then o else i))
 
-private theorem ans_both (f : Bool → R) (B : (Bool → R) → Closed W α) :
+theorem ans_both (f : Bool → R) (B : (Bool → R) → Closed W α) :
     ansRun f (readBoth B) = B f := by
   unfold readBoth
   rw [ansRun_oracle, ansRun_oracle, ans_embed]

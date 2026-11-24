@@ -1,4 +1,4 @@
-import Integration.SlhDsaCompressionCost
+import Integration.SlhDsaCompressionChainScan
 
 namespace Reduction.Compression.ClassCollision
 open MLink Ideal SLHDSA OracleComp OracleSpec PQ.Interactive
@@ -10,58 +10,12 @@ variable (S : Sha2Set)
 
 /-- Scan equal-length SHA-512 paths in parallel and return the first distinct
 compression inputs whose outputs agree on the public digest prefix. -/
-def scan (g : CF Chain512 Block512) (c d : Chain512) :
-    List Block512 → List Block512 → Option (Cell × Cell)
-  | b :: bs, e :: es =>
-    let u := (c,b)
-    let v := (d,e)
-    if u ≠ v ∧ trunc S (g u) = trunc S (g v) then some (u,v)
-    else scan g (g u) (g v) bs es
-  | _, _ => none
+abbrev scan := ChainScan.scan (B0 := Block512) (trunc S)
 
 theorem scan_sound (g : CF Chain512 Block512) (c d : Chain512) (bs es : List Block512)
     (u v : Cell) (h : scan S g c d bs es = some (u,v)) :
-    u ≠ v ∧ trunc S (g u) = trunc S (g v) := by
-  induction bs generalizing c d es with
-  | nil => simp [scan] at h
-  | cons b bs ih =>
-    cases es with
-    | nil => simp [scan] at h
-    | cons e es =>
-      simp only [scan] at h
-      split at h
-      · rename_i hit
-        cases h
-        exact hit
-      · exact ih _ _ _ h
-
-private theorem scan_none (g : CF Chain512 Block512) (c d : Chain512) (bs es : List Block512)
-    (len : bs.length = es.length) (ne : bs ≠ []) (h : scan S g c d bs es = none)
-    (eq : trunc S (mdFold g c bs) = trunc S (mdFold g d es)) : c = d ∧ bs = es := by
-  induction bs generalizing c d es with
-  | nil => contradiction
-  | cons b bs ih =>
-    cases es with
-    | nil => simp at len
-    | cons e es =>
-      simp only [scan] at h
-      split at h
-      · contradiction
-      · rename_i miss
-        simp only [List.length_cons, Nat.succ.injEq] at len
-        change trunc S (mdFold g (g (c,b)) bs) = trunc S (mdFold g (g (d,e)) es) at eq
-        have next : trunc S (g (c,b)) = trunc S (g (d,e)) ∧ bs = es := by
-          by_cases empty : bs = []
-          · subst bs
-            have he : es = [] := List.length_eq_zero_iff.mp len.symm
-            subst es
-            exact ⟨eq,rfl⟩
-          · obtain ⟨hg,he⟩ := ih _ _ _ len empty h eq
-            exact ⟨congrArg (trunc S) hg,he⟩
-        have cell : (c,b) = (d,e) := by
-          by_contra diff
-          exact miss ⟨diff,next.1⟩
-        exact ⟨congrArg Prod.fst cell,congrArg₂ List.cons (congrArg Prod.snd cell) next.2⟩
+    u ≠ v ∧ trunc S (g u) = trunc S (g v) :=
+  ChainScan.scan_sound (trunc S) g c d bs es u v h
 
 def extract (g : CompressionTables) (pk : S.Node) (a : Bytes 22) (xs ys : List S.Node) :=
   let c := g.2 (initial, seedBlock S pk)
@@ -89,7 +43,7 @@ theorem extract_collision (g : CompressionTables) (hw : S.vp.params.n ≠ 16) (p
       have z := thashBlocks_length S a xs
       rw [he] at z
       simp at z
-    exact (diff (thashBlocks_injective S (scan_none S g.2 _ _ _ _ len ne h win).2).2).elim
+    exact (diff (thashBlocks_injective S (ChainScan.scan_none (trunc S) g.2 _ _ _ _ len ne h win).2).2).elim
 
 private theorem read_cost (u : Cell) :
     EvalCost (fun H => (pure ((tablesOf H).2 u) : ProbComp Chain512)) 1 :=
@@ -97,25 +51,8 @@ private theorem read_cost (u : Cell) :
 
 private theorem scan_cost (c d : Chain512) (bs es : List Block512) :
     EvalCost (fun H => (pure (scan S (tablesOf H).2 c d bs es) : ProbComp (Option (Cell × Cell))))
-      (2 * bs.length) := by
-  induction bs generalizing c d es with
-  | nil => exact EvalCost.const (pure none)
-  | cons b bs ih =>
-    cases es with
-    | nil => exact (EvalCost.const (pure none)).mono (Nat.zero_le _)
-    | cons e es =>
-      let step := fun (c' d' : Chain512) (H : Input → Output) =>
-        (pure (if (c,b) ≠ (d,e) ∧ trunc S c' = trunc S d' then some ((c,b),(d,e))
-          else scan S (tablesOf H).2 c' d' bs es) : ProbComp (Option (Cell × Cell)))
-      have inner (c' d' : Chain512) : EvalCost (step c' d') (2 * bs.length) := by
-        unfold step
-        split
-        · exact (EvalCost.const _).mono (Nat.zero_le _)
-        · exact ih c' d' es
-      have cost := EvalCost.bind (read_cost (c,b)) (fun c' =>
-        EvalCost.bind (read_cost (d,e)) (inner c'))
-      rw [show 2 * (b :: bs).length = 1 + (1 + 2 * bs.length) by simp; omega]
-      simpa only [step, pure_bind, scan] using cost
+      (2 * bs.length) :=
+  ChainScan.scan_cost (trunc S) (fun H => (tablesOf H).2) read_cost c d bs es
 
 /-- The extractor uses the forger's same quantum port. It reads the seed cell once
 and reads at most two cells per remaining block, including padding. -/

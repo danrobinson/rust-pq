@@ -4,24 +4,24 @@ namespace Reduction.Compression.HmacKey
 open MLink Ideal SLHDSA OracleComp OracleSpec PQ.Interactive Quantum ENNReal
 open scoped Kronecker
 
-private noncomputable def mean {X : Type} [Fintype X] (f : X → ℝ≥0∞) :=
+noncomputable def mean {X : Type} [Fintype X] (f : X → ℝ≥0∞) :=
   (Fintype.card X : ℝ≥0∞)⁻¹ * ∑ x, f x
 
-private theorem mean_sum {X : Type} [Fintype X] (f : X → ℝ≥0∞) :
+theorem mean_sum {X : Type} [Fintype X] (f : X → ℝ≥0∞) :
     mean f = ∑ x, unifW _ x * f x := Finset.mul_sum ..
 
-private theorem mean_comm {X Y : Type} [Fintype X] [Fintype Y] (f : X → Y → ℝ≥0∞) :
+theorem mean_comm {X Y : Type} [Fintype X] [Fintype Y] (f : X → Y → ℝ≥0∞) :
     mean (fun x => mean (f x)) = mean (fun y => mean (fun x => f x y)) := by
   simp only [mean, ← Finset.mul_sum, ← mul_assoc]
   rw [Finset.sum_comm, mul_comm (Fintype.card X : ℝ≥0∞)⁻¹]
 
-private theorem mean_bound {X : Type} [Fintype X] [Nonempty X] {f g : X → ℝ≥0∞} {e : ℝ≥0∞}
+theorem mean_bound {X : Type} [Fintype X] [Nonempty X] {f g : X → ℝ≥0∞} {e : ℝ≥0∞}
     (h : ∀ x, f x ≤ g x + e) : mean f ≤ mean g + e := by
   simp only [mean_sum]
   apply le_trans (Finset.sum_le_sum fun x _ => mul_le_mul' (a := unifW _ x) le_rfl (h x))
   simp only [mul_add, Finset.sum_add_distrib, ← Finset.sum_mul, sum_unifW, one_mul, le_refl]
 
-private theorem bool_mean {X : Type} [Fintype X] (f : (Bool → X) → ℝ≥0∞) :
+theorem bool_mean {X : Type} [Fintype X] (f : (Bool → X) → ℝ≥0∞) :
     mean f = mean (fun i => mean (fun o => f (fun b => if b then o else i))) := by
   let e : X × X ≃ (Bool → X) :=
     ⟨fun p b => if b then p.2 else p.1, fun v => (v false,v true), fun _ => rfl,
