@@ -22,7 +22,7 @@ set_option maxRecDepth 2048
 namespace slhdsa
 
 /-- [slhdsa::cache::level_offset]:
-    Source: 'src/cache.rs', lines 70:0-72:1 -/
+    Source: 'src/cache.rs', lines 82:0-84:1 -/
 def cache.level_offset
   (hp : Std.U32) (height : Std.U32) : Result Std.Usize := do
   let i ← hp + 1#u32
@@ -32,14 +32,14 @@ def cache.level_offset
   i1 - i3
 
 /-- [slhdsa::cache::tree_node_count]:
-    Source: 'src/cache.rs', lines 76:0-78:1 -/
+    Source: 'src/cache.rs', lines 88:0-90:1 -/
 def cache.tree_node_count (hp : Std.U32) : Result Std.Usize := do
   let i ← hp + 1#u32
   let i1 ← 1#usize <<< i
   i1 - 1#usize
 
 /-- [slhdsa::cache::append_auth_path]: loop body 0:
-    Source: 'src/cache.rs', lines 84:4-88:5 -/
+    Source: 'src/cache.rs', lines 96:4-100:5 -/
 @[rust_loop_body]
 def cache.append_auth_path_loop.body
   {N : Std.Usize} (tree : Slice (Array Std.U8 N)) (hp : Std.U32)
@@ -64,7 +64,7 @@ def cache.append_auth_path_loop.body
     ok (cont (iter1, out1))
 
 /-- [slhdsa::cache::append_auth_path]: loop 0:
-    Source: 'src/cache.rs', lines 84:4-88:5 -/
+    Source: 'src/cache.rs', lines 96:4-100:5 -/
 @[rust_loop]
 def cache.append_auth_path_loop
   {N : Std.Usize} (iter : core.ops.range.Range Std.U32)
@@ -78,7 +78,7 @@ def cache.append_auth_path_loop
     (iter, out)
 
 /-- [slhdsa::cache::append_auth_path]:
-    Source: 'src/cache.rs', lines 83:0-89:1 -/
+    Source: 'src/cache.rs', lines 95:0-101:1 -/
 @[reducible]
 def cache.append_auth_path
   {N : Std.Usize} (tree : Slice (Array Std.U8 N)) (hp : Std.U32)
@@ -89,7 +89,7 @@ def cache.append_auth_path
     out
 
 /-- [slhdsa::cache::tree_root]:
-    Source: 'src/cache.rs', lines 93:0-95:1 -/
+    Source: 'src/cache.rs', lines 105:0-107:1 -/
 def cache.tree_root
   {N : Std.Usize} (tree : Slice (Array Std.U8 N)) :
   Result (Array Std.U8 N)

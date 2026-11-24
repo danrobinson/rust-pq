@@ -42,6 +42,18 @@ struct LayerD2Entry<const N: usize> {
     nodes: Vec<[u8; N]>,
 }
 
+// Shared by immutable cache misses and the mutable move-to-front path.
+fn find_cached_index<const N: usize>(entries: &[LayerD2Entry<N>], tree_index: u64) -> Option<usize> {
+    let mut pos = 0;
+    while pos < entries.len() {
+        if entries[pos].tree_index == tree_index {
+            return Some(pos);
+        }
+        pos += 1;
+    }
+    None
+}
+
 /// Public Merkle-tree cache for the static top XMSS tree (layer `d - 1`) and optional
 /// layer `d - 2` subtrees of an SLH-DSA signing key.
 ///
@@ -2054,18 +2066,7 @@ impl<const N: usize> TopTreeCache<N> {
     }
 
     fn lookup_d2(&self, tree_d2: u64) -> Option<&[[u8; N]]> {
-        if self.layer_d2.is_empty() {
-            return None;
-        }
-        // Fast O(1) direct index when all 2^hp layer d - 2 trees were precomputed in order.
-        let idx = tree_d2 as usize;
-        if idx < self.layer_d2.len() && self.layer_d2[idx].tree_index == tree_d2 {
-            return Some(&self.layer_d2[idx].nodes);
-        }
-        self.layer_d2
-            .iter()
-            .find(|e| e.tree_index == tree_d2)
-            .map(|e| e.nodes.as_slice())
+        lookup_cached_index(&self.layer_d2, tree_d2).map(|pos| self.layer_d2[pos].nodes.as_slice())
     }
 
     fn lookup_or_populate_d2(
@@ -2078,7 +2079,7 @@ impl<const N: usize> TopTreeCache<N> {
         if self.layer_d2_capacity == 0 && self.layer_d2.is_empty() {
             return None;
         }
-        if let Some(pos) = self.layer_d2.iter().position(|e| e.tree_index == tree_d2) {
+        if let Some(pos) = find_cached_index(&self.layer_d2, tree_d2) {
             if pos != 0 && self.layer_d2.len() < (1usize << p.hp) {
                 let entry = self.layer_d2.remove(pos);
                 self.layer_d2.insert(0, entry);
@@ -2571,3 +2572,17 @@ cache_set!(shake_192s, HashFamily::Shake, "Top-tree caching for SLH-DSA-SHAKE-19
 cache_set!(shake_192f, HashFamily::Shake, "Top-tree caching for SLH-DSA-SHAKE-192f.");
 cache_set!(shake_256s, HashFamily::Shake, "Top-tree caching for SLH-DSA-SHAKE-256s.");
 cache_set!(shake_256f, HashFamily::Shake, "Top-tree caching for SLH-DSA-SHAKE-256f.");
+
+// Immutable lookup also handles fully precomputed trees by direct index.
+#[inline]
+fn lookup_cached_index<const N: usize>(entries: &[LayerD2Entry<N>], tree_d2: u64) -> Option<usize> {
+    if entries.is_empty() {
+        return None;
+    }
+    // Fast O(1) direct index when all 2^hp layer d - 2 trees were precomputed in order.
+    let idx = tree_d2 as usize;
+    if idx < entries.len() && entries[idx].tree_index == tree_d2 {
+        return Some(idx);
+    }
+    find_cached_index(entries, tree_d2)
+}
