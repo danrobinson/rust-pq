@@ -750,10 +750,13 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                         label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd,
                     )
                     statements.append(leaves_claim)
-                    for fors_stage in (None, (producer("pk_fors"), splitBool)):
+                    for fors_stage, host_cmd in (
+                        (None, None), ((producer("pk_fors"), splitBool), None),
+                        ((producer("pk_fors"), splitBool), producer("randomizer")),
+                    ):
                         statements.append(wots_output["public_claim"](
                             label, p, g, family, n, phase, producer("xmss_leaves"),
-                            source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage,
+                            source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage, host_cmd=host_cmd,
                         ))
     return "\n".join(statements)
 

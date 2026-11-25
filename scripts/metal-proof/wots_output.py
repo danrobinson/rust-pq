@@ -85,7 +85,7 @@ private theorem {name}SigByte_spec {{p count}} (inputs : MetalWotsOutput.Inputs)
 """
 
 
-def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None):
+def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None, host_cmd=None):
     words = n // (8 if family == "shake" else 4)
     mode = ".twoPhase" if phase else ".streaming"
     count = f"(rs.length * {p}.d * 2^{p}.hp)"
@@ -112,14 +112,32 @@ def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, l
         source, rest = "source", "rest"
         orders = f"pkBuf.schedule.Perm (MetalChainDispatch.grid requests.length {words}) ∧"
         exclude = f"a ≠ {fors_cmd} →"
+    host_setup = ""
+    arguments = f"""({leaf_execution} : MetalChainDispatch.Execution) (keys : MetalChainDispatch.Keys)
+    (trees : MetalChainDispatch.Trees) (other : MetalCommand.Region → Prop)
+    (data : MetalWotsOutput.Inputs) {extras} (capacity : Nat) (initial : Nat → Spec.Byte)"""
+    if host_cmd is not None:
+        base = "host_values"
+        arguments = f"""({"pre leaf" if phase else "pre"} : MetalChainDispatch.Execution)
+    (unconstrained : MetalCommand.Region → Prop) (raw : MetalWotsOutput.Inputs)
+    (roots : MetalChainDispatch.Memory) (pkBuf : MetalChainDispatch.Execution)
+    (events : List (MetalHostValues.Middle {g} (MetalCommandValues.framed rs).length))
+    (capacity : Nat) (memory : Nat → Spec.Byte)"""
+        host_setup = f"""let keys := MetalHostValues.keys {p} requests
+    let trees := MetalHostValues.trees {p} requests
+    let e := MetalHostValues.initialized (p := {p}) requests pre
+    let data := {{raw with desc := MetalHostValues.layer {p} requests}}
+    let jobs := MetalHostValues.job {p} requests
+    let initial := MetalHostValues.afterMiddle events (MetalHostValues.initMemory {p} requests memory)
+    let other := fun r => if r = MetalCommand.Region.randomizer then True else unconstrained r
+    """
+        exclude += f" a ≠ {host_cmd} →"
     header = f"""
 private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
-    ({leaf_execution} : MetalChainDispatch.Execution) (keys : MetalChainDispatch.Keys)
-    (trees : MetalChainDispatch.Trees) (other : MetalCommand.Region → Prop)
-    (data : MetalWotsOutput.Inputs) {extras} (capacity : Nat) (initial : Nat → Spec.Byte)
+    {arguments}
     (schedule : List (MetalWotsOutput.Coord {p} (MetalCommandValues.framed rs).length)) :
     let requests := MetalCommandValues.framed rs
-    {setup}let buffers := {{{source} with keys := e.keys}}
+    {host_setup}{setup}let buffers := {{{source} with keys := e.keys}}
     let atByte := @{family}SigAddr {p} requests.length buffers {words}
     let toByte := @{family}SigByte {p} requests.length buffers
     let out := MetalWotsOutput.pool atByte toByte schedule initial capacity
@@ -133,6 +151,29 @@ private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
         (∀ r ∈ a.reads, {correct} r) → ∀ r ∈ a.writes, {correct} r) →
     MetalCommandValues.publicResult {p} rs out =
       rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
+"""
+    if host_cmd is not None:
+        return header + f"""
+  intro requests keys trees e data jobs initial other pkValue source rest buffers atByte toByte out inputsInv inv accepted
+  apply {label}_fors_public_key rs {leaf_execution} keys trees other data jobs roots pkBuf capacity initial schedule
+  intro guard
+  obtain ⟨alloc,{", ".join(names.split())},cover,pkOrder,remaining⟩ := accepted guard
+  refine ⟨alloc,{",".join(names.split())},cover,pkOrder,?_⟩
+  intro a ha {"hc " if phase else ""}hl hw hf
+  by_cases eq : a = {host_cmd}
+  · subst a
+    have nr : requests.length = rs.length := by simp [requests,MetalCommandValues.framed]
+    have descriptors : MetalWotsOutput.Descriptors {p} requests buffers keys :=
+      MetalHostValues.layers_spec {p} requests buffers rfl
+    have rand := MetalHostValues.final_randomizer {p} (MetalPipeline.metal_all_12_params_valid _ (by decide))
+      {mode} requests {g} (by decide) (by decide) events atByte toByte
+      (fun w => ({family}SigAddr_spec buffers {words} (by decide) w).trans (MetalWotsOutput.shader_addr descriptors w))
+      schedule memory capacity (nr ▸ alloc) inv (by trivial)
+    have span : requests.length*{p}.sigBytes = rs.length*{p}.sigBytes := congrArg (· * {p}.sigBytes) nr
+    apply MetalHostValues.host_rule {host_cmd} (by decide) {g} requests.length _ _ inv
+      rfl rfl (MetalHostValues.jobs_spec {p} requests) descriptors
+    simpa only [span] using rand
+  · exact remaining a ha {"hc " if phase else ""}hl hw hf eq
 """
     if fors_stage is not None:
         return header + f"""
