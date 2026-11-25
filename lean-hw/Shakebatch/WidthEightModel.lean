@@ -1,4 +1,5 @@
-import Parallel.FusedSignature
+import Fused.Entry
+import Fused.Hosted
 import Shakebatch.WidthEightFors
 import Parallel.KeygenPublic
 import Cachepath.NativeVerify.Hosted
@@ -41,27 +42,68 @@ theorem packVec_eq (b : Spec.Bytes) (r : alloc.vec.Vec U8) (eq : bytes r.val=b) 
     change List.map id s.val = s.val
     exact List.map_id _
 
-/-- Value of the width-eight fused XMSS signing branch. The portable branch
-is shared by x86 hosts without the available instruction set. -/
-def xmssSign (host : Platform) {N : Usize} (p : params.Params) (m sk : Array U8 N) (idx : U32) (seed : Array U8 N)
-    (a : address.Adrs) : Result (alloc.vec.Vec U8) :=
+@[instance_reducible] noncomputable def Platform.fused (host : Platform) (p : params.Params) : Fused.Kernel :=
+  match host with
+  | .apple sha3 => FusedApple.slhdsa.Fused.Host.apple sha3 p
+  | .x86 => FusedX86.slhdsa.Fused.Host.x86 p
+
+/-- The eight-lane branch runs the complete extracted fused signer. The feature
+test retains the portable implementation on x86 hosts without AVX-512. -/
+noncomputable def xmssSign (host : Platform) {N : Usize} (p : params.Params) (m sk : Array U8 N)
+    (idx : U32) (seed : Array U8 N) (a : address.Adrs) : Result (alloc.vec.Vec U8) :=
   if 3≤p.hp.val && host.available N then
-    packVec (ParallelFusedSignature.sign (Shake.params p) (bytes m.val) (bytes sk.val) idx.val (bytes seed.val)
-      (adrsS a) (fun _ => []))
+    @Fused.xmss_sign_batch (host.fused p) N p m sk idx seed a
   else shake.xmss.xmss_sign p m sk idx seed a
 
 theorem xmssSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N) (m sk : Array U8 N)
     (idx : U32) (seed : Array U8 N) (a : address.Adrs) (fits : idx.val < 2^p.hp.val) :
     xmssSign host p m sk idx seed a ⦃ r => bytes r.val=Spec.xmssSign (Shake.params p) (bytes m.val) (bytes sk.val)
       idx.val (bytes seed.val) (adrsS a) ∧ r.length=(2*N.val+3+p.hp.val)*N.val ⦄ := by
-  have scalar := Shake.xmss_sign_spec p hp m sk idx seed a fits
   unfold xmssSign
   split
-  · obtain ⟨r,_,eq,size⟩ := spec_imp_exists scalar
-    rw [ParallelFusedSignature.sign_fips (Shake.params p) _ _ _ _ _ _ (by change (paramsS p).len=2*p.n.val+3; simpa [hp.n_eq] using hp.len) (by rfl) (by exact hp.valid.hp_le),
-      packVec_eq _ r eq]
-    exact (WP.spec_ok _).mpr ⟨eq,size⟩
-  · exact scalar
+  · rename_i on
+    obtain ⟨height,feature⟩ := Bool.and_eq_true_iff.mp on
+    have height : 3≤p.hp.val := of_decide_eq_true height
+    have byteProof : @Fused.xmss_sign_batch (host.fused p) N p m sk idx seed a ⦃ out =>
+        bytes out.val=Spec.xmssSign (Shake.params p) (bytes m.val) (bytes sk.val) idx.val (bytes seed.val) (adrsS a) ⦄ := by
+      cases host with
+      | apple sha3 =>
+        exact @Fused.sign_spec (FusedApple.slhdsa.Fused.Host.apple sha3 p) N p hp m sk idx seed a height fits
+          (AppleHybrid.permutation_correct sha3) (NativeVerify.apple sha3)
+          (FusedApple.slhdsa.Fused.Host.apple_subtree sha3 p hp sk seed a)
+      | x86 =>
+        have cpu : GatherRust.avx512Available=true := (Bool.and_eq_true_iff.mp feature).2
+        exact @Fused.sign_spec (FusedX86.slhdsa.Fused.Host.x86 p) N p hp m sk idx seed a height fits
+          (Kxdispatch.permutation_correct cpu) (NativeVerify.x86 cpu)
+          (FusedX86.slhdsa.Fused.Host.x86_subtree cpu p hp sk seed a)
+    apply WP.spec_mono byteProof
+    intro r eq
+    refine ⟨eq,?_⟩
+    have h := congrArg List.length eq
+    have valid : (Shake.params p).Valid := Suite.valid .shake hp
+    rw [Spec.xmssSign_length _ valid] at h
+    have len : (Shake.params p).len=2*N.val+3 := by change (paramsS p).len=_; exact hp.len
+    simpa only [bytes_length,Spec.Params.xmssSigBytes,len,show (Shake.params p).n=N.val from hp.n,
+      show (Shake.params p).hp=p.hp.val from rfl] using h
+  · exact Shake.xmss_sign_spec p hp m sk idx seed a fits
+
+theorem apple_fast {N : Usize} (sha3 : Bool) (p : params.Params) (hp : PN p N)
+    (m sk : Array U8 N) (idx : U32) (seed : Array U8 N) (a : address.Adrs) (height : 3≤p.hp.val) :
+    xmssSign (.apple sha3) p m sk idx seed a =
+      @Fused.xmss_sign_batch (FusedApple.slhdsa.Fused.Host.apple sha3 p) N p m sk idx seed a := by
+  have geom := hp.nok
+  unfold xmssSign Platform.available Platform.wide
+  rcases geom with h|h|h <;> simp [h,height]
+
+theorem x86_select {N : Usize} (p : params.Params) (hp : PN p N)
+    (m sk : Array U8 N) (idx : U32) (seed : Array U8 N) (a : address.Adrs) (height : 3≤p.hp.val) :
+    xmssSign .x86 p m sk idx seed a =
+      if GatherRust.avx512Available then
+        @Fused.xmss_sign_batch (FusedX86.slhdsa.Fused.Host.x86 p) N p m sk idx seed a
+      else shake.xmss.xmss_sign p m sk idx seed a := by
+  have geom := hp.nok
+  unfold xmssSign Platform.available Platform.wide
+  rcases geom with h|h|h <;> simp [h,height]
 
 /-- Project each active lane through the host's actual hash implementation.
 The surrounding wide shuffle and field trace are handled by the physical tree. -/

@@ -1,4 +1,5 @@
 import Shakebatch.WidthEightHosted
+import Parallel.KeygenNativeHashes
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthEight
 open ParallelKeygenHost
@@ -10,14 +11,23 @@ def Platform.isX86 : Platform → Bool
 
 @[instance_reducible] noncomputable def keyEngine (host : Platform) (p : params.Params) : Engine ShakeSeed :=
   match host with
-  | .apple sha3 => @ShNode.engine (AppleHybrid.machine sha3) ShakeForestApple.slhdsa.ShakeBatch.scalarStream (@ShNode.primitives (AppleHybrid.machine sha3) ShakeForestApple.slhdsa.ShakeBatch.scalarStream p true) (ShNode.detector (ok true))
-  | .x86 => @ShNode.engine Kxdispatch.machine ShakeForestX86.slhdsa.ShakeBatch.scalarStream (@ShNode.primitives Kxdispatch.machine ShakeForestX86.slhdsa.ShakeBatch.scalarStream p true) (ShNode.detector KxdispatchRust.shake256.parallel.available)
+  | .apple sha3 =>
+    let stream := AppleSingleStream.ShakeForestApple.slhdsa.ShakeBatch.scalarStream
+    let machine := AppleHybrid.machine sha3
+    @KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.engine machine stream
+      (@KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.primitives machine stream p true)
+      (ShNode.detector (ok true))
+  | .x86 =>
+    let stream := ShakeForestX86.slhdsa.ShakeBatch.scalarStream
+    @KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.engine Kxdispatch.machine stream
+      (@KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.primitives Kxdispatch.machine stream p true)
+      (ShNode.detector KxdispatchRust.shake256.parallel.available)
 
 theorem keys (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N)
     (threads : Nat) (pool : PoolOutcome) : ShNode.KeyPair (keyEngine host p) host.isX86 threads pool (N:=N) p := by
   cases host with
-  | apple sha3 => exact ShNode.apple_keys sha3 p hp threads pool
-  | x86 => exact ShNode.x86_keys p hp threads pool
+  | apple sha3 => exact KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.apple_keys sha3 p hp threads pool
+  | x86 => exact KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.x86_keys p hp threads pool
 
 def sign (host : Platform) {N : Usize} (p : params.Params) (m ctx sk : Slice U8) (rnd : Array U8 N) :=
   match host with

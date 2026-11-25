@@ -9,7 +9,7 @@ private partial def visit (env : Environment) (declName : Name) : StateM NameSet
   if (← get).contains declName then return
   modify (·.insert declName)
   let some idx := env.getModuleIdxFor? declName | return
-  unless [`Slhdsa,`Parallel,`Shakeopt,`Shakebatch,`Cachepath,`Cacheops,`Facade].any
+  unless [`Fused,`Slhdsa,`Parallel,`Shakeopt,`Shakebatch,`Cachepath,`Cacheops,`Facade].any
     (·.isPrefixOf env.header.moduleNames[idx]!) do return
   if let some (.defnInfo d) := env.find? declName then
     for child in d.value.getUsedConstants do visit env child
@@ -32,13 +32,17 @@ run_cmd liftCoreM do
         (`WidthEightX86API,`KxouterRust.shake256.Sponge.absorb)] do
       let hosted := if api == `WidthEightAppleAPI then `WidthEightApple else `WidthEightX86
       let ns := api ++ s
-      for op in [`sign_spec,`sign_deterministic_spec] do
-        reaches (ns ++ op) [`ParallelFusedSignature.sign,hosted ++ `slhdsa.WidthEight.Fors.signature,
+      let hw := if api == `WidthEightAppleAPI then `FusedApple.slhdsa.Fused.Host.apple else `FusedX86.slhdsa.Fused.Host.x86
+      for op in [`sign_spec,`sign_deterministic_spec,`slh_sign_spec,`slh_sign_internal_spec] do
+        reaches (ns ++ op) [hw,`slhdsa.Fused.xmss_sign_batch,`slhdsa.Fused.xmss_sign_batch_loop2,
+          `slhdsa.Fused.xmss_sign_batch_loop3,`slhdsa.Fused.xmss_sign_batch_loop5,hosted ++ `slhdsa.WidthEight.Fors.signature,
           `slhdsa.WidthEight.Platform.available,
           `slhdsa.NativeVerify.ActiveHash.short_active,`slhdsa.NativeVerify.ActiveHash.pair_active,
           `slhdsa.NativeVerify.ForsFused.fused,absorb]
-      reaches (ns ++ `verify_spec) [`slhdsa.WidthEight.Platform.recovery,absorb]
-      reaches (ns ++ `seeded_roundtrip) [`slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal,
-        `ParallelFusedSignature.sign,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb]
+      for op in [`verify_spec,`slh_verify_internal_spec,`slh_verify_spec] do
+        reaches (ns ++ op) [`slhdsa.WidthEight.Platform.recovery,absorb]
+      let key := if api == `WidthEightAppleAPI then `KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.engine else `KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.engine
+      reaches (ns ++ `seeded_roundtrip) [key,hw,`slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal,
+        `slhdsa.Fused.xmss_sign_batch,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb]
 
 end slhdsa.WidthEight.Coverage

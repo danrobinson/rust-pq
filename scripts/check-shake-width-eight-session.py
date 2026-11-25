@@ -3,6 +3,7 @@
 from pathlib import Path
 import re
 import runpy
+import sys
 
 facade = runpy.run_path(str(Path(__file__).with_name("check-platform-facade.py")))
 root = Path(__file__).resolve().parent.parent
@@ -33,6 +34,8 @@ def main():
             continue
         raise ValueError(f"{path}: changed production call passed the dispatch check")
 
+    facade["run"]([sys.executable, Path(__file__).with_name("check-shake-fused-program.py")], root)
+
     module = "Shakebatch.WidthEightCoverage"
     facade["run"](["lake", "build", module], root / "lean-hw")
     operations = ("sign_spec", "sign_deterministic_spec", "verify_spec", "slh_sign_spec",
@@ -41,8 +44,8 @@ def main():
                 for host in ("Apple", "X86") for op in operations]
     lanes = ["slhdsa.WidthEight.Fors." + name for name in
              ("secret_fips", "leaf_fips", "parent_fips", "secret_lane", "fused_lane", "packed_lane", "signature_eq")]
-    facade["audit_theorems"](module, theorems + lanes)
-    print(f"Verified {len(theorems)} width-eight hosted theorem roots, seven native FORS value and lane theorems, and three dispatch mutations.")
+    facade["audit_theorems"](module, theorems + lanes + ["slhdsa.WidthEight.apple_fast", "slhdsa.WidthEight.x86_select"])
+    print(f"Verified {len(theorems)} width-eight hosted theorem roots, both native XMSS selections, seven native FORS theorems, and three dispatch mutations.")
 
 
 if __name__ == "__main__":
