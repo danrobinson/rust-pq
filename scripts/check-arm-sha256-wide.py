@@ -1481,7 +1481,12 @@ def main():
     subprocess.run([os.sys.executable, HERE / "check-arm-wots-recovery.py"], check=True)
     subprocess.run([os.sys.executable, HERE / "check-arm-xmss-leaves.py"], check=True)
     subprocess.run([os.sys.executable, HERE / "check-arm-xmss-callers.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-xmss-parents.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-fors-subtree.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-fors-sign.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-fors-recovery.py"], check=True)
     subprocess.run([os.sys.executable, HERE / "check-arm-wide-signature.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-signature-theorems.py"], check=True)
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         check_extraction(scratch)

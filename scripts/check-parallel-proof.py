@@ -238,6 +238,7 @@ def main():
     check_pool()
     modules = {
         "Parallel.Pool": "ParallelPool.join",
+        "Parallel.SigningPublication": "ParallelSigning.Publication.ready_sees_cells",
         "Parallel.Cached": "ParallelCached.interleavings",
         "Parallel.FusedWots": "ParallelFusedWots.selected",
         "Parallel.Fused": "ParallelFused.context_sign_fips",

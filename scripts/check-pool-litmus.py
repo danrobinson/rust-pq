@@ -55,6 +55,32 @@ def run(binary, libdir, path, content, want):
         raise ValueError(f"expected {want} for {path.name}\n{output}")
 
 
+def signing_phase(binary, libdir, folder):
+    # Relaxed observation markers isolate the edge contributed by the phase
+    # protocol. Production OnceLock operations have additional guarantees.
+    rust = re.sub(r"//[^\n]*|\s+", "", (ROOT / "rust/src/slh/parallel.rs").read_text())
+    sites = ["ifphase1_done.fetch_add(1,Ordering::AcqRel)+1==total_phase1{",
+             "let_=roots_cell.set(roots);", "phase2_state.store(PHASE2_READY,Ordering::Release);",
+             "letst=phase2_state.load(Ordering::Acquire);ifst==PHASE2_READY{break;}",
+             'letroots=roots_cell.get().expect("rootsready");']
+    if any(rust.count(site) != 1 for site in sites) or [rust.index(s) for s in sites] != sorted(rust.index(s) for s in sites):
+        raise ValueError("review phase-one reduction and phase-two publication order")
+    path = folder / "signing-phase.litmus"
+    model = (SUITE / path.name).read_text()
+    run(binary, libdir, path, model, "Never")
+    good = r"exists (0:first=0 /\ 1:last=1 /\ 1:reduced=1 /\ 2:seen=1 /\ 2:input=1)"
+    run(binary, libdir, path, model.split("exists (")[0] + good + "\n", "Sometimes")
+    for line in ("first = atomic_fetch_add_explicit(done, 1, memory_order_acq_rel)",
+                 "last = atomic_fetch_add_explicit(done, 1, memory_order_acq_rel)",
+                 "atomic_store_explicit(ready, 1, memory_order_release)",
+                 "atomic_load_explicit(ready, memory_order_acquire)"):
+        if model.count(line) != 1:
+            raise ValueError(f"missing phase event {line}")
+        mutant = re.sub(r"memory_order_\w+", "memory_order_relaxed", line)
+        run(binary, libdir, path, model.replace(line, mutant), "Sometimes")
+    print("signing phases: stale reads excluded, successful path and four weakened-order controls witnessed", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--herd", default="herd7", help="herdtools7 executable (tested on 7.58)")
@@ -63,6 +89,7 @@ def main():
     rust = re.sub(r"//[^\n]*|\s+", "", (ROOT / "rust/src/pool.rs").read_text().split("#[cfg(test)]")[0])
     seen = set()
     with tempfile.TemporaryDirectory() as tmp:
+        signing_phase(args.herd, args.libdir, Path(tmp))
         for name, positive in SUCCESSES.items():
             base = (SUITE / (name + ".litmus")).read_text()
             for event in re.findall(r"atomic_\w+_explicit\([^);]+\)", base):
