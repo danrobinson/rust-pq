@@ -13,7 +13,7 @@ def writeRows {α : Type} (count : Nat) (compute : Nat → Result α) : List Nat
     | some none => do let row ← compute j; ok (prior.set j (some row))
     | _ => fail .panic
 
-private theorem writes {α : Type} (count : Nat) (compute : Nat → Result α) (post : Nat → α → Prop)
+theorem writes {α : Type} (count : Nat) (compute : Nat → Result α) (post : Nat → α → Prop)
     (total : ∀ j<count, ∃ row, compute j=ok row ∧ post j row) (done : List Nat)
     (unique : done.Nodup) (inside : ∀ i∈done, i<count) :
     ∃ rows, writeRows count compute done=ok rows ∧ rows.length=count ∧

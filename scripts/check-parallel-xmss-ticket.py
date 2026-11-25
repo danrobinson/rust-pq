@@ -17,6 +17,15 @@ def extract(folder, target):
     file = crate / "src/slh/parallel.rs"
     source = file.read_text()
     sign = shared["shared"]["signer"].function(source, "sign")
+    leaf_jobs = """let leaf_pk_count = d.saturating_sub(1);
+        for j in 0..leaf_pk_count {
+            jobs.push(WorkItem { weight: 256, kind: WorkKind::XmssLeafPk { layer: j as u16 }, });
+        }"""
+    code = re.sub(r"//[^\n]*|\s+", "", sign)
+    if code.count("".join(leaf_jobs.split())) != 1:
+        raise ValueError("XMSS signing-leaf ticket coverage or layer cast changed")
+    if code.count("leaf_pks:Vec<OnceLock<[u8;N]>>=(0..leaf_pk_count).map(|_|OnceLock::new()).collect()") != 1:
+        raise ValueError("XMSS signing-leaf storage initialization changed")
     body = sign.split("match item.kind {")[-1]
     for name, arm, next_arm, table in [("subtree", "XmssSubtree", "XmssLeafPk", "xmss_slots"),
                                       ("leaf", "XmssLeafPk", "ForsTreeLow", "leaf_pks")]:
@@ -71,11 +80,12 @@ def main():
             file.write_text(raw.replace("sk idx height seed", "sk height idx seed"))
             if program(pkg).split() == checked:
                 raise ValueError("accepted swapped tree index and height")
-    module = "Parallel.TicketFromLayers"
+    module = "Parallel.LeafTable"
     common["facade"]["run"](["lake", "build", module], lean)
+    common["facade"]["audit_theorems"](module, ["slhdsa.ParallelLeafTable.node_law", "slhdsa.ParallelLeafTable.leaves_spec"])
     common["facade"]["audit_theorems"](module, ["slhdsa.ParallelXmssTicket." + n for n in
         ("subtree_spec", "leaf_spec", "linux_subtree", "linux_leaf", "hosted_law", "hosted_subtree", "hosted_leaf",
-         "layer_table", "subtree_from_layers", "leaf_from_layers", "wots_from_layers")])
+         "layer_table", "subtree_from_layers", "leaf_from_layers", "wots_from_layers", "published_leaf_returns")])
 
 
 if __name__ == "__main__":
