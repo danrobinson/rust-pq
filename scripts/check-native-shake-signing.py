@@ -74,7 +74,8 @@ def main():
     facade["audit_theorems"]("Cachepath.NativeShakeWots.SignEngine", ["slhdsa.NativeShakeWots.Signer." + thm
                              for thm in ("scan", "after_round", "engine")])
     facade["audit_theorems"]("Cachepath.NativeShakeWots.SignEntry", ["slhdsa.NativeShakeWots." + thm
-                             for thm in ("sign_digits", "sign_spec")])
+                             for thm in ("Signer.prepare_secrets", "Signer.initial_matches", "Signer.initialize_lanes",
+                                         "Signer.schedule_sort", "Signer.launch", "sign_digits", "sign_spec")])
     with tempfile.TemporaryDirectory() as tmp:
         packages = []
         for i, target in enumerate(facade["TARGETS"]):
