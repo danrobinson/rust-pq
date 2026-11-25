@@ -36,7 +36,8 @@ def main():
 
     facade["run"]([sys.executable, Path(__file__).with_name("check-shake-fused-program.py")], root)
 
-    facade["run"]([sys.executable, Path(__file__).with_name("check-shake-xmss-dispatch.py")], root)
+    for checker in ("check-shake-xmss-dispatch.py", "check-shake-buffered-program.py", "check-shake-buffered-leaves.py"):
+        facade["run"]([sys.executable, Path(__file__).with_name(checker)], root)
 
     module = "Shakebatch.WidthEightCoverage"
     facade["run"](["lake", "build", module], root / "lean-hw")
