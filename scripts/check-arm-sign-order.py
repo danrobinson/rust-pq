@@ -47,6 +47,14 @@ def check_wrapper(tmp, target):
         if declaration not in (LEAN / path).read_text():
             raise ValueError(f"{target}: stale Arm WOTS sign wrapper or nominal type in {path}")
 
+    dispatcher = facade["extract"]("rust", target, "WDispatch", tmp, ["crate::wots::wots_sign"],
+                                    ["crate::sha256::arm_wide::available", "crate::wots::arm::sign",
+                                     "crate::wots::wots_digits","crate::wots::sk_blocks","crate::hash::chain_blocks"])
+    decls = list(common["declarations"](common["body"](dispatcher / "Funs.lean")))
+    decls = [d for d in decls if "def wots.wots_sign" in d]
+    if len(decls) != 5 or any(d not in (LEAN / "Armwide/DispatchProgram.lean").read_text() for d in decls):
+        raise ValueError(f"{target}: public Arm WOTS dispatch or either fallback loop differs")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -68,11 +76,12 @@ def check(refresh=False):
             path.write_text(program)
         elif path.read_text() != program:
             raise ValueError(f"{target}: stale Arm signing sort extraction")
-    facade["run"](["lake", "build", "Armwide.SignOrder", "Armwide.NativeWots"], LEAN)
+    facade["run"](["lake", "build", "Armwide.SignOrder", "Armwide.Dispatch"], LEAN)
     facade["audit_theorems"]("Armwide.SignOrder", [
         "slhdsa.Armwide.SignOrder.sort_spec", "slhdsa.Armwide.SignOrder.sign_bytes",
     ])
     facade["audit_theorems"]("Armwide.NativeWots", ["slhdsa.Armwide.Public.sign_spec", "slhdsa.Armwide.Public.sign_eq_scalar"])
+    facade["audit_theorems"]("Armwide.Dispatch", ["slhdsa.Armwide.Public.Dispatcher.cached_hit_wots"])
     print("Apple and Linux AArch64 signing sort and FIPS WOTS bytes checked", flush=True)
 
 
