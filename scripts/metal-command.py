@@ -425,6 +425,11 @@ def host_access(lib, signing, shake):
                 f"{op}/{family}: missing or conditional host access {marker}"
             )
 
+    leaves = "total_xmss_leaves" if signing else "total_leaves"
+    located(commands, f"lettotal_chains=({leaves}*wots_len)asu32;", ["ifuse_two_phase"])
+    if signing:
+        located(setup, "ifuse_two_phase{check_grid(num_sigs,d*leaves_per_tree*wots_len*words)?;}", [])
+        located(setup, "letwords=N/iffamily==HashFamily::Shake{8}else{4};", [])
     located(init, key_write, ["matchfamily", f"HashFamily::{family}=>"])
     ready = ["keys", "xmss_trees"]
     if signing:
@@ -529,6 +534,118 @@ def region_list(regions):
     return "[" + ",".join("." + r for r in regions) + "]"
 
 
+def chain_projection(msl, shake, *, negative=False):
+    """Translate the integer expressions of one whole chain-tip kernel. The
+    accepted store, uniform, and key-load grammar is deliberately closed."""
+    prefix, width, word, seed = (
+        ("shake_", "NL", "uint64_t", "pk_seed") if shake
+        else ("", "NW", "uint32_t", "seed_st")
+    )
+    loads = (
+        """uint64_t pk_seed[NL], sk_seed[NL];
+           for (uint i = 0; i < NL; ++i) {
+             pk_seed[i] = keys[desc.key_idx].pk_seed[i]; sk_seed[i] = keys[desc.key_idx].sk_seed[i];
+           }""" if shake else
+        """uint32_t seed_st[8]; uint32_t sk_seed[NW];
+           for (uint i = 0; i < 8; ++i) seed_st[i] = keys[desc.key_idx].state256[i];
+           for (uint i = 0; i < NW; ++i) sk_seed[i] = keys[desc.key_idx].sk_seed[i];"""
+    )
+    primitive = (
+        """uint64_t ad0, ad1, ad2, ad3;
+           adrs_full_lanes(layer, tree, ADRS_WOTS_PRF, keypair, chain, 0u, ad0, ad1, ad2, ad3);
+           shake_thash_short<NL>(pk_seed, ad0, ad1, ad2, ad3, sk_seed, val);
+           if (steps == 0u) return;
+           ad2 &= 0xFFFFFFFF00000000ul;
+           uint64_t ad3_base = uint64_t(bswap32(chain));
+           for (uint32_t s = 0u; s < steps; ++s) {
+               uint64_t ad3_s = ad3_base | (uint64_t(bswap32(s)) << 32);
+               shake_thash_short<NL>(pk_seed, ad0, ad1, ad2, ad3_s, val, val);
+           }""" if shake else
+        """uint32_t w0, w1, w2, w3, w4, w5_hi;
+           adrs_to_w256(layer, tree, ADRS_WOTS_PRF, keypair, chain, 0u, w0, w1, w2, w3, w4, w5_hi);
+           thash_short_words<NW>(seed_st, w0, w1, w2, w3, w4, 0u, sk_seed, val);
+           if (steps == 0u) { return; }
+           w2 &= 0xFF00FFFFu;
+           for (uint32_t s = 0u; s < steps; ++s) {
+               thash_short_words<NW>(seed_st, w0, w1, w2, w3, w4, s << 16, val, val);
+           }"""
+    )
+    if compact(body(msl, f"void {prefix}run_wots_chain(")) != compact(primitive):
+        raise ValueError(f"{prefix}run_wots_chain: unmodeled primitive loop")
+    template = f"""
+        uint32_t total_chains = p.num_trees * p.leaves_per_tree * p.wots_len;
+        if (gid >= total_chains) return;
+        uint32_t chain = gid OP0 p.wots_len;
+        uint32_t leaf_global = gid OP1 p.wots_len;
+        uint32_t leaf_idx = leaf_global OP2 p.leaves_per_tree;
+        uint32_t tree_idx = leaf_global OP3 p.leaves_per_tree;
+        XmssTreeDesc desc = trees[tree_idx]; {loads}
+        {word} tip[{width}];
+        {prefix}run_wots_chain<{width}>({seed}, sk_seed, desc.layer, desc.tree, leaf_idx, chain, STEPSu, tip);
+        uint32_t out_off = gid * {width};
+        for (uint i = 0; i < {width}; ++i) {{out_chain_tips[out_off + i] = tip[i];}}
+    """
+    pattern = re.escape(compact(template))
+    for i in range(4):
+        pattern = pattern.replace(f"OP{i}", r"([/%])")
+    pattern = pattern.replace("STEPS", r"([0-9]+)")
+    parsed = re.fullmatch(pattern, compact(body(msl, f"void {prefix}wots_chains_impl(")))
+    if not parsed:
+        raise ValueError(f"{prefix}wots_chains: unmodeled statement or memory access")
+    chain, leaf_global, leaf, tree, steps = parsed.groups()
+    name = "shakeChainTip" if shake else "sha2ChainTip"
+    if negative:
+        name += "Mutated"
+    goal = f"{name} p e gid = MetalPipeline.metalWotsChainsKernel p e.keys e.trees gid"
+    proof = f"simp only [{name}, MetalChainDispatch.chainLoop_spec]\n  rfl"
+    if negative:
+        # Concrete address counterexample avoids reducing the cryptographic
+        # functions merely to distinguish two different chain addresses.
+        goal, proof = f"{name}Index 38 35 ≠ 3", "decide"
+    binders = "" if negative else "(p : Spec.Params) (e : MetalChainDispatch.Execution) (gid : Nat)"
+    return f"""
+private def {name}Index (gid len : Nat) := gid {chain} len
+
+private def {name} (p : Spec.Params) (e : MetalChainDispatch.Execution) (gid : Nat) : Spec.Bytes :=
+  let chain := {name}Index gid p.len
+  let leafGlobal := gid {leaf_global} p.len
+  let leafIdx := leafGlobal {leaf} (2 ^ p.hp)
+  let treeIdx := leafGlobal {tree} (2 ^ p.hp)
+  let desc := e.trees treeIdx
+  let key := e.keys desc.keyIdx
+  MetalChainDispatch.chainLoop p key.1 key.2 desc.layer desc.tree leafIdx chain {steps}
+
+private theorem {name}_spec {binders} :
+    {goal} := by
+  {proof}
+"""
+
+
+def chain_public_claim(label, cmd, p, g, n, word_size, tip):
+    count = f"(rs.length * {p}.d * (2 ^ {p}.hp) * {p}.len)"
+    spec = f"(MetalPipeline.metalBatchSignInternal .twoPhase {p} (MetalCommandValues.framed rs)).flatten"
+    scratch = f"(MetalChainDispatch.invariant {p} {count} {n//word_size} {word_size} e ({tip} {p} e) keys trees other)"
+    correct = f"(MetalCommandValues.correct {g} (MetalCommandValues.framed rs).length (pool.take (rs.length * {p}.sigBytes)) {spec} {scratch})"
+    return f"""
+example (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes)
+    (e : MetalChainDispatch.Execution) (keys : MetalChainDispatch.Keys)
+    (trees : MetalChainDispatch.Trees) (other : MetalCommand.Region → Prop)
+    (accepted : rs.any (fun r => decide (r.ctx.length > 255)) = false →
+      rs.length * {p}.sigBytes ≤ pool.length ∧
+      e.schedule.Perm (MetalChainDispatch.grid {count} {n//word_size}) ∧
+      ∀ a ∈ {label}, a ≠ {cmd} → (∀ r ∈ a.reads, {correct} r) → ∀ r ∈ a.writes, {correct} r) :
+    MetalCommandValues.publicResult {p} rs pool =
+      rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
+  apply {label}_public rs pool {scratch}
+  intro guard
+  obtain ⟨allocation, schedule, remaining⟩ := accepted guard
+  exact ⟨allocation, MetalChainDispatch.local_of_dispatch {label} {cmd} (by decide) (by decide)
+    {p} {count} {n//word_size} {word_size} e keys trees other ({tip} {p} e)
+    (fun gid _ => {tip}_spec {p} e gid) (MetalChainDispatch.covers_grid schedule)
+    {g} _ _ _ remaining⟩
+"""
+
+
 def claims(
     lib,
     gpu,
@@ -598,7 +715,7 @@ def claims(
                     mode=(".twoPhase" if phase else ".streaming")
                     label="gpu_"+rowName.replace("-","_")+"_"+str(int(phase))
                     statements += [f"private def {label} : List MetalCommand.Access := [{entries}]", f"""
-example (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes) (scratch : MetalCommand.Region → Prop)
+private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes) (scratch : MetalCommand.Region → Prop)
   (accepted : rs.any (fun r => decide (r.ctx.length > 255)) = false →
     rs.length * {p}.sigBytes ≤ pool.length ∧
     MetalCommandValues.Local {label} (MetalCommandValues.correct {g} (MetalCommandValues.framed rs).length
@@ -613,6 +730,14 @@ example (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes) (scratch : Me
         MetalCommandValues.published (trace := {label}) (by decide) {g} {splitBool}
           (by decide) {reader} (by decide) (by decide) b, (accepted guard).2⟩)
 """]
+                    if phase:
+                        cmd = next(entry for entry in trace if "chain_tips" in entry[2])
+                        epoch, inputs, outputs = cmd
+                        source_cmd = f"(⟨{epoch},{region_list(inputs)},{region_list(outputs)}⟩ : MetalCommand.Access)"
+                        statements.append(chain_public_claim(
+                            label, source_cmd, p, g, n, 8 if is_shake else 4,
+                            "shakeChainTip" if is_shake else "sha2ChainTip",
+                        ))
     return "\n".join(statements)
 
 
@@ -635,7 +760,23 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
         except ValueError:
             continue
         raise ValueError("public wrapper mutation accepted: " + before)
-    positive = claims(*args, traces, roles, rows=rows)
+    projections = []
+    for is_shake, shader in enumerate((sha2, shake)):
+        projections.append(chain_projection(shader, is_shake))
+        # Valid MSL division in place of modulo still translates; Lean's
+        # concrete counterexample must differ. A changed output store must fail parsing.
+        projections.append(chain_projection(shader.replace(
+            "uint32_t chain = gid % p.wots_len;", "uint32_t chain = gid / p.wots_len;"
+        ), is_shake, negative=True))
+        try:
+            chain_projection(shader.replace("out_chain_tips[out_off + i] = tip[i];",
+                "out_chain_tips[out_off + i] = tip[0];"), is_shake)
+        except ValueError as error:
+            if "unmodeled statement or memory access" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted broadcast rather than per-word chain-tip store")
+    positive = "\n".join(projections) + claims(*args, traces, roles, rows=rows)
     # A missing wait, premature result view or omitted host producer must fail
     # against the actual source, independent of the positive trace assertions.
     cases = [
@@ -648,6 +789,8 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
             "cleanup path",
         ),
         (0, "sig_slice[off..off + N].copy_from_slice(r);", "", "host access"),
+        (0, "let total_chains = (total_xmss_leaves * wots_len) as u32;",
+            "let total_chains = (total_xmss_leaves * wots_len - 1) as u32;", "host access"),
         (
             0,
             "let auth_byte_off = layer_sig_off +",
