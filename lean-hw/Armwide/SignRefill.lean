@@ -28,7 +28,7 @@ structure Stepping where
 
 private def delta (code bulk : Nat) := if code=1024 then bulk else code
 
-private def transition (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
+def transition (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
     (s : Stepping) (queue : List Nat) (out : Nat → Spec.Bytes) : SignLane × List Nat × (Nat → Spec.Bytes) :=
   let l := s.before
   let live := decide ((if shared then bulk else 1) < l.left)

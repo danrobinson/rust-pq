@@ -232,7 +232,7 @@ def main():
             elif dest.read_text() != body:
                 raise ValueError(f"stale native WOTS projection {name}")
     facade["run"](["lake","build","Armwide.Transitions","Armwide.HashRoutes","Armwide.FusedNative"],LEAN)
-    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("FusedNative","native_sign_scheduler"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
+    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("FusedNative","native_sign_scheduler"),("TailNative","tail_updates_eq"),("TailNative","compact_four_eq"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
         facade["audit_theorems"]("Armwide."+module, ["slhdsa.Armwide.Transitions."+name])
 
 

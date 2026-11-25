@@ -1,6 +1,6 @@
 import Armwide.WotsRegisterHash
 import Armwide.SignLoad
-import Armwide.SignRefill
+import Armwide.TailNative
 import Spec.Correctness
 
 namespace slhdsa.Armwide.Transitions
@@ -26,16 +26,15 @@ private def chooseShared (bulk : Nat) : Mode := .shared ⟨(bulk-1)%15,Nat.mod_l
 def four (n : Nat) (st : List Word) (sk : Spec.Bytes) (base : Spec.Adrs) (digits : Nat → Nat) : FourStep :=
   fun active queue out =>
     if active.any (·.isPrf) then
-      nativeUpdates sk digits false 1 (steps n st base active (.mixed 3)) queue out
+      compactFour sk digits false 1 (steps n st base active (.mixed 3)) queue out
     else
       let k := signMinLeft active
-      nativeUpdates sk digits true k (steps n st base active (chooseShared k)) queue out
+      compactFour sk digits true k (steps n st base active (chooseShared k)) queue out
 
 def tail (n : Nat) (st : List Word) (base : Spec.Adrs) : TailStep :=
   fun active out =>
-    let (rem,_,out') := nativeUpdates [] (fun _ => 0) false 1
-      (steps n st base active (chooseMixed active.length)) [] out
-    (rem,out')
+    tailUpdates ⟨(active.length-1)%4,Nat.mod_lt _ (by decide)⟩
+      (steps n st base active (chooseMixed active.length)) out
 
 private theorem len_x (p : Spec.Params) (valid : p.Valid) (pk sk : Spec.Bytes)
     (slen : sk.length=p.n) (base : Spec.Adrs) (digits : Nat → Nat) (len : Nat)
@@ -128,11 +127,14 @@ theorem native_sign_scheduler (p : Spec.Params) [Fact (p.family=.sha2)] (valid :
   · intro a q o inv size
     unfold four signStep4
     split <;> rename_i phase
-    · rw [native_updates_eq,mixed_eq p valid pk sk pkl skl base digits len a q o inv cap 3 (by exact size.symm)]
-    · rw [native_updates_eq,shared_eq p valid pk sk pkl skl base digits len a q o inv cap size (by simpa using phase) hdig]
+    · rw [compact_four_eq _ _ _ _ _ _ _ (by simp [steps,lanes]),native_updates_eq,mixed_eq p valid pk sk pkl skl base digits len a q o inv cap 3 (by exact size.symm)]
+    · rw [compact_four_eq _ _ _ _ _ _ _ (by simp [steps,chooseShared,lanes]),native_updates_eq,shared_eq p valid pk sk pkl skl base digits len a q o inv cap size (by simpa using phase) hdig]
   · intro a o inv pos small
     unfold tail signStepTail chooseMixed
-    rw [native_updates_eq,mixed_eq p valid pk sk pkl skl base digits len a [] o inv cap ⟨(a.length-1)%4,Nat.mod_lt _ (by decide)⟩ (by
+    have widthEq : width ⟨(a.length-1)%4,Nat.mod_lt _ (by decide)⟩ = a.length := by
+      change (a.length-1)%4+1=a.length
+      rw [Nat.mod_eq_of_lt (by omega)]; omega
+    rw [tail_updates_eq _ (by rwa [widthEq]) _ (by simp [steps,width,lanes]) o,mixed_eq p valid pk sk pkl skl base digits len a [] o inv cap ⟨(a.length-1)%4,Nat.mod_lt _ (by decide)⟩ (by
       change (a.length-1)%4+1=a.length
       rw [Nat.mod_eq_of_lt (by omega)]; omega)]
 

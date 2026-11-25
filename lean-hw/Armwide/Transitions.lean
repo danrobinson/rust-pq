@@ -8,7 +8,7 @@ set_option maxHeartbeats 2000000
 
 /-- One through four active lanes. Four selects the full-loop compaction after refill. -/
 abbrev Count := Fin 4
-private def width (q : Count) := q.val + 1
+def width (q : Count) := q.val + 1
 private def mask (n : Nat) (f : Nat → Bool) : Fin (2^n) :=
   match n with
   | 0 => ⟨0, by decide⟩
@@ -31,7 +31,7 @@ private def trace (q : Count) (live phases : Fin (2^(width q))) : Snapshot :=
   let start := #[0,4,20,84][q.val]!
   snapshots[serial[start + live.val * 2^(width q) + phases.val]!]!
 
-private def blueprint (q : Count) (live phases : Nat → Bool) : Snapshot :=
+def blueprint (q : Count) (live phases : Nat → Bool) : Snapshot :=
   let tail := width q < 4
   { kept := ((List.range (width q)).filter live).map fun i =>
       ⟨i, i+4, if tail && phases i then 12 else i+8, i, i,
