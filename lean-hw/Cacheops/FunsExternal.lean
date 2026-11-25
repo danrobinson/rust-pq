@@ -94,4 +94,33 @@ def fors.fors_sign {N : Std.Usize} (p : params.Params) (md : Slice Std.U8)
     Result (alloc.vec.Vec Std.U8) :=
   slhdsa.fors.fors_sign (toSlhParams p) md sk_seed (toSlhSeed seed) (toSlhAdrs a)
 
+/-! Functional models for the cache SHAKE calls at the extraction boundary. -/
+abbrev shake256.Sponge.new := slhdsa.shake256.Sponge.new
+abbrev shake256.Sponge.absorb := slhdsa.shake256.Sponge.absorb
+abbrev shake256.Sponge.finish := slhdsa.shake256.Sponge.finish
+
+@[reducible]
+def cache.shake_ops.xmss_node {N : Std.Usize} (sk : Array Std.U8 N) (i z : Std.U32)
+    (seed : Array Std.U8 N) (a : address.Adrs) := slhdsa.shake.xmss.xmss_node sk i z seed (toSlhAdrs a)
+
+@[reducible]
+def cache.shake_ops.wots_pk_from_sig {N : Std.Usize} (sig : Slice Std.U8)
+    (m seed : Array Std.U8 N) (a : address.Adrs) := slhdsa.shake.wots.wots_pk_from_sig sig m seed (toSlhAdrs a)
+
+@[reducible]
+def cache.shake_ops.wots_sign {N : Std.Usize} (m : Array Std.U8 N) (sk_seed : Array Std.U8 N)
+    (seed : Array Std.U8 N) (a : address.Adrs) : Result (alloc.vec.Vec Std.U8) :=
+  slhdsa.shake.wots.wots_sign m sk_seed seed (toSlhAdrs a)
+
+@[reducible]
+def cache.shake_ops.fors_pk_from_sig {N : Std.Usize} (p : params.Params) (sig md : Slice Std.U8)
+    (seed : Array Std.U8 N) (a : address.Adrs) : Result (Array Std.U8 N) :=
+  slhdsa.shake.fors.fors_pk_from_sig (toSlhParams p) sig md seed (toSlhAdrs a)
+
+@[reducible]
+def cache.shake_ops.fors_sign {N : Std.Usize} (p : params.Params) (md : Slice Std.U8)
+    (sk_seed : Array Std.U8 N) (seed : Array Std.U8 N) (a : address.Adrs) :
+    Result (alloc.vec.Vec Std.U8) :=
+  slhdsa.shake.fors.fors_sign (toSlhParams p) md sk_seed seed (toSlhAdrs a)
+
 end CacheopsRust

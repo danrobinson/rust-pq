@@ -30,6 +30,11 @@ namespace CacheopsRust
     Visibility: public -/
 @[global_simps, irreducible] def address.WOTS_HASH : Std.U32 := 0#u32
 
+/-- [slhdsa::address::TREE]
+    Source: 'src/address.rs', lines 6:0-6:24
+    Visibility: public -/
+@[global_simps, irreducible] def address.TREE : Std.U32 := 2#u32
+
 /-- [slhdsa::address::FORS_TREE]
     Source: 'src/address.rs', lines 7:0-7:29
     Visibility: public -/
@@ -76,6 +81,82 @@ def address.Adrs.with_tree
 def address.Adrs.with_keypair
   (self : address.Adrs) (keypair : Std.U32) : Result address.Adrs := do
   ok { self with keypair }
+
+/-- [slhdsa::address::{slhdsa::address::Adrs}::with_word2]:
+    Source: 'src/address.rs', lines 57:4-59:5
+    Visibility: public -/
+def address.Adrs.with_word2
+  (self : address.Adrs) (word2 : Std.U32) : Result address.Adrs := do
+  ok { self with word2 }
+
+/-- [slhdsa::address::{slhdsa::address::Adrs}::with_word3]:
+    Source: 'src/address.rs', lines 63:4-65:5
+    Visibility: public -/
+def address.Adrs.with_word3
+  (self : address.Adrs) (word3 : Std.U32) : Result address.Adrs := do
+  ok { self with word3 }
+
+/-- [slhdsa::address::{slhdsa::address::Adrs}::full]:
+    Source: 'src/address.rs', lines 69:4-79:5
+    Visibility: public -/
+def address.Adrs.full
+  (self : address.Adrs) : Result (Array Std.U8 32#usize) := do
+  let i ← self.layer >>> 24#i32
+  let i1 ← lift (UScalar.cast .U8 i)
+  let i2 ← self.layer >>> 16#i32
+  let i3 ← lift (UScalar.cast .U8 i2)
+  let i4 ← self.layer >>> 8#i32
+  let i5 ← lift (UScalar.cast .U8 i4)
+  let i6 ← lift (UScalar.cast .U8 self.layer)
+  let i7 ← self.tree >>> 56#i32
+  let i8 ← lift (UScalar.cast .U8 i7)
+  let i9 ← self.tree >>> 48#i32
+  let i10 ← lift (UScalar.cast .U8 i9)
+  let i11 ← self.tree >>> 40#i32
+  let i12 ← lift (UScalar.cast .U8 i11)
+  let i13 ← self.tree >>> 32#i32
+  let i14 ← lift (UScalar.cast .U8 i13)
+  let i15 ← self.tree >>> 24#i32
+  let i16 ← lift (UScalar.cast .U8 i15)
+  let i17 ← self.tree >>> 16#i32
+  let i18 ← lift (UScalar.cast .U8 i17)
+  let i19 ← self.tree >>> 8#i32
+  let i20 ← lift (UScalar.cast .U8 i19)
+  let i21 ← lift (UScalar.cast .U8 self.tree)
+  let i22 ← self.typ >>> 24#i32
+  let i23 ← lift (UScalar.cast .U8 i22)
+  let i24 ← self.typ >>> 16#i32
+  let i25 ← lift (UScalar.cast .U8 i24)
+  let i26 ← self.typ >>> 8#i32
+  let i27 ← lift (UScalar.cast .U8 i26)
+  let i28 ← lift (UScalar.cast .U8 self.typ)
+  let i29 ← self.keypair >>> 24#i32
+  let i30 ← lift (UScalar.cast .U8 i29)
+  let i31 ← self.keypair >>> 16#i32
+  let i32 ← lift (UScalar.cast .U8 i31)
+  let i33 ← self.keypair >>> 8#i32
+  let i34 ← lift (UScalar.cast .U8 i33)
+  let i35 ← lift (UScalar.cast .U8 self.keypair)
+  let i36 ← self.word2 >>> 24#i32
+  let i37 ← lift (UScalar.cast .U8 i36)
+  let i38 ← self.word2 >>> 16#i32
+  let i39 ← lift (UScalar.cast .U8 i38)
+  let i40 ← self.word2 >>> 8#i32
+  let i41 ← lift (UScalar.cast .U8 i40)
+  let i42 ← lift (UScalar.cast .U8 self.word2)
+  let i43 ← self.word3 >>> 24#i32
+  let i44 ← lift (UScalar.cast .U8 i43)
+  let i45 ← self.word3 >>> 16#i32
+  let i46 ← lift (UScalar.cast .U8 i45)
+  let i47 ← self.word3 >>> 8#i32
+  let i48 ← lift (UScalar.cast .U8 i47)
+  let i49 ← lift (UScalar.cast .U8 self.word3)
+  ok
+    (Array.make 32#usize [
+      i1, i3, i5, i6, 0#u8, 0#u8, 0#u8, 0#u8, i8, i10, i12, i14, i16, i18, i20,
+      i21, i23, i25, i27, i28, i30, i32, i34, i35, i37, i39, i41, i42, i44,
+      i46, i48, i49
+      ])
 
 /-- [slhdsa::util::to_int]: loop body 0:
     Source: 'src/util.rs', lines 16:4-19:5
@@ -375,6 +456,334 @@ def cache.sha2_ops.sign_from_digest
   cache.sha2_ops.sign_from_digest_loop a { start := 0#u32, «end» := p.d } 
     p.n p.h p.d p.hp p.a p.k p.m sk_seed top_tree layer_d2_hit seed root sig2
     idx_tree idx_leaf
+
+/-- [slhdsa::cache::shake_ops::start]:
+    Source: 'src/cache.rs', lines 1125:4-1130:5 -/
+def cache.shake_ops.start
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result shake256.Sponge
+  := do
+  let sponge ← shake256.Sponge.new
+  let s ← lift (Array.to_slice seed)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let a ← address.Adrs.full adrs
+  let s1 ← lift (Array.to_slice a)
+  shake256.Sponge.absorb sponge1 s1
+
+/-- [slhdsa::cache::shake_ops::digest]:
+    Source: 'src/cache.rs', lines 1133:4-1137:5 -/
+def cache.shake_ops.digest
+  (N : Std.Usize) (sponge : shake256.Sponge) : Result (Array Std.U8 N) := do
+  let out := Array.repeat N 0#u8
+  let (s, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let s1 ← shake256.Sponge.finish sponge s
+  ok (to_slice_mut_back s1)
+
+/-- [slhdsa::cache::shake_ops::thash_pair]:
+    Source: 'src/cache.rs', lines 1147:4-1157:5 -/
+def cache.shake_ops.thash_pair
+  {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (a : Array Std.U8 N) (b : Array Std.U8 N) :
+  Result (Array Std.U8 N)
+  := do
+  let sponge ← cache.shake_ops.start seed adrs
+  let s ← lift (Array.to_slice a)
+  let sponge1 ← shake256.Sponge.absorb sponge s
+  let s1 ← lift (Array.to_slice b)
+  let sponge2 ← shake256.Sponge.absorb sponge1 s1
+  cache.shake_ops.digest N sponge2
+
+/-- [slhdsa::util::block]:
+    Source: 'src/util.rs', lines 6:0-10:1
+    Visibility: public -/
+def util.block
+  (N : Std.Usize) (s : Slice Std.U8) (i : Std.Usize) :
+  Result (Array Std.U8 N)
+  := do
+  let out := Array.repeat N 0#u8
+  let (s1, to_slice_mut_back) ← lift (Array.to_slice_mut out)
+  let i1 ← i * N
+  let i2 ← i1 + N
+  let s2 ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U8) s { start := i1, «end» := i2 }
+  let s3 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s1 s2
+  ok (to_slice_mut_back s3)
+
+/-- [slhdsa::cache::shake_ops::climb]: loop body 0:
+    Source: 'src/cache.rs', lines 1316:8-1326:9 -/
+@[rust_loop_body]
+def cache.shake_ops.climb_loop.body
+  {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize)
+  (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (iter : core.ops.range.Range Std.U32) (node : Array Std.U8 N)
+  (index : Std.U32) :
+  Result (ControlFlow ((core.ops.range.Range Std.U32) × (Array Std.U8 N) ×
+    Std.U32) (Array Std.U8 N))
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepU32 iter
+  match o with
+  | none => ok (done node)
+  | some k =>
+    let i ← lift (UScalar.cast .Usize k)
+    let i1 ← first + i
+    let sibling ← util.block N auth i1
+    let parent ← index >>> 1#i32
+    let i2 ← k + 1#u32
+    let a ← address.Adrs.with_word2 adrs i2
+    let a1 ← address.Adrs.with_word3 a parent
+    let i3 ← lift (index &&& 1#u32)
+    if i3 = 0#u32
+    then
+      let node1 ← cache.shake_ops.thash_pair seed a1 node sibling
+      ok (cont (iter1, node1, parent))
+    else
+      let node1 ← cache.shake_ops.thash_pair seed a1 sibling node
+      ok (cont (iter1, node1, parent))
+
+/-- [slhdsa::cache::shake_ops::climb]: loop 0:
+    Source: 'src/cache.rs', lines 1316:8-1326:9 -/
+@[rust_loop]
+def cache.shake_ops.climb_loop
+  {N : Std.Usize} (iter : core.ops.range.Range Std.U32) (node : Array Std.U8 N)
+  (index : Std.U32) (auth : Slice Std.U8) (first : Std.Usize)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  loop
+    (fun (iter1, node1, index1) => cache.shake_ops.climb_loop.body auth first
+      seed adrs iter1 node1 index1)
+    (iter, node, index)
+
+/-- [slhdsa::cache::shake_ops::climb]:
+    Source: 'src/cache.rs', lines 1307:4-1328:5 -/
+@[reducible]
+def cache.shake_ops.climb
+  {N : Std.Usize} (node : Array Std.U8 N) (index : Std.U32)
+  (auth : Slice Std.U8) (first : Std.Usize) (height : Std.U32)
+  (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  cache.shake_ops.climb_loop { start := 0#u32, «end» := height } node index
+    auth first seed adrs
+
+/-- [slhdsa::cache::shake_ops::xmss_sign]: loop body 0:
+    Source: 'src/cache.rs', lines 1363:8-1367:9 -/
+@[rust_loop_body]
+def cache.shake_ops.xmss_sign_loop.body
+  {N : Std.Usize} (sk : Array Std.U8 N) (idx : Std.U32) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) (iter : core.ops.range.Range Std.U32)
+  (sig : alloc.vec.Vec Std.U8) :
+  Result (ControlFlow ((core.ops.range.Range Std.U32) × (alloc.vec.Vec
+    Std.U8)) (alloc.vec.Vec Std.U8))
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepU32 iter
+  match o with
+  | none => ok (done sig)
+  | some j =>
+    let i ← idx >>> j
+    let k ← lift (i ^^^ 1#u32)
+    let node ← cache.shake_ops.xmss_node sk k j seed adrs
+    let s ← lift (Array.to_slice node)
+    let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+    ok (cont (iter1, sig1))
+
+/-- [slhdsa::cache::shake_ops::xmss_sign]: loop 0:
+    Source: 'src/cache.rs', lines 1363:8-1367:9 -/
+@[rust_loop]
+def cache.shake_ops.xmss_sign_loop
+  {N : Std.Usize} (iter : core.ops.range.Range Std.U32) (sk : Array Std.U8 N)
+  (idx : Std.U32) (seed : Array Std.U8 N) (adrs : address.Adrs)
+  (sig : alloc.vec.Vec Std.U8) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (iter1, sig1) => cache.shake_ops.xmss_sign_loop.body sk idx seed adrs
+      iter1 sig1)
+    (iter, sig)
+
+/-- [slhdsa::cache::shake_ops::xmss_sign]:
+    Source: 'src/cache.rs', lines 1354:4-1369:5 -/
+def cache.shake_ops.xmss_sign
+  {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
+  (sk : Array Std.U8 N) (idx : Std.U32) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let sig ← cache.shake_ops.wots_sign m sk seed a1
+  cache.shake_ops.xmss_sign_loop { start := 0#u32, «end» := p.hp } sk idx
+    seed adrs sig
+
+/-- [slhdsa::cache::shake_ops::xmss_pk_from_sig]:
+    Source: 'src/cache.rs', lines 1371:4-1381:5 -/
+def cache.shake_ops.xmss_pk_from_sig
+  {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
+  (m : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_HASH
+  let a1 ← address.Adrs.with_keypair a idx
+  let node ← cache.shake_ops.wots_pk_from_sig sig m seed a1
+  let i ← 2#usize * N
+  let i1 ← i + params.LEN2
+  let a2 ← address.Adrs.with_type adrs address.TREE
+  cache.shake_ops.climb node idx sig i1 p.hp seed a2
+
+/-- [slhdsa::cache::shake_ops::sign_from_digest]: loop body 0:
+    Source: 'src/cache.rs', lines 1620:8-1654:9 -/
+@[rust_loop_body]
+def cache.shake_ops.sign_from_digest_loop.body
+  {N : Std.Usize} (a : address.Adrs) (i : Std.Usize) (i1 : Std.U32)
+  (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32) (i6 : Std.Usize)
+  (sk_seed : Array Std.U8 N) (pk_seed : Array Std.U8 N)
+  (top_tree : Slice (Array Std.U8 N)) (iter : core.ops.range.Range Std.U32)
+  (layer_d2_hit : Option (Slice (Array Std.U8 N))) (root : Array Std.U8 N)
+  (sig : alloc.vec.Vec Std.U8) (tree : Std.U64) (leaf : Std.U32) :
+  Result (ControlFlow ((core.ops.range.Range Std.U32) × (Option (Slice (Array
+    Std.U8 N))) × (Array Std.U8 N) × (alloc.vec.Vec Std.U8) × Std.U64 ×
+    Std.U32) (alloc.vec.Vec Std.U8))
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepU32 iter
+  match o with
+  | none => ok (done sig)
+  | some j =>
+    let a1 ← address.Adrs.with_layer a j
+    let adrs ← address.Adrs.with_tree a1 tree
+    let i7 ← i2 - 1#u32
+    let (layer_d2_hit1, root1, sig1, iter2) ←
+      if j = i7
+      then
+        do
+        let a2 ← address.Adrs.with_type adrs address.WOTS_HASH
+        let a3 ← address.Adrs.with_keypair a2 leaf
+        let wots ← cache.shake_ops.wots_sign root sk_seed pk_seed a3
+        let s := alloc.vec.Vec.deref wots
+        let sig2 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+        let sig3 ← cache.append_auth_path top_tree i3 leaf sig2
+        ok (layer_d2_hit, root, sig3, iter1)
+      else
+        do
+        let i8 ← j + 2#u32
+        if i8 = i2
+        then
+          let (a2, v) ←
+            match layer_d2_hit with
+            | none =>
+              do
+              let s ←
+                cache.shake_ops.xmss_sign
+                  {
+                    n := i,
+                    h := i1,
+                    d := i2,
+                    hp := i3,
+                    a := i4,
+                    k := i5,
+                    m := i6
+                  } root sk_seed leaf pk_seed adrs
+              let s1 := alloc.vec.Vec.deref s
+              let root2 ←
+                cache.shake_ops.xmss_pk_from_sig
+                  {
+                    n := i,
+                    h := i1,
+                    d := i2,
+                    hp := i3,
+                    a := i4,
+                    k := i5,
+                    m := i6
+                  } leaf s1 root pk_seed adrs
+              let s2 := alloc.vec.Vec.deref s
+              let sig2 ←
+                alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s2
+              ok (root2, sig2)
+            | some d2_tree =>
+              do
+              let a3 ← address.Adrs.with_type adrs address.WOTS_HASH
+              let a4 ← address.Adrs.with_keypair a3 leaf
+              let wots ← cache.shake_ops.wots_sign root sk_seed pk_seed a4
+              let s := alloc.vec.Vec.deref wots
+              let sig2 ←
+                alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s
+              let sig3 ← cache.append_auth_path d2_tree i3 leaf sig2
+              let root2 ← cache.tree_root d2_tree
+              ok (root2, sig3)
+          ok (layer_d2_hit, a2, v, iter1)
+        else
+          let s ←
+            cache.shake_ops.xmss_sign
+              { n := i, h := i1, d := i2, hp := i3, a := i4, k := i5, m := i6 }
+              root sk_seed leaf pk_seed adrs
+          let s1 := alloc.vec.Vec.deref s
+          let root2 ←
+            cache.shake_ops.xmss_pk_from_sig
+              { n := i, h := i1, d := i2, hp := i3, a := i4, k := i5, m := i6 }
+              leaf s1 root pk_seed adrs
+          let s2 := alloc.vec.Vec.deref s
+          let sig2 ←
+            alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s2
+          ok (layer_d2_hit, root2, sig2, iter1)
+    let i8 ← 1#u64 <<< i3
+    let i9 ← i8 - 1#u64
+    let i10 ← lift (tree &&& i9)
+    let leaf1 ← lift (UScalar.cast .U32 i10)
+    let tree1 ← tree >>> i3
+    ok (cont (iter2, layer_d2_hit1, root1, sig1, tree1, leaf1))
+
+/-- [slhdsa::cache::shake_ops::sign_from_digest]: loop 0:
+    Source: 'src/cache.rs', lines 1620:8-1654:9 -/
+@[rust_loop]
+def cache.shake_ops.sign_from_digest_loop
+  {N : Std.Usize} (a : address.Adrs) (iter : core.ops.range.Range Std.U32)
+  (i : Std.Usize) (i1 : Std.U32) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32)
+  (i5 : Std.U32) (i6 : Std.Usize) (sk_seed : Array Std.U8 N)
+  (pk_seed : Array Std.U8 N) (top_tree : Slice (Array Std.U8 N))
+  (layer_d2_hit : Option (Slice (Array Std.U8 N))) (root : Array Std.U8 N)
+  (sig : alloc.vec.Vec Std.U8) (tree : Std.U64) (leaf : Std.U32) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  loop
+    (fun (iter1, layer_d2_hit1, root1, sig1, tree1, leaf1) =>
+      cache.shake_ops.sign_from_digest_loop.body a i i1 i2 i3 i4 i5 i6 sk_seed
+      pk_seed top_tree iter1 layer_d2_hit1 root1 sig1 tree1 leaf1)
+    (iter, layer_d2_hit, root, sig, tree, leaf)
+
+/-- [slhdsa::cache::shake_ops::sign_from_digest]:
+    Source: 'src/cache.rs', lines 1578:4-1656:5 -/
+def cache.shake_ops.sign_from_digest
+  {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
+  (pk_seed : Array Std.U8 N) (r : Array Std.U8 N) (digest : Slice Std.U8)
+  (top_tree : Slice (Array Std.U8 N))
+  (layer_d2_hit : Option (Slice (Array Std.U8 N))) :
+  Result (alloc.vec.Vec Std.U8)
+  := do
+  let idx_tree ← cache.digest_tree p digest
+  let idx_leaf ← cache.digest_leaf p digest
+  let a ← address.Adrs.new
+  let a1 ← address.Adrs.with_tree a idx_tree
+  let a2 ← address.Adrs.with_type a1 address.FORS_TREE
+  let fors_adrs ← address.Adrs.with_keypair a2 idx_leaf
+  let i ← params.Params.md_bytes p
+  let md ←
+    core.slice.index.Slice.index (core.slice.index.SliceIndexRangeUsizeSlice
+      Std.U8) digest { start := 0#usize, «end» := i }
+  let sig_fors ← cache.shake_ops.fors_sign p md sk_seed pk_seed fors_adrs
+  let s := alloc.vec.Vec.deref sig_fors
+  let root ← cache.shake_ops.fors_pk_from_sig p s md pk_seed fors_adrs
+  let i1 ← params.Params.sig_bytes p
+  let sig := alloc.vec.Vec.with_capacity Std.U8 i1
+  let s1 ← lift (Array.to_slice r)
+  let sig1 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig s1
+  let s2 := alloc.vec.Vec.deref sig_fors
+  let sig2 ← alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s2
+  cache.shake_ops.sign_from_digest_loop a { start := 0#u32, «end» := p.d }
+    p.n p.h p.d p.hp p.a p.k p.m sk_seed pk_seed top_tree layer_d2_hit root
+    sig2 idx_tree idx_leaf
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::set_layer_d2_capacity]:
     Source: 'src/cache.rs', lines 1966:4-1971:5

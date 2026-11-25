@@ -36,10 +36,10 @@ def levelOff (hp h : Nat) : Nat := 2 ^ (hp + 1) - 2 ^ (hp + 1 - h)
 def layerAdrs (layer tree : Nat) : Spec.Adrs :=
   { Spec.Adrs.zero with layer := layer, tree := tree }
 
-private theorem two_pow_le_two_pow {a b : Nat} (h : a ≤ b) : 2 ^ a ≤ 2 ^ b :=
+theorem two_pow_le_two_pow {a b : Nat} (h : a ≤ b) : 2 ^ a ≤ 2 ^ b :=
   Nat.pow_le_pow_right (by decide) h
 
-private theorem treeSize_pos (hp : Nat) : 0 < treeSize hp := by
+theorem treeSize_pos (hp : Nat) : 0 < treeSize hp := by
   have : 2 ≤ 2 ^ (hp + 1) := by
     simpa using two_pow_le_two_pow (show 1 ≤ hp + 1 by omega)
   simp only [treeSize]; omega
@@ -50,14 +50,14 @@ private theorem levelOff_hp (hp : Nat) : levelOff hp hp = treeSize hp - 1 := by
   simp only [levelOff, treeSize, show hp + 1 - hp = 1 by omega, pow_one]
   omega
 
-private theorem usize_max_ge : 4294967295 ≤ Usize.max := by
+theorem usize_max_ge : 4294967295 ≤ Usize.max := by
   rcases Usize.bounds_eq with h | h <;> rw [h] <;> scalar_tac
 
-private theorem vec_deref_len {T : Type} (v : alloc.vec.Vec T) :
+theorem vec_deref_len {T : Type} (v : alloc.vec.Vec T) :
     (alloc.vec.Vec.deref v).length = v.length := by
   simp [Slice.length, alloc.vec.Vec.length, vec_deref_val]
 
-private theorem built_root_eq_fips {N : Usize} {tree : Slice (Array U8 N)} {p : Spec.Params}
+theorem built_root_eq_fips {N : Usize} {tree : Slice (Array U8 N)} {p : Spec.Params}
     {sk_seed pk_seed : Spec.Bytes} {a : Spec.Adrs}
     (hlen : tree.length = treeSize p.hp)
     (hbuilt : slhdsa.cache.Built tree p sk_seed pk_seed a) :
@@ -520,7 +520,7 @@ private theorem tree_bits_eq (p : CacheopsRust.params.Params) :
     CacheopsRust.params.Params.tree_bits p = slhdsa.params.Params.tree_bits (toSlhParams p) := rfl
 private theorem leaf_bytes_eq (p : CacheopsRust.params.Params) :
     CacheopsRust.params.Params.leaf_bytes p = slhdsa.params.Params.leaf_bytes (toSlhParams p) := rfl
-private theorem sig_bytes_eq (p : CacheopsRust.params.Params) :
+theorem sig_bytes_eq (p : CacheopsRust.params.Params) :
     CacheopsRust.params.Params.sig_bytes p = slhdsa.params.Params.sig_bytes (toSlhParams p) := by
   unfold CacheopsRust.params.Params.sig_bytes slhdsa.params.Params.sig_bytes
     CacheopsRust.params.Params.fors_sig_bytes slhdsa.params.Params.fors_sig_bytes
@@ -586,7 +586,7 @@ theorem layer_d2_tree_index_spec (N : Usize) (p : CacheopsRust.params.Params) (d
 
 /-! ## Extracted `sha2_ops::sign_from_digest` composing with Dan's `Cachepath.Construction` -/
 
-private theorem append_auth_path_of_built {N : Usize} (P : Spec.Params)
+theorem append_auth_path_of_built {N : Usize} (P : Spec.Params)
     (skSeed pkSeed : Spec.Bytes) (adrs : Spec.Adrs)
     (tree : Slice (Array U8 N)) (hp leaf : U32) (out : alloc.vec.Vec U8)
     (hhp_eq : hp.val = P.hp) (hhp_le : P.hp ≤ 9) (hleaf : leaf.val < 2 ^ P.hp)
@@ -634,7 +634,7 @@ private theorem append_auth_path_of_built {N : Usize} (P : Spec.Params)
     rw [hmap, List.sum_replicate, smul_eq_mul]
   exact ⟨hbytes, hlen⟩
 
-private theorem htLayer_state (P : Spec.Params) (_hv : P.Valid) (sk pk m : Spec.Bytes)
+theorem htLayer_state (P : Spec.Params) (_hv : P.Valid) (sk pk m : Spec.Bytes)
     (t l : Nat) (hl : l < 2 ^ P.hp) :
     ∀ c, c ≤ P.d →
       let st := (List.range c).foldl (Spec.htLayer P sk pk) ([], m, t, l)

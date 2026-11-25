@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check cache key-association, reuse/eviction/insertion, and end-to-end cached signing proofs."""
+"""Check the cache lifecycle and extracted SHA-2 and SHAKE serial signature assembly."""
 from pathlib import Path
 import os
 import re
@@ -24,6 +24,7 @@ STARTS = (
     "crate::cache::TopTreeCache::layer_d2_tree_index",
     "crate::cache::TopTreeCache::lookup_d2",
     "crate::cache::sha2_ops::sign_from_digest",
+    "crate::cache::shake_ops::sign_from_digest",
 )
 
 OPAQUES = (
@@ -35,6 +36,12 @@ OPAQUES = (
     "crate::xmss::xmss_sign",
     "crate::xmss::xmss_pk_from_sig",
     "crate::fors::fors_sign",
+    "crate::cache::shake_ops::fors_sign",
+    "crate::cache::shake_ops::fors_pk_from_sig",
+    "crate::cache::shake_ops::wots_sign",
+    "crate::cache::shake_ops::xmss_node",
+    "crate::cache::shake_ops::wots_pk_from_sig",
+    "crate::shake256",
     "crate::fors::fors_pk_from_sig",
 )
 
@@ -50,12 +57,20 @@ EXPECTED_EXTERNALS = {
     "hash.seed_ctx",
     "fors.fors_pk_from_sig",
     "fors.fors_sign",
+    "cache.shake_ops.fors_sign",
+    "cache.shake_ops.fors_pk_from_sig",
+    "cache.shake_ops.wots_sign",
+    "cache.shake_ops.xmss_node",
+    "cache.shake_ops.wots_pk_from_sig",
+    "shake256.Sponge.new",
+    "shake256.Sponge.absorb",
+    "shake256.Sponge.finish",
 }
 
 FORBIDDEN = ("sorry", "admit", "axiom", "native_decide", "bv_decide")
 
 
-def extract_target(target, scratch):
+def extract_target(target, scratch, starts=STARTS, opaques=OPAQUES, *, crate=None):
     dest = scratch / "Cacheops"
     dest.mkdir(parents=True)
     llbc = scratch / "cacheops.llbc"
@@ -64,8 +79,8 @@ def extract_target(target, scratch):
             CHARON,
             "cargo",
             "--preset=aeneas",
-            *(arg for item in STARTS for arg in ("--start-from", item)),
-            *(arg for item in OPAQUES for arg in ("--opaque", item)),
+            *(arg for item in starts for arg in ("--start-from", item)),
+            *(arg for item in opaques for arg in ("--opaque", item)),
             "--dest-file",
             llbc,
             "--",
@@ -75,7 +90,7 @@ def extract_target(target, scratch):
             "--target",
             target,
         ],
-        ROOT / "rust",
+        crate if crate is not None else ROOT / "rust",
     )
     facade["run"](
         [
@@ -95,6 +110,76 @@ def extract_target(target, scratch):
     )
     return dest
 
+
+
+# The scalar node and WOTS/FORS primitives below do not call architecture-specific
+# code. After mapping the private Rust names, their complete Aeneas bodies are
+# the same as those used by the portable FIPS proofs.
+SCALAR_NAMES = {
+    "start": "hash.start",
+    "digest": "hash.digest",
+    "thash": "hash.thash",
+    "thash_pair": "hash.thash_pair",
+    "wots_chain": "wots.chain",
+    "wots_secret": "wots.secret",
+    "fors_sk_gen": "fors.fors_sk_gen",
+    "fors_node_portable": "fors.fors_node",
+}
+
+
+def check_scalar_bodies(package):
+    parser = facade["common"]
+
+    def declarations(path, namespace):
+        items = parser["declarations"](parser["body"](path, namespace))
+        return {m[1]: " ".join(item.split()) for item in items
+                if (m := re.search(r"\b(?:def|structure)\s+([\w.]+)", item))}
+
+    def rename(match):
+        return "shake." + SCALAR_NAMES[match[1]]
+
+    names = "|".join(sorted(SCALAR_NAMES, key=len, reverse=True))
+    helpers = re.compile(r"cache\.shake_ops\.(" + names + r")(?=\b|_loop)")
+    for file, expected in (
+        ("Funs.lean", {"cache.shake_ops." + name for name in SCALAR_NAMES} |
+         {"cache.shake_ops.wots_chain_loop", "cache.shake_ops.wots_chain_loop.body",
+          "address.WOTS_PRF", "address.FORS_PRF", "address.Adrs.with_type",
+          "address.Adrs.with_keypair", "address.Adrs.with_word2", "address.Adrs.with_word3",
+          "address.Adrs.full"}),
+        ("Types.lean", {"address.Adrs"}),
+    ):
+        cache = declarations(package / file, "CacheopsRust")
+        portable = declarations(ROOT / "lean/Slhdsa" / file, "slhdsa")
+        for original in sorted(expected):
+            name = helpers.sub(rename, original)
+            if helpers.sub(rename, cache[original]) != portable[name]:
+                raise ValueError(f"cache scalar declaration {original} differs from portable {name}")
+
+
+def check_node_dispatch(target, scratch):
+    """Restore the hardware and primitive names in the polymorphic Lean extraction."""
+    cuts = ("simd::available", "simd::xmss_node", "wots_pk_gen_portable")
+    prefix = "crate::cache::shake_ops::"
+    roots = ("xmss_node", *SCALAR_NAMES)
+    package = extract_target(target, scratch / "node", tuple(prefix + name for name in roots),
+                             tuple(prefix + name for name in cuts) + ("crate::shake256",))
+    check_scalar_bodies(package)
+    program = (LEAN / "Cachepath/ShakeNode.lean").read_text()
+    start = program.index("def node (")
+    end = program.index("\npartial_fixpoint", start) + len("\npartial_fixpoint")
+    specialized = program[start:end].replace(
+        "def node (available : Usize → Result Bool) (fast : FastNode) (leaf : LeafNode)",
+        "def cache.shake_ops.xmss_node",
+    )
+    for parameter, rust in (("node available fast leaf", "xmss_node"),
+                            ("available", "simd.available"), ("fast", "simd.xmss_node"),
+                            ("leaf", "wots_pk_gen_portable")):
+        specialized = re.sub(r"\b" + parameter + r"\b", "cache.shake_ops." + rust, specialized)
+    generated = (package / "Funs.lean").read_text()
+    begin = generated.index("def cache.shake_ops.xmss_node\n")
+    end = generated.index("\npartial_fixpoint", begin) + len("\npartial_fixpoint")
+    if generated[begin:end] != specialized:
+        raise ValueError(f"cache recursive XMSS dispatch changed on {target}")
 
 def slice_block(source, header):
     start = source.index(header)
@@ -165,11 +250,15 @@ def main():
             scratch.mkdir()
             fresh = extract_target(target, scratch)
             names = {p.name for p in fresh.iterdir()}
-            if names != {"Types.lean", "Funs.lean", "FunsExternal_Template.lean"}:
+            if names != {"Types.lean", "Funs.lean", "FunsExternal_Template.lean", "TypesExternal_Template.lean"}:
                 raise ValueError(f"unexpected Cacheops files on {target}: {names}")
             for file in ("Types.lean", "Funs.lean"):
                 if (fresh / file).read_bytes() != (LEAN / "Cacheops" / file).read_bytes():
                     raise ValueError(f"Cacheops translation changed for {target}: {file}")
+            types = set(re.findall(r"(?m)^axiom\s+([^\s:]+)\b",
+                                   (fresh / "TypesExternal_Template.lean").read_text()))
+            if types != {"shake256.Sponge"}:
+                raise ValueError(f"unexpected Cacheops external types on {target}: {types}")
             found = set(
                 re.findall(
                     r"(?m)^axiom\s+([^\s:]+)\b",
@@ -180,22 +269,27 @@ def main():
                 raise ValueError(
                     f"unexpected Cacheops externals on {target}: {found} != {EXPECTED_EXTERNALS}"
                 )
-            print(f"{target}: Cacheops translation matched byte-for-byte", flush=True)
+            check_node_dispatch(target, scratch)
+            print(f"{target}: Cacheops translation, recursive XMSS dispatch and scalar WOTS/FORS primitives matched", flush=True)
 
     run_symbolic_lifecycle_replay()
 
     audit_source_clean(
         [
             LEAN / "Cacheops/Types.lean",
+            LEAN / "Cacheops/TypesExternal.lean",
             LEAN / "Cacheops/FunsExternal.lean",
             LEAN / "Cacheops/Funs.lean",
             LEAN / "Cachepath/EndToEnd.lean",
+            LEAN / "Cachepath/ShakeEndToEnd.lean",
+            LEAN / "Cachepath/ShakeXmss.lean",
+            LEAN / "Cachepath/ShakeNode.lean",
         ]
     )
 
-    facade["run"](["lake", "build", "Cachepath.EndToEnd"], LEAN)
+    facade["run"](["lake", "build", "Cachepath.ShakeEndToEnd"], LEAN)
     facade["audit_theorems"](
-        "Cachepath.EndToEnd",
+        "Cachepath.ShakeEndToEnd",
         [
             "slhdsa.cache.endtoend.top_root_eq_fips",
             "slhdsa.cache.endtoend.pk_root_spec",
@@ -216,6 +310,12 @@ def main():
             "slhdsa.cache.endtoend.layer_d2_tree_index_spec",
             "slhdsa.cache.endtoend.sign_from_digest_spec",
             "slhdsa.cache.endtoend.sign_from_digest_with_cache_spec",
+            "CacheopsRust.ShakeNode.node_eq",
+            "slhdsa.cache.endtoend.shake.thash_pair_eq",
+            "slhdsa.cache.endtoend.shake.xmss_sign_eq",
+            "slhdsa.cache.endtoend.shake.xmss_pk_from_sig_eq",
+            "slhdsa.cache.endtoend.shake.sign_from_digest_spec",
+            "slhdsa.cache.endtoend.shake.sign_from_digest_with_cache_spec",
             "slhdsa.cache.endtoend.cached_htSign_eq_fips",
             "slhdsa.cache.endtoend.cached_sign_eq_fips",
             "slhdsa.cache.endtoend.cached_hash_slh_sign_prehashed_eq_fips",
@@ -223,7 +323,7 @@ def main():
             "slhdsa.cache.endtoend.all_12_parameter_sets_valid",
         ],
     )
-    print("ALL Cachepath.EndToEnd checks, lifecycle replay, and axiom audits PASSED!", flush=True)
+    print("SHA-2 and SHAKE cache assembly proofs, lifecycle replay, and axiom audits PASSED!", flush=True)
 
 
 if __name__ == "__main__":

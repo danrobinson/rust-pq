@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Ensure the SHAKE cached signing theorem rejects putting PK.seed in the R field."""
+
+import os
+from pathlib import Path
+import runpy
+import shutil
+import subprocess
+import tempfile
+
+HERE = Path(__file__).resolve().parent
+proof = runpy.run_path(str(HERE / "check-cache-endtoend.py"))
+ROOT, LEAN = proof["ROOT"], proof["LEAN"]
+
+
+def main():
+    os.environ["PATH"] = os.pathsep.join(
+        [str(Path.home() / ".elan/bin"), str(Path.home() / ".cargo/bin"), os.environ["PATH"]]
+    )
+    # First check the positive proof, including all dependencies used below.
+    subprocess.run(["lake", "build", "Cachepath.ShakeEndToEnd"], cwd=LEAN, check=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        folder = Path(tmp)
+        crate = folder / "rust"
+        for name in ("src", "benches"):
+            original = ROOT / "rust" / name
+            if original.is_dir():
+                shutil.copytree(original, crate / name)
+        for name in ("Cargo.toml", "Cargo.lock"):
+            shutil.copyfile(ROOT / "rust" / name, crate / name)
+
+        cache = crate / "src/cache.rs"
+        source = cache.read_text()
+        start = source.index("pub(super) fn sign_from_digest", source.index("mod shake_ops {"))
+        end = source.index("fn sign_parallel", start)
+        signer = source[start:end]
+        correct = "sig.extend_from_slice(r);"
+        if signer.count(correct) != 1:
+            raise ValueError("expected one SHAKE serial signature prefix")
+        cache.write_text(source[:start] + signer.replace(correct, "sig.extend_from_slice(pk_seed);") + source[end:])
+        generated = proof["extract_target"]("aarch64-apple-darwin", folder, crate=crate)
+        if (generated / "Funs.lean").read_bytes() == (LEAN / "Cacheops/Funs.lean").read_bytes():
+            raise ValueError("mutating the signer did not change the extracted program")
+
+        lean_path = subprocess.check_output(["lake", "env", "printenv", "LEAN_PATH"], cwd=LEAN, text=True).strip()
+        env = dict(os.environ, LEAN_PATH=os.pathsep.join([str(folder), lean_path]))
+
+        def compile_module(src, dst):
+            subprocess.run(["lean", "--root", folder, "-o", dst, src], env=env, cwd=LEAN, check=True)
+
+        for module in ("TypesExternal", "FunsExternal"):
+            shutil.copyfile(LEAN / "Cacheops" / (module + ".lean"), generated / (module + ".lean"))
+        for module in ("TypesExternal", "Types", "FunsExternal", "Funs"):
+            compile_module(generated / (module + ".lean"), generated / (module + ".olean"))
+
+        # Rebuild each dependent proof in isolation against the mutated translation.
+        proofs = folder / "Cachepath"
+        shutil.copytree(LEAN / ".lake/build/lib/lean/Cachepath", proofs)
+        for module in ("EndToEnd", "ShakeXmss", "ShakeNode", "ShakeEndToEnd"):
+            shutil.copyfile(LEAN / "Cachepath" / (module + ".lean"), proofs / (module + ".lean"))
+            if module != "ShakeEndToEnd":
+                compile_module(proofs / (module + ".lean"), proofs / (module + ".olean"))
+        result = subprocess.run(["lean", "--root", folder, proofs / "ShakeEndToEnd.lean"],
+                                env=env, cwd=LEAN, capture_output=True, text=True)
+        diagnostics = result.stdout + result.stderr
+        if not result.returncode or "bytes ↑pk_seed = bytes ↑r" not in diagnostics:
+            raise ValueError("expected a failed equality between PK.seed and R\n" + diagnostics)
+        print("Regenerated SHAKE cached signer rejected at the PK.seed/R byte equality.")
+
+
+if __name__ == "__main__":
+    main()

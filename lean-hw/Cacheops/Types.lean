@@ -2,6 +2,7 @@
 -- [slhdsa]: type definitions
 module
 public import Aeneas
+public import Cacheops.TypesExternal
 @[expose] public section
 open Aeneas Aeneas.Std Result ControlFlow Error
 set_option linter.dupNamespace false
