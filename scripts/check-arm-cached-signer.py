@@ -27,8 +27,10 @@ def audit():
              *("ArmCachedApi.CacheopsRust.Public." + name for name in
                ("sign_cached_spec", "sign_deterministic_cached_spec",
                 "sign_cached_mut_spec", "sign_deterministic_cached_mut_spec")))
+    roundtrip = "slhdsa.CachedArm.seeded_roundtrip"
+    facade["audit_theorems"]("Armwide.CachedReachability", [roundtrip, "LinuxNativeCacheRoundTrip." + roundtrip])
     joined = "ArmCachedParallel.CacheopsRust.cache.parallelSign.sha2_joined"
-    facade["audit_theorems"]("Armwide.CachedParallel",
+    facade["audit_theorems"]("Armwide.CachedReachability",
                              [*roots, *("LinuxNativeCache." + r for r in roots),
                               joined, "LinuxNativeCacheParallel." + joined])
 
@@ -36,7 +38,7 @@ def audit():
 def main():
     os.environ["PATH"] = os.pathsep.join((str(Path.home()/".elan/bin"),
                                           str(Path.home()/".cargo/bin"), os.environ["PATH"]))
-    facade["run"](["lake", "build", "Armwide.CachedParallel"], lean)
+    facade["run"](["lake", "build", "Armwide.CachedReachability"], lean)
     audit()
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
