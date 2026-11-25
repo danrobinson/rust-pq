@@ -43,13 +43,13 @@ private def initialized {N : Usize} (rows : Rows N) (it : It N) (back : It N →
     (∀ j < it.iter.i, bytes (back other).iter.slice.val[j]!.val = f j) ∧
     (∀ j, it.iter.i ≤ j → j < rows.length → (back other).iter.slice.val[j]! = other.iter.slice.val[j]!)
 
-private theorem fill_loop {N : Usize} (p : params.Params) (hp : PN p N) (sk pk : Array U8 N)
-    (a : address.Adrs) (rows : Rows N) (size : rows.length = 2^p.hp.val) :
-    fill_leaves_chunk_loop ⟨⟨rows,0⟩,0#usize⟩ (fun e => e) sk pk a 0#usize ⦃ final =>
-      Row final.iter.slice rows.length (Value p sk pk a 0) ⦄ := by
+theorem fill_loop_offset {N : Usize} (p : params.Params) (hp : PN p N) (sk pk : Array U8 N)
+    (a : address.Adrs) (base : Usize) (rows : Rows N) (fits : base.val + rows.length ≤ 512) :
+    fill_leaves_chunk_loop ⟨⟨rows,0⟩,0#usize⟩ (fun e => e) sk pk a base ⦃ final =>
+      Row final.iter.slice rows.length (fun j => Value p sk pk a 0 (base.val+j)) ⦄ := by
   unfold fill_leaves_chunk_loop
   apply loop.spec_decr_nat (measure := fun q : It N × (It N → It N) => rows.length-q.1.iter.i)
-    (inv := fun q => initialized rows q.1 q.2 (Value p sk pk a 0))
+    (inv := fun q => initialized rows q.1 q.2 (fun j => Value p sk pk a 0 (base.val+j)))
   · rintro ⟨it,back⟩ ⟨slice,idx,bound,restore⟩
     simp only at slice idx bound restore ⊢
     unfold fill_leaves_chunk_loop.body XmssKeysRust.core.iter.adapters.enumerate.IteratorEnumerate.next
@@ -70,8 +70,7 @@ private theorem fill_loop {N : Usize} (p : params.Params) (hp : PN p N) (sk pk :
       all_goals try (have cap := rows.property; change rows.length ≤ Usize.max at cap; scalar_tac)
       step with with_type_spec as ⟨a1,_,ha1⟩
       step as ⟨k,hk⟩
-      have cap := Nat.pow_le_pow_right (by decide : 0 < 2) (valid_hp_le p hp.valid)
-      have cast : (UScalar.cast .U32 k).val = it.iter.i := by
+      have cast : (UScalar.cast .U32 k).val = base.val + it.iter.i := by
         rw [UScalar.cast_val_mod_pow_of_inBounds_eq _ _ (by change k.val < 2^32; omega)]
         omega
       simp only [lift,bind_ok]
@@ -103,10 +102,11 @@ theorem fill_spec {N : Usize} [b : Backend] (hc : Correct b N) (p : params.Param
   cases enabled
   · simp only [he,bind_ok,Bool.false_eq_true,↓reduceIte,core.slice.Slice.iter_mut,
       XmssKeysRust.core.iter.traits.iterator.Iterator.enumerate.trait_default,bind_tc_eq]
-    obtain ⟨final,run,post⟩ := spec_imp_exists (fill_loop p hp sk pk a rows size)
+    have bounded := Nat.pow_le_pow_right (by decide : 0 < 2) (valid_hp_le p hp.valid)
+    obtain ⟨final,run,post⟩ := spec_imp_exists (fill_loop_offset p hp sk pk a 0#usize rows (by simpa [size] using bounded))
     change (do let e ← fill_leaves_chunk_loop ⟨⟨rows,0⟩,0#usize⟩ (fun x => x) sk pk a 0#usize; ok e.iter.slice) ⦃ out => Row out rows.length (Value p sk pk a 0) ⦄
     rw [run,bind_ok,WP.spec_ok]
-    exact post
+    simpa using post
   · simpa only [he,bind_ok,↓reduceIte] using hc.leaves he p hp sk pk a rows size
 
 end slhdsa.cache.builder.nativeShake
