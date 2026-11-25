@@ -90,7 +90,7 @@ def main():
     rust = re.sub(r"//[^\n]*|\s+", "", (ROOT / "rust/src/pool.rs").read_text().split("#[cfg(test)]")[0])
     seen = set()
     with tempfile.TemporaryDirectory() as tmp:
-        runpy.run_path(str(ROOT / "scripts/check-parallel-once-publish.py"))["check"](args.herd, args.libdir, Path(tmp))
+        runpy.run_path(str(ROOT / "scripts/check-parallel-once-publish.py"))["check"](args.herd, args.libdir, Path(tmp), run)
         signing_phase(args.herd, args.libdir, Path(tmp))
         for name, positive in SUCCESSES.items():
             base = (SUITE / (name + ".litmus")).read_text()

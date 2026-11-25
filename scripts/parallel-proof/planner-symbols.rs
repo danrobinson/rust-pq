@@ -27,30 +27,44 @@ mod symbolic {
 
     impl Add<Word> for u32 {
         type Output = Word;
-        fn add(self, rhs: Word) -> Word { Word::new(Expr::AddBase(self, rhs)) }
+        fn add(self, rhs: Word) -> Word {
+            Word::new(Expr::AddBase(self, rhs))
+        }
     }
     impl Add<u32> for Word {
         type Output = Word;
-        fn add(self, rhs: u32) -> Word { Word::new(Expr::AddOffset(self, rhs)) }
+        fn add(self, rhs: u32) -> Word {
+            Word::new(Expr::AddOffset(self, rhs))
+        }
     }
     impl BitXor<u32> for Word {
         type Output = Word;
-        fn bitxor(self, rhs: u32) -> Word { Word::new(Expr::Xor(self, rhs)) }
+        fn bitxor(self, rhs: u32) -> Word {
+            Word::new(Expr::Xor(self, rhs))
+        }
     }
     impl Shl<u32> for Word {
         type Output = Word;
-        fn shl(self, rhs: u32) -> Word { Word::new(Expr::ShiftLeft(self, rhs)) }
+        fn shl(self, rhs: u32) -> Word {
+            Word::new(Expr::ShiftLeft(self, rhs))
+        }
     }
     impl Shr<u32> for Word {
         type Output = Word;
-        fn shr(self, rhs: u32) -> Word { Word::new(Expr::ShiftRight(self, rhs)) }
+        fn shr(self, rhs: u32) -> Word {
+            Word::new(Expr::ShiftRight(self, rhs))
+        }
     }
     impl Shl<u8> for Word {
         type Output = Word;
-        fn shl(self, rhs: u8) -> Word { self << u32::from(rhs) }
+        fn shl(self, rhs: u8) -> Word {
+            self << u32::from(rhs)
+        }
     }
     impl Shr<u8> for Word {
         type Output = Word;
-        fn shr(self, rhs: u8) -> Word { self >> u32::from(rhs) }
+        fn shr(self, rhs: u8) -> Word {
+            self >> u32::from(rhs)
+        }
     }
 }

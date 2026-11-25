@@ -13,7 +13,7 @@ theorem width (p : Spec.Params) (valid : p.Valid) (md sk pk : Spec.Bytes) (a : S
     (row : Spec.Bytes) (read : row∈ParallelCached.forsRows p md sk pk a) : row.length=p.n := by
   obtain ⟨j,_,h⟩ := List.mem_flatMap.mp read
   rcases List.mem_cons.mp h with eq | auth
-  · subst row;exact Spec.PRF_length p valid .. 
+  · subst row;exact Spec.PRF_length p valid ..
   · obtain ⟨k,_,eq⟩ := List.mem_map.mp auth
     subst row;exact Spec.forsNode_length p valid ..
 
