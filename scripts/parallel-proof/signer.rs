@@ -370,12 +370,15 @@ fn climb_step<const N: usize>(
     answer.unwrap()
 }
 type Journal = std::collections::BTreeMap<(usize, &'static str, usize), Vec<Token>>;
+type StoreOrder = std::collections::BTreeMap<usize, Vec<(&'static str, usize)>>;
+static STORE_ORDER: Mutex<StoreOrder> = Mutex::new(StoreOrder::new());
 static JOURNAL: Mutex<Journal> = Mutex::new(Journal::new());
 static REFERENCE: Mutex<Option<Journal>> = Mutex::new(None);
 
 fn record_write(ticket: usize, table: &'static str, slot: usize, value: &[Token]) -> usize {
     let replaced = JOURNAL.lock().unwrap().insert((ticket, table, slot), value.to_vec());
     assert!(replaced.is_none(), "ticket published its cell twice");
+    STORE_ORDER.lock().unwrap().entry(ticket).or_default().push((table, slot));
     slot
 }
 
@@ -384,6 +387,7 @@ fn check_ledger(
     reserved: impl Iterator<Item = usize>,
 ) {
     let journal = std::mem::take(&mut *JOURNAL.lock().unwrap());
+    let store_order = std::mem::take(&mut *STORE_ORDER.lock().unwrap());
     let mut cells = std::collections::BTreeSet::new();
     let mut issued = std::collections::BTreeSet::new();
     for &(ticket, table, slot) in journal.keys() {
@@ -404,18 +408,21 @@ fn check_ledger(
     if std::env::var_os("RUST_PQ_SIGNING_CERTIFICATE").is_some()
         && WORKERS.load(Ordering::Relaxed) == 1 {
         let mut rows = vec![Vec::new(); tickets];
-        for &(ticket, table, slot) in journal.keys() {
-            let offset = match table {
-                "xmss_slots" => 0,
-                "leaf_pks" => xmss,
-                "fors_direct" => xmss + leaves,
-                "fors_split" => xmss + leaves + direct,
-                _ => unreachable!(),
-            };
-            rows[ticket].push(offset + slot);
+        for (ticket, writes) in store_order {
+            for (table, slot) in writes {
+                assert!(journal.contains_key(&(ticket, table, slot)));
+                let offset = match table {
+                    "xmss_slots" => 0,
+                    "leaf_pks" => xmss,
+                    "fors_direct" => xmss + leaves,
+                    "fors_split" => xmss + leaves + direct,
+                    _ => unreachable!(),
+                };
+                rows[ticket].push(offset + slot);
+            }
         }
         let reducer: Vec<_> = reserved.iter().map(|s| xmss + leaves + s).collect();
-        println!("LEAF_RANGE {} {}", xmss, leaves);
+        println!("CELL_RANGES {} {} {} {}", xmss, leaves, direct, split);
         println!("LEDGER {} {} {:?}|{:?}", PROOF_WIDTH, expected.len(), rows, reducer);
     }
     let mut reference = REFERENCE.lock().unwrap();
