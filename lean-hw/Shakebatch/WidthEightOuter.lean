@@ -3,16 +3,6 @@ import Fused.Outer
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthEight
 
-def Platform.probe (host : Platform) : Usize → Result Bool :=
-  match host with
-  | .apple _ => ShakeBatch.shake.batch.available (ok true)
-  | .x86 => ShakeBatch.X86.available
-
-theorem probe_eq (host : Platform) (n : Usize) : host.probe n=ok (host.available n) := by
-  cases host <;> unfold Platform.probe Platform.available Platform.wide <;>
-    simp only [ShakeBatch.X86.available,ShakeBatch.shake.batch.available,KxdispatchRust.shake256.parallel.available]
-  all_goals split <;> simp_all <;> rfl
-
 /-- Concrete Rust dispatch from the public XMSS caller through both runtime
 branches. Every published SHAKE parameter set has height at least three. -/
 @[instance_reducible] noncomputable def Platform.outer (host : Platform) (p : params.Params) :

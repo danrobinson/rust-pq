@@ -14,6 +14,6 @@ run_cmd liftCoreM do
   let apple ← Cachepath.NativeHashReplay.appleBindings
   for (target,pairs) in [(`WidthEightApple,apple),
       (`WidthEightX86,Cachepath.NativeHashReplay.bindings `KxouterRust `slhdsa.ShakeBatch.X86)] do
-    PlatformProof.replay target pairs roots [`Cachepath,`Shakeopt,`Shakebatch]
+    PlatformProof.replay target pairs roots [`ForsDriver.DispatchProgram,`ForsDriver.Dispatch,`Cachepath,`Shakeopt,`Shakebatch]
     for fn in [`WidthEightSDK.ShakeoptSeg.shake.slh.slh_sign,`WidthEightSDK.ShakeoptSeg.shake.slh.slh_verify] do
       unless (← getEnv).contains (target ++ fn) do throwError "missing hosted sponge in {target ++ fn}"

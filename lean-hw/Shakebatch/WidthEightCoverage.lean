@@ -10,7 +10,7 @@ private partial def visit (env : Environment) (declName : Name) : StateM NameSet
   if (← get).contains declName then return
   modify (·.insert declName)
   let some idx := env.getModuleIdxFor? declName | return
-  unless [`Buffered,`Fused,`Slhdsa,`Parallel,`Shakeopt,`Shakebatch,`Cachepath,`Cacheops,`Facade].any
+  unless [`ForsDriver,`Buffered,`Fused,`Slhdsa,`Parallel,`Shakeopt,`Shakebatch,`Cachepath,`Cacheops,`Facade].any
     (·.isPrefixOf env.header.moduleNames[idx]!) do return
   if let some (.defnInfo d) := env.find? declName then
     for child in d.value.getUsedConstants do visit env child
@@ -35,12 +35,16 @@ run_cmd liftCoreM do
       let ns := api ++ s
       let hw := if api == `WidthEightAppleAPI then `BufferedApple.slhdsa.Buffered.Host.apple else `BufferedX86.slhdsa.Buffered.Host.x86
       let subtree := if api == `WidthEightAppleAPI then `BufferedApple.slhdsa.Buffered.subtree else `BufferedX86.slhdsa.Buffered.subtree
+      let forsTree := if api == `WidthEightAppleAPI then `ForsTreeApple.slhdsa.ForsHorizontal.subtree else `ForsTreeX86.slhdsa.ForsHorizontal.subtree
+      let forsPath := [hosted ++ `slhdsa.ForsDriver.dispatched,`slhdsa.ForsDriver.sign,
+        `slhdsa.ForsDriver.sign_loop6,`slhdsa.ForsDriver.sign_loop8,`slhdsa.NativeVerify.ForsWideRows.leaves,
+        `slhdsa.NativeVerify.ForsWideRows.pairs,forsTree]
       for op in [`sign_spec,`sign_deterministic_spec,`slh_sign_spec,`slh_sign_internal_spec] do
-        reaches (ns ++ op) [hw,subtree,`slhdsa.Buffered.Full.leaves,`slhdsa.Fused.xmss_sign_batch,`slhdsa.Fused.xmss_sign_batch_loop2,
-          `slhdsa.Fused.xmss_sign_batch_loop3,`slhdsa.Fused.xmss_sign_batch_loop5,hosted ++ `slhdsa.WidthEight.Fors.signature,
+        reaches (ns ++ op) (forsPath ++ [hw,subtree,`slhdsa.Buffered.Full.leaves,`slhdsa.Fused.xmss_sign_batch,`slhdsa.Fused.xmss_sign_batch_loop2,
+          `slhdsa.Fused.xmss_sign_batch_loop3,`slhdsa.Fused.xmss_sign_batch_loop5,
           `slhdsa.WidthEight.Platform.available,
           `slhdsa.NativeVerify.ActiveHash.short_active,`slhdsa.NativeVerify.ActiveHash.pair_active,
-          `slhdsa.NativeVerify.ForsFused.fused,absorb]
+          `slhdsa.NativeVerify.ForsFused.fused,absorb])
       for op in [`verify_spec,`slh_verify_internal_spec,`slh_verify_spec] do
         reaches (ns ++ op) [`slhdsa.WidthEight.Platform.recovery,absorb]
       let key := if api == `WidthEightAppleAPI then `WidthEightAppleKeys.slhdsa.WidthEight.sourceEngine else `WidthEightX86Keys.slhdsa.WidthEight.sourceEngine
@@ -49,7 +53,7 @@ run_cmd liftCoreM do
         `slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal]
       for op in [`keygen_spec,`slh_keygen_internal_spec] do
         reaches (ns ++ op) keyRoute
-      reaches (ns ++ `seeded_roundtrip) (keyRoute ++ [
-        `slhdsa.Fused.xmss_sign_batch,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb])
+      reaches (ns ++ `seeded_roundtrip) (keyRoute ++ forsPath ++ [
+        `slhdsa.Fused.xmss_sign_batch,absorb])
 
 end slhdsa.WidthEight.Coverage

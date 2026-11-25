@@ -1,6 +1,7 @@
 import Fused.Entry
 import Buffered.Hosted
-import Shakebatch.WidthEightFors
+import ForsDriver.Dispatch
+import ForsDriver.HostedTree
 import Parallel.KeygenPublic
 import Cachepath.NativeVerify.Hosted
 import Shakebatch.WidthThreeHost
@@ -24,23 +25,15 @@ def Platform.recovery : Platform → CacheopsRust.NativeVerifier.Recovery
   | .apple sha3 => AppleNativeRecovery.slhdsa.NativeVerify.appleRecovery sha3
   | .x86 => X86NativeRecovery.slhdsa.NativeVerify.x86Recovery
 
-/-- Project a completed native output buffer into its Aeneas byte vector. -/
-def packVec (value : Spec.Bytes) : Result (alloc.vec.Vec U8) :=
-  if h : value.length ≤ Usize.max then
-    ok (alloc.vec.Vec.from (value.map (fun b => (⟨b⟩ : U8))) (by simpa using h))
-  else fail .panic
+def Platform.probe (host : Platform) : Usize → Result Bool :=
+  match host with
+  | .apple _ => ShakeBatch.shake.batch.available (ok true)
+  | .x86 => ShakeBatch.X86.available
 
-theorem packVec_eq (b : Spec.Bytes) (r : alloc.vec.Vec U8) (eq : bytes r.val=b) : packVec b=ok r := by
-  subst b
-  rw [packVec,dif_pos (by simpa [bytes] using r.slice.length_le_usize)]
-  congr 1
-  cases r with
-  | mk s =>
-    apply congrArg alloc.vec.Vec.mk
-    apply Slice.ext
-    simp only [alloc.vec.Vec.from,alloc.vec.Vec.val,Slice.from_val,bytes,List.map_map]
-    change List.map id s.val = s.val
-    exact List.map_id _
+theorem probe_eq (host : Platform) (n : Usize) : host.probe n=ok (host.available n) := by
+  cases host <;> unfold Platform.probe Platform.available Platform.wide <;>
+    simp only [ShakeBatch.X86.available,ShakeBatch.shake.batch.available,KxdispatchRust.shake256.parallel.available]
+  all_goals split <;> simp_all <;> rfl
 
 @[instance_reducible] noncomputable def Platform.fused (host : Platform) (p : params.Params) : Fused.Kernel :=
   match host with
@@ -105,44 +98,39 @@ theorem x86_select {N : Usize} (p : params.Params) (hp : PN p N)
   unfold xmssSign Platform.available Platform.wide
   rcases geom with h|h|h <;> simp [h,height]
 
-/-- Project each active lane through the host's actual hash implementation.
-The surrounding wide shuffle and field trace are handled by the physical tree. -/
-def wideFors (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8)
-    (sk seed : Array U8 N) (a : address.Adrs) : Spec.Bytes :=
+@[instance_reducible] noncomputable def Platform.forsTrees (host : Platform) (p : params.Params) : ForsDriver.Trees :=
+  let k := host.fused p
   match host with
-  | .apple sha3 => @Fors.signature (AppleHybrid.machine sha3) (NativeVerify.appleActive sha3) N p md sk seed a
-  | .x86 => @Fors.signature Kxdispatch.machine
-      (NativeVerify.fullActive Kxdispatch.machine KxdispatchRust.shake256.parallel.available) N p md sk seed a
+  | .apple _ => ForsDriver.branches k (@ForsTreeApple.slhdsa.ForsHorizontal.subtree k)
+  | .x86 => ForsDriver.branches k (@ForsTreeX86.slhdsa.ForsHorizontal.subtree k)
 
-theorem wideFors_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N)
-    (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs)
-    (domain : a.typ=address.FORS_TREE ∧ a.word2=0#u32 ∧ a.word3=0#u32) (on : host.available N=true) :
-    wideFors host p md sk seed a=Spec.forsSign (Shake.params p) (bytes md.val) (bytes sk.val)
-      (bytes seed.val) (adrsS a) := by
-  cases host with
-  | apple sha3 =>
-    exact @Fors.signature_eq (AppleHybrid.machine sha3) _ (NativeVerify.apple sha3)
-      (by change 0<8; decide) N p hp md sk seed a domain
-  | x86 =>
-    exact @Fors.signature_eq Kxdispatch.machine _ (NativeVerify.x86 (Bool.and_eq_true_iff.mp on).2)
-      (by change 0<8; decide) N p hp md sk seed a domain
-
-def forsSign (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) :=
-  if host.available N then packVec (wideFors host p md sk seed a)
-  else shake.fors.fors_sign p md sk seed a
+def forsSign (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8)
+    (sk seed : Array U8 N) (a : address.Adrs) : Result (alloc.vec.Vec U8) :=
+  @ForsDriver.dispatched (host.fused p) (host.forsTrees p) host.probe N p md sk seed a
 
 theorem forsSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N) (md : Slice U8)
     (sk seed : Array U8 N) (a : address.Adrs) (size : md.length=(p.k.val*p.a.val+7)/8)
     (domain : a.typ=address.FORS_TREE ∧ a.word2=0#u32 ∧ a.word3=0#u32) :
     forsSign host p md sk seed a ⦃ r => bytes r.val=Spec.forsSign (Shake.params p) (bytes md.val) (bytes sk.val)
       (bytes seed.val) (adrsS a) ∧ r.length=p.k.val*(1+p.a.val)*N.val ⦄ := by
-  have scalar := Shake.fors_sign_domain p hp md sk seed a size domain
   unfold forsSign
-  split
-  · obtain ⟨r,_,eq,len⟩ := spec_imp_exists scalar
-    rw [wideFors_spec host p hp md sk seed a domain (by assumption),packVec_eq _ r eq]
-    exact (WP.spec_ok _).mpr ⟨eq,len⟩
-  · exact scalar
+  cases on : host.available N with
+  | false =>
+    rw [@ForsDriver.off_eq (host.fused p) (host.forsTrees p) host.probe N p md sk seed a ((probe_eq host N).trans (by rw [on]))]
+    exact Shake.fors_sign_domain p hp md sk seed a size domain
+  | true =>
+    apply @ForsDriver.on_spec (host.fused p) (host.forsTrees p) host.probe N p hp md sk seed a size domain ((probe_eq host N).trans (by rw [on]))
+    · cases host with
+      | apple sha3 => exact NativeVerify.apple sha3
+      | x86 => exact NativeVerify.x86 (Bool.and_eq_true_iff.mp on).2
+    · intro i z lo hi fits
+      cases host with
+      | apple sha3 =>
+        exact @ForsTreeApple.slhdsa.ForsHorizontal.subtree_spec ((Platform.apple sha3).fused p)
+          N p hp sk seed a i z domain lo hi fits (NativeVerify.apple sha3)
+      | x86 =>
+        exact @ForsTreeX86.slhdsa.ForsHorizontal.subtree_spec (Platform.x86.fused p)
+          N p hp sk seed a i z domain lo hi fits (NativeVerify.x86 (Bool.and_eq_true_iff.mp on).2)
 
 abbrev xmssRecover (host : Platform) := @CacheopsRust.NativeVerifier.xmssPk host.recovery
 abbrev xmssRecoverSpec (host : Platform) := @CacheopsRust.NativeVerifier.xmssSpec host.recovery
