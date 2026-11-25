@@ -85,4 +85,16 @@ def replay (trace : List Access) (tip : Memory) (leaf root : Memory → Memory)
     (cpu : Memory → List (Bytes × Bytes)) (start : State) :=
   ((trace.filterMap op).foldl (step tip leaf root cpu) start).result
 
+/-- The per-set Rust wrapper converts both Vecs to fixed arrays. -/
+def fixed (p : Params) (pair : Bytes × Bytes) : Option (Bytes × Bytes) :=
+  if pair.1.length=4*p.n ∧ pair.2.length=2*p.n then some pair else none
+
+theorem fixed_spec (p : Params) (hv : p.Valid) (sk prf pk : Bytes)
+    (hs : sk.length=p.n) (hr : prf.length=p.n) (hp : pk.length=p.n) :
+    fixed p (slhKeygenInternal p sk prf pk) = some (slhKeygenInternal p sk prf pk) := by
+  unfold fixed
+  apply ite_eq_left
+  simp only [slhKeygenInternal,List.length_append,xmssNode_length p hv,hs,hr,hp]
+  omega
+
 end MetalKeygenDispatch

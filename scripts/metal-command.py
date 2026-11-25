@@ -5,6 +5,7 @@ import re
 import runpy
 from pathlib import Path
 
+internal_sign = runpy.run_path(str(Path(__file__).parent / "metal-proof/internal_sign.py"))
 completion = runpy.run_path(str(Path(__file__).parent / "metal-proof/completion.py"))
 keygen_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/keygen_output.py"))
 fors_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_reducer.py"))
@@ -730,6 +731,7 @@ def claims(
                     p="Spec."+rowName.replace("-","_")
                     mode=(".twoPhase" if phase else ".streaming")
                     label="gpu_"+rowName.replace("-","_")+"_"+str(int(phase))
+                    first_theorem = len(statements)+1
                     statements += [f"private def {label} : List MetalCommand.Access := [{entries}]", f"""
 private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes) (scratch : MetalCommand.Region → Prop)
   (accepted : rs.any (fun r => decide (r.ctx.length > 255)) = false →
@@ -774,6 +776,7 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                         fors_stage=fp, host_cmd=host, xmss_stage=(xmss_reducer, producer("xmss_roots")),
                         forest=(fors_reducer, s1, a-s1),
                     ))
+                    statements.append(internal_sign["claims"](statements[first_theorem:], label, p))
     return "\n".join(statements)
 
 
@@ -892,7 +895,7 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
         else:
             raise ValueError("accepted broadcast rather than per-word chain-tip store")
     positive = "\n".join(projections) + claims(*args, traces, roles, rows=rows)
-    positive += completion["project"](lib, compact, body, rows)
+    positive += completion["project"](lib, compact, body, rows, internal_sign["outcome"])
     # A missing wait, premature result view or omitted host producer must fail
     # against the actual source, independent of the positive trace assertions.
     cases = [

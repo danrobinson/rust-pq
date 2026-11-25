@@ -1,7 +1,7 @@
 """Bind the public result and XMSS mode selector to the generated executions."""
 
 
-def project(lib, compact, body, rows):
+def project(lib, compact, body, rows, internal):
     import re
     selector = compact(body(lib, "fn use_two_phase<"))
     pattern = (
@@ -52,4 +52,5 @@ private theorem {label}_keygen_success (batch : MetalKeygenDispatch.Batch) (over
     · simpa only [read,ite_eq_right h] using {label}_0_kg_canonical_fips batch initial
   exact (MetalCompletion.keygen_success batch exit read (fun eq => by rw [bytes,eq]; rfl) out ok).trans bytes
 """)
+        statements.append(internal(label, p, limit))
     return "\n".join(statements)

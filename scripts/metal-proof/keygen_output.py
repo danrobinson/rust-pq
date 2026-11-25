@@ -118,4 +118,11 @@ private theorem {label}_public_keygen (seeds : Spec.Bytes) (initial : MetalChain
       some (Spec.slhKeygenInternal {p} (Spec.block {p} seeds 0) (Spec.block {p} seeds 1) (Spec.block {p} seeds 2)) := by
   rw [{label}_canonical_fips]
   rfl
+
+private theorem {label}_typed_keypair (sk prf pk : Spec.Bytes) (initial : MetalChainDispatch.Memory)
+    (hs : sk.length={p}.n) (hr : prf.length={p}.n) (hp : pk.length={p}.n) :
+    (({label}_batch [(sk,prf,pk)] initial).head?).bind (MetalKeygenDispatch.fixed {p}) =
+      some (Spec.slhKeygenInternal {p} sk prf pk) := by
+  rw [{label}_canonical_fips]
+  exact MetalKeygenDispatch.fixed_spec {p} (MetalPipeline.metal_all_12_params_valid _ (by decide)) sk prf pk hs hr hp
 """
