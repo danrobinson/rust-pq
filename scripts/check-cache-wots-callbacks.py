@@ -207,7 +207,11 @@ def main():
             if "linux" in target:
                 check_permutation(target, scratch / "kernel")
                 check_stream(target, scratch / "stream")
-    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms", "Cachepath.WotsRows", "Cachepath.WotsFusedPrf"], LEAN)
+    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms", "Cachepath.WotsRows", "Cachepath.WotsFused"], LEAN)
+    shared["facade"]["audit_theorems"]("Cachepath.WotsFused", [
+        "slhdsa.cache.builder.nativeShake.Vector.Fused." + name for name in
+        ("absorb_row", "absorb_tip_rows", "finish_rows", "init_pk", "all_chains", "correct")
+    ])
     shared["facade"]["audit_theorems"]("Cachepath.WotsFusedPrf", [
         "slhdsa.cache.builder.nativeShake.Vector.Fused." + name for name in
         ("round_spec", "rounds", "packed_layout", "chain_spec", "init_input", "init_prf", "addresses_spec", "inner_spec")

@@ -73,8 +73,19 @@ if __name__ == "__main__":
             package = facade["extract"]("rust", target, "FastNode", Path(tmp), [simd + "xmss_node"], cuts)
             if linked(package / "Funs.lean") != expected:
                 raise ValueError(f"cached SIMD subtree changed on {target}")
-            print(f"{target}: matched all subtree reducer declarations", flush=True)
-    facade["run"](["lake", "build", "Cachepath.NativeSession"], lean)
+            probe = facade["extract"]("rust", target, "Probe", Path(tmp), [simd + "available"],
+                                      ["crate::shake256::parallel::available"])
+            (body,) = decls(probe / "Funs.lean", "slhdsa")
+            body = body.replace("cache.shake_ops.simd.available", "shake.batch.available")
+            body = body.replace("shake256.parallel.available", "hardware")
+            if body not in (lean / "Shakebatch/Available.lean").read_text():
+                raise ValueError(f"cache SHAKE feature selection changed on {target}")
+            print(f"{target}: matched the subtree reducer and feature selection", flush=True)
+    facade["run"](["lake", "build", "Cachepath.NativePlatforms"], lean)
+    facade["audit_theorems"]("Cachepath.NativePlatforms", [
+        "CacheopsRust.NativeSession.linuxArm", "CacheopsRust.NativeSession.linuxX86",
+        "CacheopsRust.NativeSession.appleArm", "CacheopsRust.NativeSession.appleFull",
+        "CacheopsRust.NativeSession.linuxArmFull", "CacheopsRust.NativeSession.linuxX86Full"])
     facade["audit_theorems"]("Cachepath.NativeSession", [
         "CacheopsRust.NativeSession.dispatch", "CacheopsRust.NativeSession.builder",
         "CacheopsRust.NativeSession.keygen_sign_many", "CacheopsRust.NativeSession.keygen_sign_verify_with_precompute"])
