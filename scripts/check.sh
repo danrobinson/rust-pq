@@ -40,6 +40,7 @@ esac
 # The default build: no opaque function, no axiom.
 if [ "$(uname -s)-$(uname -m)" = Darwin-arm64 ]; then
   python3 scripts/apple-binary/current_rejection.py
+  python3 scripts/apple-binary/current_keygen.py
 fi
 ./scripts/extract.sh > /dev/null 2>&1 || { echo "extraction FAILED"; exit 1; }
 if ls lean/Slhdsa | grep -q External; then
@@ -48,7 +49,7 @@ fi
 if grep -nE "^(axiom|opaque|noncomputable opaque)|sorry" lean/Slhdsa/Funs.lean lean/Slhdsa/Types.lean; then
   echo "FOUND an axiom or opaque declaration in the extraction"; exit 1
 fi
-(cd lean && lake build Slhdsa Spec spectest Spec.AppleKeccakWitness Spec.ApplePublicRejectWitness)
+(cd lean && lake build Slhdsa Spec spectest Spec.AppleKeccakWitness Spec.ApplePublicRejectWitness Spec.ApplePublicKeygenWitness)
 
 # No sorry, axiom, native_decide or bv_decide anywhere in the Lean sources.
 if grep -rnwE "sorry|admit|native_decide|bv_decide" lean/Slhdsa lean/Spec lean/Spec.lean lean/Slhdsa.lean \

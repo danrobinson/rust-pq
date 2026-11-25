@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """Bind all oversize-context signing returns to an Apple arm64 release consumer."""
 
-import argparse
 import hashlib
-import os
 from pathlib import Path
-import subprocess
 import sys
 
 sys.dont_write_bytecode = True
-from check import release_consumer
-from image import Image
+from public_witness import check_witness
 from reject import candidate, unwrap_abi
 from sha2_verify_witness import gate as sha2_length
 from verify_length_witness import certificate as shake_length
@@ -114,54 +110,9 @@ def certificate(image):
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
-        "binary",
-        nargs="?",
-        type=Path,
-        help="default: locked platform-sha2 release ACVP consumer",
+    check_witness(
+        __doc__, certificate, DEST, ["Spec.ArmPublicReject", "Spec.ArmVerifyLength"]
     )
-    p.add_argument(
-        "--require-recorded",
-        action="store_true",
-        help="also match the recorded image and witness verbatim",
-    )
-    args = p.parse_args()
-    os.environ["PATH"] = (
-        f"{Path.home()}/.elan/bin:{Path.home()}/.cargo/bin:" + os.environ["PATH"]
-    )
-    program, names = certificate(
-        Image((args.binary or release_consumer()).read_bytes())
-    )
-    if args.require_recorded and program != DEST.read_text():
-        raise ValueError(
-            "the supplied consumer differs from the recorded Apple public rejection witness"
-        )
-    subprocess.run(
-        ["lake", "build", "Spec.ArmPublicReject", "Spec.ArmVerifyLength"],
-        cwd=ROOT / "lean",
-        check=True,
-    )
-    audit = subprocess.run(
-        ["lake", "env", "lean", "--stdin"],
-        cwd=ROOT / "lean",
-        text=True,
-        input=program + "\n".join(f"#print axioms {n}" for n in names),
-        capture_output=True,
-    )
-    if audit.returncode:
-        raise RuntimeError(audit.stdout + audit.stderr)
-    closure = " ".join(audit.stdout.split())
-    for name in names:
-        if not any(
-            f"'{name}' {allowed}" in closure
-            for allowed in (
-                "depends on axioms: [propext, Classical.choice, Quot.sound]",
-                "depends on axioms: [propext]",
-                "does not depend on any axioms",
-            )
-        ):
-            raise ValueError(f"unexpected axiom audit for {name}: {audit.stdout}")
     print(
         "Kernel checked 36 signing rejections, 12 verifier length guards and their valid paths to H_msg, "
         "with instruction mutations."
