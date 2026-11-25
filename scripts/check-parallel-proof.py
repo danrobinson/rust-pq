@@ -239,9 +239,13 @@ def main():
     check_pool()
     run([sys.executable, HERE / "check-uncached-parallel-caller.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-keygen.py"], ROOT)
+    run([sys.executable, HERE / "check-signing-schedules.py"], ROOT)
+    run([sys.executable, HERE / "check-parallel-sign-join.py"], ROOT)
     run([sys.executable, HERE / "check-shake-fused-xmss.py"], ROOT)
     modules = {
         "Parallel.Pool": "ParallelPool.join",
+        "Parallel.LastFinisher": "ParallelFused.LastFinisher.signature_at_last",
+        "Parallel.SigningSchedules": "ParallelFused.Schedules.signature_independent",
         "Parallel.SigningSlots": "ParallelFused.Slots.output_fips",
         "Parallel.SigningPublication": "ParallelSigning.Publication.ready_sees_cells",
         "Parallel.Cached": "ParallelCached.interleavings",
@@ -265,6 +269,7 @@ def main():
             "ParallelPool.Publication.published",
         ],
     )
+    facade["audit_theorems"]("Parallel.LastFinisher", ["ParallelFused.LastFinisher.visibility", "ParallelFused.LastFinisher.can_finish"])
     facade["audit_theorems"]("Parallel.SigningSlots", ["ParallelFused.Slots.constructed"])
     facade["audit_theorems"]("Parallel.Fused", ["ParallelFused.phase_one_ready"])
     with tempfile.TemporaryDirectory() as tmp:

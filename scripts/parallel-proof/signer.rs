@@ -369,6 +369,62 @@ fn climb_step<const N: usize>(
     }
     answer.unwrap()
 }
+type Journal = std::collections::BTreeMap<(usize, &'static str, usize), Vec<Token>>;
+static JOURNAL: Mutex<Journal> = Mutex::new(Journal::new());
+static REFERENCE: Mutex<Option<Journal>> = Mutex::new(None);
+
+fn record_write(ticket: usize, table: &'static str, slot: usize, value: &[Token]) -> usize {
+    let replaced = JOURNAL.lock().unwrap().insert((ticket, table, slot), value.to_vec());
+    assert!(replaced.is_none(), "ticket published its cell twice");
+    slot
+}
+
+fn check_ledger(
+    tickets: usize, xmss: usize, leaves: usize, direct: usize, split: usize,
+    reserved: impl Iterator<Item = usize>,
+) {
+    let journal = std::mem::take(&mut *JOURNAL.lock().unwrap());
+    let mut cells = std::collections::BTreeSet::new();
+    let mut issued = std::collections::BTreeSet::new();
+    for &(ticket, table, slot) in journal.keys() {
+        assert!(cells.insert((table, slot)), "two tickets own the same cell");
+        issued.insert(ticket);
+    }
+    assert!(issued.into_iter().eq(0..tickets));
+    let reserved: Vec<_> = reserved.collect();
+    for &slot in &reserved {
+        assert!(cells.insert(("fors_direct", slot)), "reducer overlaps a publication");
+    }
+    let mut expected = std::collections::BTreeSet::new();
+    for (table, len) in [("xmss_slots", xmss), ("leaf_pks", leaves),
+                         ("fors_direct", direct), ("fors_split", split)] {
+        expected.extend((0..len).map(|slot| (table, slot)));
+    }
+    assert_eq!(cells, expected);
+    if std::env::var_os("RUST_PQ_SIGNING_CERTIFICATE").is_some()
+        && WORKERS.load(Ordering::Relaxed) == 1 {
+        let mut rows = vec![Vec::new(); tickets];
+        for &(ticket, table, slot) in journal.keys() {
+            let offset = match table {
+                "xmss_slots" => 0,
+                "leaf_pks" => xmss,
+                "fors_direct" => xmss + leaves,
+                "fors_split" => xmss + leaves + direct,
+                _ => unreachable!(),
+            };
+            rows[ticket].push(offset + slot);
+        }
+        let reducer: Vec<_> = reserved.iter().map(|s| xmss + leaves + s).collect();
+        println!("LEDGER {} {} {:?}|{:?}", PROOF_WIDTH, expected.len(), rows, reducer);
+    }
+    let mut reference = REFERENCE.lock().unwrap();
+    if let Some(previous) = reference.as_ref() {
+        assert_eq!(previous, &journal, "ticket writes depended on the worker schedule");
+    } else {
+        *reference = Some(journal);
+    }
+}
+
 static CPUS: AtomicUsize = AtomicUsize::new(2);
 mod pool {
     pub fn available_threads() -> usize {
@@ -494,10 +550,11 @@ fn check<const N: usize>(p: &Params, row: (u32, u32, u32, u32, u32, usize)) {
     for (cpus, workers, simd) in [
         (1, 1, false),
         (2, 1, false),
-        (2, 1, true),
         (4, 4, false),
+        (2, 1, true),
         (4, 4, true),
     ] {
+        if workers == 1 { *REFERENCE.lock().unwrap() = None; }
         WORKERS.store(workers, Ordering::Relaxed);
         SIMD_CALLS.store(0, Ordering::Relaxed);
         CPUS.store(cpus, Ordering::Relaxed);

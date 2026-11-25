@@ -69,6 +69,26 @@ def symbolic_source(source):
         assert!(total_phase1 * 2 <= u32::MAX as usize);
         assert!(total_phase1 + p.d as usize <= u32::MAX as usize);""",
     )
+    # Record each physical publication with its actual ticket and complete
+    # symbolic bytes. The reducer owns the holes in the direct FORS array.
+    start = sign.index("match item.kind {")
+    end = sign.index("if phase1_done.fetch_add", start)
+    writes = re.compile(
+        r"(xmss_slots|leaf_pks|fors_direct|fors_split)\[([^\]]+)\]\s*"
+        r"\.set\((val|node|secret(?:\[lane\])?|sibs\[lane\]|vals\[lane\])\)"
+    )
+    def record(match):
+        table, index, value = match.groups()
+        return f'{table}[record_write(job_idx, "{table}", {index}, &{value})].set({value})'
+    traced, count = writes.subn(record, sign[start:end])
+    if count != 10 or traced.count(".set(") != count:
+        raise ValueError("review phase-one output publications")
+    sign = sign[:start] + traced + sign[end:]
+    sign = once(sign, "for meta in &fors_split_meta {", """check_ledger(
+        total_phase1, xmss_slots.len(), leaf_pks.len(), fors_direct.len(), fors_split.len(),
+        fors_split_meta.iter().map(|m| m.tree as usize * fors_stride + 1 + m.height as usize)
+    );
+    for meta in &fors_split_meta {""")
     sign = sign.replace("[u8; N]", "[Token; N]").replace("Vec<u8>", "Vec<Token>")
     sign = once(sign, "md: &[u8]", "md: &[Token]")
     sign = once(sign, "mut tree: u64", "mut tree: Word")

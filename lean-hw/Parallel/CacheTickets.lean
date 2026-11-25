@@ -132,7 +132,7 @@ theorem ledger {jobs : List (List (S × V))} {workers st} (run : Reach jobs work
       simpa [List.flatten_append] using perm
 
 omit [DecidableEq S] in
-private theorem allWrites (jobs : List (List (S × V))) :
+theorem allWrites (jobs : List (List (S × V))) :
     (List.range jobs.length).flatMap (writes jobs) = jobs.flatten := by
   rw [List.flatMap_def]
   apply congrArg List.flatten
