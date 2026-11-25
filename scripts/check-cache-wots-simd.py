@@ -119,6 +119,11 @@ def check_lean(source):
             scatter = shared["extract_target"](target, tmp / "scatter", ("crate::cell_sig", "crate::cell_key"), (), crate=crate)
             same_program(scatter, "WotsScatterProgram", target)
     shared["facade"]["audit_theorems"]("Slhdsa.Proofs.Util", ["slhdsa.block_spec"])
+    shared["facade"]["run"](["lake", "build", "Cachepath.WotsRecovery"], LEAN)
+    shared["facade"]["audit_theorems"]("Cachepath.WotsRecovery", [
+        "CacheopsRust.WotsLanes." + name
+        for name in ("block_reject", "scalar_reject", "readSchedule_eq", "sortedReads_eq", "checkedRecover_eq_scalar")
+    ])
     for module, names in {
         "WotsLanes": ("sign_spec", "recover_spec", "sign_eq_scalar", "recover_eq_scalar", "tracked_lane", "loop_termination"),
         "WotsOrder": ("chain_order_spec",),
