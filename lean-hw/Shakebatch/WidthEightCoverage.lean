@@ -1,4 +1,5 @@
 import Shakebatch.WidthEightNamed
+import Shakebatch.WidthEightOuterHosted
 
 open Lean Elab Command
 namespace slhdsa.WidthEight.Coverage

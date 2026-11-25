@@ -36,6 +36,8 @@ def main():
 
     facade["run"]([sys.executable, Path(__file__).with_name("check-shake-fused-program.py")], root)
 
+    facade["run"]([sys.executable, Path(__file__).with_name("check-shake-xmss-dispatch.py")], root)
+
     module = "Shakebatch.WidthEightCoverage"
     facade["run"](["lake", "build", module], root / "lean-hw")
     operations = ("sign_spec", "sign_deterministic_spec", "verify_spec", "slh_sign_spec",
@@ -44,7 +46,10 @@ def main():
                 for host in ("Apple", "X86") for op in operations]
     lanes = ["slhdsa.WidthEight.Fors." + name for name in
              ("secret_fips", "leaf_fips", "parent_fips", "secret_lane", "fused_lane", "packed_lane", "signature_eq")]
-    facade["audit_theorems"](module, theorems + lanes + ["slhdsa.WidthEight.apple_fast", "slhdsa.WidthEight.x86_select"])
+    dispatch = ["slhdsa.WidthEight.apple_fast", "slhdsa.WidthEight.x86_select",
+                "WidthEightOuterApple.slhdsa.WidthEight.outer_eq", "WidthEightOuterX86.slhdsa.WidthEight.outer_eq",
+                "slhdsa.Fused.Outer.off_sign", "slhdsa.Fused.Outer.on_sign"]
+    facade["audit_theorems"](module, theorems + lanes + dispatch)
     print(f"Verified {len(theorems)} width-eight hosted theorem roots, both native XMSS selections, seven native FORS theorems, and three dispatch mutations.")
 
 
