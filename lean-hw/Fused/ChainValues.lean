@@ -5,7 +5,7 @@ open ShakeBatch NativeVerify NativeVerify.Wots NativeShakeWots cache.builder.nat
 set_option linter.concreteInstances false
 set_option maxHeartbeats 1000000
 variable [kernel : Kernel]
-local instance : Machine := machine kernel
+local instance chainValuesMachine : Machine := machine kernel
 
 abbrev Permutes (k : Kernel) := @PermutationCorrect (machine k)
 

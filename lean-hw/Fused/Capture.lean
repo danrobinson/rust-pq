@@ -5,7 +5,7 @@ open ShakeBatch NativeVerify NativeVerify.Wots NativeShakeWots NativeShakeWots.S
 set_option linter.concreteInstances false
 set_option maxHeartbeats 1000000
 variable [kernel : Kernel]
-local instance : Machine := machine kernel
+local instance captureMachine : Machine := machine kernel
 
 def writeLane (N : Usize) (sig : Signature) (chain lane : Usize) (state : Matrix 8#usize) := do
   let lo ← chain * N

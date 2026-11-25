@@ -14,7 +14,7 @@ class Kernel where
 
 @[instance_reducible] def machine (k : Kernel) : Machine := ⟨8#usize,k.permute⟩
 variable [kernel : Kernel]
-local instance : Machine := machine kernel
+local instance programMachine : Machine := machine kernel
 set_option linter.concreteInstances false
 set_option maxHeartbeats 1000000
 
