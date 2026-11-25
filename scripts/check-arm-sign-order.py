@@ -34,6 +34,20 @@ def extract(tmp, target):
     return "\n\n".join([header, *decls, "end slhdsa.Armwide.SignOrder\n"])
 
 
+def check_wrapper(tmp, target):
+    package = facade["extract"]("rust", target, "WSign", tmp, ["crate::wots::arm::sign"],
+                                ["crate::wots::arm::wots_digits_stack", "crate::sha256::arm_wide::wots_sign_fused"])
+    common = facade["common"]
+    fresh = list(common["declarations"](common["body"](package / "Funs.lean")))
+    nominal = list(common["declarations"](common["body"](package / "Types.lean")))
+    if len(fresh) != 2 or len(nominal) != 2:
+        raise ValueError(f"{target}: unexpected Arm WOTS sign wrapper declaration set")
+    for declaration, path in [(fresh[1], "Armwide/NativeWotsProgram.lean"), (fresh[0], "Slhdsa/Funs.lean"),
+                               *[(t, "Slhdsa/Types.lean") for t in nominal]]:
+        if declaration not in (LEAN / path).read_text():
+            raise ValueError(f"{target}: stale Arm WOTS sign wrapper or nominal type in {path}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--refresh", action="store_true")
@@ -48,15 +62,17 @@ def check(refresh=False):
     for target in facade["TARGETS"][:2]:
         with tempfile.TemporaryDirectory() as tmp:
             program = extract(Path(tmp), target)
+            check_wrapper(Path(tmp), target)
         path = LEAN / "Armwide/SignOrderProgram.lean"
         if refresh and target == facade["TARGETS"][0]:
             path.write_text(program)
         elif path.read_text() != program:
             raise ValueError(f"{target}: stale Arm signing sort extraction")
-    facade["run"](["lake", "build", "Armwide.SignOrder"], LEAN)
+    facade["run"](["lake", "build", "Armwide.SignOrder", "Armwide.NativeWots"], LEAN)
     facade["audit_theorems"]("Armwide.SignOrder", [
         "slhdsa.Armwide.SignOrder.sort_spec", "slhdsa.Armwide.SignOrder.sign_bytes",
     ])
+    facade["audit_theorems"]("Armwide.NativeWots", ["slhdsa.Armwide.Public.sign_spec", "slhdsa.Armwide.Public.sign_eq_scalar"])
     print("Apple and Linux AArch64 signing sort and FIPS WOTS bytes checked", flush=True)
 
 
