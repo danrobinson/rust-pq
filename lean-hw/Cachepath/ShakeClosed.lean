@@ -89,7 +89,7 @@ theorem sign_from_digest_eq {N : Usize} [correct : DispatchCorrect backend N] (p
       simpa only [cache.shake_ops.fors_sign, CacheScalar.cache.shake_ops.fors_sign, lift,
         CacheScalar.cache.shake_ops.simd.available, det, bind_ok, ite_true] using
         (correct.fast det).forsSign (toSlhParams p) md sk seed (toSlhAdrs a) hp hl
-  have recover (s : Slice U8) (a : CacheopsRust.address.Adrs) : cache.shake_ops.fors_pk_from_sig p s md seed a =
+  have recover (s : Slice U8) (a : CacheopsRust.address.Adrs) (sz : s.length = p.k.val*(1+p.a.val)*N.val) : cache.shake_ops.fors_pk_from_sig p s md seed a =
       CacheopsRust.cache.shake_ops.fors_pk_from_sig p s md seed a := by
     obtain ⟨flag, det⟩ := correct.available
     cases flag with
@@ -97,9 +97,25 @@ theorem sign_from_digest_eq {N : Usize} [correct : DispatchCorrect backend N] (p
     | true =>
       simpa only [cache.shake_ops.fors_pk_from_sig, CacheScalar.cache.shake_ops.fors_pk_from_sig, lift,
         CacheScalar.cache.shake_ops.simd.available, det, bind_ok, ite_true] using
-        (correct.fast det).forsRecover (toSlhParams p) s md seed (toSlhAdrs a) hp hl
+        (correct.fast det).forsRecover (toSlhParams p) s md seed (toSlhAdrs a) hp sz hl
+  have afterSign {α : Type} (a : CacheopsRust.address.Adrs) (rest : alloc.vec.Vec U8 → Array U8 N → Result α) :
+      (do let sig ← CacheopsRust.cache.shake_ops.fors_sign p md sk seed a
+          let root ← cache.shake_ops.fors_pk_from_sig p sig.deref md seed a
+          rest sig root) =
+      (do let sig ← CacheopsRust.cache.shake_ops.fors_sign p md sk seed a
+          let root ← CacheopsRust.cache.shake_ops.fors_pk_from_sig p sig.deref md seed a
+          rest sig root) := by
+    obtain ⟨sig,run,_,sz⟩ := spec_imp_exists (Shake.fors_sign_spec (toSlhParams p) hp md sk seed (toSlhAdrs a) hl)
+    have built : CacheopsRust.cache.shake_ops.fors_sign p md sk seed a = ok sig := run
+    rw [built]
+    simp only [Bind.bind,bind_ok]
+    rw [recover sig.deref a (by simpa only [slhdsa.cache.endtoend.vec_deref_len] using sz)]
+  have bindEq {α β : Type} (x : Result α) (f g : α → Result β) (h : ∀ v, f v = g v) :
+      (x >>= f) = (x >>= g) := congrArg (x >>= ·) (funext h)
   simp only [cache.shake_ops.sign_from_digest, CacheopsRust.cache.shake_ops.sign_from_digest,
-    len, slice, bind_ok, sign, recover, hypertree_eq p hp]
+    len, slice, bind_ok, sign, hypertree_eq p hp]
+  iterate 6 (apply bindEq; intro _)
+  apply afterSign
 
 open slhdsa.cache.endtoend slhdsa.cache
 

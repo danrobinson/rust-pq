@@ -29,7 +29,8 @@ structure FastSpec (b : Backend) (N : Usize) : Prop where
     md.length = (p.k.val * p.a.val + 7) / 8 →
     (do let d ← slhdsa.util.base_2b md p.a (UScalar.cast .Usize p.k)
         b.fors_sign p (alloc.vec.Vec.deref d) sk seed a) = shake.fors.fors_sign p md sk seed a
-  forsRecover : ∀ p sig (md : Slice U8) (seed : Array U8 N) a, PN p N →
+  forsRecover : ∀ p (sig md : Slice U8) (seed : Array U8 N) a, PN p N →
+    sig.length = p.k.val * (1+p.a.val) * N.val →
     md.length = (p.k.val * p.a.val + 7) / 8 →
     (do let d ← slhdsa.util.base_2b md p.a (UScalar.cast .Usize p.k)
         b.fors_pk_from_sig p (alloc.vec.Vec.deref d) sig seed a) = shake.fors.fors_pk_from_sig p sig md seed a
