@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import re
 import runpy
+import subprocess
 import tempfile
 
 ticket = runpy.run_path(str(Path(__file__).with_name("check-parallel-wots-ticket.py")))
@@ -44,8 +45,31 @@ def program(pkg):
             "namespace slhdsa.ParallelForestPack\n" + body + "\nend slhdsa.ParallelForestPack\n")
 
 
+def check_borrowed_vec_iterator():
+    # Charon marks this trait method external. Match the forwarding implementation
+    # in the rust-src component pinned by Charon before using Aeneas's slice iterator.
+    toolchain = common["ROOT"] / ".tools/aeneas/charon/charon"
+    sysroot = subprocess.check_output(["rustc", "--print", "sysroot"], cwd=toolchain, text=True).strip()
+    source = Path(sysroot, "lib/rustlib/src/rust/library/alloc/src/vec/mod.rs").read_text()
+    implementation = """impl<'a, T, A: Allocator> IntoIterator for &'a Vec<T, A> {
+        type Item = &'a T;
+        type IntoIter = slice::Iter<'a, T>;
+        fn into_iter(self) -> Self::IntoIter { self.iter() }
+    }"""
+    deref = """const impl<T, A: Allocator> ops::Deref for Vec<T, A> {
+        type Target = [T];
+        #[inline]
+        fn deref(&self) -> &[T] { self.as_slice() }
+    }"""
+    normalized = "".join(source.split())
+    for forwarding in (implementation, deref):
+        if normalized.count("".join(forwarding.split())) != 1:
+            raise ValueError("pinned borrowed Vec iteration changed")
+
+
 def main():
     os.environ["PATH"] = f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
+    check_borrowed_vec_iterator()
     with tempfile.TemporaryDirectory() as tmp:
         for target in ("aarch64-apple-darwin","aarch64-unknown-linux-gnu","x86_64-unknown-linux-gnu"):
             pkg=extract(Path(tmp)/target,target)
