@@ -55,7 +55,7 @@ private theorem append_foldl_eq {α : Type} (xs : List α) (f : α → Bytes) (a
   | nil => simp
   | cons x xs ih => simp [ih, List.append_assoc]
 
-private theorem xor_one_lt_two_pow {x k : Nat} (hk : 1 ≤ k) (hx : x < 2 ^ k) :
+theorem xor_one_lt_two_pow {x k : Nat} (hk : 1 ≤ k) (hx : x < 2 ^ k) :
     x ^^^ 1 < 2 ^ k := by
   rw [xor_one_eq]
   have heven : 2 ^ k % 2 = 0 := by

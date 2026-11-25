@@ -85,7 +85,7 @@ private theorem {name}SigByte_spec {{p count}} (inputs : MetalWotsOutput.Inputs)
 """
 
 
-def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None, host_cmd=None, xmss_stage=None):
+def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None, host_cmd=None, xmss_stage=None, forest=None):
     words = n // (8 if family == "shake" else 4)
     mode = ".twoPhase" if phase else ".streaming"
     count = f"(rs.length * {p}.d * 2^{p}.hp)"
@@ -167,6 +167,10 @@ private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
     MetalCommandValues.publicResult {p} rs out =
       rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
 """
+    if forest is not None:
+        module, s1, s2 = forest
+        cmds = ([chain_cmd] if phase else []) + [leaf_cmd, wots_cmd, fors_cmd, host_cmd, xmss_cmd]
+        return module["public_claim"](header, label, p, g, family, words, size, phase, mode, s1, s2, cmds)
     if xmss_stage is not None:
         return header + reducer["public_proof"](label, p, g, family, words, size, phase, count, mode, names, xmss_cmd)
     if host_cmd is not None:

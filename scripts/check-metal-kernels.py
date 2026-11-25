@@ -197,7 +197,7 @@ def audit_ffi_and_host_boundary() -> str:
     command = runpy.run_path(str(HERE / "metal-command.py"))
     command["geometry_sources"](lib_rs, (ROOT / "rust/src/params.rs").read_text(), PARAM_SETS)
     command_claims = command["verify"](lib_rs, gpu_rs, bridge, sha2_msl, shake_msl, bindings, PARAM_SETS)
-    binding_claims = "import Metal.XmssDispatch\nimport Metal.HostValues\nimport Metal.ForsPkDispatch\nimport Metal.WotsOutput\nimport Metal.LeafDispatch\nimport Metal.ChainDispatch\nimport Metal.CommandValues\nimport Metal.SignatureLayout\nimport Metal.Command\n" + binding_claims + "\n" + command_claims
+    binding_claims = "import Metal.SigningSchedule\nimport Metal.ForsDispatch\nimport Metal.XmssDispatch\nimport Metal.HostValues\nimport Metal.ForsPkDispatch\nimport Metal.WotsOutput\nimport Metal.LeafDispatch\nimport Metal.ChainDispatch\nimport Metal.CommandValues\nimport Metal.SignatureLayout\nimport Metal.Command\n" + binding_claims + "\n" + command_claims
     bindings["check_slot_swaps"](lib_rs, sha2_msl, shake_msl)
     # The bridge binds the ith Rust handle at MSL slot i, with no dynamic offset.
     require_contains(gpu_rs, [
@@ -1920,10 +1920,32 @@ def check_lean_proofs(binding_claims: str) -> None:
         ]
     )
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
-    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings", "Metal.Command", "Metal.CommandValues", "Metal.ChainDispatch", "Metal.LeafDispatch", "Metal.WotsOutput", "Metal.ForsPkDispatch", "Metal.HostValues", "Metal.XmssDispatch", "Metal.SignatureLayout"], cwd=ROOT / "lean-hw", check=True)
-    subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw", input=binding_claims, text=True, check=True)
+    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings", "Metal.Command", "Metal.CommandValues", "Metal.ChainDispatch", "Metal.LeafDispatch", "Metal.WotsOutput", "Metal.ForsPkDispatch", "Metal.HostValues", "Metal.SigningSchedule", "Metal.ForsDispatch", "Metal.XmssDispatch", "Metal.SignatureLayout"], cwd=ROOT / "lean-hw", check=True)
+    names = [
+        f"gpu_{row[0].replace('-', '_')}_{mode}_{stage}"
+        for row in PARAM_SETS for mode in (0, 1) for stage in ("signing_execution", "canonical_fips")
+    ]
+    commands = "".join(f"#print axioms {name}\n" for name in names)
+    checked = subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw",
+                             input=binding_claims+"\n"+commands, text=True, stdout=subprocess.PIPE)
+    if checked.returncode:
+        raise ValueError("generated Metal theorem failed\n"+checked.stdout)
+    allowed = {"propext", "Classical.choice", "Quot.sound"}
+    for name in names:
+        reports = re.findall(
+            rf"^'_private\.[^']+\.{name}' (?:does not depend on any axioms|depends on axioms: \[([^\]]*)\])$",
+            checked.stdout, re.MULTILINE,
+        )
+        if len(reports) != 1 or {x.strip() for x in reports[0].split(",") if x.strip()} - allowed:
+            raise ValueError(f"unexpected Metal axiom report for {name}: {reports}")
+    print(f"Verified and axiom-audited {len(names)} generated Metal signing and canonical execution theorems.")
     facade["audit_theorems"]("Metal.SignatureLayout", [
         "MetalSignatureLayout.in_bounds", "MetalSignatureLayout.disjoint", "MetalSignatureLayout.cover",
+    ])
+    facade["audit_theorems"]("Metal.SigningSchedule", ["MetalSigningSchedule.wots_order"])
+    facade["audit_theorems"]("Metal.ForsDispatch", [
+        "MetalForsDispatch.signature_region", "MetalForsDispatch.split_words", "MetalForsDispatch.unsplit_words",
+        "MetalForsDispatch.sub_read", "MetalForsDispatch.auth_at", "MetalForsDispatch.residual_outputs",
     ])
     facade["audit_theorems"]("Metal.XmssDispatch", [
         "MetalXmssDispatch.command", "MetalXmssDispatch.sig_field", "MetalXmssDispatch.roots_read",

@@ -5,6 +5,7 @@ import re
 import runpy
 from pathlib import Path
 
+fors_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_reducer.py"))
 xmss_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/xmss_reducer.py"))
 fors_pk = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_pk.py"))
 wots_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/wots_output.py"))
@@ -761,6 +762,11 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                             label, p, g, family, n, phase, producer("xmss_leaves"),
                             source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage, host_cmd=host_cmd, xmss_stage=xmss_stage,
                         ))
+                    statements.append(wots_output["public_claim"](
+                        label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd, producer("wots"), leaf_scratch,
+                        fors_stage=fp, host_cmd=host, xmss_stage=(xmss_reducer, producer("xmss_roots")),
+                        forest=(fors_reducer, s1, a-s1),
+                    ))
     return "\n".join(statements)
 
 
@@ -786,6 +792,19 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     projections = []
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
+        forest = fors_reducer["project"]
+        projections.append(forest(shader, is_shake, body, compact))
+        for before, after in (
+            ("leaf1_word3 = leaf0_word3 + 1u", "leaf1_word3 = leaf0_word3 + 2u"),
+            ("sib1 = (target >> p.s1) ^ 1u", "sib1 = (target >> p.s1) ^ 0u"),
+        ):
+            try:
+                forest(shader.replace(before, after), is_shake, body, compact)
+            except ValueError as error:
+                if "unreviewed FORS reducer body" not in str(error):
+                    raise
+            else:
+                raise ValueError("accepted a modified FORS reducer operand")
         xp = xmss_reducer["project"]
         projections.append(xp(shader, is_shake, body, compact))
         mutant = shader.replace("cur_cnt >>= 1;", "cur_cnt >>= 2;")
