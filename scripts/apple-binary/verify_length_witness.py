@@ -104,6 +104,10 @@ def certificate(image):
                 ]
             )
             if label == "shake_128s":
+                # Mutate the actual ADD X1,SP,#offset that supplies the randomizer.
+                # Different register allocations can move its stack slot.
+                (hash_argument,) = [w for _, w in good_path if w & 0xFFC003FF == 0x910003E1]
+                require((hash_argument >> 10 & 4095) >= 32, "unexpected H_msg stack argument")
                 fields = [
                     (
                         "wrongLengthSource",
@@ -124,7 +128,7 @@ def certificate(image):
                 lines.extend(
                     [
                         f"theorem wrongHashArgument : hashCall {name} 16 Spec.{label}.sigBytes 0x{hash_entry:x}",
-                        f"    ({label}_toHash.map (fun (pc,w) => (pc,if w == 0x910143e1 then 0x9100c3e1 else w)))",
+                        f"    ({label}_toHash.map (fun (pc,w) => (pc,if w == 0x{hash_argument:08x} then 0x{hash_argument - (32 << 10):08x} else w)))",
                         "    ≠ some (expectedCall 16) := by decide",
                         f"theorem wrongHashTarget : hashCall {name} 16 Spec.{label}.sigBytes 0x{hash_entry:x}",
                         f"    ({label}_toHash.map (fun (pc,w) => (pc,if pc = 0x{inner + 4 * bl:x} then 0x{ops[bl] ^ 1:08x} else w)))",
