@@ -34,7 +34,8 @@ structure FastSpec (b : Backend) (N : Usize) : Prop where
     md.length = (p.k.val * p.a.val + 7) / 8 →
     (do let d ← slhdsa.util.base_2b md p.a (UScalar.cast .Usize p.k)
         b.fors_pk_from_sig p (alloc.vec.Vec.deref d) sig seed a) = shake.fors.fors_pk_from_sig p sig md seed a
-  subtree : ∀ (sk : Array U8 N) i z seed a, b.subtree sk i z seed a =
+  subtree : ∀ (sk : Array U8 N) (i z : U32) seed a, z.val ≤ 9 → (i.val+1)*2^z.val ≤ 512 →
+    b.subtree sk i z seed a =
     shake.xmss.xmss_node sk i z seed (toSlhAdrs a)
 
 /-- Only an enabled accelerator owes its hardware contracts. -/

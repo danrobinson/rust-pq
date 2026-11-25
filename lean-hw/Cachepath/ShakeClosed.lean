@@ -1,4 +1,4 @@
-import Cachepath.ShakeClosedProgram
+import Cachepath.BoundedXmss
 import Cachepath.ShakeEndToEnd
 
 open Aeneas Aeneas.Std Result slhdsa
@@ -6,35 +6,6 @@ namespace CacheopsRust.Closed
 
 set_option linter.concreteInstances false
 variable [backend : Backend]
-
-private theorem wots_eq {N : Usize} [correct : DispatchCorrect backend N] (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
-    (m sk seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
-    cache.shake_ops.wots_sign m sk seed a = CacheopsRust.cache.shake_ops.wots_sign m sk seed a := by
-  obtain ⟨flag, det⟩ := correct.available
-  cases flag with
-  | false => exact CacheScalar.wots_sign_eq _ hp det _ _ _ _
-  | true =>
-    simpa only [cache.shake_ops.wots_sign, CacheScalar.cache.shake_ops.wots_sign,
-      CacheScalar.cache.shake_ops.simd.available, det, bind_ok, ite_true] using
-      (correct.fast det).wotsSign m sk seed (toSlhAdrs a)
-
-private theorem node_eq {N : Usize} [correct : DispatchCorrect backend N] (hn : N.val ≤ 32) (sk : Array U8 N) (i z : U32)
-    (seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
-    cache.shake_ops.xmss_node sk i z seed a = CacheopsRust.cache.shake_ops.xmss_node sk i z seed a := by
-  obtain ⟨flag, det⟩ := correct.available
-  cases flag with
-  | false => exact ShakeNode.scalar_node_eq _ _ hn det _ _ _ _ _
-  | true =>
-    exact ShakeNode.node_eq _ _ _ true det (correct.fast det).subtree
-      (fun sk seed a => CacheScalar.wots_pk_gen_eq hn sk seed (toSlhAdrs a)) _ _ _ _ _
-
-private theorem xmss_sign_eq {N : Usize} [correct : DispatchCorrect backend N] (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
-    (m sk : Array U8 N) (idx : U32) (seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
-    cache.shake_ops.xmss_sign p m sk idx seed a = CacheopsRust.cache.shake_ops.xmss_sign p m sk idx seed a := by
-  unfold cache.shake_ops.xmss_sign CacheopsRust.cache.shake_ops.xmss_sign
-  simp only [wots_eq p hp, cache.shake_ops.xmss_sign_loop, CacheopsRust.cache.shake_ops.xmss_sign_loop,
-    cache.shake_ops.xmss_sign_loop.body, CacheopsRust.cache.shake_ops.xmss_sign_loop.body, node_eq hp.le32]
-  rfl
 
 private theorem xmss_recover_eq {N : Usize} [correct : DispatchCorrect backend N] (p : CacheopsRust.params.Params) (idx : U32)
     (sig : Slice U8) (m seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
@@ -50,17 +21,57 @@ private theorem xmss_recover_eq {N : Usize} [correct : DispatchCorrect backend N
         (correct.fast det).wotsRecover sig m seed (toSlhAdrs a)
   simp only [cache.shake_ops.xmss_pk_from_sig,CacheopsRust.cache.shake_ops.xmss_pk_from_sig,recover]
 
+omit backend in
+private theorem bindSame {α β : Type} (x : Result α) (f g : α → Result β) (h : ∀ v, f v = g v) :
+    (x >>= f) = (x >>= g) := congrArg (x >>= ·) (funext h)
+
 private theorem hypertree_eq {N : Usize} [correct : DispatchCorrect backend N] (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
     (a : CacheopsRust.address.Adrs) (it : core.ops.range.Range U32) (sk seed : Array U8 N)
     (top : Slice (Array U8 N)) (hit : Option (Slice (Array U8 N))) (root : Array U8 N)
-    (sig : alloc.vec.Vec U8) (tree : U64) (leaf : U32) :
+    (sig : alloc.vec.Vec U8) (tree : U64) (leaf : U32) (index : leaf.val < 2^p.hp.val) :
     cache.shake_ops.sign_from_digest_loop a it p.n p.h p.d p.hp p.a p.k p.m sk seed top hit root sig tree leaf =
       CacheopsRust.cache.shake_ops.sign_from_digest_loop a it p.n p.h p.d p.hp p.a p.k p.m sk seed top hit root sig tree leaf := by
-  cases p
-  simp only [cache.shake_ops.sign_from_digest_loop, CacheopsRust.cache.shake_ops.sign_from_digest_loop,
-    cache.shake_ops.sign_from_digest_loop.body, CacheopsRust.cache.shake_ops.sign_from_digest_loop.body,
-    wots_eq _ hp, xmss_sign_eq _ hp, xmss_recover_eq]
-  rfl
+  have height : p.hp.val ≤ 9 := hp.valid.hp_le
+  have width : (1#u64 <<< p.hp) ⦃ v => v.val = 2^p.hp.val ⦄ := by
+    step as ⟨v,hv⟩
+    exact ht_shl_val v p.hp height hv
+  obtain ⟨size,shift,sz⟩ := spec_imp_exists width
+  have mask : (size - 1#u64) ⦃ v => v.val = 2^p.hp.val - 1 ⦄ := by
+    have positive := Nat.two_pow_pos p.hp.val
+    step as ⟨v,hv⟩
+    omega
+  obtain ⟨mask,sub,maskVal⟩ := spec_imp_exists mask
+  have nextBound : (UScalar.cast .U32 (tree &&& mask)).val < 2^p.hp.val := by
+    rw [ht_leaf_val tree mask _ p.hp height maskVal rfl]
+    exact Nat.mod_lt _ (Nat.two_pow_pos _)
+  unfold cache.shake_ops.sign_from_digest_loop CacheopsRust.cache.shake_ops.sign_from_digest_loop
+  conv_lhs => rw [loop.eq_def]; arg 1; dsimp only; rw [cache.shake_ops.sign_from_digest_loop.body]
+  conv_rhs => rw [loop.eq_def]; arg 1; dsimp only; rw [CacheopsRust.cache.shake_ops.sign_from_digest_loop.body]
+  by_cases active : it.start.val < it.end.val
+  · obtain ⟨⟨o,nxt⟩,read,ho,hn,he⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_U32_some_spec it active)
+    subst o
+    simp only [read,uncurry,bind_ok,Std.bind_assoc,shift,sub,lift,bounded_wots_eq p hp,xmss_recover_eq p,
+      bounded_xmss_sign_eq p hp _ _ leaf _ _ index]
+    iterate 3 (apply bindSame; intro v)
+    split
+    · simp only [Std.bind_assoc,bind_ok]
+      repeat' (apply bindSame; intro v)
+      apply hypertree_eq p hp a nxt sk seed top _ _ _ _ _ nextBound
+    · simp only [Std.bind_assoc]
+      apply bindSame
+      intro d
+      split
+      · cases hit <;> simp only [Std.bind_assoc,uncurry,bind_ok] <;>
+          repeat' (apply bindSame; intro v)
+        all_goals apply hypertree_eq p hp a nxt sk seed top _ _ _ _ _ nextBound
+      · simp only [Std.bind_assoc,bind_ok]
+        repeat' (apply bindSame; intro v)
+        apply hypertree_eq p hp a nxt sk seed top _ _ _ _ _ nextBound
+  · obtain ⟨⟨o,nxt⟩,read,ho,_⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_U32_none_spec it (by omega))
+    subst o
+    simp only [read,uncurry,bind_ok]
+termination_by it.end.val-it.start.val
+decreasing_by all_goals rw [he,hn]; omega
 
 /-- Equality of complete executions with the serial assembly model, including all signing bytes. -/
 theorem sign_from_digest_eq {N : Usize} [correct : DispatchCorrect backend N] (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
@@ -110,11 +121,10 @@ theorem sign_from_digest_eq {N : Usize} [correct : DispatchCorrect backend N] (p
     rw [built]
     simp only [Bind.bind,bind_ok]
     rw [recover sig.deref a (by simpa only [slhdsa.cache.endtoend.vec_deref_len] using sz)]
-  have bindEq {α β : Type} (x : Result α) (f g : α → Result β) (h : ∀ v, f v = g v) :
-      (x >>= f) = (x >>= g) := congrArg (x >>= ·) (funext h)
+  obtain ⟨leaf,decoded,_,index⟩ := spec_imp_exists (slhdsa.cache.endtoend.cache_digest_leaf_spec p digest hp.valid hdig)
   simp only [cache.shake_ops.sign_from_digest, CacheopsRust.cache.shake_ops.sign_from_digest,
-    len, slice, bind_ok, sign, hypertree_eq p hp]
-  iterate 6 (apply bindEq; intro _)
+    decoded, len, slice, bind_ok, sign, hypertree_eq p hp _ _ _ _ _ _ _ _ _ leaf index]
+  iterate 5 (apply bindSame; intro _)
   apply afterSign
 
 open slhdsa.cache.endtoend slhdsa.cache
