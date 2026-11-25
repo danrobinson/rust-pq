@@ -59,7 +59,7 @@ fn continued<const B: usize, H: MessageHash<B>>(
     H::finish(&state, consumed + B, &msg[n..])
 }
 
-fn digest<const N: usize>(
+pub(crate) fn digest<const N: usize>(
     p: &Params,
     r: &[u8; N],
     pk: &[u8; N],
@@ -89,7 +89,7 @@ fn digest<const N: usize>(
     }
 }
 
-fn randomizer<const N: usize>(key: &[u8; N], random: &[u8; N], ctx: &[u8], msg: &[u8]) -> [u8; N] {
+pub(crate) fn randomizer<const N: usize>(key: &[u8; N], random: &[u8; N], ctx: &[u8], msg: &[u8]) -> [u8; N] {
     let domain = [0, ctx.len() as u8];
     let mut prefix = [0; 32 + 2 + 255];
     prefix[..N].copy_from_slice(random);

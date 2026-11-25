@@ -151,7 +151,7 @@ macro_rules! test_all_twelve {
                 assert_eq!(cache.layer_d2_cached_trees(), 0);
 
                 // 3. Cached pure hedged & deterministic signing (short + long >= 1024 B + max ctx)
-                for (msg_len, ctx_len) in [(0usize, 0usize), (37, 11), (1025, 255)] {
+                for (msg_len, ctx_len) in [(0usize, 0usize), (37, 11), (1023, 255), (1024, 255), (1025, 255)] {
                     let msg = rng.bytes(msg_len);
                     let ctx = rng.bytes(ctx_len);
                     let rand: [u8; N] = rng.bytes(N).try_into().unwrap();

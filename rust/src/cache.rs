@@ -139,7 +139,7 @@ mod sha2_ops {
     use crate::fors::{fors_pk_from_sig, fors_sign};
     #[cfg(all(feature = "parallel", not(target_os = "none")))]
     use crate::fors::{fors_node, fors_sk_gen};
-    use crate::hash::{h_msg, mgf1_sha256, mgf1_sha512, prf_msg, seed_ctx};
+    use crate::hash::{h_msg, prf_msg, seed_ctx};
     #[cfg(all(feature = "parallel", not(target_os = "none")))]
     use crate::hash::Seed;
     #[cfg(all(feature = "parallel", not(target_os = "none")))]
@@ -148,54 +148,6 @@ mod sha2_ops {
     use crate::xmss::{hash2, xmss_pk_from_sig, xmss_sign};
     #[cfg(all(feature = "parallel", not(target_os = "none")))]
     use crate::xmss::xmss_node;
-    use crate::{sha256, sha512};
-
-    fn continued_sha256(mut state: [u32; 8], pre: usize, prefix: &[u8], msg: &[u8]) -> [u8; 32] {
-        let mut pos = 0;
-        while prefix.len() - pos >= 64 {
-            state = sha256::compress(&state, prefix, pos);
-            pos += 64;
-        }
-        let consumed = pre + pos;
-        let tail = &prefix[pos..];
-        let off = tail.len();
-        if off == 0 {
-            return sha256::sha256_from(&state, consumed, msg);
-        }
-        let mut head = [0u8; 64];
-        head[..off].copy_from_slice(tail);
-        let n = (64 - off).min(msg.len());
-        head[off..off + n].copy_from_slice(&msg[..n]);
-        if off + n < 64 {
-            return sha256::sha256_from(&state, consumed, &head[..off + n]);
-        }
-        state = sha256::compress(&state, &head, 0);
-        sha256::sha256_from(&state, consumed + 64, &msg[n..])
-    }
-
-    fn continued_sha512(mut state: [u64; 8], pre: usize, prefix: &[u8], msg: &[u8]) -> [u8; 64] {
-        let mut pos = 0;
-        while prefix.len() - pos >= 128 {
-            state = sha512::compress(&state, prefix, pos);
-            pos += 128;
-        }
-        let consumed = pre + pos;
-        let tail = &prefix[pos..];
-        let off = tail.len();
-        if off == 0 {
-            return sha512::sha512_from(&state, consumed, msg);
-        }
-        let mut head = [0u8; 128];
-        head[..off].copy_from_slice(tail);
-        let n = (128 - off).min(msg.len());
-        head[off..off + n].copy_from_slice(&msg[..n]);
-        if off + n < 128 {
-            return sha512::sha512_from(&state, consumed, &head[..off + n]);
-        }
-        state = sha512::compress(&state, &head, 0);
-        sha512::sha512_from(&state, consumed + 128, &msg[n..])
-    }
-
     /// Zero-copy `PRF_msg` and `H_msg` for pure signing with long messages (`m.len() >= 1024`).
     pub(super) fn pure_digest<const N: usize>(
         p: &Params,
@@ -213,75 +165,8 @@ mod sha2_ops {
             return (r, digest);
         }
 
-        // Segmented PRF_msg (identical to slh/message.rs)
-        let domain = [0u8, ctx.len() as u8];
-        let mut prf_prefix = [0u8; 32 + 2 + 255];
-        prf_prefix[..N].copy_from_slice(addrnd);
-        prf_prefix[N..N + 2].copy_from_slice(&domain);
-        let prf_used = N + 2 + ctx.len();
-        prf_prefix[N + 2..prf_used].copy_from_slice(ctx);
-
-        let r = if N == 16 {
-            let mut pad = [0x36u8; 64];
-            for i in 0..N {
-                pad[i] ^= sk_prf[i];
-            }
-            let inner_st = sha256::compress(&sha256::H0, &pad, 0);
-            let inner = continued_sha256(inner_st, 64, &prf_prefix[..prf_used], m);
-            pad.fill(0x5c);
-            for i in 0..N {
-                pad[i] ^= sk_prf[i];
-            }
-            let outer_st = sha256::compress(&sha256::H0, &pad, 0);
-            pad.fill(0);
-            pad[..32].copy_from_slice(&inner);
-            pad[32] = 0x80;
-            pad[62..].copy_from_slice(&(((64 + 32) * 8) as u16).to_be_bytes());
-            let mut out = [0u8; N];
-            out.copy_from_slice(&sha256::digest(&sha256::compress(&outer_st, &pad, 0))[..N]);
-            out
-        } else {
-            let mut pad = [0x36u8; 128];
-            for i in 0..N {
-                pad[i] ^= sk_prf[i];
-            }
-            let inner_st = sha512::compress(&sha512::H0, &pad, 0);
-            let inner = continued_sha512(inner_st, 128, &prf_prefix[..prf_used], m);
-            pad.fill(0x5c);
-            for i in 0..N {
-                pad[i] ^= sk_prf[i];
-            }
-            let outer_st = sha512::compress(&sha512::H0, &pad, 0);
-            pad.fill(0);
-            pad[..64].copy_from_slice(&inner);
-            pad[64] = 0x80;
-            pad[126..].copy_from_slice(&(((128 + 64) * 8) as u16).to_be_bytes());
-            let mut out = [0u8; N];
-            out.copy_from_slice(&sha512::digest(&sha512::compress(&outer_st, &pad, 0))[..N]);
-            out
-        };
-
-        // Segmented H_msg
-        let mut h_prefix = [0u8; 3 * 32 + 2 + 255];
-        h_prefix[..N].copy_from_slice(&r);
-        h_prefix[N..2 * N].copy_from_slice(pk_seed);
-        h_prefix[2 * N..3 * N].copy_from_slice(pk_root);
-        h_prefix[3 * N..3 * N + 2].copy_from_slice(&domain);
-        let h_used = 3 * N + 2 + ctx.len();
-        h_prefix[3 * N + 2..h_used].copy_from_slice(ctx);
-
-        let mut seed_buf = Vec::with_capacity(2 * N + 64);
-        seed_buf.extend_from_slice(&r);
-        seed_buf.extend_from_slice(pk_seed);
-        let digest = if N == 16 {
-            let d = continued_sha256(sha256::H0, 0, &h_prefix[..h_used], m);
-            seed_buf.extend_from_slice(&d);
-            mgf1_sha256(&seed_buf, p.m)
-        } else {
-            let d = continued_sha512(sha512::H0, 0, &h_prefix[..h_used], m);
-            seed_buf.extend_from_slice(&d);
-            mgf1_sha512(&seed_buf, p.m)
-        };
+        let r = crate::slh::message::randomizer(sk_prf, addrnd, ctx, m);
+        let digest = crate::slh::message::digest(p, &r, pk_seed, pk_root, ctx, m);
         (r, digest)
     }
 
@@ -2069,6 +1954,14 @@ impl<const N: usize> TopTreeCache<N> {
         lookup_cached_index(&self.layer_d2, tree_d2).map(|pos| self.layer_d2[pos].nodes.as_slice())
     }
 
+    #[inline]
+    fn lookup_digest_layer(&self, p: &Params, digest: &[u8]) -> Option<&[[u8; N]]> {
+        if self.layer_d2.is_empty() {
+            return None;
+        }
+        self.lookup_d2(Self::layer_d2_tree_index(p, digest))
+    }
+
     fn lookup_or_populate_d2(
         &mut self,
         p: &Params,
@@ -2252,11 +2145,7 @@ impl<const N: usize> TopTreeCache<N> {
                 shake_ops::pure_digest(p, &sk_prf, &pk_seed, &pk_root, addrnd, ctx, m)
             }
         };
-        let d2_hit = if self.layer_d2.is_empty() {
-            None
-        } else {
-            self.lookup_d2(Self::layer_d2_tree_index(p, &digest))
-        };
+        let d2_hit = self.lookup_digest_layer(p, &digest);
         let sig = match self.family {
             HashFamily::Sha2 => sha2_ops::sign_from_digest(
                 p,

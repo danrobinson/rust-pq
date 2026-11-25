@@ -209,8 +209,7 @@ shake_only! {
 }
 
 sha2_only! {
-    #[cfg(feature = "platform-sha2")]
-    mod message;
+    pub(crate) mod message;
 }
 
 #[cfg(all(feature = "parallel", not(target_os = "none")))]
