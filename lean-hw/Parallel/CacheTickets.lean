@@ -1,3 +1,4 @@
+import Mathlib.Logic.Relation
 import Parallel.CacheCompletion
 
 namespace ParallelCached.Tickets
@@ -87,6 +88,21 @@ theorem no_infinite {jobs : List (List (S × V))} (schedule : Nat → State S V)
     | succ i ih => have := decreases (steps i); omega
   have := consumed (fuel jobs (schedule 0)+1)
   omega
+
+/-- Every reachable state has a finite extension ending at a maximal state.
+Together with progress this supplies a normally joined witness for any plan
+with unique cell ownership and at least one worker. -/
+theorem maximal_extension {jobs : List (List (S × V))} {workers st}
+    (run : Reach jobs workers st) :
+    ∃ final, Relation.ReflTransGen (Step jobs) st final ∧ Reach jobs workers final ∧
+      ¬∃ next, Step jobs final next := by
+  by_cases more : ∃ next, Step jobs st next
+  · obtain ⟨next,step⟩ := more
+    obtain ⟨final,path,ready,stopped⟩ := maximal_extension (Reach.next run step)
+    exact ⟨final,path.head step,ready,stopped⟩
+  · exact ⟨st,.refl,run,more⟩
+termination_by fuel jobs st
+decreasing_by have := decreases step; omega
 
 /-- Forgetting worker identity preserves the order-independent publication ledger. -/
 theorem ledger {jobs : List (List (S × V))} {workers st} (run : Reach jobs workers st) :

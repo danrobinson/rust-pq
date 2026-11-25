@@ -238,6 +238,7 @@ def main():
     check_pool()
     modules = {
         "Parallel.Pool": "ParallelPool.join",
+        "Parallel.SigningSlots": "ParallelFused.Slots.output_fips",
         "Parallel.SigningPublication": "ParallelSigning.Publication.ready_sees_cells",
         "Parallel.Cached": "ParallelCached.interleavings",
         "Parallel.FusedWots": "ParallelFusedWots.selected",
@@ -260,6 +261,7 @@ def main():
             "ParallelPool.Publication.published",
         ],
     )
+    facade["audit_theorems"]("Parallel.SigningSlots", ["ParallelFused.Slots.constructed"])
     facade["audit_theorems"]("Parallel.Fused", ["ParallelFused.phase_one_ready"])
     with tempfile.TemporaryDirectory() as tmp:
         check_dispatch(Path(tmp))

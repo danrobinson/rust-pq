@@ -101,8 +101,9 @@ def symbolic_source(source):
     return meta + reduce + "\n" + sign
 
 
-def probe_source(cache_source):
-    source = (SRC / "slh/parallel.rs").read_text()
+def probe_source(cache_source, source=None):
+    if source is None:
+        source = (SRC / "slh/parallel.rs").read_text()
     probe = Path(__file__).with_name("signer.rs").read_text()
     cached_probe = Path(__file__).with_name("cached.rs").read_text()
     probe = probe.replace("// CACHED_HARNESS", cached.harness(cached_probe, cache_source))
