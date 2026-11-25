@@ -29,6 +29,10 @@ def program(pkg):
 
 
 def main():
+    proof = "Buffered.SmallWots"
+    facade["run"](["lake", "build", proof], lean)
+    facade["audit_theorems"](proof, ["slhdsa.Buffered.SmallWots." + name for name in (
+        "raw_eq", "leaves_spec", "init_keys", "forest", "groups", "finish_keys")])
     with tempfile.TemporaryDirectory() as tmp:
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
             folder = Path(tmp) / target

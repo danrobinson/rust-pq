@@ -19,7 +19,7 @@ def init (n : Usize) (sw : Array U64 4#usize) (w0 w1 : U64) (w2 : Array U64 8#us
   let i5 ← n + 2#usize
   Array.update pk3 i5 w2
 
-private theorem row (s : Matrix 8#usize) (idx : Usize) (value : Array U64 8#usize) (k l : Nat)
+theorem row (s : Matrix 8#usize) (idx : Usize) (value : Array U64 8#usize) (k l : Nat)
     (hi : idx.val<25) :
     cell (s.set idx value) k l = if k=idx.val then value.val[l]!.bv else cell s k l := by
   unfold cell
