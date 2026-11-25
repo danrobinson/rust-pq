@@ -28,8 +28,10 @@ structure Stepping where
 
 private def delta (code bulk : Nat) := if code=1024 then bulk else code
 
-def transition (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
-    (s : Stepping) (queue : List Nat) (out : Nat → Spec.Bytes) : SignLane × List Nat × (Nat → Spec.Bytes) :=
+abbrev Writer (α : Type) := α → Nat → Spec.Bytes → α
+
+def transitionWith {α : Type} (write : Writer α) (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
+    (s : Stepping) (queue : List Nat) (out : α) : SignLane × List Nat × α :=
   let l := s.before
   let live := decide ((if shared then bulk else 1) < l.left)
   let post := loadPost shared live l.isPrf (!queue.isEmpty) s.physical
@@ -39,7 +41,9 @@ def transition (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : 
     ⟨if r.x=13 then sk else s.digest, if r.chain=4 then nc else l.chain,
      (if r.cur=4 then 0 else l.curT) + delta r.advanced bulk,
      if r.left=9 then digits nc+r.consumed else l.left-delta r.consumed bulk, r.phase=1⟩
-  (row, queue.drop post.consumed, post.writes.foldl (fun o _ => setOut o l.chain s.digest) out)
+  (row, queue.drop post.consumed, post.writes.foldl (fun o _ => write o l.chain s.digest) out)
+
+abbrev transition := transitionWith setOut
 
 /-- Run the four-lane loop in increasing register order. The compaction theorem in
 Armwide.Transitions justifies retaining exactly the rows whose updated count is positive. -/
@@ -69,7 +73,7 @@ theorem native_updates_eq (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Boo
     have noSecret : s.physical.val ≠ 13 := by have := s.physical.isLt; omega
     have cnt : s.physical.val ≠ 9 := by have := s.physical.isLt; omega
     cases shared <;> cases phase : s.before.isPrf <;> cases queue <;>
-      simp only [nativeUpdates,List.map_cons,signRetireRefill,transition,post_correct,postSpec,phase,
+      simp only [nativeUpdates,List.map_cons,signRetireRefill,transition,transitionWith,post_correct,postSpec,phase,
         progressed,Bool.false_eq_true,Bool.true_eq_false,↓reduceIte,Bool.false_and,Bool.true_and,
         Bool.and_false,Bool.and_true,Bool.true_or,Bool.false_or,Bool.or_false,Bool.or_true,
         Bool.not_true,Bool.not_false,List.isEmpty_nil,List.isEmpty_cons,delta] <;>

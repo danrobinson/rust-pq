@@ -1,4 +1,4 @@
-import Armwide.FusedNative
+import Armwide.SignatureBuffer
 import Armwide.SignOrder
 import Slhdsa.Proofs.Wots
 
@@ -19,9 +19,11 @@ def sha256.arm_wide.wots_sign_fused {N : Usize} (state : Array U32 8#usize)
     (sk : Array U8 N) (a : slhdsa.address.Adrs) (ds : Slice U32) (out : Slice U8) : Result (Slice U8) := do
   let sorted ← SignOrder.sha256.arm_wide.sign_order ds
   let order := (sorted.val.take ds.length).map (·.val)
-  let rows := signRows N.val (wv state.val) (bytes sk.val) (slhdsa.adrsS a) (fun i => ds.val[i]!.val) order
-  let result := (List.range ds.length).flatMap rows
-  ok (Slice.from (out.val.setSlice! 0 (result.map UScalar.mk)) (by simpa using out.property))
+  let result := Transitions.bufferSign N.val (wv state.val) (bytes sk.val) (hashAddress (slhdsa.adrsS a))
+    (fun i => ds.val[i]!.val) order (bytes out.val)
+  ok (Slice.from (result.map (fun b => (⟨b⟩ : U8))) (by
+    rw [List.length_map,Transitions.buffer_sign_size,bytes_length]
+    exact out.property))
 
 abbrev wots.arm.wots_digits_stack := @ArmwideRust.wots.arm.wots_digits_stack
 

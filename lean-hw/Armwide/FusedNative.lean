@@ -17,25 +17,31 @@ private def inputs (n : Nat) (base : Spec.Adrs) (active : List SignLane) : WotsR
   counter := fun j => active[j]!.curT
   digest := fun j => loadDigest n active[j]!.x
 
-private def steps (n : Nat) (st : List Word) (base : Spec.Adrs) (active : List SignLane) (m : Mode) : List Stepping :=
-  List.ofFn fun j : Fin (lanes m) => ⟨⟨j.val%4,Nat.mod_lt _ (by decide)⟩,active[j.val]!,
-    content n (runRegisterHashes n st (inputs n base active) m j)⟩
+def outputDigest (n : Nat) (r : Arm.V × Arm.V) := storedBytes n r.1 r.2
 
-private def chooseMixed (n : Nat) : Mode := .mixed ⟨(n-1)%4,Nat.mod_lt _ (by decide)⟩
+def steps (n : Nat) (st : List Word) (base : Spec.Adrs) (active : List SignLane) (m : Mode) : List Stepping :=
+  List.ofFn fun j : Fin (lanes m) => ⟨⟨j.val%4,Nat.mod_lt _ (by decide)⟩,active[j.val]!,
+    outputDigest n (runRegisterHashes n st (inputs n base active) m j)⟩
+
+def chooseMixed (n : Nat) : Mode := .mixed ⟨(n-1)%4,Nat.mod_lt _ (by decide)⟩
 private def chooseShared (bulk : Nat) : Mode := .shared ⟨(bulk-1)%15,Nat.mod_lt _ (by decide)⟩
 
-def four (n : Nat) (st : List Word) (sk : Spec.Bytes) (base : Spec.Adrs) (digits : Nat → Nat) : FourStep :=
+def fourWith {α : Type} (write : Writer α) (n : Nat) (st : List Word) (sk : Spec.Bytes) (base : Spec.Adrs) (digits : Nat → Nat) : List SignLane → List Nat → α → List SignLane × List Nat × α :=
   fun active queue out =>
     if active.any (·.isPrf) then
-      compactFour sk digits false 1 (steps n st base active (.mixed 3)) queue out
+      compactWithWriter write sk digits false 1 (steps n st base active (.mixed 3)) queue out
     else
       let k := signMinLeft active
-      compactFour sk digits true k (steps n st base active (chooseShared k)) queue out
+      compactWithWriter write sk digits true k (steps n st base active (chooseShared k)) queue out
 
-def tail (n : Nat) (st : List Word) (base : Spec.Adrs) : TailStep :=
+abbrev four := fourWith setOut
+
+def tailWith {α : Type} (write : Writer α) (n : Nat) (st : List Word) (base : Spec.Adrs) : List SignLane → α → List SignLane × α :=
   fun active out =>
-    tailUpdates ⟨(active.length-1)%4,Nat.mod_lt _ (by decide)⟩
+    tailWithWriter write ⟨(active.length-1)%4,Nat.mod_lt _ (by decide)⟩
       (steps n st base active (chooseMixed active.length)) out
+
+abbrev tail := tailWith setOut
 
 private theorem len_x (p : Spec.Params) (valid : p.Valid) (pk sk : Spec.Bytes)
     (slen : sk.length=p.n) (base : Spec.Adrs) (digits : Nat → Nat) (len : Nat)
@@ -65,7 +71,7 @@ private theorem mixed_eq (p : Spec.Params) [Fact (p.family=.sha2)] (valid : p.Va
   change content p.n _ = Spec.F p pk
     {r.address i with word2 := r.chain i, word3 := r.counter i} (content p.n (r.digest i)) at hm
   rw [init] at hm
-  simp only [steps,List.getElem_map,List.getElem_ofFn,progressed,Bool.false_eq_true,↓reduceIte]
+  simp only [steps,outputDigest,stored_eq p.n valid.n_cases,List.getElem_map,List.getElem_ofFn,progressed,Bool.false_eq_true,↓reduceIte]
   rw [← getElem!_pos a i ha]
   change _ = signStepOneLane p pk base a[i]!
   unfold signStepOneLane
@@ -111,7 +117,7 @@ private theorem shared_eq (p : Spec.Params) [Fact (p.family=.sha2)] (valid : p.V
   have init : content p.n (r.digest i) = a[i]!.x := load_content p.n valid.n_cases _ (len_x p valid pk sk skl base digits len a q o inv i ha)
   simp only [modEq] at hm
   rw [init] at hm
-  simp only [steps,List.getElem_map,List.getElem_ofFn,progressed,↓reduceIte]
+  simp only [steps,outputDigest,stored_eq p.n valid.n_cases,List.getElem_map,List.getElem_ofFn,progressed,↓reduceIte]
   rw [← getElem!_pos a i ha]
   simp only [ph]
   exact congrArg (fun digest => SignLane.mk digest a[i]!.chain (a[i]!.curT+k) (a[i]!.left-k) false) hm
@@ -151,12 +157,12 @@ theorem native_sign_scheduler (p : Spec.Params) [Fact (p.family=.sha2)] (valid :
       (tail p.n (seedState p.n pk) base) c = wotsSignTarget p pk sk base digits c := by
   apply sign_using_scheduler_eq_fips p pk sk base digits len order _ _ _ _ hdig hn hm
   · intro a q o inv size
-    unfold four signStep4
+    unfold four fourWith signStep4
     split <;> rename_i phase
     · rw [compact_four_eq _ _ _ _ _ _ _ (by simp [steps,lanes]),native_updates_eq,mixed_eq p valid pk sk pkl skl base digits len a q o inv cap 3 (by exact size.symm)]
     · rw [compact_four_eq _ _ _ _ _ _ _ (by simp [steps,chooseShared,lanes]),native_updates_eq,shared_eq p valid pk sk pkl skl base digits len a q o inv cap size (by simpa using phase) hdig]
   · intro a o inv pos small
-    unfold tail signStepTail chooseMixed
+    unfold tail tailWith signStepTail chooseMixed
     have widthEq : width ⟨(a.length-1)%4,Nat.mod_lt _ (by decide)⟩ = a.length := by
       change (a.length-1)%4+1=a.length
       rw [Nat.mod_eq_of_lt (by omega)]; omega

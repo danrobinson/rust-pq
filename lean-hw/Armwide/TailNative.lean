@@ -14,10 +14,12 @@ private def tailRow (rows : List Stepping) (r : Register) : SignLane :=
 
 /-- Interpret the registers and chain-addressed store events actually produced by the
 native tail. Entries of the hashed digest register pair are represented by their bytes. -/
-def tailUpdates (q : Count) (rows : List Stepping) (o : Nat → Spec.Bytes) :=
+def tailWithWriter {α : Type} (write : Writer α) (q : Count) (rows : List Stepping) (o : α) :=
   let tr := actual q (fun i => 1 < rows[i]!.before.left) (fun i => rows[i]!.before.isPrf)
   (tr.kept.map (tailRow rows),
-   tr.writes.foldl (fun out e => setOut out rows[e.chain]!.before.chain rows[e.x]!.digest) o)
+   tr.writes.foldl (fun out e => write out rows[e.chain]!.before.chain rows[e.x]!.digest) o)
+
+abbrev tailUpdates := tailWithWriter setOut
 
 private theorem noqueue (rows : List SignLane) (o : Nat → Spec.Bytes) :
     signRetireRefill [] (fun _ => 0) rows [] o =
@@ -36,11 +38,11 @@ private theorem indexes {α : Type} [Inhabited α] (rs : List α) :
 
 theorem tail_updates_eq (q : Count) (short : width q < 4) (rows : List Stepping)
     (size : rows.length = width q) (out : Nat → Spec.Bytes) :
-    tailUpdates q rows out =
+    tailWithWriter setOut q rows out =
       let (rem,_,o) := signRetireRefill [] (fun _ => 0) (rows.map (progressed false 1)) [] out
       (rem,o) := by
   rw [noqueue]
-  unfold tailUpdates
+  unfold tailWithWriter
   rw [active_step]
   have small : rows.length < 4 := by omega
   simp only [blueprint,←size,small,decide_true,Bool.true_and,↓reduceIte,List.map_map,List.foldl_map]
@@ -63,32 +65,33 @@ theorem tail_updates_eq (q : Count) (short : width q < 4) (rows : List Stepping)
 
 private instance : Inhabited SignLane := ⟨⟨[],0,0,0,false⟩⟩
 
-private def uncompacted (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat) :
-    List Stepping → List Nat → (Nat → Spec.Bytes) → List SignLane × List Nat × (Nat → Spec.Bytes)
+def uncompactedWith {α : Type} (write : Writer α) (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat) :
+    List Stepping → List Nat → α → List SignLane × List Nat × α
   | [], q, o => ([],q,o)
   | l::ls,q,o =>
-    let (row,q',o') := transition sk digits shared bulk l q o
-    let (rest,q'',o'') := uncompacted sk digits shared bulk ls q' o'
+    let (row,q',o') := transitionWith write sk digits shared bulk l q o
+    let (rest,q'',o'') := uncompactedWith write sk digits shared bulk ls q' o'
     (row::rest,q'',o'')
+
 
 private theorem uncompacted_size (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
     (ls : List Stepping) (q : List Nat) (o : Nat → Spec.Bytes) :
-    (uncompacted sk digits shared bulk ls q o).1.length = ls.length := by
+    (uncompactedWith setOut sk digits shared bulk ls q o).1.length = ls.length := by
   induction ls generalizing q o with
   | nil => rfl
-  | cons l ls ih => simp only [uncompacted,List.length_cons,ih]
+  | cons l ls ih => simp only [uncompactedWith,List.length_cons,ih]
 
 private theorem uncompacted_filter (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
     (ls : List Stepping) (q : List Nat) (o : Nat → Spec.Bytes) :
-    let (rows,q',o') := uncompacted sk digits shared bulk ls q o
+    let (rows,q',o') := uncompactedWith setOut sk digits shared bulk ls q o
     (rows.filter (fun l => l.left ≠ 0),q',o') = nativeUpdates sk digits shared bulk ls q o := by
   induction ls generalizing q o with
   | nil => rfl
   | cons l ls ih =>
-    simp only [uncompacted,nativeUpdates]
-    set v := transition sk digits shared bulk l q o
+    simp only [uncompactedWith,nativeUpdates]
+    set v := transitionWith setOut sk digits shared bulk l q o
     specialize ih v.2.1 v.2.2
-    cases e : uncompacted sk digits shared bulk ls v.2.1 v.2.2 with
+    cases e : uncompactedWith setOut sk digits shared bulk ls v.2.1 v.2.2 with
     | mk rem pair =>
       rw [e] at ih
       rw [←ih]
@@ -96,21 +99,23 @@ private theorem uncompacted_filter (sk : Spec.Bytes) (digits : Nat → Nat) (sha
 
 /-- Interpret the in-place moves of the full-loop compaction after every posthash
 retirement and refill has modified the physical register array. -/
-def compactFour (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
-    (ls : List Stepping) (q : List Nat) (o : Nat → Spec.Bytes) :=
-  let (rows,q',o') := uncompacted sk digits shared bulk ls q o
+def compactWithWriter {α : Type} (write : Writer α) (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
+    (ls : List Stepping) (q : List Nat) (o : α) :=
+  let (rows,q',o') := uncompactedWith write sk digits shared bulk ls q o
   let tr := actual 3 (fun i => rows[i]!.left ≠ 0) (fun i => rows[i]!.isPrf)
   (tr.kept.map (fun (reg : Register) =>
     (⟨rows[reg.x]!.x,rows[reg.chain]!.chain,rows[reg.cur]!.curT,rows[reg.left]!.left,reg.phase=1⟩ : SignLane)),
    q',o')
 
+abbrev compactFour := compactWithWriter setOut
+
 theorem compact_four_eq (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool) (bulk : Nat)
     (ls : List Stepping) (q : List Nat) (o : Nat → Spec.Bytes) (size : ls.length=4) :
-    compactFour sk digits shared bulk ls q o = nativeUpdates sk digits shared bulk ls q o := by
-  unfold compactFour
+    compactWithWriter setOut sk digits shared bulk ls q o = nativeUpdates sk digits shared bulk ls q o := by
+  unfold compactWithWriter
   rw [←uncompacted_filter]
   have len := uncompacted_size sk digits shared bulk ls q o
-  cases e : uncompacted sk digits shared bulk ls q o with
+  cases e : uncompactedWith setOut sk digits shared bulk ls q o with
   | mk rows pair =>
     rw [e] at len
     have four : rows.length = 4 := len.trans size

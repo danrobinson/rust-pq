@@ -217,6 +217,32 @@ def load_program(tmp, source):
             "  | _ => []\nend slhdsa.Armwide.Transitions\n")
 
 
+def check_control(source):
+    """Check the statements between the independently lifted parts of the worker."""
+    def same(actual, expected):
+        clean = lambda code: re.sub(r"\s+", "", re.sub(r"//[^\n]*", "", code))
+        if clean(actual) != clean(expected):
+            raise ValueError(f"unmodeled statement in WOTS signer control: {actual[:140]}")
+
+    wrapper = source.split("fn wots_sign_fused<const", 1)[1].split(") {", 1)[1].split("\n}", 1)[0]
+    same(wrapper, "debug_assert!(available()); unsafe { wots_sign_fused_active::<N>(state, sk_seed, adrs, digits, sig) };")
+    signer = source.split("fn wots_sign_fused_active",1)[1].split("\n}",1)[0]
+    full, tail = signer.split("    while active == 4 {",1)[1].split("    while active > 0 {",1)
+    before_call = full.split("run_shared4_steps::<N>(",1)[0]
+    same(before_call, """if !(is_prf[0] || is_prf[1] || is_prf[2] || is_prf[3]) {
+        let min_left = left[0].min(left[1]).min(left[2]).min(left[3]);""")
+    _,shared,mixed = full.split("            for l in 0..4 {",2)
+    after_shared = shared.split("\n            }",1)[1].split("let hdrs = [",1)[0]
+    after_mixed = mixed.split("\n            }",1)[1].split("if left[0] == 0 ||",1)[0]
+    same(after_shared, "} else {")
+    same(after_mixed, "}")
+    compact = mixed.split("        if left[0] == 0 ||",1)[1].split("\n    }",1)
+    same(compact[1], "")
+    prefix = tail.split("        if active == 3",1)[0]
+    same(prefix, "let k_ptr = core::hint::black_box(super::K.as_ptr());")
+    same(tail.split("        let mut k = 0;",1)[1].split("\n    }",1)[1], "")
+
+
 def initial_program(_tmp, source):
     """Translate the initial-fill assignments. Distinct register halves must share a digest."""
     signer = source.split("fn wots_sign_fused_active", 1)[1]
@@ -267,6 +293,7 @@ def main():
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".cargo/bin"), str(Path.home()/".elan/bin"), os.environ["PATH"]])
     with tempfile.TemporaryDirectory() as tmp:
         src = (ROOT/"rust/src/sha256/arm_wide.rs").read_text()
+        check_control(src)
         for name, project in [("TransitionProgram",program), ("HashRouteProgram",hash_program), ("StoreProgram",store_program), ("PackProgram",pack_program), ("RefillProgram",refill_program), ("LoadProgram",load_program), ("InitProgram",initial_program)]:
             body = project(Path(tmp), src)
             dest = LEAN/"Armwide"/(name+".lean")
@@ -274,8 +301,8 @@ def main():
                 dest.write_text(body)
             elif dest.read_text() != body:
                 raise ValueError(f"stale native WOTS projection {name}")
-    facade["run"](["lake","build","Armwide.Transitions","Armwide.HashRoutes","Armwide.FusedNative"],LEAN)
-    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("FusedNative","native_sign_scheduler"),("TailNative","tail_updates_eq"),("TailNative","compact_four_eq"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
+    facade["run"](["lake","build","Armwide.Transitions","Armwide.HashRoutes","Armwide.SignatureBuffer"],LEAN)
+    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("FusedNative","native_sign_scheduler"),("SignatureBuffer","buffer_sign_table"),("TailNative","tail_updates_eq"),("TailNative","compact_four_eq"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
         facade["audit_theorems"]("Armwide."+module, ["slhdsa.Armwide.Transitions."+name])
 
 

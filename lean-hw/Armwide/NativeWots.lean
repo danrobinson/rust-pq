@@ -9,7 +9,8 @@ private theorem fused_spec {N : Usize} (p : params.Params) (hp : PN p N)
     (m sk : Array U8 N) (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs)
     (ds : Slice U32) (out : Slice U8) (size : ds.length=(paramsS p).len)
     (digs : nats ds.val = Spec.wotsDigits (paramsS p) (bytes m.val))
-    (bounded : ∀ i < ds.length, ds.val[i]!.val ≤ 15) (room : out.length = ds.length*N.val) :
+    (bounded : ∀ i < ds.length, ds.val[i]!.val ≤ 15) (room : out.length = ds.length*N.val)
+    (empty : out.val = List.replicate out.length 0#u8) :
     sha256.arm_wide.wots_sign_fused seed.state sk a ds out ⦃ r => bytes r.val =
       Spec.wotsSign (paramsS p) (bytes m.val) (bytes sk.val) (bytes seed.pk_seed.val) (hashAddress (slhdsa.adrsS a)) ⦄ := by
   have cap : ds.length ≤ 67 := by have := hp.le32; rw [size,hp.len]; omega
@@ -37,14 +38,18 @@ private theorem fused_spec {N : Usize} (p : params.Params) (hp : PN p N)
     rw [Transitions.initialized_eq,st,←hp.n]
     unfold WotsRefill.wotsSignTarget at h
     simpa only [dig] using h
-  have fit : ((List.range ds.length).flatMap row).length = out.length := by
-    rw [rows,Spec.wotsSign_length _ hp.valid,room,size,hp.n]
-  rw [Slice.from_val]
-  change bytes (out.val.setSlice! 0 (((List.range ds.length).flatMap row).map (fun b => (⟨b⟩ : U8)))) = _
-  rw [show out.val.setSlice! 0 (((List.range ds.length).flatMap row).map (fun b => (⟨b⟩ : U8))) =
-       ((List.range ds.length).flatMap row).map (fun b => (⟨b⟩ : U8)) by
-    simp [List.setSlice!,fit,Slice.length]]
-  simpa [bytes,List.map_map,Function.comp_def] using rows
+  have sizes : ∀ i < ds.length, (row i).length=N.val := by
+    intro i hi
+    unfold row signRows
+    rw [Transitions.initialized_eq,st,←hp.n,native i hi]
+    unfold WotsRefill.wotsSignTarget
+    apply Spec.chain_length _ hp.valid _ (Spec.PRF_length _ hp.valid ..)
+  have zero : bytes out.val = List.replicate (ds.length*N.val) 0#8 := by rw [empty,bytes_replicate,room]; rfl
+  simp only [Slice.from_val,bytes,List.map_map,Function.comp_def,List.map_id_fun,List.map_id]
+  rw [show List.map (fun x : U8 => x.bv) out.val = _ from zero,Transitions.buffer_sign_table _ _ _ _ _ _ _ hp.nok]
+  change List.map id (Transitions.encode N.val ds.length row) = _
+  rw [List.map_id,Transitions.encode_done _ _ _ sizes]
+  exact rows
 
 /-- The production Arm signing entry, including allocation, embedded Rust digit sort,
 native register hashing and the returned buffer, matches FIPS WOTS+. -/
@@ -72,7 +77,8 @@ theorem sign_spec {N : Usize} (p : params.Params) (hp : PN p N) (m sk : Array U8
     rw [getElem!_pos _ _ (by simp; omega)] at h
     rw [se,getElem!_pos _ _ (by rw [←se]; exact hj),List.getElem_take]; omega
   simp only [alloc.vec.Vec.deref_mut,lift,bind_ok]
-  step with fused_spec p hp m sk seed hs a s _ (s_post1.trans length) eq small (by change sig.length=_; rw [sig_post1,hsz,s_post1]) as ⟨r,hr⟩
+  step with fused_spec p hp m sk seed hs a s _ (s_post1.trans length) eq small (by change sig.length=_; rw [sig_post1,hsz,s_post1])
+    (by change sig.val = List.replicate sig.length 0#u8; rw [sig_post,sig_post1]) as ⟨r,hr⟩
   exact hr
 
 /-- XMSS invokes the wide entry with a WOTS_HASH address whose two scratch words
