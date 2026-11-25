@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Replay the production FORS packed slice loops on Apple and x86-64."""
 from pathlib import Path
+import os
 import re
 import runpy
 import tempfile
@@ -43,6 +44,7 @@ def program(package):
 
 
 def main():
+    os.environ["PATH"] = f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
     with tempfile.TemporaryDirectory() as temp:
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
             folder = Path(temp) / target

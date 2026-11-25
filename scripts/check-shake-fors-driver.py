@@ -44,6 +44,7 @@ def program(pkg):
 
 
 def main():
+    runpy.run_path(str(Path(__file__).with_name("check-fors-wide-rows.py")))["main"]()
     os.environ["PATH"] = f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
     with tempfile.TemporaryDirectory() as tmp:
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
