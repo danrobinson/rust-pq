@@ -47,16 +47,16 @@ def countGt (ws : List U32) (b : Nat) : Nat :=
 def slotOf (ws : List U32) (c : Nat) : Nat :=
   countGt ws (ws[c]!).val + countEq ws c (ws[c]!).val
 
-private theorem countEq_zero (ws : List U32) (b : Nat) : countEq ws 0 b = 0 := rfl
+theorem countEq_zero (ws : List U32) (b : Nat) : countEq ws 0 b = 0 := rfl
 
-private theorem countEq_succ (ws : List U32) (n b : Nat) :
+theorem countEq_succ (ws : List U32) (n b : Nat) :
     countEq ws (n + 1) b = countEq ws n b + if (ws[n]!).val = b then 1 else 0 := by
   unfold countEq
   rw [List.range_succ, List.filter_append, List.length_append]
   simp only [List.filter_cons, List.filter_nil, beq_iff_eq]
   split <;> simp
 
-private theorem countEq_le (ws : List U32) (n b : Nat) : countEq ws n b ≤ n := by
+theorem countEq_le (ws : List U32) (n b : Nat) : countEq ws n b ≤ n := by
   unfold countEq
   calc ((List.range n).filter _).length ≤ (List.range n).length := List.length_filter_le _ _
     _ = n := List.length_range
@@ -67,14 +67,14 @@ private theorem countEq_mono (ws : List U32) {m n : Nat} (h : m ≤ n) (b : Nat)
   | refl => exact le_rfl
   | step _ ih => rw [countEq_succ]; omega
 
-private theorem countEq_strict_mono (ws : List U32) {c1 c2 : Nat} (h : c1 < c2) (b : Nat)
+theorem countEq_strict_mono (ws : List U32) {c1 c2 : Nat} (h : c1 < c2) (b : Nat)
     (hc1 : (ws[c1]!).val = b) :
     countEq ws c1 b < countEq ws c2 b := by
   have h1 : countEq ws (c1 + 1) b ≤ countEq ws c2 b := countEq_mono ws (by omega) b
   rw [countEq_succ, ite_eq_left hc1] at h1
   omega
 
-private theorem countGt_15 (ws : List U32) (hb : ∀ j < ws.length, (ws[j]!).val ≤ 15) :
+theorem countGt_15 (ws : List U32) (hb : ∀ j < ws.length, (ws[j]!).val ≤ 15) :
     countGt ws 15 = 0 := by
   unfold countGt
   rw [List.length_eq_zero_iff, List.filter_eq_nil_iff]
@@ -84,7 +84,7 @@ private theorem countGt_15 (ws : List U32) (hb : ∀ j < ws.length, (ws[j]!).val
   simp only [decide_eq_true_eq, not_lt]
   exact hle
 
-private theorem filter_disjoint_add {α} (l : List α) (p q : α → Bool)
+theorem filter_disjoint_add {α} (l : List α) (p q : α → Bool)
     (hdisj : ∀ x ∈ l, !(p x && q x)) :
     (l.filter fun x => p x || q x).length = (l.filter p).length + (l.filter q).length := by
   induction l with
@@ -94,7 +94,7 @@ private theorem filter_disjoint_add {α} (l : List α) (p q : α → Bool)
     have ih' := ih (fun x hx => hdisj x (by simp [hx]))
     cases hp : p a <;> cases hq : q a <;> simp_all <;> omega
 
-private theorem countGt_step (ws : List U32) (b : Nat) (hb : 1 ≤ b) :
+theorem countGt_step (ws : List U32) (b : Nat) (hb : 1 ≤ b) :
     countGt ws (b - 1) = countGt ws b + countEq ws ws.length b := by
   unfold countGt countEq
   have hpred : (fun j : Nat => decide (b - 1 < (ws[j]!).val)) =
@@ -146,7 +146,7 @@ private theorem slotOf_lt_of_gt (ws : List U32) {c1 c2 : Nat} (hc1 : c1 < ws.len
   have h3 := countGt_antitone ws (show (ws[c2]!).val ≤ (ws[c1]!).val - 1 by omega)
   omega
 
-private theorem slotOf_inj (ws : List U32) {c1 c2 : Nat} (hc1 : c1 < ws.length) (hc2 : c2 < ws.length)
+theorem slotOf_inj (ws : List U32) {c1 c2 : Nat} (hc1 : c1 < ws.length) (hc2 : c2 < ws.length)
     (heq : slotOf ws c1 = slotOf ws c2) : c1 = c2 := by
   by_cases hlt : (ws[c1]!).val < (ws[c2]!).val
   · have := slotOf_lt_of_gt ws hc2 hlt; omega
