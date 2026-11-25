@@ -353,4 +353,100 @@ mod tests {
         }
         execute(2, false, &|| {});
     }
+
+    #[test]
+    fn parallel_work_queue_and_scrub_preserve_results() {
+        const ITEMS: usize = 32;
+        let next = AtomicUsize::new(0);
+        let slots: Vec<OnceLock<usize>> = (0..ITEMS).map(|_| OnceLock::new()).collect();
+        execute(4, true, &|| loop {
+            let i = next.fetch_add(1, Ordering::Relaxed);
+            let Some(slot) = slots.get(i) else { break };
+            slot.set(i * 3 + 7).expect("unique work item");
+        });
+        for (i, slot) in slots.iter().enumerate() {
+            assert_eq!(*slot.get().expect("all items completed"), i * 3 + 7);
+        }
+    }
+
+    #[test]
+    fn nested_reentrant_execute_falls_back_cleanly() {
+        let outer_sum = AtomicUsize::new(0);
+        let next = AtomicUsize::new(0);
+        execute(4, false, &|| {
+            while next.fetch_add(1, Ordering::Relaxed) < 8 {
+                let inner = AtomicUsize::new(0);
+                execute(4, false, &|| {
+                    inner.fetch_add(1, Ordering::Relaxed);
+                });
+                outer_sum.fetch_add(inner.load(Ordering::Relaxed), Ordering::Relaxed);
+            }
+        });
+        assert_eq!(outer_sum.load(Ordering::Relaxed), 8);
+    }
+
+    #[test]
+    fn caller_panic_joins_workers_before_unwinding_without_double_panic() {
+        let (_, workers) = ensure_workers();
+        if workers == 0 {
+            return;
+        }
+        let caller = thread::current().id();
+        loop {
+            let worker_read_stack = AtomicBool::new(false);
+            let stack_payload = [0x5Au8; 64];
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                execute(3, false, &|| {
+                    if thread::current().id() == caller {
+                        panic!("caller failure");
+                    } else {
+                        // Borrow caller stack payload while caller is unwinding.
+                        // PoolGuard::drop must join this worker before stack_payload drops.
+                        let sum: usize = stack_payload.iter().map(|&b| b as usize).sum();
+                        assert_eq!(sum, 64 * 0x5A);
+                        worker_read_stack.store(true, Ordering::Relaxed);
+                        panic!("simultaneous worker failure");
+                    }
+                });
+            }));
+            assert!(res.is_err());
+            if worker_read_stack.load(Ordering::Relaxed) {
+                break;
+            }
+            thread::yield_now();
+        }
+        // Pool must remain usable after simultaneous caller + worker panics.
+        let check = AtomicUsize::new(0);
+        execute(4, false, &|| {
+            check.fetch_add(1, Ordering::Relaxed);
+        });
+        assert!(check.load(Ordering::Relaxed) >= 1);
+    }
+
+    #[test]
+    fn concurrent_dispatchers_and_parked_worker_wakeup() {
+        // Ensure workers have a chance to enter IDLE_PARKED on park_cv, then wake.
+        for _ in 0..8 {
+            thread::yield_now();
+        }
+        let handles: Vec<_> = (0..3)
+            .map(|t| {
+                thread::spawn(move || {
+                    for round in 0..4 {
+                        let next = AtomicUsize::new(0);
+                        let done = AtomicUsize::new(0);
+                        execute(4, false, &|| {
+                            while next.fetch_add(1, Ordering::Relaxed) < 6 {
+                                done.fetch_add(1 + t + round, Ordering::Relaxed);
+                            }
+                        });
+                        assert_eq!(done.load(Ordering::Relaxed), 6 * (1 + t + round));
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().expect("dispatcher thread succeeded");
+        }
+    }
 }
