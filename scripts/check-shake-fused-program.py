@@ -43,7 +43,8 @@ def check_model(pkg):
 
 
 def main():
-    facade["run"](["lake", "build", "Fused.Program"], lean)
+    facade["run"](["lake", "build", "Fused.Entry"], lean)
+    facade["audit_theorems"]("Fused.Entry", ["slhdsa.Fused.raw_eq", "slhdsa.Fused.sign_spec"])
     with tempfile.TemporaryDirectory() as tmp:
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
             dst = Path(tmp) / target

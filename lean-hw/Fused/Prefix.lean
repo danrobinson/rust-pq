@@ -4,7 +4,7 @@ open Aeneas Aeneas.Std Result ControlFlow
 namespace slhdsa.Fused
 open ShakeBatch
 variable [kernel : Kernel]
-local instance : Machine := machine kernel
+local instance prefixMachine : Machine := machine kernel
 
 /-- The actual fused T_len seed loop broadcasts each little-endian seed word
 to all eight lanes and preserves every other word of the sponge matrix. -/
