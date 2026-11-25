@@ -5,6 +5,7 @@ import re
 import runpy
 from pathlib import Path
 
+wots_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/wots_output.py"))
 leaf_dispatch = runpy.run_path(str(Path(__file__).parent / "metal-proof/leaf_dispatch.py"))
 
 
@@ -432,6 +433,7 @@ def host_access(lib, signing, shake):
     leaves = "total_xmss_leaves" if signing else "total_leaves"
     located(commands, f"lettotal_chains=({leaves}*wots_len)asu32;", ["ifuse_two_phase"])
     if signing:
+        located(commands, "lettotal_wots_chains=(total_trees*wots_len)asu32;", [])
         located(setup, "ifuse_two_phase{check_grid(num_sigs,d*leaves_per_tree*wots_len*words)?;}", [])
         located(setup, "letwords=N/iffamily==HashFamily::Shake{8}else{4};", [])
     located(init, key_write, ["matchfamily", f"HashFamily::{family}=>"])
@@ -743,8 +745,13 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                             label, source_cmd, p, g, n, 8 if is_shake else 4,
                             "shakeChainTip" if is_shake else "sha2ChainTip",
                         ))
-                    statements.append(leaf_dispatch["public_claim"](
+                    leaves_claim, leaf_scratch = leaf_dispatch["public_claim"](
                         label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd,
+                    )
+                    statements.append(leaves_claim)
+                    statements.append(wots_output["public_claim"](
+                        label, p, g, family, n, phase, producer("xmss_leaves"),
+                        source_cmd, producer("wots"), leaf_scratch,
                     ))
     return "\n".join(statements)
 
@@ -771,6 +778,18 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     projections = []
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
+        projects = wots_output["project"]
+        projections.append(projects(shader, is_shake, body, compact))
+        projections.append(projects(shader.replace("(desc.layer - 1u)", "(desc.layer - 0u)"),
+            is_shake, body, compact, previous_layer_counterexample=True))
+        corrupted = shader.replace("uint32_t c_idx = chain - len1;", "uint32_t c_idx = chain;")
+        try:
+            projects(corrupted, is_shake, body, compact)
+        except ValueError as error:
+            if "unmodeled WOTS value or serialization" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted shifted WOTS checksum index")
         for streaming in (False, True):
             project = leaf_dispatch["project"]
             projections.append(project(shader, is_shake, streaming, body, compact))

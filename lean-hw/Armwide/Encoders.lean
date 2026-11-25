@@ -351,12 +351,12 @@ private theorem base2bGo_nibbles_aux (xs : Spec.Bytes) (n i T : Nat) (h : i + n 
     rw [hdrop]
     simp [nibbles]
 
-private theorem base2b_4_eq_nibbles (xs : Spec.Bytes) :
+theorem base2b_4_eq_nibbles (xs : Spec.Bytes) :
     Spec.base2b xs 4 (2 * xs.length) = nibbles xs := by
   unfold Spec.base2b
   simpa using base2bGo_nibbles_aux xs xs.length 0 0 (by omega)
 
-private theorem base2b_checksum3 (csum : Nat) (hc : csum < 4096) :
+theorem base2b_checksum3 (csum : Nat) (hc : csum < 4096) :
     Spec.base2b (Spec.toByte (csum <<< 4) 2) 4 3 =
       [(csum >>> 8) &&& 15, (csum >>> 4) &&& 15, csum &&& 15] := by
   have hb0 : (Spec.toByte (csum <<< 4) 2)[0]!.toNat = csum / 16 := by

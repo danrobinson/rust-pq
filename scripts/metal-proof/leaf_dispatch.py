@@ -149,7 +149,7 @@ private theorem {label}_leaves (rs : List MetalPipeline.BatchSignReq) (pool : Sp
   exact ⟨allocation, MetalLeafDispatch.insert_rule {label} {leaf_cmd} _
     (MetalLeafDispatch.streaming_rule _ (by decide) (by decide) {p} {count} {words} {size}
       e keys trees other {value} ({names}_spec {p} e {valid} {words} (by decide)) schedule {geometry} _ _ _) remaining⟩
-"""
+""", scratch
     return head + f"""
   apply {label}_chains rs pool e keys trees {inner}
   intro guard
@@ -163,4 +163,4 @@ private theorem {label}_leaves (rs : List MetalPipeline.BatchSignReq) (pool : Sp
       e leaf {tip} {value} keys trees other ({names}_spec {p} e {words} {mem}{" (by decide)" if family == "sha2" else ""})
       leafOrder {geometry} _ _ _
   · exact remaining a ha hc eq
-"""
+""", scratch

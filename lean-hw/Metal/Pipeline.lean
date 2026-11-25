@@ -983,7 +983,7 @@ def metalWriteSingleSig (mode : XmssMode) (p : Params) (buf : Bytes) (sigOff : N
 
 /-- Hypertree layer decomposition: signing layer `j` with the precomputed root of layer `j-1`
 matches `Spec.htSign`. -/
-private theorem ht_layers_eq_spec (p : Params) (hv : p.Valid) (pkFors skSeed pkSeed : Bytes)
+theorem ht_layers_eq_spec (p : Params) (hv : p.Valid) (pkFors skSeed pkSeed : Bytes)
     (idxTree idxLeaf : Nat) (hleaf : idxLeaf < 2 ^ p.hp) :
     let xmssRoots := fun j =>
       xmssNode p skSeed 0 p.hp pkSeed { Adrs.zero with layer := j, tree := (htLoc p.hp idxTree idxLeaf j).1 }
