@@ -242,6 +242,7 @@ def main():
     run([sys.executable, HERE / "check-signing-schedules.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-sign-join.py"], ROOT)
     run([sys.executable, HERE / "check-shake-fused-xmss.py"], ROOT)
+    run([sys.executable, HERE / "parallel-proof" / "buffered_tree.py"], ROOT)
     modules = {
         "Parallel.Pool": "ParallelPool.join",
         "Parallel.LastFinisher": "ParallelFused.LastFinisher.signature_at_last",

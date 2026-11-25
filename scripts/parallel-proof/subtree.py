@@ -198,7 +198,13 @@ def execute(project, st, out, stop, stream, width, label):
             event, when=angr.BP_BEFORE, action=lambda s, k=event: fixed_address(s, k)
         )
 
-    permitted = {addr("proof_permute"), stop}
+    permitted = {stop}
+    extra = {}
+    for name in ("proof_permute", "proof_leaves", "proof_pairs"):
+        symbol = project.loader.find_symbol(name)
+        if symbol is not None:
+            extra[name] = symbol.rebased_addr
+            permitted.add(symbol.rebased_addr)
     if project.loader.find_symbol("proof_parent") is not None:
         permitted.add(addr("proof_parent"))
     child = project.loader.find_symbol("proof_child")
@@ -237,7 +243,20 @@ def execute(project, st, out, stop, stream, width, label):
                     flush=True,
                 )
                 return
-            if st.addr == addr("proof_permute"):
+            if st.addr in (extra.get("proof_leaves"), extra.get("proof_pairs")):
+                leaves = st.addr == extra.get("proof_leaves")
+                if kind != ("leaves" if leaves else "pairs"):
+                    raise ValueError(f"unexpected compiled subtree operation: {kind}")
+                for reg, expected in zip(("rsi","rdx","rcx","r8","r9")[:len(args)], args, strict=True):
+                    regval = getattr(st.regs, reg)
+                    if leaves and reg == "rcx":
+                        same(regval[31:0], expected)
+                    elif not leaves and reg == "r9":
+                        same(regval, expected)
+                    else:
+                        same(st.memory.load(concrete(regval), expected.size()//8), expected)
+                st.memory.store(concrete(st.regs.rdi), result)
+            elif st.addr == extra.get("proof_permute"):
                 if kind not in ("permute", "active"):
                     raise ValueError("unexpected permutation")
                 active, args = args if kind == "active" else (width, args)
