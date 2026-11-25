@@ -99,6 +99,7 @@ def compiler_checks(crate, toolchain, source):
                     "-C", "panic=unwind", "--emit=mir=" + str(mir_file)], cwd=crate, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     mir = mir_file.read_text()
+    runpy.run_path(str(ROOT / "scripts/check-pool-guard.py"))["check"](mir, source, crate.parent)
     guard = check_cleanup_graph(mir)
     # Remove just the destructor call from each exit's MIR, preserving its
     # normal successor. Both a normal bypass and a cleanup bypass must fail.
@@ -149,7 +150,7 @@ def main():
     parser.add_argument("--toolchain", default="nightly-2026-09-17")
     args = parser.parse_args()
     facade = runpy.run_path(str(ROOT / "scripts/check-platform-facade.py"))
-    facade["run"](["lake", "build", "Parallel.PoolBorrow"], ROOT / "lean-hw")
+    facade["run"](["lake", "build", "Parallel.PoolGuard"], ROOT / "lean-hw")
     facade["audit_theorems"]("Parallel.PoolBorrow", [
         "ParallelPool.Borrow.busy_predecessor", "ParallelPool.Borrow.park_recheck",
         "ParallelPool.Borrow.spurious_recheck",
