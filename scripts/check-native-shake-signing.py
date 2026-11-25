@@ -68,9 +68,11 @@ def execution(package, width):
 
 
 def main():
-    facade["run"](["lake", "build", "Cachepath.NativeShakeWots.KeyEntry"], lean)
+    facade["run"](["lake", "build", "Cachepath.NativeShakeWots.KeyEntry", "Cachepath.NativeShakeWots.SignEngine"], lean)
     facade["audit_theorems"]("Cachepath.NativeShakeWots.KeyEntry", ["slhdsa.NativeShakeWots." + thm for thm in
                              ("fill_layout", "refill_layout", "packed_fips", "chain_rounds", "prf_lanes", "keygen_spec")])
+    facade["audit_theorems"]("Cachepath.NativeShakeWots.SignEngine", ["slhdsa.NativeShakeWots.Signer." + thm
+                             for thm in ("scan", "after_round", "engine")])
     with tempfile.TemporaryDirectory() as tmp:
         packages = []
         for i, target in enumerate(facade["TARGETS"]):
