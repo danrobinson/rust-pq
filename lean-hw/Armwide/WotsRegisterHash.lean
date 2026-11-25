@@ -78,4 +78,20 @@ theorem native_shared_chain (p : Spec.Params) [Fact (p.family = .sha2)] (valid :
   rw [List.foldl_map]
   rfl
 
+/-- Reconstituting a digest from its n stored bytes between iterations preserves
+the next output for any original register pair, including unused high words. -/
+theorem equal_visible_digest (p : Spec.Params) [Fact (p.family=.sha2)] (valid : p.Valid)
+    (pk : Spec.Bytes) (plen : pk.length=p.n) (r : WotsRegisters)
+    (replacement : Nat → Arm.V × Arm.V) (mode : Mode) (j : Fin (lanes mode))
+    (same : content p.n (replacement j) = content p.n (r.digest j)) (small : r.chain j < 65536) :
+    content p.n (runRegisterHashes p.n (seedState p.n pk) {r with digest := replacement} mode j) =
+      content p.n (runRegisterHashes p.n (seedState p.n pk) r mode j) := by
+  cases mode with
+  | mixed count =>
+    rw [native_mixed p valid pk plen {r with digest := replacement} count j small,native_mixed p valid pk plen r count j small]
+    simp only [same]
+  | shared steps =>
+    rw [native_shared_chain p valid pk plen {r with digest := replacement} steps j small,native_shared_chain p valid pk plen r steps j small]
+    simp only [same]
+
 end slhdsa.Armwide.Transitions

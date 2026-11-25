@@ -5,10 +5,10 @@ open WotsRefill
 set_option maxRecDepth 8192
 set_option maxHeartbeats 1000000
 
-private def loadPost (shared live phase more : Bool) (i : Fin 4) : Post :=
+def loadPost (shared live phase more : Bool) (i : Fin 4) : Post :=
   updates[32*shared.toNat+16*live.toNat+8*phase.toNat+4*more.toNat+i.val]!
 
-private def postSpec (shared live phase more : Bool) (i : Fin 4) : Post :=
+def postSpec (shared live phase more : Bool) (i : Fin 4) : Post :=
   let fresh := !live && more
   let writes := if live then [] else [⟨i,i,i.val+4⟩]
   if fresh then ⟨1,⟨13,14,15,4,4,0,9,1,1⟩,writes⟩
@@ -20,6 +20,16 @@ private def postSpec (shared live phase more : Bool) (i : Fin 4) : Post :=
 checks that processing this lane preserves every register of the other three lanes. -/
 theorem post_correct : ∀ shared live phase more i,
     loadPost shared live phase more i = postSpec shared live phase more i := by decide
+
+/-- The saved head and both digest halves must agree with the phase and input
+chosen for the next hash. All four input rows have distinct register labels. -/
+def headPhase (code : Nat) (previous : Nat → Bool) :=
+  if code=15 then true else if code=12 then false else previous (code-8)
+
+theorem post_registers : ∀ shared live phase more i,
+    let r := (loadPost shared live phase more i).lane
+    headPhase r.head (fun _ => phase) = (r.phase=1) ∧
+      ((r.x=13 ∧ r.xb=14) ∨ (r.x=i.val ∧ r.xb=i.val+4)) := by decide
 
 structure Stepping where
   physical : Fin 4
@@ -40,7 +50,7 @@ def transitionWith {α : Type} (write : Writer α) (sk : Spec.Bytes) (digits : N
   let row : SignLane :=
     ⟨if r.x=13 then sk else s.digest, if r.chain=4 then nc else l.chain,
      (if r.cur=4 then 0 else l.curT) + delta r.advanced bulk,
-     if r.left=9 then digits nc+r.consumed else l.left-delta r.consumed bulk, r.phase=1⟩
+     if r.left=9 then digits nc+r.consumed else l.left-delta r.consumed bulk, headPhase r.head (fun _ => l.isPrf)⟩
   (row, queue.drop post.consumed, post.writes.foldl (fun o _ => write o l.chain s.digest) out)
 
 abbrev transition := transitionWith setOut
@@ -72,9 +82,11 @@ theorem native_updates_eq (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Boo
     have idx : s.physical.val ≠ 4 := by have := s.physical.isLt; omega
     have noSecret : s.physical.val ≠ 13 := by have := s.physical.isLt; omega
     have cnt : s.physical.val ≠ 9 := by have := s.physical.isLt; omega
+    have tag12 : s.physical.val+8 ≠ 12 := by have := s.physical.isLt; omega
+    have tag15 : s.physical.val+8 ≠ 15 := by have := s.physical.isLt; omega
     cases shared <;> cases phase : s.before.isPrf <;> cases queue <;>
       simp only [nativeUpdates,List.map_cons,signRetireRefill,transition,transitionWith,post_correct,postSpec,phase,
-        progressed,Bool.false_eq_true,Bool.true_eq_false,↓reduceIte,Bool.false_and,Bool.true_and,
+        progressed,headPhase,tag12,tag15,Bool.false_eq_true,Bool.true_eq_false,↓reduceIte,Bool.false_and,Bool.true_and,
         Bool.and_false,Bool.and_true,Bool.true_or,Bool.false_or,Bool.or_false,Bool.or_true,
         Bool.not_true,Bool.not_false,List.isEmpty_nil,List.isEmpty_cons,delta] <;>
       split_ifs <;> simp_all [List.head!,List.head?,delta,ih,Nat.add_comm] <;> omega

@@ -45,6 +45,11 @@ private theorem fused_spec {N : Usize} (p : params.Params) (hp : PN p N)
     unfold WotsRefill.wotsSignTarget
     apply Spec.chain_length _ hp.valid _ (Spec.PRF_length _ hp.valid ..)
   have zero : bytes out.val = List.replicate (ds.length*N.val) 0#8 := by rw [empty,bytes_replicate,room]; rfl
+  have safe := Transitions.checked_success N.val ds.length hp.nok (wv seed.state.val) (bytes sk.val)
+    base digit order (bytes out.val) (by simp only [bytes_length]; exact room) (fun c h => (covers c).mp h)
+  change (if !(Transitions.checkedSign N.val (wv seed.state.val) (bytes sk.val) base digit order (bytes out.val)).2
+    then fail .panic else _) ⦃ _ ⦄
+  simp only [safe,Bool.not_true,Bool.false_eq_true,↓reduceIte,WP.spec_ok,Transitions.checked_value]
   simp only [Slice.from_val,bytes,List.map_map,Function.comp_def,List.map_id_fun,List.map_id]
   rw [show List.map (fun x : U8 => x.bv) out.val = _ from zero,Transitions.buffer_sign_table _ _ _ _ _ _ _ hp.nok]
   change List.map id (Transitions.encode N.val ds.length row) = _

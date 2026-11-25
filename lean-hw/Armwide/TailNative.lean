@@ -8,9 +8,23 @@ set_option maxRecDepth 8192
 
 private instance : Inhabited Stepping := ⟨⟨0,⟨[],0,0,0,false⟩,[]⟩⟩
 
-private def tailRow (rows : List Stepping) (r : Register) : SignLane :=
+/-- At each physical compaction, the actual saved head carries the phase flag
+written next to it, and the two digest halves originate in the same live row. -/
+theorem compacted_registers (q : Count) (keep phases : Nat → Bool) :
+    ∀ r ∈ (actual q keep phases).kept,
+      headPhase r.head phases = (r.phase=1) ∧ r.xb=r.x+4 := by
+  rw [active_step]
+  intro r hr
+  obtain ⟨j,mem,rfl⟩ := List.mem_map.mp hr
+  have index := List.mem_range.mp (List.mem_filter.mp mem).1
+  have cap : j < 4 := by have := q.isLt; change j<q.val+1 at index; omega
+  have not15 : j+8≠15 := by omega
+  have not12 : j+8≠12 := by omega
+  by_cases tail : width q<4 <;> cases hp : phases j <;> simp [headPhase,tail,hp,not15,not12]
+
+def tailRow (rows : List Stepping) (r : Register) : SignLane :=
   ⟨rows[r.x]!.digest,rows[r.chain]!.before.chain,rows[r.cur]!.before.curT+r.advanced,
-    rows[r.left]!.before.left-r.consumed,r.phase=1⟩
+    rows[r.left]!.before.left-r.consumed,headPhase r.head (fun i => rows[i]!.before.isPrf)⟩
 
 /-- Interpret the registers and chain-addressed store events actually produced by the
 native tail. Entries of the hashed digest register pair are represented by their bytes. -/
@@ -60,8 +74,11 @@ theorem tail_updates_eq (q : Count) (short : width q < 4) (rows : List Stepping)
   rw [keep,dead]
   congr 1
   apply List.map_congr_left
-  intro i _
-  cases ph : rows[i]!.before.isPrf <;> simp only [tailRow,progressed,Function.comp_def,ph,Bool.not_true,Bool.not_false,Bool.false_eq_true,↓reduceIte,Nat.add_zero] <;> rfl
+  intro i hi
+  have bound := List.mem_range.mp (List.mem_filter.mp hi).1
+  have not15 : i+8≠15 := by omega
+  have not12 : i+8≠12 := by omega
+  cases ph : rows[i]!.before.isPrf <;> simp only [tailRow,headPhase,not15,not12,Nat.add_sub_cancel,progressed,Function.comp_def,ph,Bool.not_true,Bool.not_false,Bool.false_eq_true,↓reduceIte,Nat.add_zero] <;> rfl
 
 private instance : Inhabited SignLane := ⟨⟨[],0,0,0,false⟩⟩
 
@@ -104,7 +121,7 @@ def compactWithWriter {α : Type} (write : Writer α) (sk : Spec.Bytes) (digits 
   let (rows,q',o') := uncompactedWith write sk digits shared bulk ls q o
   let tr := actual 3 (fun i => rows[i]!.left ≠ 0) (fun i => rows[i]!.isPrf)
   (tr.kept.map (fun (reg : Register) =>
-    (⟨rows[reg.x]!.x,rows[reg.chain]!.chain,rows[reg.cur]!.curT,rows[reg.left]!.left,reg.phase=1⟩ : SignLane)),
+    (⟨rows[reg.x]!.x,rows[reg.chain]!.chain,rows[reg.cur]!.curT,rows[reg.left]!.left,headPhase reg.head (fun i => rows[i]!.isPrf)⟩ : SignLane)),
    q',o')
 
 abbrev compactFour := compactWithWriter setOut
@@ -122,9 +139,13 @@ theorem compact_four_eq (sk : Spec.Bytes) (digits : Nat → Nat) (shared : Bool)
     simp only [active_step,blueprint,show width 3=4 by rfl,show ¬(4<4) by decide,
       decide_false,Bool.false_and,↓reduceIte,List.map_map]
     congr 1
-    have project (i : Nat) : (⟨rows[i]!.x,rows[i]!.chain,rows[i]!.curT,rows[i]!.left,rows[i]!.isPrf.toNat=1⟩ : SignLane) = rows[i]! := by
-      cases h : rows[i]! with | mk x c t l ph => cases ph <;> rfl
     conv_rhs => rw [←indexes rows]
-    simp only [List.filter_map,List.map_map,Function.comp_def,project,four]
+    simp only [List.filter_map,Function.comp_def,four]
+    apply List.map_congr_left
+    intro i hi
+    have b := List.mem_range.mp (List.mem_filter.mp hi).1
+    have n15 : i+8≠15 := by omega
+    have n12 : i+8≠12 := by omega
+    simp only [headPhase,Bool.false_eq_true,n15,n12,↓reduceIte,Nat.add_sub_cancel]
 
 end slhdsa.Armwide.Transitions

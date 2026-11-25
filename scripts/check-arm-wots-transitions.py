@@ -301,8 +301,8 @@ def main():
                 dest.write_text(body)
             elif dest.read_text() != body:
                 raise ValueError(f"stale native WOTS projection {name}")
-    facade["run"](["lake","build","Armwide.Transitions","Armwide.HashRoutes","Armwide.SignatureBuffer"],LEAN)
-    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("FusedNative","native_sign_scheduler"),("SignatureBuffer","buffer_sign_table"),("TailNative","tail_updates_eq"),("TailNative","compact_four_eq"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
+    facade["run"](["lake","build","Armwide.Transitions","Armwide.HashRoutes","Armwide.WriteBounds"],LEAN)
+    for module,name in [("Transitions","active_step"),("SignLoad","load_content"),("SignRefill","native_updates_eq"),("SignRefill","post_registers"),("TailNative","compacted_registers"),("WotsRegisterHash","equal_visible_digest"),("FusedNative","native_sign_scheduler"),("SignatureBuffer","buffer_sign_table"),("WriteBounds","checked_success"),("TailNative","tail_updates_eq"),("TailNative","compact_four_eq"),("HashRoutes","register_digest_fips"),("SignStores","retirement_store"),("WotsRegisterHash","native_shared_chain"),("WotsRegisterHash","native_mixed"),("WotsRegisterHash","native_mixed_prf")]:
         facade["audit_theorems"]("Armwide."+module, ["slhdsa.Armwide.Transitions."+name])
 
 

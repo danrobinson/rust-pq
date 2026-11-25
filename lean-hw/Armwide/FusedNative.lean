@@ -24,7 +24,7 @@ def steps (n : Nat) (st : List Word) (base : Spec.Adrs) (active : List SignLane)
     outputDigest n (runRegisterHashes n st (inputs n base active) m j)⟩
 
 def chooseMixed (n : Nat) : Mode := .mixed ⟨(n-1)%4,Nat.mod_lt _ (by decide)⟩
-private def chooseShared (bulk : Nat) : Mode := .shared ⟨(bulk-1)%15,Nat.mod_lt _ (by decide)⟩
+def chooseShared (bulk : Nat) : Mode := .shared ⟨(bulk-1)%15,Nat.mod_lt _ (by decide)⟩
 
 def fourWith {α : Type} (write : Writer α) (n : Nat) (st : List Word) (sk : Spec.Bytes) (base : Spec.Adrs) (digits : Nat → Nat) : List SignLane → List Nat → α → List SignLane × List Nat × α :=
   fun active queue out =>
