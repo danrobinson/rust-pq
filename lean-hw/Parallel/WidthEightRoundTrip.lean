@@ -59,17 +59,19 @@ run_cmd liftTermElabM do
   for suite in [`shake_128s,`shake_128f,`shake_192s,`shake_192f,`shake_256s,`shake_256f] do
     for apple in [true,false] do
       let publish (host : Expr) (args : Array Expr) : MetaM Unit := do
-        withLocalDeclD `threads (mkConst `Aeneas.Std.Usize) fun threads => do
-          let config ← mkAppM ``Config.mk #[host,threads]
+        let scheduleTy := ← inferType (mkConst ``Ticket.inOrder)
+        withLocalDeclD `schedule scheduleTy fun schedule =>
+         withLocalDeclD `threads (mkConst `Aeneas.Std.Usize) fun threads => do
+          let config ← mkAppM ``Config.mk #[host,threads,schedule]
           let dst := (if apple then `ParallelAppleAPI else `ParallelX86API) ++ suite
           let ns := (if apple then `ParallelApple else `ParallelX86) ++ `WidthEightParallel
           for op in [`slh_sign_internal_spec,`slh_sign_spec,`sign_spec,`sign_deterministic_spec] do
             let base := `slhdsa ++ suite ++ op
             let root := if (← getEnv).contains (ns ++ `SegmentedPublic ++ base) then ns ++ `SegmentedPublic ++ base else ns ++ base
-            install (dst ++ op) (args.push threads) (mkApp (mkConst root) config)
+            install (dst ++ op) ((args.push schedule).push threads) (mkApp (mkConst root) config)
           let p := mkConst (`slhdsa.sets ++ suite ++ `params.PARAMS)
           let hp := mkConst (`slhdsa ++ suite ++ `pn)
-          install (dst ++ `roundtrip) (args.push threads) (←mkAppOptM ``roundtrip #[none,some p,some hp,some config])
+          install (dst ++ `roundtrip) ((args.push schedule).push threads) (←mkAppOptM ``roundtrip #[none,some p,some hp,some config])
       if apple then withLocalDeclD `sha3 (mkConst `Bool) fun sha3 => publish (mkApp (mkConst ``Platform.apple) sha3) #[sha3]
       else publish (mkConst ``Platform.x86) #[]
 

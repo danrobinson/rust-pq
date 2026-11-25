@@ -5,6 +5,22 @@ static EXPECTED_CELLS: Mutex<Option<(Blocks, Blocks, Blocks)>> = Mutex::new(None
 
 static EXPECTED_TICKETS: Mutex<Vec<(Adrs, Word, Vec<Token>)>> = Mutex::new(Vec::new());
 
+static EXPECTED_LEAVES: Mutex<Blocks> = Mutex::new(Vec::new());
+
+fn observe_root_inputs<const N: usize>(
+    forest: &[Token],
+    auth: &[[Token; N]],
+    leaves: &[OnceLock<[Token; N]>],
+) {
+    let expected = EXPECTED_CELLS.lock().unwrap();
+    let (f, a, _) = expected.as_ref().unwrap();
+    assert_eq!(forest, f.concat(), "phase-one FORS bytes");
+    assert!(auth.iter().map(|x| x.as_slice()).eq(a.iter().map(Vec::as_slice)));
+    let expected_leaves = EXPECTED_LEAVES.lock().unwrap();
+    assert!(leaves.iter().map(|x| x.get().expect("published leaf").as_slice())
+        .eq(expected_leaves.iter().map(Vec::as_slice)), "phase-one leaf public keys");
+}
+
 fn observe_ticket_inputs<const N: usize>(layers: &[(Adrs, Word)], roots: &[[Token; N]]) {
     let expected = EXPECTED_TICKETS.lock().unwrap();
     assert_eq!(layers.len(), expected.len());

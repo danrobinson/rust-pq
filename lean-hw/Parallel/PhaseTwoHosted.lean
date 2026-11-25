@@ -20,5 +20,5 @@ run_cmd liftCoreM do
       `slhdsa.WidthEight.Ticket.context_from_forest,`slhdsa.WidthEight.Ticket.joined_from_forest]
       [`Parallel.PhaseTwoPublic,`Parallel.PhaseTwoRoots,`Parallel.PhaseTwoJoin,`Parallel.PhaseTwoWrites,
        `Parallel.UncachedCaller,`Parallel.SegmentedCaller,`Parallel.SignJoin]
-    unless (←getEnv).contains (dst ++ `slhdsa.WidthEight.Ticket.phaseTwo) do
+    unless (←getEnv).contains (dst ++ `slhdsa.WidthEight.Ticket.internal_from_forest) do
       throwError "missing hosted worker writes in {dst}"

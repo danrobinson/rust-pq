@@ -64,6 +64,7 @@ def audit_public():
         ("slh_sign_internal_spec","slh_sign_spec","sign_spec","sign_deterministic_spec","roundtrip")]
     roots += [f"{host}.slhdsa.WidthEight.ParallelSign.{path}_uses_worker"
               for host in ("ParallelApple","ParallelX86") for path in ("internal","context")]
+    roots += [f"{host}.slhdsa.WidthEight.ParallelSign.worker_returns" for host in ("ParallelApple", "ParallelX86")]
     ticket_module = "Parallel.WidthEightTicketHosted"
     facade["run"](["lake","build",ticket_module], lean)
     facade["audit_theorems"](ticket_module, [f"{host}.slhdsa.WidthEight.Ticket.{op}"
@@ -72,7 +73,8 @@ def audit_public():
     facade["run"](["lake", "build", joined_module], lean)
     facade["audit_theorems"](joined_module, [f"{host}.slhdsa.WidthEight.Ticket.{op}"
         for host in ("PhaseTwoApple", "PhaseTwoX86") for op in
-        ("internal_from_forest", "context_from_forest", "joined_from_forest")])
+        ("internal_from_forest", "context_from_forest")] +
+        [f"{host}.slhdsa.WidthEight.Ticket.joined_from_forest" for host in ("ParallelApple", "ParallelX86")])
     facade["audit_theorems"](module, roots + ["slhdsa.ParallelSignJoin.enabled_returns","slhdsa.ParallelSignJoin.uses_some"])
     print(f"Checked {len(roots)} hosted parallel signing theorems and the successful worker branch.", flush=True)
 
