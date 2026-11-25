@@ -171,4 +171,62 @@ def fors.arm.pk_from_sig_loop5
     (fun (st1, off1) => fors.arm.pk_from_sig_loop5.body buf total st1 off1)
     (st, off)
 
+@[rust_loop_body]
+def fors.arm.pk_from_sig_loop3_loop0.body
+  {N : Std.Usize} (sig : Slice Std.U8) (a : Array Std.U8 N)
+  (a1 : Array Std.U32 8#usize) (a2 : Array Std.U64 8#usize) (a3 : Std.U32)
+  (h : Std.Usize) (adr : address.Adrs) (iter : core.ops.range.Range Std.Usize)
+  (idx : Array Std.U32 35#usize) (vals : Array (Array Std.U8 N) 35#usize) :
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × (Array Std.U32
+    35#usize) × (Array (Array Std.U8 N) 35#usize)) ((Array Std.U32 35#usize)
+    × (Array (Array Std.U8 N) 35#usize)))
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
+  match o with
+  | none => ok (done (idx, vals))
+  | some i =>
+    let i1 ← lift (UScalar.cast .Usize a3)
+    let i2 ← i1 + 1#usize
+    let i3 ← i * i2
+    let i4 ← i3 + 1#usize
+    let i5 ← i4 + h
+    let sibling ← util.block N sig i5
+    let i6 ← Array.index_usize idx i
+    let parent ← i6 >>> 1#i32
+    let a_node ← address.Adrs.with_word3 adr parent
+    let i7 ← lift (i6 &&& 1#u32)
+    let vals1 ←
+      if i7 = 0#u32
+      then
+        do
+        let a4 ← Array.index_usize vals i
+        let a5 ←
+          hash.thash_pair { pk_seed := a, state := a1, state512 := a2 } a_node
+            a4 sibling
+        Array.update vals i a5
+      else
+        do
+        let a4 ← Array.index_usize vals i
+        let a5 ←
+          hash.thash_pair { pk_seed := a, state := a1, state512 := a2 } a_node
+            sibling a4
+        Array.update vals i a5
+    let a4 ← Array.update idx i parent
+    ok (cont (iter1, a4, vals1))
+
+@[rust_loop]
+def fors.arm.pk_from_sig_loop3_loop0
+  {N : Std.Usize} (iter : core.ops.range.Range Std.Usize) (sig : Slice Std.U8)
+  (a : Array Std.U8 N) (a1 : Array Std.U32 8#usize)
+  (a2 : Array Std.U64 8#usize) (a3 : Std.U32) (idx : Array Std.U32 35#usize)
+  (vals : Array (Array Std.U8 N) 35#usize) (h : Std.Usize) (adr : address.Adrs)
+  :
+  Result ((Array Std.U32 35#usize) × (Array (Array Std.U8 N) 35#usize))
+  := do
+  loop
+    (fun (iter1, idx1, vals1) => fors.arm.pk_from_sig_loop3_loop0.body sig a a1
+      a2 a3 h adr iter1 idx1 vals1)
+    (iter, idx, vals)
+
 end slhdsa.WideFors
