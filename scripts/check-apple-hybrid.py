@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Lift the production hybrid Keccak rounds to bitvectors and check them against FIPS 202."""
 from pathlib import Path
+import argparse
 import os
 import re
 import subprocess
@@ -48,27 +49,120 @@ def check_schedule(tmp, source):
     sha3 = source.split("mod sha3 {", 1)[1]
     sha3 = sha3[sha3.index("    unsafe fn load_pair"):sha3.index("    pub(super) unsafe fn single")]
     neon = source.split("mod neon {", 1)[1].split("    pub(super) unsafe fn permute_active", 1)[1]
-    neon = "    pub(super) unsafe fn permute_active" + neon.split("    pub(super) unsafe fn permute(", 1)[0]
+    neon = "    pub(super) unsafe fn permute_active" + neon.split("\n}", 1)[0]
     def module(name, body):
         body = re.sub(r'#\[target_feature\(enable = "[^"]+"\)\]', '', body)
+        body = body.replace("[u64; 25]", "[Word; 25]")
         body = body.replace("unsafe { vld1q_u64(words[i].as_ptr().add(off)) }",
                             "[words[i][off], words[i][off+1]]")
         body = body.replace("unsafe { vst1q_u64(words[i].as_mut_ptr().add(off), a[i]) }",
                             "words[i][off..off+2].copy_from_slice(&a[i])")
-        return "mod " + name + " { use super::*;\n" + body + "}\n"
+        return "mod " + name + " { use super::*; use super::round_" + name + " as round;\n" + body + "}\n"
     rc = re.search(r"const RC: \[u64; 24\] = \[(.*?)\];",
                    (ROOT/"rust/src/shake256.rs").read_text(), re.S)
     probe = (HERE/"schedule.rs").read_text().replace("// ROUND_CONSTANTS", rc[0])
-    probe = probe.replace("// PRODUCTION", module("sha3", sha3) + module("neon", neon))
+    dispatch = source[source.index("pub(crate) fn available()"):source.index("pub(super) fn single(state:")]
+    dispatch = dispatch[:dispatch.rindex("#[cfg")]
+    for original in ("target_arch", "target_vendor", "target_feature"):
+        dispatch = dispatch.replace(original, "lift_" + original)
+    probe = probe.replace("// PRODUCTION", module("sha3", sha3) + module("neon", neon) + dispatch)
     (tmp/"schedule.rs").write_text(probe)
-    subprocess.run(["rustc", tmp/"schedule.rs", "-o", tmp/"schedule"], check=True)
-    subprocess.run([tmp/"schedule"], check=True)
-    constants = ",".join(x.strip() for x in rc[1].split(",") if x.strip())
-    return f"example : rc = #[{constants}] := by decide"
+    subprocess.run(["rustc", tmp/"schedule.rs", "--cfg", 'lift_target_arch="aarch64"',
+                    "--cfg", 'lift_target_vendor="apple"', "--cfg", 'lift_target_feature="neon"',
+                    "-o", tmp/"schedule"], check=True)
+    rows = subprocess.check_output([tmp/"schedule"], text=True).splitlines()
+    rounds, tables = {}, {}
+    for row in rows:
+        n, sha3_enabled, lane, source_lane, *calls = row.split()
+        seq = tuple(calls)
+        idx = rounds.setdefault(seq, len(rounds))
+        table = tables.setdefault((int(n), int(sha3_enabled)), [])
+        if int(lane) != len(table):
+            raise ValueError("incomplete or unordered lane trace")
+        table.append(f"({source_lane}, program{idx})")
+    if len(tables) != 20 or any(len(row) != 8 for row in tables.values()):
+        raise ValueError("incomplete Apple dispatch")
+    parts = ["""-- Generated from the Apple dispatch and row load/store loops by scripts/check-apple-hybrid.py.
+import Cachepath.AppleHybridRounds
+namespace slhdsa.AppleHybrid
+open Spec.Keccak
+abbrev Route := Fin 8 × List (Kind × Lane)
+"""]
+    for seq, idx in rounds.items():
+        calls = [token.split(":") for token in seq]
+        program = ", ".join(f"(.{kind}, {hex(int(c))})" for kind, c in calls)
+        parts.append(f"private def program{idx} : List (Kind × Lane) := [{program}]")
+    parts += ["", "/-- Dispatch indices 0–8 call permute_active; index 9 calls permute. -/",
+              "def schedule (n : Fin 10) (sha3 : Bool) : _root_.Array Route :=",
+              "  match n.val, sha3 with"]
+    for (n, sha3_enabled), table in tables.items():
+        enabled = str(bool(sha3_enabled)).lower()
+        parts.append(f"  | {n}, {enabled} => #[{', '.join(table)}]")
+    parts += ["  | _, _ => #[]", "", "end slhdsa.AppleHybrid", ""]
+    return "\n".join(parts)
+
+
+def round_program(expressions):
+    names = ["scalar", "inplace", "sha3", "neon"]
+    parts = ["""-- Generated from rust/src/shake256/parallel.rs by scripts/check-apple-hybrid.py.
+import Spec.ShakeWords
+import Mathlib.Tactic.IntervalCases
+open Spec.Keccak
+namespace slhdsa.AppleHybrid
+set_option linter.unusedSimpArgs false
+set_option maxRecDepth 8192
+set_option maxHeartbeats 2000000
+
+inductive Kind | scalar | inplace | sha3 | neon deriving DecidableEq, Inhabited
+
+private theorem rotzero (x : Lane) : x.rotateLeft 0 = x := by
+  simp [BitVec.rotateLeft_def, BitVec.ushiftRight_eq_zero]
+
+private theorem shiftRotate (x : Lane) (l r : Nat) (h : l < 64) (hr : r = 64-l) :
+    ((x <<< l) &&& ((-1 : Lane) <<< l)) ||| (x >>> r) = x.rotateLeft l := by
+  change ((x <<< l) &&& (BitVec.allOnes 64 <<< l)) ||| _ = _
+  rw [← BitVec.shiftLeft_and_distrib, BitVec.and_allOnes]
+  simp [BitVec.rotateLeft_def, Nat.mod_eq_of_lt h, hr]
+"""]
+    for k, name in enumerate(names):
+        cells = [f"{name}{w}" for w in range(25)]
+        for w, cell_name in enumerate(cells):
+            expr = expressions[25*k+w]
+            parts.append(f"""private def {cell_name} (a : State) (c : Lane) : Lane := {expr}
+private theorem {cell_name}_eq (a : State) (c : Lane) : {cell_name} a c = (round a c)[{w}]! := by
+  rw [roundAt _ _ _ (by decide)]
+  change {cell_name} a c = {projected_round(w)}
+  simp (disch := decide) only [{cell_name}, shiftRotate, rotzero] <;> ac_rfl
+""")
+        vector = ", ".join(x + " a c" for x in cells)
+        cases = "\n".join("  · exact "+x+"_eq a c" for x in cells)
+        parts.append(f"""def {name}Round (a : State) (c : Lane) : State := #[{vector}]
+private theorem {name}_eq (a : State) (c : Lane) : {name}Round a c = round a c := by
+  apply ext25 _ _ rfl (by simp [round])
+  intro i hi
+  interval_cases i
+{cases}
+""")
+    parts += ["""def liftedRound : Kind → State → Lane → State
+  | .scalar => scalarRound
+  | .inplace => inplaceRound
+  | .sha3 => sha3Round
+  | .neon => neonRound
+
+theorem liftedRound_eq (k : Kind) (a : State) (c : Lane) :
+    liftedRound k a c = round a c := by
+  cases k <;> first | apply scalar_eq | apply inplace_eq | apply sha3_eq | apply neon_eq
+
+end slhdsa.AppleHybrid
+"""]
+    return "\n".join(parts)
 
 
 def main():
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"), str(Path.home()/".cargo/bin"), os.environ["PATH"]])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--refresh", action="store_true", help="regenerate the source projections")
+    args = parser.parse_args()
     with tempfile.TemporaryDirectory() as temp:
         tmp = Path(temp)
         source = SRC.read_text()
@@ -78,7 +172,22 @@ def main():
         expressions = subprocess.check_output([tmp/"rounds"], text=True).splitlines()
         if len(expressions) != 100:
             raise ValueError("expected four complete Keccak rounds")
-        check_rounds(tmp, expressions, check_schedule(tmp, source))
+        projected = { "AppleHybridRounds": round_program(expressions),
+                      "AppleHybridSchedule": check_schedule(tmp, source) }
+        for name, content in projected.items():
+            path = ROOT/"lean-hw"/"Cachepath"/(name+".lean")
+            if args.refresh:
+                path.write_text(content)
+            elif path.read_text() != content:
+                raise ValueError(f"{path} differs from the production source lift")
+        subprocess.run(["lake", "build", "Cachepath.AppleHybrid"], cwd=ROOT/"lean-hw", check=True)
+        proof = "import Cachepath.AppleHybrid\n#print axioms slhdsa.AppleHybrid.permutation_correct\n"
+        out = subprocess.check_output(["lake", "env", "lean", "--stdin"], input=proof,
+                                      cwd=ROOT/"lean-hw", text=True)
+        axioms = re.search(r"depends on axioms: \[(.*?)\]", out)
+        if not axioms or set(axioms[1].split(", ")) - {"propext", "Quot.sound", "Classical.choice"}:
+            raise ValueError(out)
+        print(out.strip())
 
 
 def check_rounds(tmp, expressions, schedule):
