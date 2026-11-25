@@ -175,15 +175,23 @@ def check_pool():
             start = text.index(marker, start) + len(marker)
 
     ordered(
+        source[source.index("impl<'a> PoolGuard") : source.index("impl Drop for PoolGuard")],
+        [
+            "fn claim<F:Fn()+Sync>(pool:&'a Pool,n_workers:usize,scrub:bool,f:&'a F,)->Option<Self>",
+            ".compare_exchange(false,true,Ordering::Acquire,Ordering::Relaxed).is_err(){return None;}",
+            "unsafe fn trampoline<F:Fn()+Sync>(ptr:*const()){let f=&*(ptr as *const F);f();}",
+            "*pool.job.get()=Some(Job{data:(f as *const F).cast::<()>(),call:trampoline::<F>,scrub,});",
+            "pool.remaining.store(n_workers*2,Ordering::Relaxed);",
+            "pool.caller_parked.store(false,Ordering::Relaxed);",
+            "Some(Self{pool})",
+        ],
+    )
+    ordered(
         source[source.index("pub(crate) fn execute") :],
         [
             "let n_workers = (max_threads - 1).min(spawned);dispatch(pool,n_workers,scrub,f);",
             "if n_workers==0{f();return;}",
-            ".compare_exchange(false,true,Ordering::Acquire,Ordering::Relaxed).is_err(){f();return;}",
-            "*pool.job.get()=Some(Job{",
-            "pool.remaining.store(n_workers*2,Ordering::Relaxed);",
-            "pool.caller_parked.store(false,Ordering::Relaxed);",
-            "let _guard=PoolGuard{pool};",
+            "let Some(_guard)=PoolGuard::claim(pool,n_workers,scrub,f)else{f();return;};",
             "for slot in &pool.workers[..n_workers]",
             "slot.state.swap(WORK_PENDING,Ordering::AcqRel);if prev==IDLE_PARKED{need_notify=true;}",
             "if need_notify{let _lock=pool.park_lock.lock().unwrap_or_else(|e|e.into_inner());pool.park_cv.notify_all();}",

@@ -1,0 +1,21 @@
+C PoolPanicRelease
+{ [remaining] = 4; [used0] = 0; [used1] = 0; }
+
+P0(atomic_int *used0, atomic_int *remaining) {
+  atomic_store_explicit(used0, 1, memory_order_relaxed);
+  int old = atomic_fetch_sub_explicit(remaining, 2, memory_order_seq_cst);
+}
+
+P1(atomic_int *used1, atomic_int *remaining) {
+  atomic_store_explicit(used1, 1, memory_order_relaxed);
+  int before = atomic_fetch_or_explicit(remaining, 1, memory_order_relaxed);
+  int old = atomic_fetch_sub_explicit(remaining, 2, memory_order_seq_cst);
+}
+
+P2(atomic_int *remaining, atomic_int *used0, atomic_int *used1) {
+  int join = atomic_load_explicit(remaining, memory_order_acquire);
+  int a = atomic_load_explicit(used0, memory_order_relaxed);
+  int b = atomic_load_explicit(used1, memory_order_relaxed);
+}
+
+exists (2:join=1 /\ (2:a=0 \/ 2:b=0))

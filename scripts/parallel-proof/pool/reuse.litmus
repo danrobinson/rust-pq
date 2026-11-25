@@ -1,0 +1,42 @@
+C PoolReuse
+{
+  [busy] = 1; [expected] = 0; [slot] = 2; [remaining] = 2;
+  [job] = 1; [used] = 0;
+}
+
+P0(atomic_int *job, atomic_int *slot, atomic_int *remaining, atomic_int *busy) {
+  int join = atomic_load_explicit(remaining, memory_order_acquire);
+  if (join < 2) {
+    atomic_store_explicit(job, 0, memory_order_relaxed);
+    atomic_store_explicit(busy, 0, memory_order_release);
+  }
+}
+
+P1(atomic_int *job, atomic_int *slot, atomic_int *remaining, atomic_int *used) {
+  int first = -1;
+  int second = -1;
+  int s = atomic_load_explicit(slot, memory_order_acquire);
+  if (s == 2) {
+    first = atomic_load_explicit(job, memory_order_relaxed);
+    atomic_store_explicit(used, 1, memory_order_relaxed);
+    atomic_store_explicit(slot, 0, memory_order_release);
+    int old = atomic_fetch_sub_explicit(remaining, 2, memory_order_seq_cst);
+    int next = atomic_load_explicit(slot, memory_order_acquire);
+    if (next == 2) {
+      second = atomic_load_explicit(job, memory_order_relaxed);
+    }
+  }
+}
+
+P2(atomic_int *busy, int *expected, atomic_int *job, atomic_int *used, atomic_int *slot, atomic_int *remaining) {
+  int seen = -1;
+  int claimed = atomic_compare_exchange_strong_explicit(busy, expected, 1, memory_order_acquire, memory_order_relaxed);
+  if (claimed) {
+    seen = atomic_load_explicit(used, memory_order_relaxed);
+    atomic_store_explicit(job, 2, memory_order_relaxed);
+    atomic_store_explicit(remaining, 2, memory_order_relaxed);
+    int previous = atomic_exchange_explicit(slot, 2, memory_order_acq_rel);
+  }
+}
+
+exists (1:first=0 \/ 1:first=2 \/ 1:second=0 \/ 1:second=1 \/ 2:seen=0)

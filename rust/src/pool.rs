@@ -84,6 +84,45 @@ struct PoolGuard<'a> {
     pool: &'a Pool,
 }
 
+impl<'a> PoolGuard<'a> {
+    // The returned guard borrows both the pool and this exact closure until
+    // Drop joins the workers, including when the dispatcher unwinds.
+    fn claim<F: Fn() + Sync>(
+        pool: &'a Pool,
+        n_workers: usize,
+        scrub: bool,
+        f: &'a F,
+    ) -> Option<Self> {
+        if pool
+            .busy
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            // Another caller owns the pool (or this is a re-entrant call).
+            return None;
+        }
+
+        unsafe fn trampoline<F: Fn() + Sync>(ptr: *const ()) {
+            let f = &*(ptr as *const F);
+            f();
+        }
+
+        // SAFETY: We hold `busy == true` and all previous workers have joined.
+        unsafe {
+            *pool.job.get() = Some(Job {
+                data: (f as *const F).cast::<()>(),
+                call: trampoline::<F>,
+                scrub,
+            });
+        }
+        // n_workers is bounded by the length of a Vec<Arc<WorkerSlot>>, so doubling fits.
+        pool.remaining.store(n_workers * 2, Ordering::Relaxed);
+        pool.caller_parked.store(false, Ordering::Relaxed);
+
+        Some(Self { pool })
+    }
+}
+
 impl Drop for PoolGuard<'_> {
     fn drop(&mut self) {
         let mut spins = 0u32;
@@ -292,34 +331,10 @@ fn dispatch<F: Fn() + Sync>(pool: &Pool, n_workers: usize, scrub: bool, f: &F) {
         f();
         return;
     }
-    if pool
-        .busy
-        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-        .is_err()
-    {
-        // Another caller owns the pool (or this is a re-entrant call).
+    let Some(_guard) = PoolGuard::claim(pool, n_workers, scrub, f) else {
         f();
         return;
-    }
-
-    unsafe fn trampoline<F: Fn() + Sync>(ptr: *const ()) {
-        let f = &*(ptr as *const F);
-        f();
-    }
-
-    // SAFETY: We hold `busy == true` and all previous workers have joined.
-    unsafe {
-        *pool.job.get() = Some(Job {
-            data: (f as *const F).cast::<()>(),
-            call: trampoline::<F>,
-            scrub,
-        });
-    }
-    // n_workers is bounded by the length of a Vec<Arc<WorkerSlot>>, so doubling fits.
-    pool.remaining.store(n_workers * 2, Ordering::Relaxed);
-    pool.caller_parked.store(false, Ordering::Relaxed);
-
-    let _guard = PoolGuard { pool };
+    };
 
     let mut need_notify = false;
     for slot in &pool.workers[..n_workers] {
@@ -504,6 +519,57 @@ mod tests {
             assert_eq!(value.load(Ordering::Relaxed), 17);
             assert_eq!(slot.state.load(Ordering::Relaxed), IDLE_SPIN);
             assert!(!pool.busy.load(Ordering::Relaxed));
+        });
+    }
+
+    #[test]
+    fn borrowed_jobs_cross_dispatchers_after_unwind() {
+        let pool = new_pool(2);
+        let published = AtomicUsize::new(0);
+        let finished = AtomicUsize::new(0);
+        let turn = AtomicUsize::new(0);
+        // Relaxed gates select a schedule without giving the test its own
+        // publication, join, or cross-dispatcher synchronizes-with edge.
+        thread::scope(|scope| {
+            for slot in &pool.workers {
+                scope.spawn(|| {
+                    for epoch in 0..2 {
+                        while published.load(Ordering::Relaxed) <= epoch {
+                            thread::yield_now();
+                        }
+                        worker_once(&pool, slot);
+                        finished.fetch_add(1, Ordering::Relaxed);
+                    }
+                });
+            }
+            for epoch in 0..2 {
+                let (pool, published, finished, turn) = (&pool, &published, &finished, &turn);
+                scope.spawn(move || {
+                    while turn.load(Ordering::Relaxed) != epoch {
+                        thread::yield_now();
+                    }
+                    let caller = thread::current().id();
+                    let payload = alloc::vec![epoch as u8 + 17; 32];
+                    let failed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        dispatch(pool, 2, false, &|| {
+                            if thread::current().id() == caller {
+                                published.store(epoch + 1, Ordering::Relaxed);
+                                while finished.load(Ordering::Relaxed) < 2 * (epoch + 1) {
+                                    thread::yield_now();
+                                }
+                            } else {
+                                assert_eq!(payload[31], epoch as u8 + 17);
+                                if epoch == 0 {
+                                    panic!("worker unwinds with the first borrowed closure");
+                                }
+                            }
+                        });
+                    }));
+                    assert_eq!(failed.is_err(), epoch == 0);
+                    drop(payload);
+                    turn.store(epoch + 1, Ordering::Relaxed);
+                });
+            }
         });
     }
 
