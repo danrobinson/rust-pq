@@ -18,7 +18,7 @@ def main():
         [str(Path.home() / ".elan/bin"), str(Path.home() / ".cargo/bin"), os.environ["PATH"]]
     )
     # First check the positive proof, including all dependencies used below.
-    subprocess.run(["lake", "build", "Cachepath.ShakeEndToEnd"], cwd=LEAN, check=True)
+    subprocess.run(["lake", "build", "Cachepath.ShakeClosed"], cwd=LEAN, check=True)
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
         crate = proof["copy_rust_crate"](folder)
@@ -59,7 +59,35 @@ def main():
         diagnostics = result.stdout + result.stderr
         if not result.returncode or "bytes ↑pk_seed = bytes ↑r" not in diagnostics:
             raise ValueError("expected a failed equality between PK.seed and R\n" + diagnostics)
-        print("Regenerated SHAKE cached signer rejected at the PK.seed/R byte equality.")
+        # Check the single-root scalar extraction against the original, unmutated theorem
+        # dependencies in a fresh module directory. Only the executable being compared changes.
+        full = proof["extract_complete_signer"]("aarch64-apple-darwin", folder / "full", crate=crate)
+        try:
+            proof["check_complete_signer"](full, "mutated signer")
+        except ValueError as exc:
+            if "full signer cache.shake_ops.sign_from_digest differs" not in str(exc):
+                raise
+        else:
+            raise ValueError("mutated scalar signer passed the full extraction check")
+        linked = folder / "linked"
+        bodies = proof["scalar_caller_program"](full)
+        module = "ShakeClosedProgram"
+        source = (LEAN / "Cachepath" / (module + ".lean")).read_text()
+        for name, original in proof["linked_bodies"](source).items():
+            source = source.replace(original, bodies[name])
+        directory = linked / "Cachepath"
+        shutil.copytree(LEAN / ".lake/build/lib/lean/Cachepath", directory)
+        program = directory / (module + ".lean")
+        program.write_text(source)
+        full_env = dict(os.environ, LEAN_PATH=os.pathsep.join([str(linked), lean_path]))
+        subprocess.run(["lean", "--root", linked, "-o", directory / (module + ".olean"), program],
+                       env=full_env, cwd=LEAN, check=True)
+        result = subprocess.run(["lean", LEAN / "Cachepath/ShakeClosed.lean"],
+                                env=full_env, cwd=LEAN, capture_output=True, text=True)
+        diagnostics = result.stdout + result.stderr
+        if not result.returncode or "error:" not in diagnostics or "extend_from_slice" not in diagnostics:
+            raise ValueError("expected the complete scalar signature assembly equality to fail\n" + diagnostics)
+        print("PK.seed/R mutation rejected by both the assembly proof and the fully linked scalar signer proof.")
 
 
 if __name__ == "__main__":

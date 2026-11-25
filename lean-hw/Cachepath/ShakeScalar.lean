@@ -76,6 +76,13 @@ private theorem wots_pk_from_sig_loop {N : Usize} (sig : Slice U8) (seed : Array
 termination_by digits.length - i.val
 decreasing_by omega
 
+private theorem climb_eq {N : Usize} (node : Array U8 N) (idx : U32) (auth : Slice U8)
+    (first : Usize) (height : U32) (seed : Array U8 N) (a : address.Adrs) :
+    cache.shake_ops.climb node idx auth first height seed a =
+      shake.xmss.climb node idx auth first height seed a :=
+  cache.endtoend.shake.climb_eq node idx auth first height seed
+    ⟨a.layer, a.tree, a.typ, a.keypair, a.word2, a.word3⟩
+
 private theorem fors_pk_from_sig_loop {N : Usize} (height : U32) (sig : Slice U8) (seed : Array U8 N)
     (a : address.Adrs) (digits : alloc.vec.Vec U32) (pk : shake256.Sponge) (i : Usize) :
     cache.shake_ops.fors_pk_from_sig_loop (cursor digits i) height sig seed a.layer a.tree a.typ a.keypair a.word2 a.word3 pk =
@@ -87,9 +94,12 @@ private theorem fors_pk_from_sig_loop {N : Usize} (height : U32) (sig : Slice U8
   by_cases h : i.val < digits.length
   · obtain ⟨j,add,hj,step,index⟩ := next_some digits i h
     have lt : i < alloc.vec.Vec.len digits := h
-    simp only [step, index, add, lt, ↓reduceIte, uncurry, bind_ok, Std.bind_assoc]
+    simp only [step, index, add, lt, ↓reduceIte, uncurry, bind_ok, Std.bind_assoc, climb_eq]
     repeat' (apply bind_same; intro x)
-    exact fors_pk_from_sig_loop height sig seed a digits _ j
+    simpa only [cache.shake_ops.fors_pk_from_sig_loop, shake.fors.fors_pk_from_sig_loop,
+      cache.shake_ops.fors_pk_from_sig_loop.body, shake.fors.fors_pk_from_sig_loop.body,
+      uncurry, bind_ok, Std.bind_assoc, climb_eq] using
+      fors_pk_from_sig_loop height sig seed a digits x j
   · have stop : ¬i < alloc.vec.Vec.len digits := h
     simp only [next_none digits i h, stop, ↓reduceIte, uncurry, bind_ok]
 termination_by digits.length - i.val

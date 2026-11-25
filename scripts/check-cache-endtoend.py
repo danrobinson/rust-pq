@@ -140,35 +140,18 @@ SCALAR_NAMES = {
 }
 
 
-def generated_declarations(path, namespace):
+def generated_declarations(path, namespace, *, strict=False):
     parser = facade["common"]
     items = parser["declarations"](parser["body"](path, namespace))
-    return {m[1]: " ".join(item.split()) for item in items
-            if (m := re.search(r"\b(?:def|structure)\s+([\w.]+)", item))}
-
-
-def check_scalar_bodies(package):
-    def rename(match):
-        return "shake." + SCALAR_NAMES[match[1]]
-
-    names = "|".join(sorted(SCALAR_NAMES, key=len, reverse=True))
-    helpers = re.compile(r"cache\.shake_ops\.(" + names + r")(?=\b|_loop)")
-    for file, expected in (
-        ("Funs.lean", {"cache.shake_ops." + name for name in SCALAR_NAMES} |
-         {"cache.shake_ops.wots_chain_loop", "cache.shake_ops.wots_chain_loop.body",
-          "address.WOTS_PRF", "address.FORS_PRF", "address.Adrs.with_type",
-          "address.Adrs.with_keypair", "address.Adrs.with_word2", "address.Adrs.with_word3",
-          "address.Adrs.full", "util.block", "util.base_2b", "util.base_2b_loop0",
-          "util.base_2b_loop0.body", "util.base_2b_loop0_loop0", "util.base_2b_loop0_loop0.body",
-          "wots.wots_digits", "wots.wots_digits_loop", "wots.wots_digits_loop.body"}),
-        ("Types.lean", {"address.Adrs"}),
-    ):
-        cache = generated_declarations(package / file, "CacheopsRust")
-        portable = generated_declarations(ROOT / "lean/Slhdsa" / file, "slhdsa")
-        for original in sorted(expected):
-            name = helpers.sub(rename, original)
-            if helpers.sub(rename, cache[original]) != portable[name]:
-                raise ValueError(f"cache scalar declaration {original} differs from portable {name}")
+    declarations = {}
+    for item in items:
+        match = re.search(r"\b(?:def|structure)\s+([\w.]+)", item)
+        if not match:
+            if strict:
+                raise ValueError(f"unrecognized full signer declaration in {path}: {item[:120]}")
+            continue
+        declarations[match[1]] = " ".join(item.split())
+    return declarations
 
 
 SCALAR_CALLERS = ("wots_sign", "wots_pk_from_sig", "fors_sign", "fors_pk_from_sig")
@@ -213,15 +196,7 @@ def check_scalar_callers(package):
                 raise ValueError(f"scalar cache dependency {name} differs from the portable declaration")
 
 
-def check_node_dispatch(target, scratch):
-    """Restore the hardware and primitive names in the polymorphic Lean extraction."""
-    cuts = ("simd::available", "simd::xmss_node", "wots_pk_gen_portable")
-    prefix = "crate::cache::shake_ops::"
-    roots = ("xmss_node", *SCALAR_NAMES)
-    shared = ("crate::util::block", "crate::util::base_2b", "crate::wots::wots_digits")
-    package = extract_target(target, scratch / "node", tuple(prefix + name for name in roots) + shared,
-                             tuple(prefix + name for name in cuts) + ("crate::shake256",))
-    check_scalar_bodies(package)
+def check_node_dispatch(package, target):
     program = (LEAN / "Cachepath/ShakeNode.lean").read_text()
     start = program.index("def node (")
     end = program.index("\npartial_fixpoint", start) + len("\npartial_fixpoint")
@@ -238,6 +213,68 @@ def check_node_dispatch(target, scratch):
     end = generated.index("\npartial_fixpoint", begin) + len("\npartial_fixpoint")
     if generated[begin:end] != specialized:
         raise ValueError(f"cache recursive XMSS dispatch changed on {target}")
+
+
+def extract_complete_signer(target, scratch, *, crate=None):
+    """One root and no cuts inside the scalar SHAKE algorithms."""
+    method = "crate::cache::shake_ops::"
+    cuts = ("crate::cache::append_auth_path", "crate::cache::tree_root", "crate::shake256")
+    accelerated = ("available", "xmss_node", *SCALAR_CALLERS)
+    return extract_target(target, scratch, (method + "sign_from_digest",),
+                          cuts + tuple(method + "simd::" + name for name in accelerated), crate=crate)
+
+
+def linked_bodies(source):
+    """Read the actual Lean declarations, preserving indentation and instruction order."""
+    pattern = r"^(?:@\[rust_loop(?:_body)?\]\n)?def (cache\.shake_ops\.[\w.]+)\n[\s\S]*?(?=\n\n)"
+    return {m[1]: m[0] for m in re.finditer(pattern, source, re.MULTILINE)}
+
+
+def check_complete_signer(package, target):
+    externals = set(re.findall(r"(?m)^axiom ([^ :\n]+)", (package / "FunsExternal_Template.lean").read_text()))
+    methods = ("available", "xmss_node", *SCALAR_CALLERS)
+    expected = {"cache.shake_ops.simd." + name for name in methods}
+    expected.update(("cache.append_auth_path", "cache.tree_root", "shake256.Sponge.new",
+                     "shake256.Sponge.absorb", "shake256.Sponge.finish"))
+    types = re.findall(r"(?m)^axiom ([^ :\n]+)", (package / "TypesExternal_Template.lean").read_text())
+    if externals != expected or types != ["shake256.Sponge"]:
+        raise ValueError(f"unexpected full signer boundary on {target}: {externals}, {types}")
+
+    # Check the linked entry point, its callers and both sets of iterator loops first.
+    compiled = {}
+    for module in ("ShakeScalarProgram", "ShakeClosedProgram"):
+        compiled.update(linked_bodies((LEAN / f"Cachepath/{module}.lean").read_text()))
+    native = scalar_caller_program(package)
+    for name, verified in compiled.items():
+        if [line.rstrip() for line in native[name].splitlines()] != verified.splitlines():
+            raise ValueError(f"full signer {name} differs from the linked program on {target}")
+    check_node_dispatch(package, target)
+    linked = set(compiled) | {"cache.shake_ops.xmss_node"}
+
+    # Account for every other generated body, including the shared parameters, address
+    # layouts, scalar hash functions and cache accessors. The linker only renames private
+    # hash helpers to their checked portable names.
+    names = "|".join(sorted(SCALAR_NAMES, key=len, reverse=True))
+    helpers = re.compile(r"cache\.shake_ops\.(" + names + r")(?=\b|_loop)")
+
+    def portable_name(text):
+        return helpers.sub(lambda m: "shake." + SCALAR_NAMES[m[1]], text)
+
+    total = 0
+    for file in ("Types.lean", "Funs.lean"):
+        all_native = generated_declarations(package / file, "CacheopsRust", strict=True)
+        assembly = generated_declarations(LEAN / "Cacheops" / file, "CacheopsRust")
+        portable = generated_declarations(ROOT / "lean/Slhdsa" / file, "slhdsa")
+        for name, declaration in all_native.items():
+            if name in linked:
+                continue
+            if name != portable_name(name):
+                if portable_name(declaration) != portable.get(portable_name(name)):
+                    raise ValueError(f"full signer primitive {name} differs on {target}")
+            elif declaration != assembly.get(name) and declaration != portable.get(name):
+                raise ValueError(f"full signer dependency {name} has no matching verified body on {target}")
+        total += len(all_native)
+    return total
 
 def slice_block(source, header):
     start = source.index(header)
@@ -327,9 +364,9 @@ def main():
                 raise ValueError(
                     f"unexpected Cacheops externals on {target}: {found} != {EXPECTED_EXTERNALS}"
                 )
-            check_node_dispatch(target, scratch)
-            check_scalar_callers(extract_scalar_callers(target, scratch / "scalar"))
-            print(f"{target}: Cacheops translation, recursive XMSS dispatch and complete scalar WOTS/FORS callers matched", flush=True)
+            complete = extract_complete_signer(target, scratch / "complete")
+            count = check_complete_signer(complete, target)
+            print(f"{target}: matched the complete scalar signer extraction ({count} declarations)", flush=True)
 
     run_symbolic_lifecycle_replay()
 
@@ -341,6 +378,8 @@ def main():
             LEAN / "Cacheops/Funs.lean",
             LEAN / "Cachepath/EndToEnd.lean",
             LEAN / "Cachepath/ShakeEndToEnd.lean",
+            LEAN / "Cachepath/ShakeClosedProgram.lean",
+            LEAN / "Cachepath/ShakeClosed.lean",
             LEAN / "Cachepath/ShakeXmss.lean",
             LEAN / "Cachepath/ShakeNode.lean",
             LEAN / "Cachepath/ShakeScalar.lean",
@@ -348,9 +387,9 @@ def main():
         ]
     )
 
-    facade["run"](["lake", "build", "Cachepath.ShakeEndToEnd"], LEAN)
+    facade["run"](["lake", "build", "Cachepath.ShakeClosed"], LEAN)
     facade["audit_theorems"](
-        "Cachepath.ShakeEndToEnd",
+        "Cachepath.ShakeClosed",
         [
             "slhdsa.cache.endtoend.top_root_eq_fips",
             "slhdsa.cache.endtoend.pk_root_spec",
@@ -371,6 +410,8 @@ def main():
             "slhdsa.cache.endtoend.layer_d2_tree_index_spec",
             "slhdsa.cache.endtoend.sign_from_digest_spec",
             "slhdsa.cache.endtoend.sign_from_digest_with_cache_spec",
+            "CacheopsRust.Closed.sign_from_digest_eq",
+            "CacheopsRust.Closed.sign_from_digest_with_cache_spec",
             "CacheopsRust.ShakeNode.node_eq",
             "CacheopsRust.ShakeNode.scalar_node_eq",
             "slhdsa.CacheScalar.wots_pk_gen_eq",

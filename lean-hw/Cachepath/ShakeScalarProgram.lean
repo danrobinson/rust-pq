@@ -1,4 +1,4 @@
-import Slhdsa.Funs
+import Cacheops.Funs
 
 /-! Scalar WOTS and FORS callers from the production cache. The extractor checks
 the complete definitions on every target. Runtime dispatch remains a parameter. -/
@@ -32,7 +32,10 @@ abbrev cache.shake_ops.wots_secret := @shake.wots.secret
 abbrev cache.shake_ops.wots_chain := @shake.wots.chain
 abbrev cache.shake_ops.fors_sk_gen := @shake.fors.fors_sk_gen
 abbrev cache.shake_ops.fors_node_portable := @shake.fors.fors_node
-abbrev cache.shake_ops.climb := @shake.xmss.climb
+abbrev cache.shake_ops.climb {N : Usize} (node : Array U8 N) (idx : U32) (auth : Slice U8)
+    (first : Usize) (height : U32) (seed : Array U8 N) (a : address.Adrs) :=
+  CacheopsRust.cache.shake_ops.climb node idx auth first height seed
+    ⟨a.layer, a.tree, a.typ, a.keypair, a.word2, a.word3⟩
 
 @[rust_loop_body]
 def cache.shake_ops.wots_pk_gen_portable_loop.body
