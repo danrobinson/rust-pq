@@ -5,10 +5,10 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.ArmXmss
 open H512.Multi
 
-private def row (N : Usize) (b : Spec.Bytes) : Array U8 N :=
+def row (N : Usize) (b : Spec.Bytes) : Array U8 N :=
   .from (List.ofFn (fun i : Fin N.val => (⟨b[i.val]!⟩ : U8))) (by simp)
 
-private theorem row_eq (N : Usize) (b : Spec.Bytes) (len : b.length=N.val) :
+theorem row_eq (N : Usize) (b : Spec.Bytes) (len : b.length=N.val) :
     bytes (row N b).val=b := by
   apply List.ext_getElem
   · simp [bytes,row,len]
@@ -19,20 +19,20 @@ private def asSize (i : Nat) : Usize := ⟨BitVec.ofNat _ i⟩
 
 /-- The native implementation overwrites only the reported number of nodes;
 the unprocessed tail remains in the input array for the extracted scalar loop. -/
-def pairedBuffer {N} (state : Array U64 8#usize) (a : address.Adrs) (first : U32)
-    (roots : Nodes N) (count : Usize) (enabled : Bool) : Usize × Nodes N :=
+def pairedBuffer {N cap} (state : Array U64 8#usize) (a : address.Adrs) (first : U32)
+    (roots : Nodes N cap) (count : Usize) (enabled : Bool) : Usize × Nodes N cap :=
   let input := old roots
   let result := match enabled with
     | true => parentsBatch N.val (S512.wv state.val) (adrsS a) first.val count.val input
     | false => (0,input)
   let done := result.1
   let values := result.2
-  (asSize done,.from (List.ofFn (fun i : Fin 16 =>
+  (asSize done,.from (List.ofFn (fun i : Fin cap.val =>
     if i.val < done then row N (values i.val) else roots.val[i.val]!)) (by simp))
 
-theorem full_level {N} (p : params.Params) (hp : PN p N) (seed : hash.Seed N)
+theorem full_level {N cap} (p : params.Params) (hp : PN p N) (seed : hash.Seed N)
     (hs : SeedOk seed) (wide : N.val=24 ∨ N.val=32) (enabled : Bool) (a : address.Adrs)
-    (first : U32) (roots : Nodes N) (count : Usize) (size : count.val ≤ 8) (room : first.val+count.val ≤ 2^32) :
+    (first : U32) (roots : Nodes N cap) (count : Usize) (size : 2*count.val ≤ cap.val) (bounded : cap.val ≤ 128) (room : first.val+count.val ≤ 2^32) :
     let packed := pairedBuffer seed.state512 a first roots count enabled
     xmss.arm.batch_root_512_loop0_loop0 ⟨packed.1,count⟩ seed.pk_seed seed.state seed.state512
       packed.2 a first ⦃ out => ∀ j < count.val, bytes out.val[j]!.val=parent p seed a first roots j ⦄ := by
@@ -46,29 +46,30 @@ theorem full_level {N} (p : params.Params) (hp : PN p N) (seed : hash.Seed N)
   simp only [width] at vals
   cases enabled with
   | false =>
-    apply paired_then_remainder p hp seed hs wide false a first roots _ count _ size room
+    apply paired_then_remainder p hp seed hs wide false a first roots _ count _ size bounded room
     · rfl
     · intro i hi _
-      change bytes ((List.ofFn (fun k : Fin 16 => roots.val[k.val]!))[i]!).val = old roots i
+      simp only [pairedBuffer,Array.from_val,Nat.not_lt_zero,ite_false,pairResult,Bool.false_eq_true]
+      change bytes ((List.ofFn (fun k : Fin cap.val => roots.val[k.val]!))[i]!).val = old roots i
       rw [getElem!_pos _ i (by simpa using hi),List.getElem_ofFn]
       rfl
   | true =>
     let result := parentsBatch N.val (pkState512 N.val (bytes seed.pk_seed.val))
       (adrsS a) first.val count.val (old roots)
-    have small : result.1 ≤ 8 := by have h : result.1=count.val/2*2 := vals.1;omega
+    have small : result.1 ≤ 128 := by have h : result.1=count.val/2*2 := vals.1;omega
     have natEq : (asSize result.1).val=result.1 := by
       change result.1 % 2^System.Platform.numBits = result.1
       apply Nat.mod_eq_of_lt
       rcases System.Platform.numBits_eq with bits|bits <;> rw [bits] <;> omega
-    apply paired_then_remainder p hp seed hs wide true a first roots _ count _ size room
+    apply paired_then_remainder p hp seed hs wide true a first roots _ count _ size bounded room
     · simpa [pairedBuffer,pairResult,stateEq,result] using natEq
     · intro i hi active
       change (i < (pairedBuffer seed.state512 a first roots count true).1.val ∨ _) at active
       simp only [pairedBuffer,stateEq] at active ⊢
       change (i < (asSize result.1).val ∨ 2*(asSize result.1).val ≤ i) at active
       rw [natEq] at active
-      simp only [pairResult,ite_true,stateEq]
-      change bytes ((List.ofFn (fun k : Fin 16 => if k.val < result.1 then row N (result.2 k.val)
+      simp only [pairResult,ite_true,stateEq,Array.from_val]
+      change bytes ((List.ofFn (fun k : Fin cap.val => if k.val < result.1 then row N (result.2 k.val)
         else roots.val[k.val]!))[i]!).val=result.2 i
       rw [getElem!_pos _ i (by simpa using hi),List.getElem_ofFn]
       rcases active with early|late

@@ -6,12 +6,12 @@ namespace slhdsa.ArmXmss
 /-- Extracted scalar remainder of the native Arm XMSS parent pass. -/
 @[rust_loop_body]
 def xmss.arm.batch_root_512_loop0_loop0.body
-  {N : Std.Usize} (a : Array Std.U8 N) (a1 : Array Std.U32 8#usize)
+  {N cap : Std.Usize} (a : Array Std.U8 N) (a1 : Array Std.U32 8#usize)
   (a2 : Array Std.U64 8#usize) (adr : address.Adrs) (level_first : Std.U32)
   (iter : core.ops.range.Range Std.Usize)
-  (roots : Array (Array Std.U8 N) 16#usize) :
+  (roots : Array (Array Std.U8 N) cap) :
   Result (ControlFlow ((core.ops.range.Range Std.Usize) × (Array (Array Std.U8
-    N) 16#usize)) (Array (Array Std.U8 N) 16#usize))
+    N) cap)) (Array (Array Std.U8 N) cap))
   := do
   let (o, iter1) ←
     core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
@@ -33,11 +33,11 @@ def xmss.arm.batch_root_512_loop0_loop0.body
 /-- Extracted scalar remainder of the native Arm XMSS parent pass. -/
 @[rust_loop]
 def xmss.arm.batch_root_512_loop0_loop0
-  {N : Std.Usize} (iter : core.ops.range.Range Std.Usize) (a : Array Std.U8 N)
+  {N cap : Std.Usize} (iter : core.ops.range.Range Std.Usize) (a : Array Std.U8 N)
   (a1 : Array Std.U32 8#usize) (a2 : Array Std.U64 8#usize)
-  (roots : Array (Array Std.U8 N) 16#usize) (adr : address.Adrs)
+  (roots : Array (Array Std.U8 N) cap) (adr : address.Adrs)
   (level_first : Std.U32) :
-  Result (Array (Array Std.U8 N) 16#usize)
+  Result (Array (Array Std.U8 N) cap)
   := do
   loop
     (fun (iter1, roots1) => xmss.arm.batch_root_512_loop0_loop0.body a a1 a2

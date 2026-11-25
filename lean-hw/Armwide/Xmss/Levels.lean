@@ -29,7 +29,7 @@ private theorem nextLevel {N} (p : params.Params) (hp : PN p N) (seed : hash.See
   have room : shifted.val+n.val≤2^32 := by
     rw [firstEq,size,← Nat.add_one_mul]
     exact le_trans (Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by decide) (Nat.sub_le _ _))) limit
-  apply WP.spec_mono (full_level p hp seed hs wide enabled _ shifted roots n small room)
+  apply WP.spec_mono (full_level p hp seed hs wide enabled _ shifted roots n (by change 2*n.val≤16;omega) (by decide) room)
   intro out done j hj
   rw [done j (by omega)]
   obtain ⟨hl,hr⟩ : 2*j<2^(h-k) ∧ 2*j+1<2^(h-k) := by omega
@@ -78,7 +78,7 @@ theorem reduceTree {N} (p : params.Params) (hp : PN p N) (seed : hash.Seed N)
         rw [amount,size,level,Nat.shiftRight_eq_div_pow]
         rw (occs := .pos [1]) [show height.val=(height.val-(k+1))+(k+1) by omega]
         simp [Nat.pow_add]
-      simp [lift,Array.to_slice_mut,Array.to_slice,Array.from_slice,parentSlice,Array.length_eq,bind_ok]
+      simp [lift,Array.to_slice_mut,Array.to_slice,Array.from_slice,parentSlice,parentSliceAt,Array.length_eq,bind_ok]
       step with nextLevel p hp seed hs wide enabled sk a idx height.val k first it.start shifted n current small active base level shiftedVal nval previous limit as ⟨out,done⟩
       split at iteration
       · rename_i more

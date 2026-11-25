@@ -2,12 +2,14 @@ import Armwide.Xmss.PhysicalParents
 open Aeneas Aeneas.Std Result ControlFlow
 namespace slhdsa.ArmXmss
 
-def parentSlice {N : Usize} (enabled : Bool) (state : Array U64 8#usize) (a : address.Adrs)
+def parentSliceAt (cap : Usize) {N : Usize} (enabled : Bool) (state : Array U64 8#usize) (a : address.Adrs)
     (first : U32) (s : Slice (Array U8 N)) (count : Usize) : Result (Usize × Slice (Array U8 N)) :=
-  if h : s.val.length = 16 then
-    let packed := pairedBuffer state a first (Array.from s.val h) count enabled
+  if h : s.val.length = cap.val then
+    let packed := pairedBuffer (cap:=cap) state a first (Array.from s.val h) count enabled
     ok (packed.1,Array.to_slice packed.2)
   else fail .panic
+
+abbrev parentSlice {N} := @parentSliceAt 16#usize N
 
 /-- Extracted native XMSS level traversal. -/
 @[rust_loop_body]
