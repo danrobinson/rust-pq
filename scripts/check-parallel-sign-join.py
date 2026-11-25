@@ -258,7 +258,7 @@ def main():
             "Linux Arm: matched 24 physical-cell runs and all five post-join Aeneas declarations",
             flush=True,
         )
-    module = "Parallel.SignJoinRoundTrip"
+    module = "Parallel.PhaseTwoLinuxCoverage"
     facade["run"](["lake", "build", module], lean)
     facade["audit_theorems"](
         module,
@@ -273,9 +273,13 @@ def main():
                 "interpreted_ready",
                 "rust_supported",
                 "enabled_returns",
+                "enabled_bytes",
                 "roundtrip",
+                "linux_join_correct",
             )
-        ],
+        ] + [f"ParallelLinuxArmAPI.shake_{bits}{speed}.{op}"
+            for bits in (128, 192, 256) for speed in ("s", "f")
+            for op in ("slh_sign_internal", "slh_sign", "sign", "sign_deterministic", "roundtrip")],
     )
 
 
