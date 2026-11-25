@@ -477,6 +477,7 @@ def main() -> None:
     os.environ["PATH"] = os.pathsep.join(
         [str(Path.home() / ".elan/bin"), str(Path.home() / ".cargo/bin"), os.environ["PATH"]]
     )
+    subprocess.run([sys.executable, HERE / "check-shake-fors-plan.py"], check=True)
     for width in (8, 3):
         run_symbolic_replay(width)
     facade["run"](["lake", "build", "Shakeopt.ForsHoriz"], facade["LEAN"])
