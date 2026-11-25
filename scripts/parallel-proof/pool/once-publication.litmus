@@ -1,0 +1,19 @@
+C OncePublication
+{ [state]=3; [payload]=0; [expected]=3; }
+
+P0(atomic_int *state, atomic_int *payload, int *expected) {
+  int claimed = atomic_compare_exchange_strong_explicit(state, expected, 1, memory_order_acquire, memory_order_acquire);
+  if (claimed) {
+    atomic_store_explicit(payload, 1, memory_order_relaxed);
+    atomic_exchange_explicit(state, 0, memory_order_release);
+  }
+}
+P1(atomic_int *state, atomic_int *payload) {
+  int flag = atomic_load_explicit(state, memory_order_acquire);
+  int value = -1;
+  if (flag == 0) {
+    value = atomic_load_explicit(payload, memory_order_relaxed);
+  }
+}
+
+exists (1:flag=0 /\ 1:value=0)
