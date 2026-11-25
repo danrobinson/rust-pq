@@ -16,7 +16,7 @@ import signer
 def main():
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"), str(Path.home()/".cargo/bin"), os.environ["PATH"]])
-    facade["run"](["lake", "build", "Parallel.SigningSchedules"], facade["LEAN"])
+    facade["run"](["lake", "build", "Parallel.LastFinisher"], facade["LEAN"])
     template = signer.probe_source((facade["ROOT"] / "rust/src/cache.rs").read_text())
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp, "sign.rs")
@@ -50,6 +50,10 @@ example : jobs.length + jobs.length < 2^32 := by decide
                 subprocess.run(["lake","env","lean","--stdin"], input=proof, text=True, cwd=facade["LEAN"], check=True)
                 print(f"width {width}, plan {idx+1}: {len(jobs)} sorted tickets, {total} physical slots", flush=True)
     facade["audit_theorems"]("Parallel.SigningSchedules", ["ParallelFused.Schedules.signature_independent"])
+
+    facade["audit_theorems"]("Parallel.LastFinisher", [
+        f"ParallelFused.LastFinisher.{name}" for name in
+        ("reference_cells", "visibility", "can_finish", "signature_at_last")])
 
 if __name__ == "__main__":
     main()
