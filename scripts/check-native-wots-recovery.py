@@ -55,10 +55,38 @@ def validate(package, target):
     print(f"{target}: matched every WOTS recovery and lane extraction loop", flush=True)
 
 
+def check_dispatch(target, scratch):
+    caller = facade["extract"]("rust", target, "WotsEntry", scratch, ["crate::shake::wots::wots_pk_from_sig"],
+                               ["crate::shake::batch", "crate::shake::hash", "crate::shake256",
+                                "crate::util", "crate::wots::wots_digits"])
+    known = set(decls(lean.parent / "lean/Slhdsa/Funs.lean", "slhdsa"))
+    calls = []
+    for item in decls(caller / "Funs.lean", "slhdsa"):
+        if item.startswith("def shake.wots.wots_pk_from_sig\n"):
+            calls.append(item)
+        elif item not in known:
+            raise ValueError(f"{target}: unmatched WOTS dispatcher dependency: {item}")
+    (entry,) = calls
+    entry = entry.replace("def shake.wots.wots_pk_from_sig", "def actual")
+    entry = entry.replace("shake.batch.recover", "NativeVerify.Wots.recover").replace("shake.batch.available", "available")
+    source = f"""import Cachepath.NativeVerify.WotsDispatch
+open Aeneas Aeneas.Std Result slhdsa
+namespace Replay
+variable [m : ShakeBatch.Machine] [d : NativeVerify.Wots.Dispatch m] [s : ShakeBatch.Stream]
+variable (available : Usize → Result Bool)
+{entry}
+example : @actual m d s available = @NativeVerify.Wots.dispatch m d s available := rfl
+end Replay"""
+    facade["run"](["lake", "env", "lean", "--stdin"], lean, input=source, text=True)
+    print(f"{target}: matched WOTS dispatcher, digit decoding and scalar fallback", flush=True)
+
+
 if __name__ == "__main__":
+    module = "Cachepath.NativeVerify.WotsDispatch"
+    facade["run"](["lake", "build", module], lean)
     for target in facade["TARGETS"]:
         with tempfile.TemporaryDirectory() as tmp:
             validate(facade["extract"]("rust", target, "Wots", Path(tmp), roots, cuts), target)
-    facade["run"](["lake", "build", "Cachepath.NativeVerify.WotsOutput",
-                   "Cachepath.NativeVerify.WotsPrepare", "Cachepath.NativeVerify.WotsInit",
-                   "Cachepath.NativeVerify.WotsCompact"], lean)
+            check_dispatch(target, Path(tmp))
+    facade["audit_theorems"](module, ["slhdsa.NativeVerify.Wots." + thm for thm in
+                                     ("round_fips", "scan", "engine", "recover_spec", "dispatch_spec")])

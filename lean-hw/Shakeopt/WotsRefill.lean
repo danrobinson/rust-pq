@@ -667,7 +667,7 @@ def runRefill (width : Nat) (p : Params) (pk : Bytes) (adrs : Adrs)
   refillLoop p pk adrs initVal startStep endStep order (totalRem startStep endStep order st0) st0
 
 /-- Exact lane-wise invariant at the top of each `while active > 0` iteration. -/
-private def OuterInv (p : Params) (pk : Bytes) (adrs : Adrs)
+def OuterInv (p : Params) (pk : Bytes) (adrs : Adrs)
     (len : Nat) (initVal : Nat → Bytes) (startStep endStep : Nat → Nat)
     (order : List Nat) (st : RefillState) : Prop :=
   st.next ≤ order.length ∧
@@ -1118,6 +1118,62 @@ private theorem refillLoop_spec (p : Params) (pk : Bytes) (adrs : Adrs)
       exact refillLoop_spec p pk adrs len initVal startStep endStep order hnodup hord_valid
         fuel _ hinv' (by omega)
 
+/-- The implementation may initialize unfinished endpoint slots arbitrarily. Only zero-step
+    slots can be read before the refill engine writes their completed result. -/
+theorem initial_outer (width : Nat) (hw : 0 < width) (p : Params) (pk : Bytes) (adrs : Adrs)
+    (len : Nat) (initVal : Nat → Bytes) (startStep endStep : Nat → Nat)
+    (order : List Nat) (hnodup : order.Nodup)
+    (hord_valid : ∀ id ∈ order, id < len ∧ startStep id < endStep id)
+    (previous : Nat → Bytes) (ready : ∀ id < len, startStep id=endStep id → previous id=initVal id) :
+    OuterInv p pk adrs len initVal startStep endStep order
+      {initRefill width initVal startStep endStep order with out:=previous} := by
+  unfold OuterInv initRefill
+  dsimp only
+  refine ⟨Nat.min_le_left _ _, ?_, ?_, ?_, ?_, ready⟩
+  · intro h0
+    have : min order.length width = 0 := h0
+    omega
+  · intro l hl
+    have hl_ord : l < order.length := Nat.lt_of_lt_of_le hl (Nat.min_le_left _ _)
+    have hmem_take : order[l]! ∈ order.take (min order.length width) := by
+      rw [getElem!_pos order l hl_ord]
+      have heq : order[l]'hl_ord = (order.take (min order.length width))[l]'(by rw [List.length_take]; omega) :=
+        (List.getElem_take (xs := order) (i := l) (j := min order.length width)
+          (h := by rw [List.length_take]; omega)).symm
+      rw [heq]; exact List.getElem_mem _
+    have hval := hord_valid order[l]! (List.mem_of_mem_take hmem_take)
+    refine ⟨hmem_take, Nat.le_refl _, hval.2, rfl, ?_⟩
+    simp [chain]
+  · intro l₁ l₂ h1 h2 heq
+    have h1' : l₁ < order.length := Nat.lt_of_lt_of_le h1 (Nat.min_le_left _ _)
+    have h2' : l₂ < order.length := Nat.lt_of_lt_of_le h2 (Nat.min_le_left _ _)
+    rw [getElem!_pos order l₁ h1', getElem!_pos order l₂ h2'] at heq
+    have hidx := (List.nodup_iff_injective_getElem.mp hnodup)
+      (a₁ := ⟨l₁, h1'⟩) (a₂ := ⟨l₂, h2'⟩) heq
+    simpa using hidx
+  · intro id hid hnotact
+    obtain ⟨j, hj, hjeq⟩ := List.mem_iff_getElem.mp hid
+    have hj_lt : j < min order.length width := by rw [List.length_take] at hj; omega
+    have hne := hnotact j hj_lt
+    simp only [List.getElem_take] at hjeq
+    have hlt_ord : j < order.length := Nat.lt_of_lt_of_le hj_lt (Nat.min_le_left _ _)
+    rw [getElem!_pos order j hlt_ord] at hne
+    exact False.elim (hne hjeq)
+
+/-- One iteration of the Rust refill loop preserves its chain invariant and consumes one
+    unit of work for every active lane. -/
+theorem outer_progress (p : Params) (pk : Bytes) (adrs : Adrs) (len : Nat)
+    (initVal : Nat → Bytes) (startStep endStep : Nat → Nat) (order : List Nat)
+    (hnodup : order.Nodup) (hord_valid : ∀ id ∈ order, id < len ∧ startStep id < endStep id)
+    (st : RefillState) (inv : OuterInv p pk adrs len initVal startStep endStep order st) :
+    let next := postLoop initVal startStep endStep order 0 (permuteActiveStep p pk adrs st)
+    OuterInv p pk adrs len initVal startStep endStep order next ∧
+      totalRem startStep endStep order next + st.active = totalRem startStep endStep order st := by
+  have work : totalRem startStep endStep order (permuteActiveStep p pk adrs st) = totalRem startStep endStep order st := rfl
+  have active : (permuteActiveStep p pk adrs st).active = st.active := rfl
+  simpa only [Nat.sub_zero,work,active] using postLoop_spec p pk adrs len initVal startStep endStep order hnodup
+    hord_valid 0 (permuteActiveStep p pk adrs st) (permute_to_inner p pk adrs len initVal startStep endStep order st inv)
+
 /-- **Headline Theorem (Dynamic Lane-Refill Scheduler Soundness & Termination)**:
     For any batch width `width >= 1`, any `len`, any `startStep ≤ endStep`, and any
     duplicate-free ordering `order` of `{i < len | startStep i < endStep i}`, the
@@ -1138,38 +1194,8 @@ theorem refill_engine_spec (width : Nat) (hw : 0 < width)
     fun id h => (hord_iff id).mp h
   have hinit : OuterInv p pk adrs len initVal startStep endStep order
       (initRefill width initVal startStep endStep order) := by
-    unfold OuterInv initRefill
-    dsimp only
-    refine ⟨Nat.min_le_left _ _, ?_, ?_, ?_, ?_, fun _ _ _ => rfl⟩
-    · intro h0
-      have : min order.length width = 0 := h0
-      omega
-    · intro l hl
-      have hl_ord : l < order.length := Nat.lt_of_lt_of_le hl (Nat.min_le_left _ _)
-      have hmem_take : order[l]! ∈ order.take (min order.length width) := by
-        rw [getElem!_pos order l hl_ord]
-        have heq : order[l]'hl_ord = (order.take (min order.length width))[l]'(by rw [List.length_take]; omega) :=
-          (List.getElem_take (xs := order) (i := l) (j := min order.length width)
-            (h := by rw [List.length_take]; omega)).symm
-        rw [heq]; exact List.getElem_mem _
-      have hval := hord_valid order[l]! (List.mem_of_mem_take hmem_take)
-      refine ⟨hmem_take, Nat.le_refl _, hval.2, rfl, ?_⟩
-      simp [chain]
-    · intro l₁ l₂ h1 h2 heq
-      have h1' : l₁ < order.length := Nat.lt_of_lt_of_le h1 (Nat.min_le_left _ _)
-      have h2' : l₂ < order.length := Nat.lt_of_lt_of_le h2 (Nat.min_le_left _ _)
-      rw [getElem!_pos order l₁ h1', getElem!_pos order l₂ h2'] at heq
-      have hidx := (List.nodup_iff_injective_getElem.mp hnodup)
-        (a₁ := ⟨l₁, h1'⟩) (a₂ := ⟨l₂, h2'⟩) heq
-      simpa using hidx
-    · intro id hid hnotact
-      obtain ⟨j, hj, hjeq⟩ := List.mem_iff_getElem.mp hid
-      have hj_lt : j < min order.length width := by rw [List.length_take] at hj; omega
-      have hne := hnotact j hj_lt
-      simp only [List.getElem_take] at hjeq
-      have hlt_ord : j < order.length := Nat.lt_of_lt_of_le hj_lt (Nat.min_le_left _ _)
-      rw [getElem!_pos order j hlt_ord] at hne
-      exact False.elim (hne hjeq)
+    exact initial_outer width hw p pk adrs len initVal startStep endStep order hnodup hord_valid initVal
+      (fun _ _ _ => rfl)
   unfold runRefill
   set st0 := initRefill width initVal startStep endStep order
   set fin := refillLoop p pk adrs initVal startStep endStep order

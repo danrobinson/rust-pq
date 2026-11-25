@@ -21,7 +21,7 @@ theorem wots_pk_gen_spec {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
   | true =>
     simpa only [shake.wots.wots_pk_gen,select,bind_ok,ite_true] using keygen_spec p hp sk seed a (positive rfl) (width rfl) (perms rfl)
 
-private theorem digits_bound (digits : alloc.vec.Vec U32) (small : ∀ d ∈ digits.val, d.val<16) :
+theorem digits_bound (digits : alloc.vec.Vec U32) (small : ∀ d ∈ digits.val, d.val<16) :
     ∀ i < digits.slice.length, digits.slice.val[i]!.val<16 := by
   intro i hi
   apply small
