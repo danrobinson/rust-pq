@@ -15,17 +15,17 @@ hosts = ("aarch64-apple-darwin","aarch64-unknown-linux-gnu","x86_64-unknown-linu
 
 def check(target, scratch):
     owners = ("crate::","crate::shake::")
-    package = cache["extract_target"](target,scratch,[f+"slh::slh_sign_internal" for f in owners],
-        [f+k for f in owners for k in ops]+["crate::util::block","crate::params::Params::md_bytes"],features="parallel")
+    package = cache["extract_target"](target,scratch,[f+"slh::slh_sign_internal" for f in owners]+["crate::shake::slh::shake_sign_ctx"],
+        [f+k for f in owners for k in ops]+["crate::util::block","crate::params::Params::md_bytes","crate::shake::hash::prf_msg_ctx","crate::shake::hash::h_msg_ctx"],features="parallel")
     body = arm["body"](package/"Funs.lean","CacheopsRust")
     shared = set(arm["declarations"](arm["body"](arm["LEAN"]/"Slhdsa/Funs.lean")))
     aliases = []
-    program = ["import Parallel.UncachedCaller","import Armplatform.Replay","open Aeneas Aeneas.Std Result",
+    program = ["import Parallel.SegmentedCaller","import Armplatform.Replay","open Aeneas Aeneas.Std Result",
                "open slhdsa slhdsa.ParallelCaller","set_option linter.concreteInstances false",
                "set_option maxHeartbeats 0","noncomputable section","namespace FreshUncached",
                "variable [fb : Sh.Fallback] [wf : Worker ShakeSeed] [ws : Worker hash.Seed]",
                "variable [cpu : Armwide.Public.Dispatcher.Cpu] [features : Armwide.Keygen.Features]"]
-    expected = {f.replace("::",".")[len("crate."):] + k.replace("::",".") for f in owners for k in ops}|{"util.block"}
+    expected = {f.replace("::",".")[len("crate."):] + k.replace("::",".") for f in owners for k in ops}|{"util.block","shake.hash.prf_msg_ctx","shake.hash.h_msg_ctx"}
     actual = set()
     for path in package.glob("*External_Template.lean"):
         text = path.read_text()
@@ -44,6 +44,8 @@ def check(target, scratch):
                 impl="@slhdsa.NativeArmSignature."+name+" cpu features"+n
             elif name in ("hash.prf_msg","hash.h_msg"):
                 impl="@slhdsa.NativeArmSignature."+name+n
+            elif name in ("shake.hash.prf_msg_ctx","shake.hash.h_msg_ctx"):
+                impl="@ShakeoptSeg."+name+n
             else:
                 impl="@slhdsa."+name+n
             aliases.append(f"abbrev {name} {signature} := {impl}")
@@ -53,7 +55,7 @@ def check(target, scratch):
     if set(arm["declarations"](arm["body"](package/"Types.lean","CacheopsRust")))-types:
         raise ValueError(f"unexpected nominal types on {target}")
     program+=aliases
-    entries={"shake.slh.slh_sign_internal":"Sh","slh.slh_sign_internal":"S2"}
+    entries={"shake.slh.slh_sign_internal":"Sh","slh.slh_sign_internal":"S2","shake.slh.shake_sign_ctx":"Sh"}
     found=set()
     for d in arm["declarations"](body):
         name=re.search(r"\bdef\s+([^\s:]+)",d)[1]
@@ -66,16 +68,17 @@ def check(target, scratch):
     program.append("end FreshUncached")
     for name,owner in entries.items():
         ref=f"slhdsa.ParallelCaller.{owner}"
+        theorem="sign_ctx_spec" if name.endswith("shake_sign_ctx") else "sign_spec"
         program.append(f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
-                       f"`{ref}.sign_spec `{ref}.{name} `FreshUncached.{name} `FreshUncached.{name}_fips")
+                       f"`{ref}.{theorem} `{ref}.{name} `FreshUncached.{name} `FreshUncached.{name}_fips")
     source=scratch/"Caller.lean"
     source.write_text("\n".join(program)+"\n")
     arm["run"](["lake","env","lean",source],arm["LEAN"])
-    print(f"{target}: attached conditional FIPS proofs to both parallel Algorithm 19 callers",flush=True)
+    print(f"{target}: attached conditional FIPS proofs to both parallel Algorithm 19 callers and segmented SHAKE signing",flush=True)
 
 
 def main():
-    arm["run"](["lake","build","Parallel.UncachedCaller"],arm["LEAN"])
+    arm["run"](["lake","build","Parallel.SegmentedCaller"],arm["LEAN"])
     for target in hosts:
         with tempfile.TemporaryDirectory() as temp:
             check(target,Path(temp))

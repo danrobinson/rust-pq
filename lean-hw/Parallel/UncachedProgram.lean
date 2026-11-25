@@ -24,8 +24,11 @@ abbrev shake.fors.fors_pk_from_sig {N : Usize} := @fallback.forsRecover N
 abbrev shake.ht.ht_sign {N : Usize} := @fallback.htSign N
 abbrev shake.slh.parallel.sign {N : Usize} := @worker.run N
 
-def shake.slh.slh_sign_internal
-  {N : Std.Usize} (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
+/-- The sign_digest! continuation is shared by contiguous and segmented message hashing. -/
+def signWith {N : Std.Usize}
+  (prf : Array U8 N → Array U8 N → Slice U8 → Result (Array U8 N))
+  (hash : params.Params → Array U8 N → Array U8 N → Array U8 N → Slice U8 → Result (alloc.vec.Vec U8))
+  (p : params.Params) (m : Slice Std.U8) (sk : Slice Std.U8)
   (addrnd : Array Std.U8 N) :
   Result (alloc.vec.Vec Std.U8)
   := do
@@ -33,8 +36,8 @@ def shake.slh.slh_sign_internal
   let sk_prf ← util.block N sk 1#usize
   let pk_seed ← util.block N sk 2#usize
   let pk_root ← util.block N sk 3#usize
-  let r ← shake.hash.prf_msg sk_prf addrnd m
-  let digest ← shake.hash.h_msg p r pk_seed pk_root m
+  let r ← prf sk_prf addrnd m
+  let digest ← hash p r pk_seed pk_root m
   let s := alloc.vec.Vec.deref digest
   let idx_tree ← shake.slh.digest_tree p s
   let s1 := alloc.vec.Vec.deref digest
@@ -64,6 +67,9 @@ def shake.slh.slh_sign_internal
     let s5 := alloc.vec.Vec.deref sig_ht
     alloc.vec.Vec.extend_from_slice core.clone.CloneU8 sig1 s5
   | some sig => ok sig
+def shake.slh.slh_sign_internal {N : Usize} :=
+  @signWith fallback worker N shake.hash.prf_msg shake.hash.h_msg
+
 end Sh
 
 namespace S2

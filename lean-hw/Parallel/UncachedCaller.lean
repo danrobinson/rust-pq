@@ -127,16 +127,23 @@ theorem scalar_correct {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) :
     FallbackCorrect scalar (N:=N) p := ⟨fun md sk pk a size _ => Shake.fors_sign_spec p hp md sk pk a size,
       fun sig md pk a len size _ => Shake.fors_pk_from_sig_spec p hp sig md pk a len size,Shake.ht_sign_spec p hp⟩
 
-theorem sign_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+theorem signWith_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (m sk : Slice U8) (rnd : Array U8 N) (hsk : sk.length=4*N.val)
+    (frame : Spec.Bytes)
+    (prf : Array U8 N → Array U8 N → Slice U8 → Result (Array U8 N))
+    (hash : slhdsa.params.Params → Array U8 N → Array U8 N → Array U8 N → Slice U8 → Result (alloc.vec.Vec U8))
+    (prf_ok : ∀ key, prf key rnd m ⦃ r =>
+      bytes r.val=Spec.PRFmsg (Shake.params p) (bytes key.val) (bytes rnd.val) frame ⦄)
+    (hash_ok : ∀ r key root, hash p r key root m ⦃ d =>
+      bytes d.val=Spec.Hmsg (Shake.params p) (bytes r.val) (bytes key.val) (bytes root.val) frame ∧ d.length=p.m.val ⦄)
     (ops : FallbackCorrect fallback (N:=N) p)
     (worker_ok : WorkerCorrect worker (N:=N) p (Shake.params p) (fun s => bytes s.val) (fun _ => True)) :
-    shake.slh.slh_sign_internal p m sk rnd ⦃ out =>
-      bytes out.val=Spec.slhSignInternal (Shake.params p) (bytes m.val) (bytes sk.val) (bytes rnd.val) ∧
+    signWith prf hash p m sk rnd ⦃ out =>
+      bytes out.val=Spec.slhSignInternal (Shake.params p) frame (bytes sk.val) (bytes rnd.val) ∧
       out.length=(paramsS p).sigBytes ⦄ := by
   have pv : (Shake.params p).Valid := by obtain ⟨_,_,_,_,_,_,_,_,_,_,_,_,_⟩ := hp.valid;constructor <;> assumption
   apply WP.spec_mono (P₀ := fun (out : alloc.vec.Vec U8) =>
-    bytes out.val=Spec.slhSignInternal (Shake.params p) (bytes m.val) (bytes sk.val) (bytes rnd.val))
+    bytes out.val=Spec.slhSignInternal (Shake.params p) frame (bytes sk.val) (bytes rnd.val))
   rotate_left
   · intro out value
     refine ⟨value,?_⟩
@@ -148,13 +155,13 @@ theorem sign_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} 
   simp only [paramsS_m] at hmq
   have hfl := fors_len_le p hp
   have hhl := ht_len_le p hp
-  unfold Sh.shake.slh.slh_sign_internal
+  unfold signWith
   let* ⟨ sk_seed, sk_seed_post ⟩ ← block_spec
   let* ⟨ sk_prf, sk_prf_post ⟩ ← block_spec
   let* ⟨ pk_seed, pk_seed_post ⟩ ← block_spec
   let* ⟨ pk_root, pk_root_post ⟩ ← block_spec
-  let* ⟨ r, r_post ⟩ ← prf_msg_params p hp
-  let* ⟨ digest, digest_post, digest_len ⟩ ← h_msg_params p
+  let* ⟨ r, r_post ⟩ ← prf_ok
+  let* ⟨ digest, digest_post, digest_len ⟩ ← hash_ok
   let* ⟨ idx_tree, idx_tree_post, idx_tree_lt ⟩ ← Shake.digest_tree_spec
   let* ⟨ idx_leaf, idx_leaf_post, idx_leaf_lt ⟩ ← Shake.digest_leaf_spec
   let* ⟨ a, a_post ⟩ ← adrs_new_spec
@@ -179,7 +186,7 @@ theorem sign_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} 
   have result : bytes r.val ++ Spec.forsSign P (bytes md.val) (bytes sk_seed.val) (bytes pk_seed.val) (adrsS adrs) ++
       Spec.htSign P (Spec.forsPkFromSig P (Spec.forsSign P (bytes md.val) (bytes sk_seed.val) (bytes pk_seed.val) (adrsS adrs))
         (bytes md.val) (bytes pk_seed.val) (adrsS adrs)) (bytes sk_seed.val) (bytes pk_seed.val) idx_tree.val idx_leaf.val =
-      Spec.slhSignInternal P (bytes m.val) (bytes sk.val) (bytes rnd.val) := by
+      Spec.slhSignInternal P frame (bytes sk.val) (bytes rnd.val) := by
     simp only [Spec.slhSignInternal]
     simp only [show Spec.block P=Spec.block (paramsS p) by rfl,show P.mdBytes=(paramsS p).mdBytes by rfl,
       show Spec.digestTree P=Spec.digestTree (paramsS p) by rfl,show Spec.digestLeaf P=Spec.digestLeaf (paramsS p) by rfl]
@@ -212,6 +219,16 @@ theorem sign_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} 
     simp only [vec_deref_val] at pk_fors_post
     rw [hsig,sig_ht_post,pk_fors_post,sig_fors_post]
     exact result
+
+theorem sign_spec [fallback : Fallback] [worker : Worker ShakeSeed] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+    (m sk : Slice U8) (rnd : Array U8 N) (hsk : sk.length=4*N.val)
+    (ops : FallbackCorrect fallback (N:=N) p)
+    (worker_ok : WorkerCorrect worker (N:=N) p (Shake.params p) (fun s => bytes s.val) (fun _ => True)) :
+    shake.slh.slh_sign_internal p m sk rnd ⦃ out =>
+      bytes out.val=Spec.slhSignInternal (Shake.params p) (bytes m.val) (bytes sk.val) (bytes rnd.val) ∧
+      out.length=(paramsS p).sigBytes ⦄ := signWith_spec p hp m sk rnd hsk
+      (bytes m.val) shake.hash.prf_msg shake.hash.h_msg (fun key => prf_msg_params p hp key rnd m)
+      (fun r key root => h_msg_params p r key root m) ops worker_ok
 
 end Sh
 
