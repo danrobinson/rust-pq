@@ -130,7 +130,15 @@ def main():
             path.write_text(original)
     facade = base["ticket"]["shared"]["facade"]
     module = "Parallel.AuthTableHosted"
-    facade["run"](["lake", "build", module], lean)
+    jobs = "Parallel.AuthTableJobs"
+    facade["run"](["lake", "build", module, jobs], lean)
+    facade["audit_theorems"](
+        jobs,
+        [
+            "slhdsa.ParallelAuthTable.chunks_from_jobs",
+            "slhdsa.ParallelAuthTable.native_law",
+        ],
+    )
     facade["audit_theorems"](
         module,
         [
