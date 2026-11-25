@@ -167,7 +167,16 @@ def fresh_wrappers(tmp, target):
             if decl in text: continue
             if name=="Gate" and re.sub(r"wots_pk_from_sig_loop[01]","wots_pk_from_sig_loop",decl) in shared: continue
             raise ValueError(f"{target}/{name}: unmatched source {decl[:110]}")
-    print(f"{target}: replayed Arm recovery wrapper, prepass and full dispatcher",flush=True)
+    callees = ("ht::ht_sign","ht::ht_verify","xmss::xmss_pk_from_sig")
+    package = facade["extract"](crate,target,"Hyper",tmp,["crate::"+x for x in callees],
+        ["crate::"+x for x in ("wots::wots_pk_from_sig","xmss::xmss_sign","hash::thash_pair","util::block")])
+    fresh=set(declarations(body(package/"Funs.lean")))
+    if fresh-shared or set(declarations(body(package/"Types.lean")))-types:
+        raise ValueError(f"{target}: Arm hypertree or XMSS caller changed")
+    for op in ("xmss.climb","xmss.climb_loop","xmss.hash2","ht.next_message","xmss.xmss_pk_from_sig","ht.ht_sign_loop","ht.ht_verify_loop","ht.ht_sign","ht.ht_verify"):
+        if not any("def "+op+"\n" in d for d in fresh):
+            raise ValueError(f"{target}: missing extracted hypertree caller {op}")
+    print(f"{target}: replayed Arm recovery, XMSS recovery and both hypertree callers",flush=True)
 
 def main():
     src=(root/"rust/src/sha256/arm_wide.rs").read_text()
@@ -186,10 +195,12 @@ def main():
             tmp=Path(work)/target
             tmp.mkdir()
             fresh_wrappers(tmp,target)
-    facade["run"](["lake","build","Armwide.RecoveryDispatch","Armwide.RecoveryControl"],lean)
+    facade["run"](["lake","build","Armwide.Hypertree","Armwide.RecoveryTermination"],lean)
     facade["audit_theorems"]("Armwide.RecoveryDispatch",["slhdsa.Armwide.Recovery.Dispatcher.dispatch_eq_scalar"])
     facade["audit_theorems"]("Armwide.RecoveryControl",["slhdsa.Armwide.Recovery.control_complete","slhdsa.Armwide.Recovery.plan_retire","slhdsa.Armwide.Recovery.plan_queue_suffix"])
-    print("All Arm WOTS recovery source checks passed.")
+    facade["audit_theorems"]("Armwide.RecoveryTermination",["slhdsa.Armwide.Recovery.complete_drains"])
+    facade["audit_theorems"]("Armwide.Hypertree",["slhdsa.Armwide.Hypertree."+x for x in ("xmss_pk_from_sig_spec","ht_sign_spec","ht_verify_spec")])
+    print("All Arm WOTS recovery and hypertree source checks passed.")
 
 if __name__=="__main__":
     main()
