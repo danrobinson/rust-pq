@@ -69,10 +69,10 @@ private theorem scalar_pairs {N : Usize} (p : params.Params) (hp : PN p N) (sk p
   intro out h
   simpa only [RowPrefix,Row,hc,plen] using h
 
-private noncomputable abbrev want {N : Usize} (p : params.Params) (sk pk : Array U8 N) (a : address.Adrs) :=
+noncomputable abbrev want {N : Usize} (p : params.Params) (sk pk : Array U8 N) (a : address.Adrs) :=
   expected p.hp.val (Value p sk pk a)
 
-private theorem stage_spec {N : Usize} [b : Backend] (backend : Correct b N) (p : params.Params)
+theorem stage_spec {N : Usize} [b : Backend] (backend : Correct b N) (p : params.Params)
     (hp : PN p N) (sk pk : Array U8 N) (a : address.Adrs) (height z : U32)
     (heightEq : height.val = p.hp.val) (leaves : Usize) (leavesEq : leaves.val = 2^p.hp.val)
     (v : Nodes N) (pos : 0 < z.val) (hz : z.val ≤ p.hp.val)

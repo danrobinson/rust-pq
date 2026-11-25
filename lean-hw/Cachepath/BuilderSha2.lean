@@ -20,7 +20,7 @@ private theorem nativeCast (i : Usize) {H z} (small : H ≤ 9) (hi : i.val < wid
   change i.val < 2^32
   omega
 
-private theorem leaf_spec {N : Usize} (p : params.Params) (hp : PN p N)
+theorem leaf_spec {N : Usize} (p : params.Params) (hp : PN p N)
     (sk : Array U8 N) (seed : hash.Seed N) (hs : SeedOk seed)
     (a : address.Adrs) (i : Usize) (v : Nodes N) (hi : i.val < width p.hp.val 0)
     (init : Ready p.hp.val (target p sk seed a) i.val v) :
@@ -102,7 +102,7 @@ theorem leafCount {H z : Nat} (hz : z ≤ H) : 2^H >>> z = width H z := by
   rw [Nat.shiftRight_eq_div_pow,← Nat.sub_add_cancel hz, Nat.pow_add, Nat.mul_div_cancel _ (Nat.two_pow_pos _)]
   simp [width]
 
-private theorem level_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
+theorem level_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
     (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs) (height z : U32)
     (heightEq : height.val = p.hp.val) (leaves : Usize) (leavesEq : leaves.val = 2^p.hp.val)
     (v : Nodes N) (pos : 0 < z.val) (hz : z.val ≤ p.hp.val)

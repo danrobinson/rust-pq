@@ -113,8 +113,56 @@ def check_shake(target, scratch, *, scalar_only=False):
     facade["run"](["lake", "env", "lean", "--stdin"], lean, input="\n".join(checks), text=True)
 
 
+def check_parallel(target, scratch):
+    root = facade["ROOT"]
+    cuts = (*builder_cuts, "crate::cache::sha2_ops::build_leaves_parallel",
+            "crate::cache::shake_ops::build_leaves_parallel", "crate::cache::shake_ops::fill_leaves_chunk",
+            "crate::cache::shake_ops::simd::available", "crate::cache::shake_ops::simd::hash_pairs",
+            "crate::cache::shake_ops::thash_pair")
+    lib, dest = scratch / "parallel.llbc", scratch / "ParallelTree"
+    facade["run"]([root / ".tools/aeneas/charon/bin/charon", "cargo", "--preset=aeneas",
+                   *(a for r in builders for a in ("--start-from", r)),
+                   *(a for c in cuts for a in ("--opaque", c)),
+                   "--dest-file", lib, "--", "--locked", "--features", "parallel,platform-sha2",
+                   "--target", target], root / "rust")
+    facade["run"]([root / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error",
+                   "-no-progress-bar", "-split-files", "-dest", dest, lib], root)
+    portable = lean.parent / "lean/Slhdsa"
+    if set(decls(dest / "Types.lean", "slhdsa")) - set(decls(portable / "Types.lean", "slhdsa")):
+        raise ValueError(f"unknown parallel tree type on {target}")
+    sha2_program = set(decls(lean / "Cachepath/BuilderProgram.lean", "slhdsa"))
+    shared = set(decls(portable / "Funs.lean", "slhdsa"))
+    shake_program = (lean / "Cachepath/BuilderShakeProgram.lean").read_text()
+    parallel_program = (lean / "Cachepath/BuilderParallelProgram.lean").read_text()
+    for item in decls(dest / "Funs.lean", "slhdsa"):
+        if item in shared:
+            continue
+        # The SHA-2 translation duplicates the reduction loop after the
+        # two parallel branches. Check both copies against the proved body.
+        loops = {"0": "1", "1": "0", "2": "1"}
+        linked = re.sub(r"(cache\.sha2_ops\.build_xmss_tree_loop)([012])",
+                        lambda m: m[1] + loops[m[2]], item)
+        if linked in sha2_program:
+            continue
+        if "def cache.shake_ops.build_xmss_tree_loop" in linked:
+            for old, new in (("cache.shake_ops.simd.available", "Backend.available"),
+                             ("cache.shake_ops.simd.hash_pairs", "Backend.pairs"),
+                             ("cache.shake_ops.thash_pair", "shake.hash.thash_pair"),
+                             ("cache.shake_ops.", "")):
+                linked = linked.replace(old, new)
+            if linked not in shake_program:
+                raise ValueError(f"changed parallel-feature SHAKE row loop on {target}")
+            continue
+        for family in ("sha2", "shake"):
+            linked = linked.replace(f"def cache.{family}_ops.build_xmss_tree\n", f"def {family}Tree\n")
+            linked = linked.replace(f"cache.{family}_ops.build_leaves_parallel", f"Pool.{family}")
+        linked = linked.replace("cache.shake_ops.", "nativeShake.")
+        if linked not in parallel_program:
+            raise ValueError(f"unmatched parallel tree control flow on {target}: {linked}")
+
+
 def main():
-    facade["run"](["lake", "build", "Cachepath.BuiltSession", "Cachepath.BuilderPortable"], lean)
+    facade["run"](["lake", "build", "Cachepath.BuiltSession", "Cachepath.BuilderPortable", "Cachepath.BuilderParallel"], lean)
     with tempfile.TemporaryDirectory() as directory:
         portable = "riscv64gc-unknown-none-elf"
         for target in (*facade["TARGETS"], portable):
@@ -123,7 +171,13 @@ def main():
             check_constructor(target, scratch)
             check_builder(target, scratch)
             check_shake(target, scratch, scalar_only=target == portable)
+            if target != portable:
+                check_parallel(target, scratch)
             print(f"{target}: matched the public constructor and serial SHA-2 and SHAKE builders", flush=True)
+    facade["audit_theorems"]("Cachepath.BuilderParallel", [
+        "slhdsa.cache.builder.workers.sha2_kernel", "slhdsa.cache.builder.workers.shake_kernel",
+        "CacheopsRust.Public.parallel_build_and_sign_many",
+    ])
     facade["audit_theorems"]("Cachepath.BuilderPortable", [
         "slhdsa.cache.builder.nativeShake.portable_leaves_eq", "slhdsa.cache.builder.nativeShake.portable_level_eq",
     ])
