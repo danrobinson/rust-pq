@@ -23,6 +23,9 @@ srcDir = "../lean"
 name = "Arm"
 
 [[lean_lib]]
+name = "Buffered"
+
+[[lean_lib]]
 name = "Fused"
 
 [[lean_lib]]
