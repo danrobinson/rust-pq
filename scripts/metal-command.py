@@ -920,7 +920,7 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
         else:
             raise ValueError("accepted broadcast rather than per-word chain-tip store")
     positive = "\n".join(projections) + claims(*args, traces, roles, rows=rows)
-    positive += completion["project"](lib, compact, body, rows, internal_sign["outcome"])
+    positive += completion["project"](lib, compact, body, rows, internal_sign["outcome"], internal_sign["session"])
     # A missing wait, premature result view or omitted host producer must fail
     # against the actual source, independent of the positive trace assertions.
     cases = [
