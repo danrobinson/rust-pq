@@ -4,7 +4,8 @@ open Lean Elab Command
 open slhdsa.ParallelSigning.Coverage
 set_option maxHeartbeats 0 in
 run_cmd liftCoreM do
-  let worker := [`slhdsa.ParallelRawWorker.inputs,`slhdsa.ParallelForestPack.pack_fors,
+  let worker := [`slhdsa.ParallelRawWorker.native,`slhdsa.RawFors.nativeAction,`slhdsa.RawFors.publish,
+    `slhdsa.RawFors.splitAction,`slhdsa.RawFors.buildScalarMerge,`slhdsa.RawFors.buildGroupMerge,`slhdsa.ParallelForestPack.pack_fors,
     `AuthTableLinux.slhdsa.ParallelAuthTable.auth_table,`slhdsa.ParallelRawChunks.fill,
     `slhdsa.ParallelAuthTable.issuedMetadata,`slhdsa.ParallelAuthTable.issuedNode,`slhdsa.ParallelLeafTable.leaves,`slhdsa.ParallelXmssTicket.build_layers,
     `slhdsa.ParallelRootWalk.all_roots,`RootTableArm.slhdsa.shake.xmss.hash2,
@@ -16,4 +17,6 @@ run_cmd liftCoreM do
       reaches root worker
       excludes root `slhdsa.ParallelSignJoin.interpreted
       excludes root `slhdsa.WidthEight.Ticket.observedInputs
+      excludes root `slhdsa.ParallelRawForest.cells
+      excludes root `slhdsa.ParallelSignJoin.lookup
   reaches `slhdsa.ParallelSignJoin.enabled_bytes worker

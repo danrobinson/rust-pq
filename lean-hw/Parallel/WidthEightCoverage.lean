@@ -16,7 +16,8 @@ run_cmd liftCoreM do
       let table := (if apple then `AuthTableApple else `AuthTableX86) ++ `slhdsa.ParallelAuthTable.auth_table
       let engine := (if apple then `WidthEightAppleKeys else `WidthEightX86Keys) ++ `slhdsa.WidthEight.sourceEngine
       let sponge := if apple then `AppleSingleStream.KappleouterRust.shake256.Sponge.absorb else `KxouterRust.shake256.Sponge.absorb
-      let worker := [`slhdsa.ParallelCaller.Sh.signWith,host ++ `slhdsa.ParallelCaller.Sh.shake.slh.slh_sign_internal,`slhdsa.ParallelSignJoin.replayWith,`slhdsa.ParallelRawWorker.inputs,`slhdsa.ParallelForestPack.pack_fors,
+      let worker := [`slhdsa.ParallelCaller.Sh.signWith,host ++ `slhdsa.ParallelCaller.Sh.shake.slh.slh_sign_internal,`slhdsa.ParallelSignJoin.worker,`slhdsa.ParallelRawWorker.native,`slhdsa.RawFors.nativeAction,`slhdsa.RawFors.publish,
+    `slhdsa.RawFors.splitAction,`slhdsa.RawFors.buildScalarMerge,`slhdsa.RawFors.buildGroupMerge,`slhdsa.ParallelForestPack.pack_fors,
     `slhdsa.ParallelAuthTable.issuedMetadata,`slhdsa.ParallelAuthTable.issuedNode,`slhdsa.ParallelLeafTable.leaves,table,
         `slhdsa.ParallelRawChunks.fill,
         host ++ `slhdsa.WidthEight.Ticket.phaseTwo,ticket ++ `slhdsa.WidthEight.Ticket.ticket,
@@ -26,7 +27,11 @@ run_cmd liftCoreM do
         reaches (api ++ op) worker
         excludes (api ++ op) `slhdsa.ParallelSignJoin.interpreted
         excludes (api ++ op) `slhdsa.WidthEight.Ticket.observedInputs
-      excludes (api ++ `roundtrip) `slhdsa.ParallelSignJoin.interpreted
+        excludes (api ++ op) `slhdsa.ParallelRawForest.cells
+        excludes (api ++ op) `slhdsa.ParallelSignJoin.lookup
+      for old in [`slhdsa.ParallelSignJoin.interpreted,`slhdsa.ParallelSignJoin.lookup,
+          `slhdsa.ParallelRawForest.cells,`slhdsa.WidthEight.Ticket.observedInputs] do
+        excludes (api ++ `roundtrip) old
       reaches (api ++ `roundtrip) (engine :: `slhdsa.WidthEight.verify :: worker)
       reaches (ticket ++ `slhdsa.WidthEight.Ticket.from_layers)
         [`slhdsa.ParallelXmssTicket.build_layers,ticket ++ `slhdsa.WidthEight.Ticket.ticket,`slhdsa.NativeShakeWots.sign,sponge]

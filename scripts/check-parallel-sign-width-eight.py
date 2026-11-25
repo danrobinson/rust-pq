@@ -75,7 +75,8 @@ def audit_public():
         for host in ("PhaseTwoApple", "PhaseTwoX86") for op in
         ("internal_from_forest", "context_from_forest")] +
         [f"{host}.slhdsa.WidthEight.Ticket.joined_from_forest" for host in ("ParallelApple", "ParallelX86")])
-    facade["audit_theorems"](module, roots + ["slhdsa.ParallelSignJoin.enabled_returns","slhdsa.ParallelSignJoin.uses_some"])
+    facade["audit_theorems"](module, roots + ["slhdsa.ParallelSignJoin.enabled_returns", "slhdsa.ParallelSignJoin.uses_some",
+        "slhdsa.RawFors.mode_for_host", "slhdsa.RawFors.published", "slhdsa.ParallelRawWorker.native_law"])
     print(f"Checked {len(roots)} hosted parallel signing theorems and the successful worker branch.", flush=True)
 
 

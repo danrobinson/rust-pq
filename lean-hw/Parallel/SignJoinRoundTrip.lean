@@ -1,5 +1,5 @@
 import Parallel.PhaseTwoLinux
-import Parallel.RawWorker
+import Parallel.ForsWorkerComposition
 import Parallel.KeygenWidthThreeRoundTrip
 open Aeneas Aeneas.Std Result
 namespace slhdsa.ParallelSignJoin
@@ -7,39 +7,27 @@ noncomputable section
 
 abbrev TicketSchedule := ∀ n, WidthEight.Ticket.Schedule n
 
-def linuxJoin (schedule : TicketSchedule) (plan : PhysicalRows) : Join :=
+def linuxJoin (schedule : TicketSchedule) : Join :=
   ThreeLane.slhdsa.WidthEight.Ticket.completedJoin .linuxArm
-    (ThreeLane.slhdsa.WidthEight.Ticket.rootsFrom .linuxArm (ParallelRawWorker.inputs .linuxArm plan schedule))
+    (ThreeLane.slhdsa.WidthEight.Ticket.rootsFrom .linuxArm (ParallelRawWorker.native .linuxArm schedule))
 
 theorem linux_join_correct (schedule : TicketSchedule) {N : Usize} (p : params.Params) (hp : PN p N)
-    (plan : PhysicalRows) (found : lookup (Shake.params p)=some plan) : JoinLawAt (linuxJoin schedule plan) N p :=
+    : JoinLawAt (linuxJoin schedule) N p :=
   ThreeLane.slhdsa.WidthEight.Ticket.joined_from_forest .linuxArm _ p hp
-    (ParallelRawWorker.law .linuxArm schedule p hp plan found)
+    (ParallelRawWorker.native_law .linuxArm schedule p hp)
 
-/-- Replay only the parameter shapes for which the symbolic Rust worker emitted
-a physical-cell witness. The six standardized SHAKE profiles all have one. -/
-@[instance_reducible] def replay (schedule : TicketSchedule) (threads : Usize) : ParallelCaller.Worker ParallelCaller.ShakeSeed where
-  run p md sk seed a r tree leaf := match lookup (Shake.params p) with
-    | none => ok none
-    | some plan => run (ok threads) (linuxJoin schedule plan) p md sk seed a r tree leaf
+@[instance_reducible] def replay (schedule : TicketSchedule) (threads : Usize) : ParallelCaller.Worker ParallelCaller.ShakeSeed :=
+  worker threads (linuxJoin schedule)
 
 def projectedPublished (schedule : TicketSchedule) (threads : Usize) : WidthThree.PublishedWorker where
   worker := replay schedule threads
-  published p hp := by
-    intro md sk seed a r tree leaf seedOk mdLen treeLt leafLt address
-    dsimp only [replay,ParallelCaller.Worker.run]
-    cases found : lookup (Shake.params p) with
-    | none => simp [found]
-    | some plan =>
-      try simp only [found]
-      exact worker_correct threads (linuxJoin schedule plan) p hp (linux_join_correct schedule p hp plan found)
-        md sk seed a r tree leaf seedOk mdLen treeLt leafLt address
+  published p hp := worker_correct threads (linuxJoin schedule) p hp (linux_join_correct schedule p hp)
 
 /-- An available pool returns a completed signature on every source-supported
 shape. In particular the projection cannot establish the round trip by declining
 all work. -/
 theorem enabled_returns (schedule : TicketSchedule) (threads : Usize) (enabled : 2≤threads.val) {N : Usize}
-    (p : params.Params) (hp : PN p N) (plan : PhysicalRows) (found : lookup (Shake.params p)=some plan)
+    (p : params.Params) (hp : PN p N)
     (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) (r : Array U8 N) (tree : U64) (leaf : U32)
     (mdLen : md.length=(Shake.params p).mdBytes) (treeLt : tree.val<2^(p.h.val-p.hp.val))
     (leafLt : leaf.val<2^p.hp.val) (address : adrsS a={{Spec.Adrs.zero with tree:=tree.val}.setTypeAndClear
@@ -48,10 +36,8 @@ theorem enabled_returns (schedule : TicketSchedule) (threads : Usize) (enabled :
       ParallelFused.Slots.Output (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a)
         (bytes r.val) tree.val leaf.val (bytes signature.val) := by
   obtain ⟨ret,eq,good⟩ := spec_imp_exists
-    (result threads (linuxJoin schedule plan) p hp (linux_join_correct schedule p hp plan found)
+    (result threads (linuxJoin schedule) p hp (linux_join_correct schedule p hp)
       md sk seed a r tree leaf mdLen treeLt leafLt address)
-  dsimp only [replay,ParallelCaller.Worker.run]
-  rw [found]
   cases ret with
   | none =>
     change threads < 2#usize ∨ p.hp=0#u32 at good
@@ -63,7 +49,7 @@ theorem enabled_returns (schedule : TicketSchedule) (threads : Usize) (enabled :
   | some v => exact ⟨v,eq,good⟩
 
 theorem enabled_bytes (schedule : TicketSchedule) (threads : Usize) (enabled : 2≤threads.val) {N : Usize}
-    (p : params.Params) (hp : PN p N) (plan : PhysicalRows) (found : lookup (Shake.params p)=some plan)
+    (p : params.Params) (hp : PN p N)
     (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) (r : Array U8 N) (tree : U64) (leaf : U32)
     (mdLen : md.length=(Shake.params p).mdBytes) (treeLt : tree.val<2^(p.h.val-p.hp.val))
     (leafLt : leaf.val<2^p.hp.val) (address : adrsS a={{Spec.Adrs.zero with tree:=tree.val}.setTypeAndClear
@@ -74,7 +60,7 @@ theorem enabled_bytes (schedule : TicketSchedule) (threads : Usize) (enabled : 2
         (Spec.forsPkFromSig (Shake.params p) (Spec.forsSign (Shake.params p) (bytes md.val) (bytes sk.val)
           (bytes seed.val) (adrsS a)) (bytes md.val) (bytes seed.val) (adrsS a))
         (bytes sk.val) (bytes seed.val) tree.val leaf.val := by
-  obtain ⟨sig,eq,published⟩ := enabled_returns schedule threads enabled p hp plan found md sk seed a r tree leaf
+  obtain ⟨sig,eq,published⟩ := enabled_returns schedule threads enabled p hp md sk seed a r tree leaf
     mdLen treeLt leafLt address
   exact ⟨sig,eq,ParallelFused.Slots.output_fips _ (Suite.valid .shake hp) _ _ _ _ _ _ _ _ leafLt published⟩
 
