@@ -82,6 +82,11 @@ def main():
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
             extracted = folder / target
             extracted.mkdir()
+            width_name = "crate::shake256::parallel::WIDTH"
+            width = facade["extract"](crate, target, "Width", extracted, [width_name], [])
+            constant = "@[global_simps, irreducible] def shake256.parallel.WIDTH : Std.Usize := 8#usize"
+            if constant not in decls(width / "Funs.lean", "slhdsa"):
+                raise ValueError(f"{target} physical lane count differs from the buffered proof")
             pkg = facade["extract"](crate, target, "Buffered", extracted, ["crate::shake::batch::xmss_subtree"], cuts)
             if program(pkg) != dest.read_text():
                 raise ValueError(f"{target} projected program changed")
