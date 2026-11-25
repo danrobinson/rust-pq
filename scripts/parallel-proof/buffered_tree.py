@@ -9,6 +9,7 @@ sys.dont_write_bytecode = True
 from pathlib import Path
 import tempfile
 from build import SRC, compile_probe, function
+from buffered_lift import lift_rows
 import subtree
 
 bv = subtree.bv
@@ -81,11 +82,13 @@ def check(image,n,h):
 def main():
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".cargo/bin"),os.environ["PATH"]])
     with tempfile.TemporaryDirectory() as d:
-        image=build(Path(d))
-        for n in (16,24,32):
-            for h in range(3,10):
-                check(image,n,h)
         original = (SRC/"shake/batch.rs").read_text()
+        for label, source in (("production", original), ("row snapshots", lift_rows(original))):
+            print(f"Checking optimized {label} subtree", flush=True)
+            image = build(Path(d), source)
+            for n in (16,24,32):
+                for h in range(3,10):
+                    check(image,n,h)
         target = "left[k] = buf[h][2 * k];"
         if original.count(target) != 2:
             raise ValueError("review streaming and final buffered pair inputs")
