@@ -216,6 +216,12 @@ def negatives(cbmc, folder, source, row):
         ),
         ("wrong-signer-lane", "if (tid == sib)", "if (tid == 0u)", "unique writer"),
         ("wrong-root", "out_roots[out_off + i]", "out_roots[i]", "unique writer"),
+        (
+            "pointer-offset-wrap",
+            "out_sigs + desc.auth_byte_off",
+            "out_sigs + 0xfffffff0u + 16u + desc.auth_byte_off",
+            "offset belongs to its phase",
+        ),
     )
     for label, old, new, failure in cases:
         if old not in original:
