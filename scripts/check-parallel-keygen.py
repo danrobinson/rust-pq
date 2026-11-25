@@ -231,6 +231,7 @@ def main():
             "lake",
             "build",
             "Parallel.KeygenPublic",
+            "Parallel.KeygenWidthThreeRoundTrip",
             "Parallel.KeygenNativeHashes",
             "Parallel.KeygenDispatch",
         ],
@@ -253,6 +254,14 @@ def main():
         "KeygenPublic": [
             "slhdsa.ParallelKeygenHost." + name + "_public"
             for name in ("s2_arm", "s2_x86", "sh_linux", "sh_apple", "sh_x86")
+        ],
+        "KeygenWidthThree": [
+            "slhdsa.ParallelKeygenHost.linux_narrow_keys",
+            "slhdsa.ParallelKeygenHost.linux_narrow_public",
+        ],
+        "KeygenWidthThreeRoundTrip": [
+            "slhdsa.ParallelKeygenHost.linux_narrow_serial_sign_roundtrip",
+            "slhdsa.ParallelKeygenHost.linux_narrow_parallel_sign_roundtrip",
         ],
         "KeygenNativeHashes": [
             host + ".slhdsa.ParallelKeygenHost." + theorem
