@@ -13,13 +13,13 @@ theorem sibling_local (choices : Slice U32) (a : U32) (tree height : Nat) (below
       tree*2^(a.val-height) + ((choices.val[tree]!.val/2^height) ^^^ 1) :=
   sibling_eq tree choices.val[tree]!.val a.val height below
 
-private def readAbsolute (choices : Slice U32) (a : U32) (t : Usize) : Result U32 := do
+def readAbsolute (choices : Slice U32) (a : U32) (t : Usize) : Result U32 := do
   let i ← lift (UScalar.cast .U32 t)
   let shifted ← i <<< a
   let digit ← Slice.index_usize choices t
   shifted + digit
 
-private theorem read_absolute (choices : Slice U32) (a : U32) (t : Usize) (ha : a.val≤14)
+theorem read_absolute (choices : Slice U32) (a : U32) (t : Usize) (ha : a.val≤14)
     (ht : t.val<choices.length) (size : choices.length≤35) (hd : choices.val[t.val]!.val<2^a.val) :
     ∃ x, readAbsolute choices a t=ok x ∧ x.val=t.val*2^a.val+choices.val[t.val]!.val ∧ x.val<2^20 := by
   obtain ⟨sh,bound⟩ := fors_shl_arith _ _ ha (by omega : t.val<35)
@@ -36,14 +36,14 @@ private theorem read_absolute (choices : Slice U32) (a : U32) (t : Usize) (ha : 
   step as ⟨x,add⟩
   exact ⟨by omega,by omega⟩
 
-private theorem read_bind {α : Type} (choices : Slice U32) (a : U32) (t : Usize) {x : U32}
+theorem read_bind {α : Type} (choices : Slice U32) (a : U32) (t : Usize) {x : U32}
     (run : readAbsolute choices a t=ok x) (f : U32 → Result α) :
     (do let i ← lift (UScalar.cast .U32 t); let shifted ← i <<< a; let digit ← Slice.index_usize choices t
         let result ← shifted + digit; f result) = f x := by
   have joined := congrArg (fun r : Result U32 => r >>= f) run
   simpa only [readAbsolute,Std.bind_assoc,bind_tc_eq,bind_ok] using joined
 
-private theorem range_done (it : Range) (k : Usize) (stop : it.end=k) (last : it.start.val=k.val) :
+theorem range_done (it : Range) (k : Usize) (stop : it.end=k) (last : it.start.val=k.val) :
     ∃ next, core.iter.range.IteratorRange.next core.iter.range.StepUsize it=ok (none,next) := by
   obtain ⟨⟨_,n⟩,run,no,_⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_Usize_none_spec it (by rw [stop,last]))
   exact ⟨n,by simpa [no] using run⟩
