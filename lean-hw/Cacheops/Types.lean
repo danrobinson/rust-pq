@@ -79,7 +79,7 @@ structure hash.Seed (N : Std.Usize) where
   state512 : Array Std.U64 8#usize
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2::{closure}]
-    Source: 'src/cache.rs', lines 2069:57-2069:98 -/
+    Source: 'src/cache.rs', lines 1954:57-1954:98 -/
 @[reducible]
 def cache.TopTreeCache.lookup_d2.closure (N : Std.Usize) :=
   cache.TopTreeCache N

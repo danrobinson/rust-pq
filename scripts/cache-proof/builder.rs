@@ -122,7 +122,15 @@ mod shake_ops {
         ) -> [[Token; N]; WIDTH] {
             std::array::from_fn(|i| hash2(seed, &a[i], &l[i], &r[i]))
         }
+        use super::wots_pk_gen as wots_pk_gen_single;
         // SIMD_FUNCTIONS
+    }
+    pub(super) fn check_nodes<const N: usize>(height: u32, sk: &Seed<N>, pk: &Seed<N>) {
+        for z in 0..=height {
+            for i in 0..(1 << (height - z)) {
+                assert_eq!(simd::xmss_node(sk, i, z, pk, base()), node(z, i));
+            }
+        }
     }
     // SHAKE_FUNCTIONS
 }
@@ -132,6 +140,7 @@ fn check<const N: usize>(h: u32) {
     let expected: Vec<[Token; N]> = (0..=h)
         .flat_map(|z| (0..(1 << (h - z))).map(move |i| node(z, i)))
         .collect();
+    shake_ops::check_nodes(h, &sk, &pk);
     // Worker counts above leaves/4 are clamped by the production builder.
     for workers in 1..=(1usize << h) / 4 + 1 {
         THREADS.store(workers, Ordering::Relaxed);

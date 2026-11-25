@@ -154,7 +154,7 @@ def negative_control():
 
 if __name__ == "__main__":
     shared["facade"]["run"](["lake", "build", "Cachepath.PublicReuse"], LEAN)
-    for target in shared["facade"]["TARGETS"]:
+    for target in (*shared["facade"]["TARGETS"], "riscv64gc-unknown-none-elf"):
         with tempfile.TemporaryDirectory() as tmp:
             check(target, Path(tmp))
 

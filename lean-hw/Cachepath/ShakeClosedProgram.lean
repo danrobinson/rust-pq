@@ -1,19 +1,12 @@
-import Cachepath.ShakeNode
+import Cachepath.ShakeBackend
 
-/-! The complete serial signer specialized to scalar dispatch. Its orchestration
+/-! The complete serial signer parameterized by runtime dispatch. Its orchestration
 definitions are compared with one extraction starting at the production signer. -/
 open Aeneas Aeneas.Std Result ControlFlow Error
 namespace CacheopsRust.Closed
 
-/-- Scalar dispatch with arbitrary unreachable accelerator branches. -/
-def scalarBackend : slhdsa.CacheScalar.Acceleration where
-  available := fun _ => ok false
-  wots_sign := fun _ _ _ _ => fail .panic
-  wots_pk_from_sig := fun _ _ _ _ => fail .panic
-  fors_sign := fun _ _ _ _ _ => fail .panic
-  fors_pk_from_sig := fun _ _ _ _ _ => fail .panic
-
-local instance : slhdsa.CacheScalar.Acceleration := scalarBackend
+set_option linter.concreteInstances false
+variable [backend : Backend]
 
 abbrev cache.shake_ops.wots_sign {N : Usize} (m sk seed : Array U8 N) (a : address.Adrs) :=
   slhdsa.CacheScalar.cache.shake_ops.wots_sign m sk seed (toSlhAdrs a)
@@ -28,7 +21,7 @@ abbrev cache.shake_ops.fors_pk_from_sig {N : Usize} (p : params.Params) (sig md 
   slhdsa.CacheScalar.cache.shake_ops.fors_pk_from_sig (toSlhParams p) sig md seed (toSlhAdrs a)
 abbrev cache.shake_ops.xmss_node {N : Usize} (sk : Array U8 N) (i z : U32) (seed : Array U8 N)
     (a : address.Adrs) :=
-  ShakeNode.node (fun _ => ok false) (fun _ _ _ _ _ => fail .panic)
+  ShakeNode.node backend.available (@backend.subtree)
     (fun sk seed adrs => slhdsa.CacheScalar.cache.shake_ops.wots_pk_gen_portable sk seed (toSlhAdrs adrs))
     sk i z seed a
 

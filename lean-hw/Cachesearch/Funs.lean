@@ -62,7 +62,7 @@ def cache.find_cached_index
   cache.find_cached_index_loop entries tree_index 0#usize
 
 /-- [slhdsa::cache::lookup_cached_index]:
-    Source: 'src/cache.rs', lines 2578:0-2588:1 -/
+    Source: 'src/cache.rs', lines 2467:0-2477:1 -/
 def cache.lookup_cached_index
   {N : Std.Usize} (entries : Slice (cache.LayerD2Entry N)) (tree_d2 : Std.U64)
   :

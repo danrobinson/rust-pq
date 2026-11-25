@@ -237,6 +237,9 @@ def check_complete_signer(package, target):
     expected.update(("cache.append_auth_path", "cache.tree_root", "shake256.Sponge.new",
                      "shake256.Sponge.absorb", "shake256.Sponge.finish"))
     types = re.findall(r"(?m)^axiom ([^ :\n]+)", (package / "TypesExternal_Template.lean").read_text())
+    portable = target == "riscv64gc-unknown-none-elf"
+    if portable:
+        expected -= {"cache.shake_ops.simd." + name for name in methods}
     if externals != expected or types != ["shake256.Sponge"]:
         raise ValueError(f"unexpected full signer boundary on {target}: {externals}, {types}")
 
@@ -244,11 +247,19 @@ def check_complete_signer(package, target):
     compiled = {}
     for module in ("ShakeScalarProgram", "ShakeClosedProgram"):
         compiled.update(linked_bodies((LEAN / f"Cachepath/{module}.lean").read_text()))
+    if portable:
+        # Lean checks equality to the scalar specialization for each of the five
+        # cfg-elided functions, including the recursive call in the XMSS node.
+        branches = linked_bodies((LEAN / "Cachepath/PortableSigner.lean").read_text())
+        if set(branches) != {"cache.shake_ops." + name for name in ("xmss_node", *SCALAR_CALLERS)}:
+            raise ValueError("unexpected portable signer declarations")
+        compiled.update(branches)
     native = scalar_caller_program(package)
     for name, verified in compiled.items():
         if [line.rstrip() for line in native[name].splitlines()] != verified.splitlines():
             raise ValueError(f"full signer {name} differs from the linked program on {target}")
-    check_node_dispatch(package, target)
+    if not portable:
+        check_node_dispatch(package, target)
     linked = set(compiled) | {"cache.shake_ops.xmss_node"}
 
     # Account for every other generated body, including the shared parameters, address
@@ -340,7 +351,7 @@ def main():
     )
 
     with tempfile.TemporaryDirectory() as tmp:
-        for target in facade["TARGETS"]:
+        for target in (*facade["TARGETS"], "riscv64gc-unknown-none-elf"):
             scratch = Path(tmp) / target
             scratch.mkdir()
             fresh = extract_target(target, scratch)
@@ -378,6 +389,7 @@ def main():
             LEAN / "Cacheops/Funs.lean",
             LEAN / "Cachepath/EndToEnd.lean",
             LEAN / "Cachepath/ShakeEndToEnd.lean",
+            LEAN / "Cachepath/ShakeBackend.lean",
             LEAN / "Cachepath/ShakeClosedProgram.lean",
             LEAN / "Cachepath/ShakeClosed.lean",
             LEAN / "Cachepath/ShakeXmss.lean",
@@ -387,10 +399,12 @@ def main():
         ]
     )
 
-    facade["run"](["lake", "build", "Cachepath.ShakeClosed"], LEAN)
+    facade["run"](["lake", "build", "Cachepath.PortableSigner"], LEAN)
     facade["audit_theorems"](
-        "Cachepath.ShakeClosed",
+        "Cachepath.PortableSigner",
         [
+            "CacheopsRust.PortableCache.node_scalar",
+            *["slhdsa.PortableCache." + name + "_scalar" for name in SCALAR_CALLERS],
             "slhdsa.cache.endtoend.top_root_eq_fips",
             "slhdsa.cache.endtoend.pk_root_spec",
             "slhdsa.cache.endtoend.pk_root_eq_fips",
@@ -412,6 +426,7 @@ def main():
             "slhdsa.cache.endtoend.sign_from_digest_with_cache_spec",
             "CacheopsRust.Closed.sign_from_digest_eq",
             "CacheopsRust.Closed.sign_from_digest_with_cache_spec",
+            "CacheopsRust.Closed.sign_from_digest_with_cache_dispatch_spec",
             "CacheopsRust.ShakeNode.node_eq",
             "CacheopsRust.ShakeNode.scalar_node_eq",
             "slhdsa.CacheScalar.wots_pk_gen_eq",

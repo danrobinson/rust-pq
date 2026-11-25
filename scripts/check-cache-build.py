@@ -64,7 +64,7 @@ def main():
             shake,
             ("build_xmss_tree", "build_leaves_parallel", "fill_leaves_chunk"),
         ),
-        ("SIMD_FUNCTIONS", shake, ("hash_pairs", "fill_xmss_leaves")),
+        ("SIMD_FUNCTIONS", shake, ("hash_pairs", "fill_xmss_leaves", "xmss_node")),
     ]:
         functions = "\n".join(body(source, n) for n in names)
         functions = functions.replace("[u8; N]", "[Token; N]").replace(

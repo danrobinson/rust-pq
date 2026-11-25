@@ -304,7 +304,7 @@ def params.Params.sig_bytes (self : params.Params) : Result Std.Usize := do
   i1 + i4
 
 /-- [slhdsa::cache::sha2_ops::sign_from_digest]: loop body 0:
-    Source: 'src/cache.rs', lines 436:8-472:9 -/
+    Source: 'src/cache.rs', lines 321:8-357:9 -/
 @[rust_loop_body]
 def cache.sha2_ops.sign_from_digest_loop.body
   {N : Std.Usize} (a : address.Adrs) (i : Std.Usize) (i1 : Std.U32)
@@ -406,7 +406,7 @@ def cache.sha2_ops.sign_from_digest_loop.body
     ok (cont (iter2, layer_d2_hit1, root1, sig1, tree1, leaf1))
 
 /-- [slhdsa::cache::sha2_ops::sign_from_digest]: loop 0:
-    Source: 'src/cache.rs', lines 436:8-472:9 -/
+    Source: 'src/cache.rs', lines 321:8-357:9 -/
 @[rust_loop]
 def cache.sha2_ops.sign_from_digest_loop
   {N : Std.Usize} (a : address.Adrs) (iter : core.ops.range.Range Std.U32)
@@ -425,7 +425,7 @@ def cache.sha2_ops.sign_from_digest_loop
     (iter, layer_d2_hit, root, sig, tree, leaf)
 
 /-- [slhdsa::cache::sha2_ops::sign_from_digest]:
-    Source: 'src/cache.rs', lines 393:4-474:5 -/
+    Source: 'src/cache.rs', lines 278:4-359:5 -/
 def cache.sha2_ops.sign_from_digest
   {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
   (pk_seed : Array Std.U8 N) (r : Array Std.U8 N) (digest : Slice Std.U8)
@@ -458,7 +458,7 @@ def cache.sha2_ops.sign_from_digest
     idx_tree idx_leaf
 
 /-- [slhdsa::cache::shake_ops::start]:
-    Source: 'src/cache.rs', lines 1125:4-1130:5 -/
+    Source: 'src/cache.rs', lines 1010:4-1015:5 -/
 def cache.shake_ops.start
   {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs) :
   Result shake256.Sponge
@@ -471,7 +471,7 @@ def cache.shake_ops.start
   shake256.Sponge.absorb sponge1 s1
 
 /-- [slhdsa::cache::shake_ops::digest]:
-    Source: 'src/cache.rs', lines 1133:4-1137:5 -/
+    Source: 'src/cache.rs', lines 1018:4-1022:5 -/
 def cache.shake_ops.digest
   (N : Std.Usize) (sponge : shake256.Sponge) : Result (Array Std.U8 N) := do
   let out := Array.repeat N 0#u8
@@ -480,7 +480,7 @@ def cache.shake_ops.digest
   ok (to_slice_mut_back s1)
 
 /-- [slhdsa::cache::shake_ops::thash_pair]:
-    Source: 'src/cache.rs', lines 1147:4-1157:5 -/
+    Source: 'src/cache.rs', lines 1032:4-1042:5 -/
 def cache.shake_ops.thash_pair
   {N : Std.Usize} (seed : Array Std.U8 N) (adrs : address.Adrs)
   (a : Array Std.U8 N) (b : Array Std.U8 N) :
@@ -511,7 +511,7 @@ def util.block
   ok (to_slice_mut_back s3)
 
 /-- [slhdsa::cache::shake_ops::climb]: loop body 0:
-    Source: 'src/cache.rs', lines 1316:8-1326:9 -/
+    Source: 'src/cache.rs', lines 1201:8-1211:9 -/
 @[rust_loop_body]
 def cache.shake_ops.climb_loop.body
   {N : Std.Usize} (auth : Slice Std.U8) (first : Std.Usize)
@@ -543,7 +543,7 @@ def cache.shake_ops.climb_loop.body
       ok (cont (iter1, node1, parent))
 
 /-- [slhdsa::cache::shake_ops::climb]: loop 0:
-    Source: 'src/cache.rs', lines 1316:8-1326:9 -/
+    Source: 'src/cache.rs', lines 1201:8-1211:9 -/
 @[rust_loop]
 def cache.shake_ops.climb_loop
   {N : Std.Usize} (iter : core.ops.range.Range Std.U32) (node : Array Std.U8 N)
@@ -557,7 +557,7 @@ def cache.shake_ops.climb_loop
     (iter, node, index)
 
 /-- [slhdsa::cache::shake_ops::climb]:
-    Source: 'src/cache.rs', lines 1307:4-1328:5 -/
+    Source: 'src/cache.rs', lines 1192:4-1213:5 -/
 @[reducible]
 def cache.shake_ops.climb
   {N : Std.Usize} (node : Array Std.U8 N) (index : Std.U32)
@@ -569,7 +569,7 @@ def cache.shake_ops.climb
     auth first seed adrs
 
 /-- [slhdsa::cache::shake_ops::xmss_sign]: loop body 0:
-    Source: 'src/cache.rs', lines 1363:8-1367:9 -/
+    Source: 'src/cache.rs', lines 1248:8-1252:9 -/
 @[rust_loop_body]
 def cache.shake_ops.xmss_sign_loop.body
   {N : Std.Usize} (sk : Array Std.U8 N) (idx : Std.U32) (seed : Array Std.U8 N)
@@ -591,7 +591,7 @@ def cache.shake_ops.xmss_sign_loop.body
     ok (cont (iter1, sig1))
 
 /-- [slhdsa::cache::shake_ops::xmss_sign]: loop 0:
-    Source: 'src/cache.rs', lines 1363:8-1367:9 -/
+    Source: 'src/cache.rs', lines 1248:8-1252:9 -/
 @[rust_loop]
 def cache.shake_ops.xmss_sign_loop
   {N : Std.Usize} (iter : core.ops.range.Range Std.U32) (sk : Array Std.U8 N)
@@ -605,7 +605,7 @@ def cache.shake_ops.xmss_sign_loop
     (iter, sig)
 
 /-- [slhdsa::cache::shake_ops::xmss_sign]:
-    Source: 'src/cache.rs', lines 1354:4-1369:5 -/
+    Source: 'src/cache.rs', lines 1239:4-1254:5 -/
 def cache.shake_ops.xmss_sign
   {N : Std.Usize} (p : params.Params) (m : Array Std.U8 N)
   (sk : Array Std.U8 N) (idx : Std.U32) (seed : Array Std.U8 N)
@@ -619,7 +619,7 @@ def cache.shake_ops.xmss_sign
     seed adrs sig
 
 /-- [slhdsa::cache::shake_ops::xmss_pk_from_sig]:
-    Source: 'src/cache.rs', lines 1371:4-1381:5 -/
+    Source: 'src/cache.rs', lines 1256:4-1266:5 -/
 def cache.shake_ops.xmss_pk_from_sig
   {N : Std.Usize} (p : params.Params) (idx : Std.U32) (sig : Slice Std.U8)
   (m : Array Std.U8 N) (seed : Array Std.U8 N) (adrs : address.Adrs) :
@@ -634,7 +634,7 @@ def cache.shake_ops.xmss_pk_from_sig
   cache.shake_ops.climb node idx sig i1 p.hp seed a2
 
 /-- [slhdsa::cache::shake_ops::sign_from_digest]: loop body 0:
-    Source: 'src/cache.rs', lines 1620:8-1654:9 -/
+    Source: 'src/cache.rs', lines 1505:8-1539:9 -/
 @[rust_loop_body]
 def cache.shake_ops.sign_from_digest_loop.body
   {N : Std.Usize} (a : address.Adrs) (i : Std.Usize) (i1 : Std.U32)
@@ -736,7 +736,7 @@ def cache.shake_ops.sign_from_digest_loop.body
     ok (cont (iter2, layer_d2_hit1, root1, sig1, tree1, leaf1))
 
 /-- [slhdsa::cache::shake_ops::sign_from_digest]: loop 0:
-    Source: 'src/cache.rs', lines 1620:8-1654:9 -/
+    Source: 'src/cache.rs', lines 1505:8-1539:9 -/
 @[rust_loop]
 def cache.shake_ops.sign_from_digest_loop
   {N : Std.Usize} (a : address.Adrs) (iter : core.ops.range.Range Std.U32)
@@ -754,7 +754,7 @@ def cache.shake_ops.sign_from_digest_loop
     (iter, layer_d2_hit, root, sig, tree, leaf)
 
 /-- [slhdsa::cache::shake_ops::sign_from_digest]:
-    Source: 'src/cache.rs', lines 1578:4-1656:5 -/
+    Source: 'src/cache.rs', lines 1463:4-1541:5 -/
 def cache.shake_ops.sign_from_digest
   {N : Std.Usize} (p : params.Params) (sk_seed : Array Std.U8 N)
   (pk_seed : Array Std.U8 N) (r : Array Std.U8 N) (digest : Slice Std.U8)
@@ -786,7 +786,7 @@ def cache.shake_ops.sign_from_digest
     sig2 idx_tree idx_leaf
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::set_layer_d2_capacity]:
-    Source: 'src/cache.rs', lines 1966:4-1971:5
+    Source: 'src/cache.rs', lines 1851:4-1856:5
     Visibility: public -/
 def cache.TopTreeCache.set_layer_d2_capacity
   {N : Std.Usize} (self : cache.TopTreeCache N) (capacity : Std.Usize) :
@@ -800,7 +800,7 @@ def cache.TopTreeCache.set_layer_d2_capacity
   else ok { self with layer_d2_capacity := capacity }
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::with_layer_d2_capacity]:
-    Source: 'src/cache.rs', lines 1959:4-1962:5
+    Source: 'src/cache.rs', lines 1844:4-1847:5
     Visibility: public -/
 def cache.TopTreeCache.with_layer_d2_capacity
   {N : Std.Usize} (self : cache.TopTreeCache N) (capacity : Std.Usize) :
@@ -809,7 +809,7 @@ def cache.TopTreeCache.with_layer_d2_capacity
   cache.TopTreeCache.set_layer_d2_capacity self capacity
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::pk_root]:
-    Source: 'src/cache.rs', lines 2022:4-2024:5
+    Source: 'src/cache.rs', lines 1907:4-1909:5
     Visibility: public -/
 def cache.TopTreeCache.pk_root
   {N : Std.Usize} (self : cache.TopTreeCache N) : Result (Array Std.U8 N) := do
@@ -819,7 +819,7 @@ def cache.TopTreeCache.pk_root
     self.top_tree i1
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::matches_key]:
-    Source: 'src/cache.rs', lines 2027:4-2031:5
+    Source: 'src/cache.rs', lines 1912:4-1916:5
     Visibility: public -/
 def cache.TopTreeCache.matches_key
   {N : Std.Usize} (self : cache.TopTreeCache N) (sk : Slice Std.U8) :
@@ -853,7 +853,7 @@ def cache.TopTreeCache.matches_key
   else ok false
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2::{impl core::ops::function::FnOnce<(usize,), &'_0 [[u8; N]]> for slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2::{closure}<'_0, '_1, N>}::call_once]:
-    Source: 'src/cache.rs', lines 2069:57-2069:98 -/
+    Source: 'src/cache.rs', lines 1954:57-1954:98 -/
 def
   cache.TopTreeCache.lookup_d2.closure.Insts.CoreOpsFunctionFnOnceTupleUsizeShared0SliceArrayU8N.call_once
   {N : Std.Usize} (c : cache.TopTreeCache.lookup_d2.closure N)
@@ -866,7 +866,7 @@ def
   alloc.vec.Vec.as_slice alloc.alloc.Global lde.nodes
 
 /-- Trait implementation: [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2::{impl core::ops::function::FnOnce<(usize,), &'_0 [[u8; N]]> for slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2::{closure}<'_0, '_1, N>}]
-    Source: 'src/cache.rs', lines 2069:57-2069:98 -/
+    Source: 'src/cache.rs', lines 1954:57-1954:98 -/
 @[reducible]
 def
   cache.TopTreeCache.lookup_d2.closure.Insts.CoreOpsFunctionFnOnceTupleUsizeShared0SliceArrayU8N
@@ -878,7 +878,7 @@ def
 }
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::lookup_d2]:
-    Source: 'src/cache.rs', lines 2068:4-2070:5 -/
+    Source: 'src/cache.rs', lines 1953:4-1955:5 -/
 def cache.TopTreeCache.lookup_d2
   {N : Std.Usize} (self : cache.TopTreeCache N) (tree_d2 : Std.U64) :
   Result (Option (Slice (Array Std.U8 N)))
@@ -890,7 +890,7 @@ def cache.TopTreeCache.lookup_d2
     N) o self
 
 /-- [slhdsa::cache::{slhdsa::cache::TopTreeCache<N>}::layer_d2_tree_index]:
-    Source: 'src/cache.rs', lines 2116:4-2122:5 -/
+    Source: 'src/cache.rs', lines 2009:4-2015:5 -/
 def cache.TopTreeCache.layer_d2_tree_index
   (N : Std.Usize) (p : params.Params) (digest : Slice Std.U8) :
   Result Std.U64
