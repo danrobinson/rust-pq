@@ -8,6 +8,16 @@ open slhdsa.ShakeBatch
 set_option linter.concreteInstances false
 variable [machine : Machine] [stream : Stream] [StreamCorrect]
 
+/-- The cache's single-leaf generator batches chains within one WOTS key. -/
+theorem single_eq {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+    (positive : 0 < machine.width.val) (width : machine.width.val ≤ 8) (permutes : PermutationCorrect)
+    (sk seed : Array U8 N) (a : slhdsa.address.Adrs) :
+    ShakeBatch.shake.batch.keygen sk seed a = slhdsa.shake.wots.wots_pk_gen sk seed a := by
+  obtain ⟨x,hx,ex⟩ := spec_imp_exists (ShakeBatch.keygen_spec p hp sk seed a positive width permutes)
+  obtain ⟨y,hy,ey⟩ := spec_imp_exists (Shake.wots_pk_gen_spec p hp sk seed a)
+  rw [hx,hy,ok.injEq]
+  exact Aeneas.Std.Array.ext _ _ ((bytes_inj _ _).mp (ex.trans ey.symm))
+
 /-- The dispatcher's WOTS signing equality, instantiated with the source-replayed packed caller. -/
 theorem sign_eq {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (positive : 0 < machine.width.val) (permutes : PermutationCorrect)

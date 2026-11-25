@@ -19,6 +19,7 @@ def normalize(text):
 def renamed(text):
     for source, model in (
         ("cache.shake_ops.simd.wots_pk_from_sig", "shake.batch.recover"),
+        ("cache.shake_ops.simd.wots_pk_gen_single", "shake.batch.keygen"),
         ("cache.shake_ops.simd.wots_sign", "shake.batch.sign"),
         ("cache.shake_ops.simd.", "shake.batch."),
         ("cache.shake_ops.start", "shake.hash.start"),
@@ -30,7 +31,7 @@ def renamed(text):
 
 def model_declarations(width):
     models = {}
-    for module in ("Program", "WotsChainProgram", "WotsSignProgram", "WotsOrderProgram"):
+    for module in ("Program", "WotsChainProgram", "WotsKeyProgram", "WotsSignProgram", "WotsOrderProgram"):
         text = (LEAN / f"Shakebatch/{module}.lean").read_text()
         for old, new in (
             ("machine.width", f"{width}#usize"), ("machine.permute", "shake256.parallel.permute"),
@@ -40,6 +41,12 @@ def model_declarations(width):
             text = text.replace(old, new)
         for match in re.finditer(r"^def\s+(shake\.batch\.[\w.]+)\b[\s\S]*?(?=\n\s*\n|\nend\b|\Z)", text, re.M):
             models[match[1]] = normalize(match[0])
+    text = (LEAN / "Cachepath/WotsRowsProgram.lean").read_text()
+    text = text.replace("machine.width", f"{width}#usize").replace("Leaves.gen", "shake.batch.wots_pk_gen_batch")
+    text = text.replace("ShakeBatch.shake.batch.pair", "shake.batch.pair")
+    text = re.sub(r"(?<![.\w])((?:fill_xmss_leaves|hash_pairs)[.\w]*)", r"shake.batch.\1", text)
+    for match in re.finditer(r"^def\s+(shake\.batch\.[\w.]+)\b[\s\S]*?(?=\n\s*\n|\nend\b|\Z)", text, re.M):
+        models[match[1]] = normalize(match[0])
     return models
 
 
@@ -57,16 +64,18 @@ def check(package, target, width):
             if models.get(key) != body:
                 raise ValueError(f"{target}: {key} differs from its verified body")
             checked[key] = body
-    # Follow definitions from the two actual entry points, including closure trait instances.
+    # Follow definitions from the actual entry points, including closure trait instances.
     names = re.compile(r"[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)+")
     seen = set()
-    todo = ["shake.batch.sign", "shake.batch.recover"]
+    todo = ["shake.batch.sign", "shake.batch.recover", "shake.batch.keygen",
+            "shake.batch.fill_xmss_leaves", "shake.batch.hash_pairs"]
     while todo:
         key = todo.pop()
         if key in seen:
             continue
         seen.add(key)
-        todo.extend(ref for ref in names.findall(models[key]) if ref.startswith("shake.batch.") and ref not in seen)
+        todo.extend(ref for ref in names.findall(models[key]) if ref.startswith("shake.batch.") and ref not in seen
+                    and ref != "shake.batch.wots_pk_gen_batch")
     if seen != checked.keys():
         raise ValueError(f"{target}: unexpected WOTS dependency set {seen ^ checked.keys()}")
     # The sorted callers also use the ordinary address setters, serialization and FIPS constants.
@@ -85,8 +94,9 @@ def check(package, target, width):
 
 
 def extract_and_check(target, width, scratch, crate=None):
-    roots = tuple(base + "simd::" + name for name in ("wots_sign", "wots_pk_from_sig"))
-    cuts = tuple(base + name for name in ("start", "digest")) + (
+    roots = tuple(base + "simd::" + name for name in ("wots_sign", "wots_pk_from_sig", "wots_pk_gen_single",
+                                                      "fill_xmss_leaves", "hash_pairs"))
+    cuts = tuple(base + name for name in ("start", "digest", "simd::wots_pk_gen_batch")) + (
         "crate::util::block", "crate::shake256::{Sponge}::absorb", "crate::shake256::parallel::permute",
     )
     package = shared["extract_target"](target, scratch, roots, cuts, crate=crate)
@@ -123,6 +133,19 @@ def check_permutation(target, scratch):
                 delta = sorted(k for k in actual.keys() | model.keys() if actual.get(k) != model.get(k))
                 raise ValueError(f"{target}: {op} implementation differs in {delta}")
     print(f"{target}: matched the native Keccak dispatcher, 24-round loop and round", flush=True)
+
+
+def check_stream(target, scratch):
+    x86 = target.startswith("x86")
+    package, namespace = ("Kxouter", "KxouterRust") if x86 else ("Kspongel", "KspongeLRust")
+    cuts = ("crate::shake256::round", "crate::shake256::stream_x86::blocks",
+            "crate::sha256::x86::avx512_available") if x86 else (
+                "crate::shake256::oriented::blocks", "crate::shake256::oriented::permute")
+    fresh = shared["extract_target"](target, scratch, ("crate::shake256::shake256",), cuts)
+    for file in ("Types.lean", "Funs.lean"):
+        parse = shared["generated_declarations"]
+        if parse(fresh / file, "CacheopsRust") != parse(LEAN / package / file, namespace):
+            raise ValueError(f"{target}: native incremental sponge changed in {file}")
 
 
 def check_inputs(target, scratch):
@@ -172,10 +195,14 @@ def main():
             check_inputs(target, scratch / "inputs")
             if "linux" in target:
                 check_permutation(target, scratch / "kernel")
-    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms"], LEAN)
+                check_stream(target, scratch / "stream")
+    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms", "Cachepath.WotsRows"], LEAN)
+    shared["facade"]["audit_theorems"]("Cachepath.WotsRows", [
+        "slhdsa.cache.builder.nativeShake.Vector." + name for name in ("row_loop", "fill_spec", "parents_spec", "ops")
+    ])
     shared["facade"]["audit_theorems"]("Cachepath.WotsPlatforms", [
         "CacheopsRust.WotsCallbacks." + name for name in
-        ("map_blocks_panic", "packed_reject", "sign_eq", "recover_eq", "fields", "linux_fields", "x86_fields")
+        ("linux_native_fields", "x86_native_fields", "single_eq", "map_blocks_panic", "packed_reject", "sign_eq", "recover_eq", "fields", "linux_fields", "x86_fields")
     ])
 
 
