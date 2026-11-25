@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import tempfile
+import runpy
 
 ROOT = Path(__file__).resolve().parents[1]
 LEAN = ROOT / "lean-hw"
@@ -74,29 +74,6 @@ def checked_external_bindings(package, overrides=None):
     return "\n".join(aliases)
 
 
-def check_target(target, namespace, scratch):
-    package = scratch / "Slhdsa"
-    package.mkdir()
-    roots = [f"crate::sets::{s}::{f}" for s in SETS for f in OPERATIONS]
-    charon = ROOT / ".tools/aeneas/charon/bin/charon"
-    run([charon, "cargo", "--preset=aeneas", *(a for r in roots for a in ("--start-from", r)),
-         "--opaque", "crate::sha256::hw::arm", "--opaque", "crate::sha512::hw::arm",
-         "--opaque", "sha2::sha512::compress512", "--opaque", "sha2::sha256::compress256",
-         "--opaque", "crate::sha512::parents::parents", "--opaque", "crate::sha512::parents::path_parents",
-         "--dest-file", scratch / "slhdsa.llbc",
-         "--", "--locked", "--features", "platform-sha2", "--target", target], ROOT / "rust")
-    run([ROOT / ".tools/aeneas/bin/aeneas", "-backend", "lean", "-abort-on-error", "-no-progress-bar",
-         "-split-files", "-dest", package, scratch / "slhdsa.llbc"], ROOT)
-    check_extraction(package, namespace, scratch)
-
-
-def arm_agreement(set_name, operation, fresh, arch):
-    """Compare the fresh public entry to the other target's source-bound theorem."""
-    peer = "linux" if arch == "ArmApple" else "apple"
-    entry, theorem = arm_entry(set_name, operation, peer)
-    return agreement(set_name, operation, fresh + "_arm_agreement", fresh, fresh + "_fips", entry, theorem)
-
-
 def arm_entry(set_name, operation, target):
     linux = target == "linux"
     if operation in KEY_OPERATIONS:
@@ -153,90 +130,5 @@ theorem {name} {binders} :
 """
 
 
-def check_extraction(package, namespace, scratch):
-    # Lean structures from different modules have nominal identity. Share only
-    # declarations whose complete definitions match the checked hardware build.
-    types = set(declarations(body(LEAN / "Slhdsa/Types.lean")))
-    message_types = {item: "SegmentedRust" for item in declarations(body(LEAN / "Segmented/Types.lean", "SegmentedRust"))}
-    for item in declarations(body(LEAN / "Segmentedapi/Types.lean", "SegmentedApiRust")):
-        if re.match(r"@\[reducible\]\s*def slh\.message\.Sha(?:256|512) :=", item):
-            message_types[item] = "SegmentedApiRust"
-    aliases = []
-    for item in declarations(body(package / "Types.lean")):
-        if item in types:
-            continue
-        if item not in message_types:
-            raise ValueError(f"unmatched type declaration: {item}")
-        name = re.search(r"(?:structure|def) (slh\.message\.\w+)", item).group(1)
-        aliases.append(f"abbrev {name} := {message_types[item]}.{name}")
-    source = f"""import PeerEquality.Outputs
-import Armplatform.Keygen
-import Armplatform.LinuxMessageDigest
-import Armplatform.LinuxContext
-open Aeneas Aeneas.Std Result ControlFlow Error
-open slhdsa
-set_option maxRecDepth 65536
-set_option maxHeartbeats 0
-noncomputable section
-namespace {namespace}
-{chr(10).join(aliases)}
-{checked_external_bindings(package)}
-{body(package / 'Funs.lean')}
-end {namespace}
-"""
-    root = "LinuxMessage.AppleMessage." if namespace == "ArmLinuxTarget" else "AppleMessage."
-    bindings = [(root + "slhdsa.Segmented.digest_spec", root + "SegmentedApiRust.slh.message.digest",
-                 namespace + ".slh.message.digest")]
-    for s in SETS:
-        for op in OPERATIONS:
-            fips_proof = f"slhdsa.{s}.{op}_spec"
-            entry = f"slhdsa.sets.{s}.{op}"
-            if op in CONTEXT:
-                owner = "AppleContext.SegmentedSdk."
-                if namespace == "ArmLinuxTarget":
-                    owner = "LinuxContext." + owner
-                fips_proof = owner + fips_proof
-                entry = owner + entry
-            elif op in INTERNAL:
-                owner = "LinuxInternal.AppleInternal." if namespace == "ArmLinuxTarget" else "AppleInternal."
-                fips_proof = owner + fips_proof
-                entry = owner + entry
-            elif namespace == "ArmLinuxTarget":
-                fips_proof = "ArmLinux." + fips_proof
-                if op != "public_key":
-                    entry = "ArmLinux." + entry
-            fresh = f"{namespace}.sets.{s}.{op}"
-            bindings.append((fips_proof, entry, fresh))
-    for fips_proof, entry, fresh in bindings:
-        source += (f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry "
-                   f"`{fips_proof} `{entry} `{fresh} `{fresh}_fips\n#print axioms {fresh}_fips\n")
-    for s in SETS:
-        for op in OPERATIONS:
-            source += arm_agreement(s, op, f"{namespace}.sets.{s}.{op}", namespace)
-    proof = scratch / "PublicAPI.lean"
-    proof.write_text(source)
-    result = subprocess.run(["lake", "env", "lean", proof], cwd=LEAN, stdout=subprocess.PIPE, text=True)
-    if result.returncode:
-        raise RuntimeError(result.stdout)
-    # Lean wraps long qualified names' axiom lists across multiple lines.
-    # Normalize only bracketed audit records and retain every axiom name.
-    output = re.sub(r"(?m)^('[^'\n]+' depends on axioms: )\[([^\]]*)\]",
-                    lambda m: m[1] + "[" + " ".join(m[2].split()) + "]", result.stdout)
-    for _, _, fresh in bindings:
-        expected = f"'{fresh}_fips' depends on axioms: [propext, Classical.choice, Quot.sound]"
-        if expected not in output.splitlines():
-            raise ValueError(f"unexpected axiom audit for {fresh}\n{output}")
-    for s in SETS:
-        for op in OPERATIONS:
-            name = f"{namespace}.sets.{s}.{op}_arm_agreement"
-            if f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]" not in output.splitlines():
-                raise ValueError(f"unexpected axiom audit for {name}")
-    print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} cross-target equivalences")
-    print(f"{namespace}: checked {len(SETS) * len(OPERATIONS)} public-entry theorems and segmented H_msg", flush=True)
-
-
 if __name__ == "__main__":
-    run(["lake", "build", "PeerEquality.Outputs", "Armplatform.Keygen", "Armplatform.LinuxMessageDigest", "Armplatform.LinuxContext"], LEAN)
-    for arch, namespace in TARGETS.items():
-        with tempfile.TemporaryDirectory() as temp:
-            check_target(arch, namespace, Path(temp))
+    runpy.run_path(str(Path(__file__).with_name("check-arm-wide-signature.py")), run_name="__main__")
