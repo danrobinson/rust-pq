@@ -9,7 +9,7 @@ noncomputable section
 structure Config where
   host : Platform
   threads : Usize
-  schedule : ∀ n, Ticket.Schedule n
+  schedule : Ticket.Schedules
 
 @[instance_reducible] def fallback (h : Platform) : Sh.Fallback where
   forsSign := @WidthEight.forsSign h
@@ -20,10 +20,10 @@ theorem fallback_correct (h : Platform) {N : Usize} (p : params.Params) (hp : PN
     Sh.FallbackCorrect (fallback h) (N:=N) p :=
   ⟨WidthEight.forsSign_spec h p hp,WidthEight.forsRecoverSpec h p hp,WidthEight.htSignSpec h p hp⟩
 
-def joinedPlan (host : Platform) (schedule : ∀ n, Ticket.Schedule n) : Join :=
+def joinedPlan (host : Platform) (schedule : Ticket.Schedules) : Join :=
   Ticket.completedJoin host (Ticket.rootsFrom host (ParallelRawWorker.native (Ticket.rootHost host) schedule))
 
-theorem computed_correct (host : Platform) (schedule : ∀ n, Ticket.Schedule n) (threads : Usize)
+theorem computed_correct (host : Platform) (schedule : Ticket.Schedules) (threads : Usize)
     {N : Usize} (p : params.Params) (hp : PN p N) :
     WorkerCorrect (ParallelSignJoin.worker threads (joinedPlan host schedule)) (N:=N) p (Shake.params p)
       (fun s => bytes s.val) (fun _ => True) :=

@@ -59,7 +59,7 @@ run_cmd liftTermElabM do
   for suite in [`shake_128s,`shake_128f,`shake_192s,`shake_192f,`shake_256s,`shake_256f] do
     for apple in [true,false] do
       let publish (host : Expr) (args : Array Expr) : MetaM Unit := do
-        let scheduleTy := ← inferType (mkConst ``Ticket.inOrder)
+        let scheduleTy := mkConst ``Ticket.Schedules
         withLocalDeclD `schedule scheduleTy fun schedule =>
          withLocalDeclD `threads (mkConst `Aeneas.Std.Usize) fun threads => do
           let config ← mkAppM ``Config.mk #[host,threads,schedule]

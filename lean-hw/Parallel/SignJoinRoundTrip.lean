@@ -5,7 +5,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.ParallelSignJoin
 noncomputable section
 
-abbrev TicketSchedule := ∀ n, WidthEight.Ticket.Schedule n
+abbrev TicketSchedule := WidthEight.Ticket.Schedules
 
 def linuxJoin (schedule : TicketSchedule) : Join :=
   ThreeLane.slhdsa.WidthEight.Ticket.completedJoin .linuxArm

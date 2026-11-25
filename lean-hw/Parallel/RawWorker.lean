@@ -1,3 +1,4 @@
+import Parallel.WorkerSchedules
 import Parallel.RawChunkFields
 import Parallel.RawForestCells
 import Parallel.AuthTableHosted
@@ -41,17 +42,17 @@ abbrev ForestPrefix := {N : Usize} → params.Params → Slice U8 → Array U8 N
   address.Adrs → Result (alloc.vec.Vec U8)
 
 /-- The last finisher consumes the physical FORS cells, raw XMSS subtree and leaf tickets. -/
-noncomputable def assemble (host : Host) (prefixFn : ForestPrefix) (schedule : ∀ d, Schedule d) : ForestWorker :=
+noncomputable def assemble (host : Host) (prefixFn : ForestPrefix) (schedule : Schedules) : ForestWorker :=
   fun p md sk seed a _ tree leaf _ => do
     let forest ← prefixFn p md sk seed a
     let ls ← build_layers p tree leaf
-    let (metas,slots) ← ParallelRawChunks.produce p (ParallelLeafTable.nodeFor host p) ls sk seed schedule
+    let (metas,slots) ← ParallelRawChunks.produce p (ParallelLeafTable.nodeFor host p) ls sk seed schedule.chunks
     let auth ← assembleAuth host (UScalar.cast .Usize p.d) (UScalar.cast .Usize p.hp) ls metas slots seed
     let count := core.num.Usize.saturating_sub (UScalar.cast .Usize p.d) 1#usize
-    let live ← ParallelLeafTable.leaves (ParallelLeafTable.nodeFor host p) p sk seed tree leaf count.val (schedule count.val).completed
-    ok ⟨forest,auth,live,count,(schedule p.d.val).issued,(schedule p.d.val).completed⟩
+    let live ← ParallelLeafTable.leaves (ParallelLeafTable.nodeFor host p) p sk seed tree leaf count.val (schedule.leaves count.val).completed
+    ok ⟨forest,auth,live,count,(schedule.wots p.d.val).issued,(schedule.wots p.d.val).completed⟩
 
-theorem assemble_law (host : Host) (prefixFn : ForestPrefix) (schedule : ∀ d, Schedule d) {N : Usize}
+theorem assemble_law (host : Host) (prefixFn : ForestPrefix) (schedule : Schedules) {N : Usize}
     (p : params.Params) (hp : PN p N)
     (prefix_spec : ∀ (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs), md.length=(Shake.params p).mdBytes →
       ForsHorizontal.Domain a → prefixFn p md sk seed a ⦃ out => bytes out.val=
@@ -74,17 +75,17 @@ theorem assemble_law (host : Host) (prefixFn : ForestPrefix) (schedule : ∀ d, 
   unfold assemble
   step with prefix_spec md sk seed a size domain as ⟨forest,packed⟩
   step with layer_table p hp.valid.hp_le tree leaf as ⟨ls,layout⟩
-  step with ParallelRawChunks.produce_spec p hp node (ParallelLeafTable.node_law host p hp) ls sk seed tree.val leaf.val leafBound layout schedule as ⟨ms,cs,fields⟩
+  step with ParallelRawChunks.produce_spec p hp node (ParallelLeafTable.node_law host p hp) ls sk seed tree.val leaf.val leafBound layout schedule.chunks as ⟨ms,cs,fields⟩
   step with auth_spec host p hp sk seed tree.val leaf.val ls ms cs layout fields as ⟨auth,rows⟩
   step with ParallelLeafTable.leaves_spec node p hp (ParallelLeafTable.node_law host p hp) sk seed tree leaf count.val
-    (schedule count.val).issued (schedule count.val).completed (by omega) leafBound (schedule count.val).trace
-    (schedule count.val).drained as ⟨live,leaves⟩
-  exact ⟨packed,rows,leaves,num,(schedule _).trace,(schedule _).drained⟩
+    (schedule.leaves count.val).issued (schedule.leaves count.val).completed (by omega) leafBound (schedule.leaves count.val).trace
+    (schedule.leaves count.val).drained as ⟨live,leaves⟩
+  exact ⟨packed,rows,leaves,num,(schedule.wots _).trace,(schedule.wots _).drained⟩
 
-noncomputable def inputs (host : Host) (plan : PhysicalRows) (schedule : ∀ d, Schedule d) : ForestWorker :=
+noncomputable def inputs (host : Host) (plan : PhysicalRows) (schedule : Schedules) : ForestWorker :=
   assemble host (fun p md sk seed a => ParallelForestPack.pack_fors p (ParallelRawForest.cells plan p md sk seed a)) schedule
 
-theorem law (host : Host) (schedule : ∀ d, Schedule d) {N : Usize} (p : params.Params) (hp : PN p N)
+theorem law (host : Host) (schedule : Schedules) {N : Usize} (p : params.Params) (hp : PN p N)
     (plan : PhysicalRows) (found : lookup (Shake.params p)=some plan) : ForestLaw (inputs host plan schedule) N p :=
   assemble_law host _ schedule p hp (fun md sk seed a _ _ => ParallelRawForest.pack plan p hp found md sk seed a)
 
