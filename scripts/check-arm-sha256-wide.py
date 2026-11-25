@@ -1472,6 +1472,7 @@ def main():
     )
     check_sha256_k()
     runpy.run_path(str(HERE / "check-arm-sign-order.py"))["check"]()
+    subprocess.run([os.sys.executable, HERE / "check-arm-wots-transitions.py"], check=True)
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         check_extraction(scratch)
