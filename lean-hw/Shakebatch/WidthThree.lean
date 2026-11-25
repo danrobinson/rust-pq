@@ -9,24 +9,24 @@ abbrev Domain (a : address.Adrs) : Prop :=
   a.typ = address.WOTS_HASH ∧ a.word2 = 0#u32 ∧ a.word3 = 0#u32
 
 /-- Certificates for the production WOTS entry points used at each leaf. -/
-class WotsCorrect (w : Wots) : Prop where
+class KeyCorrect (w : Wots) : Prop where
   key {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (sk seed : Array U8 N) (a : address.Adrs) (domain : Domain a) :
     w.keygen sk seed a ⦃ out => bytes out.val = Spec.wotsPkGen (params p) (bytes sk.val) (bytes seed.val) (adrsS a) ⦄
+class WotsCorrect (w : Wots) extends KeyCorrect w : Prop where
   sign {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (m sk seed : Array U8 N) (a : address.Adrs) (domain : Domain a) :
     (do let digits ← wots.wots_digits m; w.sign sk seed a digits.deref) ⦃ out =>
       bytes out.val = Spec.wotsSign (params p) (bytes m.val) (bytes sk.val) (bytes seed.val) (adrsS a) ∧
       out.length = N.val*(2*N.val+3) ⦄
-variable [cw : WotsCorrect w]
 
-private theorem key_scalar {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+private theorem key_scalar [ck : KeyCorrect w] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (sk seed : Array U8 N) (a : address.Adrs) (h : Domain a) :
     w.keygen sk seed a = slhdsa.shake.wots.wots_pk_gen sk seed a := by
-  obtain ⟨x,hx,px⟩ := spec_imp_exists (cw.key p hp sk seed a h)
+  obtain ⟨x,hx,px⟩ := spec_imp_exists (ck.key p hp sk seed a h)
   obtain ⟨y,hy,py⟩ := spec_imp_exists (Shake.wots_pk_gen_spec p hp sk seed a)
   rw [hx,hy,ok.injEq]
   exact Aeneas.Std.Array.ext _ _ ((bytes_inj _ _).mp (px.trans py.symm))
 
-private theorem sign_scalar {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+private theorem sign_scalar [cw : WotsCorrect w] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (m sk seed : Array U8 N) (a : address.Adrs) (h : Domain a) :
     (do let digits ← wots.wots_digits m; w.sign sk seed a digits.deref) = slhdsa.shake.wots.wots_sign m sk seed a := by
   obtain ⟨x,hx,px,_⟩ := spec_imp_exists (cw.sign p hp m sk seed a h)
@@ -34,19 +34,19 @@ private theorem sign_scalar {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
   rw [hx,hy,ok.injEq]
   exact alloc.vec.Vec.ext _ _ ((bytes_inj _ _).mp (px.trans py.symm))
 
-private theorem public_key_eq {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+private theorem public_key_eq [ck : KeyCorrect w] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (sk seed : Array U8 N) (a : address.Adrs) (domain : Domain a) :
     shake.wots.wots_pk_gen sk seed a = slhdsa.shake.wots.wots_pk_gen sk seed a := by
   simpa only [shake.wots.wots_pk_gen,shake.batch.available,ShakeBatch.available_for_fips _ p hp,
     KldispRust.shake256.parallel.available,bind_ok,ite_true] using key_scalar p hp sk seed a domain
 
-private theorem public_sign_eq {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
+private theorem public_sign_eq [cw : WotsCorrect w] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N)
     (m sk seed : Array U8 N) (a : address.Adrs) (domain : Domain a) :
     shake.wots.wots_sign m sk seed a = slhdsa.shake.wots.wots_sign m sk seed a := by
   simpa only [shake.wots.wots_sign,shake.batch.available,ShakeBatch.available_for_fips _ p hp,
     KldispRust.shake256.parallel.available,bind_ok,ite_true] using sign_scalar p hp m sk seed a domain
 
-private theorem xmss_node_aux {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N)
+private theorem xmss_node_aux [ck : KeyCorrect w] {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N)
     (seed : Array U8 N) (a : address.Adrs) (n : Nat) :
     ∀ (i z : U32), z.val = n → (i.val + 1) * 2 ^ n ≤ 2 ^ 32 →
     shake.batch.xmss_subtree_fallback sk seed i z a ⦃ r =>
@@ -91,14 +91,14 @@ private theorem xmss_node_aux {N : Usize} (p : _root_.slhdsa.params.Params) (hp 
       Spec.xmssNode, adrsS, Spec.Adrs.setTypeAndClear, Spec.TREE, address.TREE]
 
 @[step]
-theorem subtree_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N) (i z : U32)
+theorem subtree_spec [ck : KeyCorrect w] {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N) (i z : U32)
     (seed : Array U8 N) (a : address.Adrs) (h : (i.val + 1) * 2 ^ z.val ≤ 2 ^ 32) :
     shake.batch.xmss_subtree_fallback sk seed i z a ⦃ r =>
       bytes r.val = Spec.xmssNode (params p) (bytes sk.val) i.val z.val (bytes seed.val)
         (adrsS a) ⦄ :=
   xmss_node_aux p hp sk seed a z.val i z rfl h
 
-theorem node_spec {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N) (i z : U32)
+theorem node_spec [ck : KeyCorrect w] {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N) (i z : U32)
     (seed : Array U8 N) (a : address.Adrs) (h : (i.val + 1) * 2 ^ z.val ≤ 2 ^ 32) :
     shake.xmss.xmss_node sk i z seed a ⦃ r =>
       bytes r.val = Spec.xmssNode (params p) (bytes sk.val) i.val z.val (bytes seed.val) (adrsS a) ⦄ := by
@@ -115,6 +115,8 @@ theorem node_spec {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (sk : Arr
     let* ⟨out,post⟩ ← Shake.wots_pk_gen_spec p hp
     simp [post,hk,ht,Spec.xmssNode,adrsS,Spec.Adrs.setTypeAndClear,Spec.WOTS_HASH,address.WOTS_HASH]
 
+
+variable [cw : WotsCorrect w]
 
 private theorem xmss_sign_loop_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (sk : Array U8 N)
     (idx : U32) (seed : Array U8 N) (a : address.Adrs) (sig : alloc.vec.Vec U8)

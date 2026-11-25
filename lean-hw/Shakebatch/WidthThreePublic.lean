@@ -9,7 +9,7 @@ structure SigningPrimitives where
   fors : ForsSigner
 
 abbrev node (c : SigningPrimitives) := @shake.xmss.xmss_node c.wots.ops
-abbrev nodeSpec (c : SigningPrimitives) := @node_spec c.wots.ops c.wots.laws
+abbrev nodeSpec (c : SigningPrimitives) := @node_spec c.wots.ops c.wots.laws.toKeyCorrect
 abbrev xmssRecovery (_ : SigningPrimitives) := @CacheopsRust.NativeVerifier.xmssPk NativeVerify.linuxRecovery
 abbrev xmssRecoverySpec (_ : SigningPrimitives) := @CacheopsRust.NativeVerifier.xmssSpec NativeVerify.linuxRecovery
 abbrev forsSign (c : SigningPrimitives) := @c.fors.run

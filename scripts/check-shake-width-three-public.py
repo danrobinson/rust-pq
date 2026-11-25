@@ -13,7 +13,7 @@ CUTS = {
     "shake256.Sponge.new": "@KspongeLRust.shake256.Sponge.new",
     "shake256.Sponge.absorb": "@KspongeLRust.shake256.Sponge.absorb",
     "shake256.Sponge.finish": "@KspongeLRust.shake256.Sponge.finish",
-    "shake.xmss.xmss_node": "@" + MODEL + "node w.c",
+    "shake.xmss.xmss_node": "@slhdsa.WidthThree.linuxNode",
     "shake.xmss.xmss_sign": "@" + MODEL + "signXmss w.c.wots",
     "shake.xmss.xmss_pk_from_sig": "@slhdsa.WidthThree.verifiedXmss",
     "shake.fors.fors_sign": "@slhdsa.WidthThree.forsSign w.c",
@@ -29,7 +29,7 @@ def check(package, scratch):
     externals = (package / "TypesExternal_Template.lean").read_text()
     if list(arm["declarations"](externals[externals.index("/-- "):])) != ["axiom shake256.Sponge : Type"]:
         raise ValueError("unexpected Linux SHAKE SDK type boundary")
-    lines = ["import Shakebatch.WidthThreeVerify", "open Aeneas Aeneas.Std Result ControlFlow Error slhdsa",
+    lines = ["import Shakebatch.WidthThreeRoundTrip", "open Aeneas Aeneas.Std Result ControlFlow Error slhdsa",
              "set_option maxHeartbeats 0", "set_option maxRecDepth 65536",
              "set_option linter.concreteInstances false", "noncomputable section", "namespace FreshWidth",
              "class Witness where c : slhdsa.WidthThree.SigningPrimitives", "variable [w : Witness]",
@@ -77,13 +77,19 @@ def check(package, scratch):
                 lines += [f"example : @{fresh} = @{raw} := by rfl'", f"#print axioms {theorem}"]
             else:
                 section = "SegmentedPublic." if op in ("sign", "sign_deterministic", "slh_sign", "verify", "slh_verify") else ""
-                if op in ("verify", "slh_verify", "slh_verify_internal"):
+                if op in ("keygen", "slh_keygen_internal"):
+                    host = "WidthThreeKeygenSDK."
+                    lines += [f"example : @{fresh} = @{host}{raw} := by rfl'"]
+                elif op in ("verify", "slh_verify", "slh_verify_internal"):
                     host = "WidthThreeVerifySDK." + section
                     lines += [f"example : @{fresh} = @{host}{raw} := by rfl'"]
                 else:
                     host = "WidthThreeLinuxSDK.WidthThreeSDK." + section
                     lines += [f"example [w : FreshWidth.Witness] : @{fresh} w = @{host}{raw} w.c := by rfl'"]
-                lines.append(f"#print axioms {host}{theorem}")
+                claim = (f"slhdsa.WidthThree.AllLengths.{suite}.{op}"
+                         if op in ("sign", "slh_sign", "verify", "slh_verify", "sign_deterministic")
+                         else host + theorem)
+                lines.append(f"#print axioms {claim}")
     output = scratch / "Fresh.lean"
     output.write_text("\n".join(lines))
     import subprocess
@@ -101,7 +107,7 @@ def check(package, scratch):
 
 
 def main():
-    arm["run"](["lake", "build", "Shakebatch.WidthThreeVerify"], arm["LEAN"])
+    arm["run"](["lake", "build", "Shakebatch.WidthThreeRoundTrip"], arm["LEAN"])
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         roots = [f"crate::sets::{s}::{op}" for s in sdk["SETS"] for op in sdk["OPS"]]
@@ -109,6 +115,8 @@ def main():
         package = facade["extract"]("rust", "aarch64-unknown-linux-gnu", "WidthThreeSDK", scratch,
                                     roots, cuts + ["crate::shake256"])
         check(package, scratch)
+    facade["audit_theorems"]("Shakebatch.WidthThreeRoundTrip", [
+        "slhdsa.WidthThree.serial_roundtrip", "slhdsa.WidthThree.serial_keygen_parallel_sign_roundtrip"])
 
 
 if __name__ == "__main__":

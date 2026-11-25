@@ -14,7 +14,7 @@ ROOTS = ("shake::xmss::xmss_node", "shake::xmss::xmss_sign", "shake::wots::wots_
          "shake::wots::wots_pk_gen")
 CUTS = ("wots::wots_digits", "shake::batch::available", "shake::batch::sign", "shake::batch::keygen",
         "shake::hash::thash_pair", "shake::hash::start", "shake::hash::digest",
-        "shake::wots::secret", "shake::wots::chain", "shake256::Sponge::absorb")
+        "shake::wots::secret", "shake::wots::chain", "shake256")
 
 
 def select_live_width(source, name):
@@ -47,6 +47,10 @@ def main():
         path.write_text(text + "\nconst _: [(); 3] = [(); WIDTH];\n")
         pkg = facade["extract"](crate, TARGET, "WidthThree", scratch,
             ["crate::" + x for x in ROOTS], ["crate::" + x for x in CUTS])
+        shared_types = set(arm["declarations"](arm["body"](lean / "Slhdsa/Types.lean")))
+        fresh_types = set(arm["declarations"](arm["body"](pkg / "Types.lean", "slhdsa")))
+        if fresh_types - shared_types:
+            raise ValueError("unrecognized nominal types in the SHAKE source extraction")
         fresh = list(arm["declarations"](arm["body"](pkg / "Funs.lean")))
         shared = set(arm["declarations"](arm["body"](lean / "Slhdsa/Funs.lean")))
         model = (lean / "Shakebatch/WidthThreeProgram.lean").read_text()
