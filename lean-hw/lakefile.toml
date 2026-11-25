@@ -23,6 +23,9 @@ srcDir = "../lean"
 name = "Arm"
 
 [[lean_lib]]
+name = "Fused"
+
+[[lean_lib]]
 name = "Shakebatch"
 
 # The Aeneas translation of rust/ built with `hw-sha2` (scripts/extract-hw.sh), and its
