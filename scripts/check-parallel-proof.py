@@ -236,6 +236,7 @@ def check_pool():
 def main():
     check_entry_calls()
     check_pool()
+    run([sys.executable, HERE / "check-uncached-parallel-caller.py"], ROOT)
     modules = {
         "Parallel.Pool": "ParallelPool.join",
         "Parallel.SigningSlots": "ParallelFused.Slots.output_fips",

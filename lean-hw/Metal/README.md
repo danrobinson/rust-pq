@@ -6,7 +6,7 @@ The command-composition lemma takes a local value contract for each command. The
 
 | Producer | Value checked |
 |---|---|
-| Host | Context guard and framing, argument order to the randomizer and digest routines, key packing, selected key, descriptor fields and offsets, randomizer prefix and returned slices. The host checks bind the Rust statements and rely on the CPU primitive contracts. |
+| Host | Context guard and framing, argument order to the randomizer and digest routines, key packing, selected key, descriptor fields and offsets, randomizer prefix and returned slices. For the Apple build, fresh Rust extractions bind the custom SHAKE message functions to the verified Apple SHAKE256 sponge. Lean also checks SHA-2 randomness and message hashing with the Apple streaming implementation, context framing, digest coordinates, and all FORS indices. [Host preprocessing theorem](HostPreprocess.lean) · [Host source extraction](../../scripts/check-metal-host-hash.py) |
 | WOTS chain tips, two-phase and streaming XMSS leaves | WOTS PRF and hash address at each step, chaining value, ordered chain tips, address encoding, all compression or permutation inputs, padding, output truncation and word order. |
 | FORS passes and XMSS reduction | The leaf secret and its PRF/F domain, ordered children, absolute node index and height at every parent hash, sibling node values, subroot publication, final root and output serialization. |
 | FORS public key | Ordered tree roots, full hash transcript and truncated result. |
