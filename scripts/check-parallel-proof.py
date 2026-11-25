@@ -16,6 +16,7 @@ facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
 common = facade["common"]
 ROOT, LEAN, run = common["ROOT"], common["LEAN"], common["run"]
 sys.path.insert(0, str(HERE / "parallel-proof"))
+import active
 import build
 import signer
 import cached_mutations
@@ -237,6 +238,7 @@ def main():
     check_entry_calls()
     check_pool()
     run([sys.executable, HERE / "check-uncached-parallel-caller.py"], ROOT)
+    run([sys.executable, HERE / "check-parallel-keygen.py"], ROOT)
     modules = {
         "Parallel.Pool": "ParallelPool.join",
         "Parallel.SigningSlots": "ParallelFused.Slots.output_fips",
@@ -273,6 +275,11 @@ def main():
         for n in (16, 24, 32):
             for height in (1, 2, 3):
                 subtree.check(image, n, height)
+        # The larger streaming trees also use a full eight active parents.
+        parents = active.project_for(active.image(Path(tmp), 8))
+        for n in (16, 24, 32):
+            for lanes in (2, 4, 8):
+                active.check(8, parents, n, lanes, 1)
     run(["sh", HERE / "check-keccak-assembly.sh", "parallel"], ROOT)
 
 
