@@ -87,11 +87,11 @@ def main():
                 raise ValueError(f"{target} projected program changed")
             print(f"{target}: all 15 buffered subtree declarations matched", flush=True)
 
-    module = "Buffered.Store"
+    module = "Buffered.FlushTransfer"
     facade["run"](["lake", "build", module], lean)
     facade["audit_theorems"](module, [
         "slhdsa.Buffered." + theorem for theorem in (
-            "carry_gather", "flush_gather", "hashed_gather", "stored_cells", "full_store", "prefix_store"
+            "carry_gather", "flush_gather", "hashed_gather", "stored_cells", "full_store", "prefix_store", "flush_transfer"
         )
     ])
 
