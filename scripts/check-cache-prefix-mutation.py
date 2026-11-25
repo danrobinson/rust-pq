@@ -50,7 +50,7 @@ def main():
         # Rebuild each dependent proof in isolation against the mutated translation.
         proofs = folder / "Cachepath"
         shutil.copytree(LEAN / ".lake/build/lib/lean/Cachepath", proofs)
-        for module in ("EndToEnd", "ShakeXmss", "ShakeNode", "ShakeScalarProgram", "ShakeScalar", "ShakeEndToEnd"):
+        for module in ("EndToEnd", "ShakeXmss", "ShakeScalarProgram", "ShakeScalar", "ShakeNode", "ShakeEndToEnd"):
             shutil.copyfile(LEAN / "Cachepath" / (module + ".lean"), proofs / (module + ".lean"))
             if module != "ShakeEndToEnd":
                 compile_module(proofs / (module + ".lean"), proofs / (module + ".olean"))

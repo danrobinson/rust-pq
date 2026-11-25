@@ -148,6 +148,45 @@ private theorem fors_outer {N : Usize} (k height : U32) (sk seed : Array U8 N)
 termination_by indices.length - u.val
 decreasing_by omega
 
+private theorem keygen_loop {N : Usize} (sk seed : Array U8 N) (a : address.Adrs)
+    (it : core.ops.range.Range Usize) (pk : shake256.Sponge) (twice limit : Usize)
+    (mul : 2#usize * N = ok twice) (add : twice + params.LEN2 = ok limit) (stop : it.end = limit) :
+    cache.shake_ops.wots_pk_gen_portable_loop it sk seed a.layer a.tree a.typ a.keypair a.word2 a.word3 pk =
+      shake.wots.wots_pk_gen_loop sk seed a.layer a.tree a.typ a.keypair a.word2 a.word3 pk it.start := by
+  unfold cache.shake_ops.wots_pk_gen_portable_loop shake.wots.wots_pk_gen_loop
+  conv_lhs => rw [loop.eq_def]
+  conv_rhs => rw [loop.eq_def]
+  simp only [cache.shake_ops.wots_pk_gen_portable_loop.body, shake.wots.wots_pk_gen_loop.body]
+  by_cases more : it.start.val < it.end.val
+  · obtain ⟨⟨o,nxt⟩,step,ho,hn,hen⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_Usize_some_spec it more)
+    have lt : it.start < limit := by subst limit; exact more
+    obtain ⟨j,inc,hj⟩ := spec_imp_exists (Usize.add_spec (x:=it.start) (y:=1#usize) (by scalar_tac))
+    have jn : j = nxt.start := by scalar_tac
+    subst o
+    simp only [step,uncurry,bind_ok,mul,add,lt,↓reduceIte,Std.bind_assoc,inc,jn]
+    repeat' (apply bind_same; intro x)
+    simpa only [cache.shake_ops.wots_pk_gen_portable_loop,shake.wots.wots_pk_gen_loop,
+      cache.shake_ops.wots_pk_gen_portable_loop.body,shake.wots.wots_pk_gen_loop.body,
+      mul,add,uncurry,Std.bind_assoc,bind_ok] using
+      keygen_loop sk seed a nxt x twice limit mul add (hen.trans stop)
+  · obtain ⟨⟨o,nxt⟩,step,ho,_⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_Usize_none_spec it (by omega))
+    have no : ¬it.start < limit := by subst limit; exact more
+    subst o
+    simp only [step,uncurry,bind_ok,mul,add,no,↓reduceIte]
+termination_by it.end.val - it.start.val
+decreasing_by rw [hen,hn]; omega
+
+/-- The complete scalar XMSS leaf hashes the same ordered WOTS endpoints as the portable generator. -/
+theorem wots_pk_gen_eq {N : Usize} (size : N.val ≤ 32) (sk seed : Array U8 N) (a : address.Adrs) :
+    cache.shake_ops.wots_pk_gen_portable sk seed a = shake.wots.wots_pk_gen sk seed a := by
+  obtain ⟨twice,mul,hm⟩ := spec_imp_exists (Usize.mul_spec (x:=2#usize) (y:=N) (by scalar_tac))
+  obtain ⟨limit,add,_⟩ := spec_imp_exists (Usize.add_spec (x:=twice) (y:=params.LEN2)
+    (by rw [LEN2_eq]; scalar_tac))
+  unfold cache.shake_ops.wots_pk_gen_portable shake.wots.wots_pk_gen
+  iterate 3 (apply bind_same; intro x)
+  simp only [mul,add,bind_ok]
+  rw [keygen_loop sk seed a ⟨0#usize,limit⟩ x twice limit mul add rfl]
+
 -- A detector outcome stays a hypothesis so both hardware choices remain available.
 set_option linter.concreteInstances false
 variable [Acceleration]

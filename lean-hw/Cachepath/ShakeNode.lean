@@ -1,4 +1,4 @@
-import Cachepath.ShakeXmss
+import Cachepath.ShakeScalar
 
 /-! The recursive cache node dispatcher, parameterized by hardware availability and
 its two leaf providers. The extraction audit specializes these parameters back to Rust. -/
@@ -35,10 +35,9 @@ def node (available : Usize → Result Bool) (fast : FastNode) (leaf : LeafNode)
       cache.shake_ops.thash_pair seed a2 l r
 partial_fixpoint
 
-/-- Either runtime decision produces the portable XMSS node under the two provider contracts. -/
-theorem node_eq (available : Usize → Result Bool) (fast : FastNode) (leaf : LeafNode)
+private theorem node_by_flag (available : Usize → Result Bool) (fast : FastNode) (leaf : LeafNode)
     {N : Usize} (flag : Bool) (detect : available N = ok flag)
-    (hfast : ∀ (sk : Array U8 N) i z seed a, fast sk i z seed a =
+    (hfast : flag = true → ∀ (sk : Array U8 N) i z seed a, fast sk i z seed a =
       slhdsa.shake.xmss.xmss_node sk i z seed (toSlhAdrs a))
     (hleaf : ∀ (sk seed : Array U8 N) a, leaf sk seed a =
       slhdsa.shake.wots.wots_pk_gen sk seed (toSlhAdrs a))
@@ -59,11 +58,32 @@ theorem node_eq (available : Usize → Result Bool) (fast : FastNode) (leaf : Le
         address.Adrs.with_type, address.Adrs.with_word2, address.Adrs.with_word3,
         slhdsa.address.Adrs.with_type, slhdsa.address.Adrs.with_word2, slhdsa.address.Adrs.with_word3,
         address.TREE, slhdsa.address.TREE]
-      have subtree (idx : U32) := node_eq available fast leaf false detect hfast hleaf sk idx next seed a
+      have subtree (idx : U32) := node_by_flag available fast leaf false detect hfast hleaf sk idx next seed a
       simp only [subtree]
       rfl
-  · exact hfast sk i z seed a
+  · exact hfast rfl sk i z seed a
 termination_by z.val
 decreasing_by scalar_tac
+
+/-- Either runtime decision produces the portable XMSS node under the two provider contracts. -/
+theorem node_eq (available : Usize → Result Bool) (fast : FastNode) (leaf : LeafNode)
+    {N : Usize} (flag : Bool) (detect : available N = ok flag)
+    (hfast : ∀ (sk : Array U8 N) i z seed a, fast sk i z seed a =
+      slhdsa.shake.xmss.xmss_node sk i z seed (toSlhAdrs a))
+    (hleaf : ∀ (sk seed : Array U8 N) a, leaf sk seed a =
+      slhdsa.shake.wots.wots_pk_gen sk seed (toSlhAdrs a))
+    (sk : Array U8 N) (i z : U32) (seed : Array U8 N) (a : address.Adrs) :
+    node available fast leaf sk i z seed a = cache.shake_ops.xmss_node sk i z seed a :=
+  node_by_flag available fast leaf flag detect (fun _ => hfast) hleaf sk i z seed a
+
+/-- The concrete scalar XMSS dispatcher uses the verified cache WOTS leaf at every height. -/
+theorem scalar_node_eq (available : Usize → Result Bool) (fast : FastNode)
+    {N : Usize} (size : N.val ≤ 32) (scalar : available N = ok false)
+    (sk : Array U8 N) (i z : U32) (seed : Array U8 N) (a : address.Adrs) :
+    node available fast
+        (fun sk seed adrs => slhdsa.CacheScalar.cache.shake_ops.wots_pk_gen_portable sk seed (toSlhAdrs adrs))
+        sk i z seed a = cache.shake_ops.xmss_node sk i z seed a :=
+  node_by_flag available fast _ false scalar (by simp)
+    (fun sk seed a => slhdsa.CacheScalar.wots_pk_gen_eq size sk seed (toSlhAdrs a)) sk i z seed a
 
 end CacheopsRust.ShakeNode

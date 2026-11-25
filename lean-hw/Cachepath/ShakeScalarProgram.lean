@@ -35,6 +35,74 @@ abbrev cache.shake_ops.fors_node_portable := @shake.fors.fors_node
 abbrev cache.shake_ops.climb := @shake.xmss.climb
 
 @[rust_loop_body]
+def cache.shake_ops.wots_pk_gen_portable_loop.body
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N) (i : Std.U32)
+  (i1 : Std.U64) (i2 : Std.U32) (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32)
+  (iter : core.ops.range.Range Std.Usize) (pk : shake256.Sponge) :
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × shake256.Sponge)
+    shake256.Sponge)
+  := do
+  let (o, iter1) ←
+    core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
+  match o with
+  | none => ok (done pk)
+  | some i6 =>
+    let a ←
+      cache.shake_ops.wots_secret sk seed
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i6
+    let i7 ← lift (UScalar.cast .U32 i6)
+    let a1 ←
+      address.Adrs.with_word2
+        {
+          layer := i,
+          tree := i1,
+          typ := i2,
+          keypair := i3,
+          word2 := i4,
+          word3 := i5
+        } i7
+    let i8 ← params.W - 1#u32
+    let «end» ← cache.shake_ops.wots_chain a seed a1 0#u32 i8
+    let s ← lift (Array.to_slice «end»)
+    let pk1 ← shake256.Sponge.absorb pk s
+    ok (cont (iter1, pk1))
+
+@[rust_loop]
+def cache.shake_ops.wots_pk_gen_portable_loop
+  {N : Std.Usize} (iter : core.ops.range.Range Std.Usize) (sk : Array Std.U8 N)
+  (seed : Array Std.U8 N) (i : Std.U32) (i1 : Std.U64) (i2 : Std.U32)
+  (i3 : Std.U32) (i4 : Std.U32) (i5 : Std.U32) (pk : shake256.Sponge) :
+  Result shake256.Sponge
+  := do
+  loop
+    (fun (iter1, pk1) => cache.shake_ops.wots_pk_gen_portable_loop.body sk seed
+      i i1 i2 i3 i4 i5 iter1 pk1)
+    (iter, pk)
+
+def cache.shake_ops.wots_pk_gen_portable
+  {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
+  (adrs : address.Adrs) :
+  Result (Array Std.U8 N)
+  := do
+  let a ← address.Adrs.with_type adrs address.WOTS_PK
+  let a1 ← address.Adrs.with_keypair a adrs.keypair
+  let pk ← cache.shake_ops.start seed a1
+  let i ← 2#usize * N
+  let i1 ← i + params.LEN2
+  let pk1 ←
+    cache.shake_ops.wots_pk_gen_portable_loop
+      { start := 0#usize, «end» := i1 } sk seed adrs.layer adrs.tree
+      adrs.typ adrs.keypair adrs.word2 adrs.word3 pk
+  cache.shake_ops.digest N pk1
+
+@[rust_loop_body]
 def cache.shake_ops.wots_sign_loop.body
   {N : Std.Usize} (sk : Array Std.U8 N) (seed : Array Std.U8 N)
   (adrs : address.Adrs)

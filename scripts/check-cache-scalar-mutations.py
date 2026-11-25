@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that four independent changes to the SHAKE scalar cache callers break their Lean proofs."""
+"""Check that five independent changes to the SHAKE scalar cache callers break their Lean proofs."""
 import os
 from pathlib import Path
 import re
@@ -12,6 +12,7 @@ HERE = Path(__file__).resolve().parent
 proof = runpy.run_path(str(HERE / "check-cache-endtoend.py"))
 LEAN = proof["LEAN"]
 MUTATIONS = (
+    ("wots_pk_gen_portable", "W - 1,", "W - 2,", "keygen_loop"),
     ("wots_sign", "let digits = wots_digits(msg);", "let digits = wots_digits(sk);", "wots_sign_eq"),
     ("wots_pk_from_sig", "W - 1,", "W - 2,", "wots_pk_from_sig_loop"),
     ("fors_sign", "let s = (idx >> j) ^ 1;", "let s = (idx >> j) ^ 0;", "fors_path"),

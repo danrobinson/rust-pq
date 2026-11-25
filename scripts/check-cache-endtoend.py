@@ -179,7 +179,7 @@ def extract_scalar_callers(target, scratch, *, crate=None):
     cuts = ("simd::available", *("simd::" + name for name in SCALAR_CALLERS),
             "start", "digest", "thash", "wots_chain", "wots_secret", "fors_sk_gen",
             "fors_node_portable", "climb")
-    return extract_target(target, scratch, tuple(prefix + name for name in SCALAR_CALLERS),
+    return extract_target(target, scratch, tuple(prefix + name for name in (*SCALAR_CALLERS, "wots_pk_gen_portable")),
                           tuple(prefix + name for name in cuts) +
                           ("crate::wots::wots_digits", "crate::util::base_2b", "crate::util::block",
                            "crate::shake256"), crate=crate)
@@ -372,6 +372,8 @@ def main():
             "slhdsa.cache.endtoend.sign_from_digest_spec",
             "slhdsa.cache.endtoend.sign_from_digest_with_cache_spec",
             "CacheopsRust.ShakeNode.node_eq",
+            "CacheopsRust.ShakeNode.scalar_node_eq",
+            "slhdsa.CacheScalar.wots_pk_gen_eq",
             "slhdsa.cache.endtoend.shake.climb_eq",
             "slhdsa.CacheScalar.assembly_contracts",
             "slhdsa.CacheScalar.wots_sign_eq",
