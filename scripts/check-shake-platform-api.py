@@ -201,22 +201,27 @@ def audit_facade(platform, width_three=False):
     roots += [f"slh_dsa.multipart_{s}_eq" for s in ("sign", "verify", "randomized")]
     # Functionally unchanged definitions may be shared with the portable facade.
     namespace = "WidthThreeLinuxCompat.WidthThreeCompat" if width_three else f"NativeShake{platform}Facade"
-    module = "Shakebatch.WidthThreeRoundTrip" if width_three else f"Shakebatch.{platform}Facade"
+    module = "Shakebatch.WidthThreeNative" if width_three else f"Shakebatch.{platform}Facade"
     source = [f"import {module}", "open Lean Elab Command"]
     for name in roots:
         prefix = "WidthThreeVerifySDK" if width_three and name.endswith(("_verify","_verify_with_context")) else namespace
+        if width_three and name.startswith("slh_dsa.shake_") and name.endswith(("_sign", "_sign_with_context")):
+            prefix = "WidthThreeSignedFacade"
         if width_three and name.endswith("_new"):
             prefix = "WidthThreeKeygenSDK"
+        require_native = name.endswith(("_sign", "_verify", "_algorithms", "_new")) or (
+            width_three and name.startswith("slh_dsa.shake_") and name.endswith("_with_context"))
         source += ["run_cmd do",
                    f"  let n := if (← getEnv).contains `{prefix}.{name} then `{prefix}.{name} else `{name}",
-                   f"  if n == `{name} && {str(name.endswith(('_sign', '_verify', '_algorithms', '_new'))).lower()} then throwError \"missing native facade binding\"",
+                   f"  if n == `{name} && {str(require_native).lower()} then throwError \"missing native facade binding\"",
                    "  elabCommand (← `(#print axioms $(mkIdent n):ident))"]
     result = common["run"](["lake", "env", "lean", "--stdin"], LEAN,
                            input="\n".join(source), text=True, stdout=subprocess.PIPE)
     audit = " ".join(result.stdout.split())
     for name in roots:
         if not any(f"'{n}' depends on axioms: [propext, Classical.choice, Quot.sound]" in audit
-                   for n in (name, f"{namespace}.{name}", f"WidthThreeVerifySDK.{name}", f"WidthThreeKeygenSDK.{name}")):
+                   for n in (name, f"{namespace}.{name}", f"WidthThreeVerifySDK.{name}", f"WidthThreeKeygenSDK.{name}",
+                             f"WidthThreeSignedFacade.{name}")):
             raise ValueError(f"missing native facade theorem {name}")
     print(f"{platform}: verified {len(roots)} SHAKE facade theorem groups"
          , flush=True)
@@ -228,7 +233,9 @@ def check_platform(platform, scratch):
         linux_dispatch(scratch)
         facade_adapter(target, scratch)
         for checker in ("check-native-shake-signing.py", "check-shake-width-three-xmss.py",
-                        "check-shake-width-three-public.py", "check-shake-parallel-public.py"):
+                        "check-shake-fors-scatter.py", "check-shake-active-hashes.py",
+                        "check-shake-fors-fused.py", "check-shake-width-three-public.py",
+                        "check-shake-parallel-public.py"):
             common["run"]([sys.executable, Path(__file__).with_name(checker)], LEAN.parent)
         audit_facade(platform, width_three=True)
         return

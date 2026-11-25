@@ -15,7 +15,7 @@ CUTS = {"shake.slh.slh_sign_internal": "parallelInternal", "shake.slh.shake_sign
 
 def main():
     lean = arm["LEAN"]
-    arm["run"](["lake", "build", "Shakebatch.WidthThreeParallel"], lean)
+    arm["run"](["lake", "build", "Shakebatch.WidthThreeNative"], lean)
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         pkg = cache["extract_target"]("aarch64-unknown-linux-gnu", scratch,
@@ -28,10 +28,10 @@ def main():
         models = set()
         for path, owner in (("Slhdsa/Funs.lean", "slhdsa"), ("Shakeopt/Seg/Funs.lean", "ShakeoptSeg")):
             models.update(arm["declarations"](arm["body"](lean / path, owner)))
-        lines = ["import Shakebatch.WidthThreeParallel", "open Aeneas Aeneas.Std Result ControlFlow slhdsa",
+        lines = ["import Shakebatch.WidthThreeNative", "open Aeneas Aeneas.Std Result ControlFlow slhdsa",
                  "set_option maxHeartbeats 0", "set_option maxRecDepth 65536", "noncomputable section",
                  "set_option linter.concreteInstances false", "namespace FreshParallelSDK",
-                 "class Provider where c : WidthThree.ParallelPrimitives", "variable [w : Provider]"]
+                 "class Provider where config : WidthThree.PublishedWorker", "variable [w : Provider]"]
         external = (pkg / "FunsExternal_Template.lean").read_text()
         seen = set()
         for d in arm["declarations"](external[external.index("/-- "):]):
@@ -40,20 +40,33 @@ def main():
                 raise ValueError(f"unexpected signing primitive: {d}")
             name, signature = match.groups()
             seen.add(name)
-            lines.append(f"abbrev {name} {signature} := @WidthThree.{CUTS[name]} w.c N")
+            lines.append(f"abbrev {name} {signature} := @WidthThree.{CUTS[name]} (WidthThree.linuxParallel w.config) N")
         if seen != set(CUTS):
             raise ValueError("missing parallel internal or segmented signer")
         for d in arm["declarations"](arm["body"](pkg / "Funs.lean", "CacheopsRust")):
             if d not in models:
                 raise ValueError(f"changed parallel SDK caller: {d[:200]}")
             lines.append(d)
-        lines.append("end FreshParallelSDK")
+        lines += ["end FreshParallelSDK", "open Lean Elab Command", """
+def bindWorker (claim original fresh checked : Name) : CoreM Unit := do
+  let info ← getConstInfo claim
+  let type := info.type.replace fun e => do
+    guard (e.isAppOfArity original 1)
+    let ops := e.appArg!
+    guard (ops.isAppOfArity `slhdsa.WidthThree.linuxParallel 1)
+    let provider := mkApp (mkConst `FreshParallelSDK.Provider.mk) ops.appArg!
+    return mkApp (mkConst fresh) provider
+  unless type != info.type do throwError "no native parallel signer in {claim}"
+  addDecl <| .thmDecl {«name» := checked, levelParams := [], type, value := mkConst claim}
+"""]
         for suite in sdk["SETS"]:
             for op in OPS:
                 host = "WidthThreeParallel." + ("" if op == "slh_sign_internal" else "SegmentedPublic.")
                 raw = f"sets.{suite}.{op}"
-                lines.append(f"example [w : FreshParallelSDK.Provider] : @FreshParallelSDK.{raw} w = @{host}slhdsa.{raw} w.c := by rfl'")
-                lines.append(f"#print axioms {host}slhdsa.{suite}.{op}_spec")
+                lines.append(f"example [w : FreshParallelSDK.Provider] : @FreshParallelSDK.{raw} w = @{host}slhdsa.{raw} (WidthThree.linuxParallel w.config) := by rfl'")
+                lines += [f"run_cmd liftCoreM <| bindWorker `slhdsa.WidthThree.LinuxWorker.{suite}.{op} `{host}slhdsa.{raw} "
+                          f"`FreshParallelSDK.{raw} `FreshProof.{suite}.{op}",
+                          f"#print axioms FreshProof.{suite}.{op}"]
         path = scratch / "Fresh.lean"
         path.write_text("\n".join(lines))
         import subprocess

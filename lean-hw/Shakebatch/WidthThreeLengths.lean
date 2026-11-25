@@ -1,4 +1,5 @@
 import Shakebatch.WidthThreeVerify
+import Shakebatch.WidthThreeParallel
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthThree
 
@@ -20,6 +21,9 @@ run_cmd liftTermElabM do
       let original := host ++ `SegmentedPublic.slhdsa ++ setName ++ Name.mkSimple (op.toString ++ "_spec")
       let root := `slhdsa.WidthThree.AllLengths ++ setName ++ op
       claims := claims.push (original,root)
+      unless verify do
+        let parallel := `WidthThreeParallel.SegmentedPublic.slhdsa ++ setName ++ Name.mkSimple (op.toString ++ "_spec")
+        claims := claims.push (parallel, `slhdsa.WidthThree.ParallelAllLengths ++ setName ++ op)
   let target := `AllSlices
   PlatformProof.replay target [(`slhdsa.Shake.ContextFits,`slhdsa.WidthThree.allLengths)]
     (claims.map Prod.fst) [`Cachepath,`Shakeopt]
