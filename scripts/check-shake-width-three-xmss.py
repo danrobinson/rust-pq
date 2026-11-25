@@ -25,8 +25,9 @@ def select_live_width(source, name):
     body = source.index("{", start)
     end = source.index("\n}", body)
     prefix, guard, rest = source[body + 1:end].partition("    if WIDTH != 8 {")
-    if not guard:
-        raise ValueError(f"missing width guard in {name}")
+    expected_prefix = "" if name == "xmss_subtree" else "let digits = wots_digits(m);"
+    if not guard or prefix.strip() != expected_prefix:
+        raise ValueError(f"changed precondition or shadowed compile-time width in {name}")
     selected, close, dead = rest.partition("\n    }")
     if not close or not dead.strip() or not re.search(r"\breturn\s+[^;]+;\s*$", selected):
         raise ValueError(f"invalid early return in {name}")
@@ -35,7 +36,7 @@ def select_live_width(source, name):
 
 def main():
     lean = arm["LEAN"]
-    facade["run"](["lake", "build", "Shakebatch.WidthThreeHost"], lean)
+    facade["run"](["lake", "build", "Shakebatch.WidthThreeLinux"], lean)
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         crate = cache["copy_rust_crate"](scratch)
@@ -55,16 +56,17 @@ def main():
             match = re.search(r"\bdef\s+(\S+)", declaration)
             if match and declaration in model:
                 found.add(match[1])
-            elif match and (match[1] in expected or match[1].startswith(("shake.xmss.","shake.batch.xmss_","shake.wots.wots_pk_gen_loop","shake.wots.wots_sign_loop"))) and declaration not in shared:
+            elif (match and match[1].startswith(("shake.xmss.", "shake.batch.xmss_", "shake.wots.wots_pk_gen_loop",
+                                                  "shake.wots.wots_sign_loop")) and declaration not in shared):
                 raise ValueError(f"unmatched dependency: {declaration[:220]}")
         if found != expected:
             raise ValueError(f"missing XMSS declaration: {expected - found}")
         facade["audit_theorems"]("Shakebatch.WidthThree", [
             "slhdsa.WidthThree.subtree_spec", "slhdsa.WidthThree.node_spec",
             "slhdsa.WidthThree.xmss_sign_spec"])
-        facade["audit_theorems"]("Shakebatch.WidthThreeHost", [
+        facade["audit_theorems"]("Shakebatch.WidthThreeLinux", [
             "WidthThreeTree.slhdsa.Shake.ht_sign_spec", "slhdsa.WidthThree.fallback_spec",
-            "WidthThreeLinux.slhdsa.WidthThree.parallel_sign_spec"])
+            "WidthThreeLinux.slhdsa.WidthThree.parallel_sign_spec", "WidthThreeLinux.slhdsa.WidthThree.parallel_context_spec"])
         print(f"{TARGET}: {len(found)} XMSS/WOTS dispatcher definitions match the width-three program")
 
 

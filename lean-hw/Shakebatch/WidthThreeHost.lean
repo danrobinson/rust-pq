@@ -1,8 +1,9 @@
 import Shakebatch.WidthThree
 import Cachepath.NativeVerify.Hosted
-import Parallel.UncachedCaller
+import Parallel.SegmentedCaller
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthThree
+set_option linter.concreteInstances false
 noncomputable section
 
 /-- The two remaining WOTS certificates, restricted to normalized FIPS leaf addresses. -/
@@ -55,14 +56,14 @@ theorem parallel_sign_spec (c : Certified) (f : ForsSigner) [worker : ParallelCa
       out.length=(Shake.params p).sigBytes ⦄ :=
   @ParallelCaller.Sh.sign_spec (fallback c f) worker N p hp m sk rnd hsk (fallback_spec c f p hp) slots
 
+theorem parallel_context_spec (c : Certified) (f : ForsSigner) [worker : ParallelCaller.Worker ParallelCaller.ShakeSeed]
+    {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (m ctx sk : Slice U8) (rnd : Array U8 N)
+    (hsk : sk.length=4*N.val) (hc : ctx.length≤255)
+    (slots : ParallelCaller.WorkerCorrect worker (N:=N) p (Shake.params p) (fun s => bytes s.val) (fun _ => True)) :
+    @ParallelCaller.Sh.shake.slh.shake_sign_ctx (fallback c f) worker N p m ctx sk rnd ⦃ out =>
+      bytes out.val=Spec.slhSignInternal (Shake.params p) (Spec.withContext (bytes m.val) (bytes ctx.val))
+        (bytes sk.val) (bytes rnd.val) ∧ out.length=(paramsS p).sigBytes ⦄ :=
+  @ParallelCaller.Sh.sign_ctx_spec (fallback c f) worker N p hp m ctx sk rnd hsk hc (fallback_spec c f p hp) slots
+
 end
 end slhdsa.WidthThree
-
-open Lean Elab Command in
-set_option Elab.async false in
-set_option maxHeartbeats 0 in
-run_cmd liftCoreM do
-  let pairs := Cachepath.NativeHashReplay.bindings `KspongeLRust `slhdsa.ShakeBatch.Linux
-  PlatformProof.replay `WidthThreeLinux (pairs ++ [
-    (`slhdsa.NativeVerify.linuxRecovery, `LinuxNativeRecovery.slhdsa.NativeVerify.linuxRecovery)])
-    #[`slhdsa.WidthThree.parallel_sign_spec] [`Parallel,`Cachepath,`Shakeopt]

@@ -228,8 +228,11 @@ set_option maxHeartbeats 2000000 in
   let* ⟨ adrs, adrs_post ⟩ ← with_keypair_spec
   let* ⟨ i, i_post, i_post1 ⟩ ← md_bytes_spec
   let* ⟨ md, md_post, md_len ⟩ ← alloc.vec.Vec.index_Range_spec
-  let* ⟨ sig_fors, sig_fors_post, sig_fors_len ⟩ ← Shake.fors_sign_spec p hp md sk_seed pk_seed adrs
-  let* ⟨ pk_fors, pk_fors_post ⟩ ← Shake.fors_pk_from_sig_spec p hp (alloc.vec.Vec.deref sig_fors) md pk_seed adrs
+  have domain : adrs.typ=address.FORS_TREE ∧ adrs.word2=0#u32 ∧ adrs.word3=0#u32 := by simp [adrs_post,a2_post1]
+  have mdSize : md.length=(p.k.val*p.a.val+7)/8 := by rw [md_len,i_post]; omega
+  let* ⟨ sig_fors, sig_fors_post, sig_fors_len ⟩ ← Shake.fors_sign_domain p hp md sk_seed pk_seed adrs mdSize domain
+  let* ⟨ pk_fors, pk_fors_post ⟩ ← Shake.fors_verify_spec p hp (alloc.vec.Vec.deref sig_fors) md pk_seed adrs
+    (by simpa only [vec_deref_length] using sig_fors_len) mdSize domain
   let* ⟨ sig_ht, sig_ht_post, sig_ht_len ⟩ ← Shake.ht_sign_spec p hp pk_fors sk_seed pk_seed idx_tree idx_leaf idx_leaf_lt
   let* ⟨ s3, s3_post ⟩ ← Array.to_slice.step_spec
   let* ⟨ sg0, sg0_post ⟩ ← extend_spec
