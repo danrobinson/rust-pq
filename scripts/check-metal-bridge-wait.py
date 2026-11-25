@@ -150,7 +150,7 @@ def main():
     env = os.environ.copy()
     env["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"),str(Path.home()/".cargo/bin"),env["PATH"]])
     lean = ROOT / "lean-hw"
-    subprocess.run(["lake","build","Metal.BridgeWait","Metal.BridgeDispatch"], cwd=lean, env=env, check=True)
+    subprocess.run(["lake","build","Metal.BridgeWait","Metal.BridgeDispatch","Metal.BridgeProperties"], cwd=lean, env=env, check=True)
     original = (ROOT / "metal/src/bridge.m").read_text()
     dispatch_proof = runpy.run_path(str(HERE / "metal-proof/bridge_dispatch.py"))
     dispatch = dispatch_proof["check"]
@@ -184,6 +184,10 @@ def main():
                 archive_binding(ir, Path(tmp), env)
             compiled = ir.read_text()
             if name == "production":
+                properties = runpy.run_path(str(HERE / "metal-proof/bridge_properties.py"))["certificate"]
+                subprocess.run(["lake","env","lean","--stdin"], input=properties(compiled), text=True,
+                               cwd=lean, env=env, check=True)
+                print("Lean checked 18 Objective-C property accessors and four ARC destructors.", flush=True)
                 rows = []
                 dispatch(compiled, rows)
                 subprocess.run(["lake","env","lean","--stdin"], input=dispatch_proof["lean_certificate"](rows),

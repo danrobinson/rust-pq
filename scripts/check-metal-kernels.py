@@ -2003,6 +2003,9 @@ def check_lean_proofs(binding_claims: str) -> None:
 
 
 def main() -> None:
+    if sys.platform == "darwin":
+        subprocess.run([sys.executable, HERE / "check-metal-bridge-wait.py"], check=True)
+        subprocess.run([sys.executable, HERE / "check-metal-shader-image.py"], check=True)
     binding_claims = audit_ffi_and_host_boundary()
     subprocess.run([sys.executable, HERE / "check-metal-host-hash.py"], check=True)
 
