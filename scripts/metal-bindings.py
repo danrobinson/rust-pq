@@ -223,7 +223,7 @@ def check_slot_swaps(lib, sha2, shake):
     print(f"Rejected all {pairs} host-buffer transpositions.")
 
 
-def check_stages(lib):
+def check_stages(lib, *, require_dependencies=True):
     """Execute the encoder's branch and barrier logic for every launch mode."""
     import os
     import subprocess
@@ -285,10 +285,18 @@ fn main() {
                 count += 3;
             }
             assert_eq!(log.len(), count);
+            print!("{} {} {}", signing, phase, split);
+            for (kernel, epoch) in log { print!(" {kernel}:{epoch}"); }
+            println!();
         }
     } }
 }
 """
+    if not require_dependencies:
+        # Negative controls replay the mutated graph and ask the Lean resource
+        # checker to refute it, allowing the invalid trace to reach the kernel.
+        start = src.index("            let stage = |name|")
+        src = src[:start] + src[src.index('            print!("{} {} {}"', start):]
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "stages.rs"
         exe = Path(tmp) / "stages"
@@ -302,4 +310,13 @@ fn main() {
             env=env,
             check=True,
         )
-        subprocess.run([exe], check=True)
+        output = subprocess.run([exe], check=True, text=True, stdout=subprocess.PIPE).stdout
+    traces = {}
+    for line in output.splitlines():
+        signing, phase, split, *events = line.split()
+        traces[(signing == "true", phase == "true", int(split))] = [
+            (name, int(epoch)) for name, epoch in (event.split(":") for event in events)
+        ]
+    if len(traces) != 8:
+        raise ValueError("incomplete encoder control-flow coverage")
+    return traces

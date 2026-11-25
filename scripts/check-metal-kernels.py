@@ -194,7 +194,10 @@ def audit_ffi_and_host_boundary() -> str:
 
     bindings = runpy.run_path(str(HERE / "metal-bindings.py"))
     binding_claims = bindings["verify"](lib_rs, sha2_msl, shake_msl)
-    bindings["check_stages"](lib_rs)
+    command = runpy.run_path(str(HERE / "metal-command.py"))
+    command["geometry_sources"](lib_rs, (ROOT / "rust/src/params.rs").read_text(), PARAM_SETS)
+    command_claims = command["verify"](lib_rs, gpu_rs, bridge, sha2_msl, shake_msl, bindings)
+    binding_claims = "import Metal.SignatureLayout\nimport Metal.Command\n" + binding_claims + "\n" + command_claims
     bindings["check_slot_swaps"](lib_rs, sha2_msl, shake_msl)
     # The bridge binds the ith Rust handle at MSL slot i, with no dynamic offset.
     require_contains(gpu_rs, [
@@ -240,6 +243,19 @@ def audit_ffi_and_host_boundary() -> str:
         fors_sig_bytes = k * (1 + a) * n
         xmss_sig_bytes = (wots_len + hp) * n
         sig_bytes = n + fors_sig_bytes + d * xmss_sig_bytes
+
+        # Tie the per-field byte bijection to the number of bytes returned by
+        # this production row. Batch count and all field indices remain arbitrary.
+        layout = f"(⟨{n},{k},{s1},{s2},{d},{wots_len},{hp}⟩ : MetalSignatureLayout.Geometry)"
+        binding_claims += (
+            f"\nexample (count : Nat) : "
+            f"Function.Injective (@MetalSignatureLayout.address {layout} count) ∧ "
+            f"(∀ p : MetalSignatureLayout.Byte {layout} count, MetalSignatureLayout.address {layout} p < count * {sig_bytes}) ∧ "
+            f"(∀ pos < count * {sig_bytes}, ∃! p : MetalSignatureLayout.Byte {layout} count, "
+            f"MetalSignatureLayout.address {layout} p = pos) := "
+            f"⟨MetalSignatureLayout.disjoint _ _, MetalSignatureLayout.in_bounds _, "
+            f"fun _ h => MetalSignatureLayout.cover _ h⟩"
+        )
 
         # Instantiate the index theorem with each replayed layout. Count, item
         # and the inner word/byte offset remain universally quantified in Lean.
@@ -1904,8 +1920,14 @@ def check_lean_proofs(binding_claims: str) -> None:
         ]
     )
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
-    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings"], cwd=ROOT / "lean-hw", check=True)
+    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings", "Metal.Command", "Metal.SignatureLayout"], cwd=ROOT / "lean-hw", check=True)
     subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw", input=binding_claims, text=True, check=True)
+    facade["audit_theorems"]("Metal.SignatureLayout", [
+        "MetalSignatureLayout.in_bounds", "MetalSignatureLayout.disjoint", "MetalSignatureLayout.cover",
+    ])
+    facade["audit_theorems"]("Metal.Command", ["MetalCommand.produced", "MetalCommand.unique_writer",
+        "MetalCommand.ordered", "MetalCommand.separate_items", "MetalCommand.separate_parts",
+        "MetalCommand.exit_safe"])
     facade["audit_theorems"]("Metal.Bindings", ["MetalBindings.dispatch", "MetalBindings.flat_index"])
     theorems = [
         "MetalPipeline.metal_wots_two_phase_eq_fips",
