@@ -5,7 +5,7 @@ open Aeneas Aeneas.Std Result
 namespace slhdsa.RawFors
 open ParallelRawChunks (collect collect_ok)
 
-private def physical {N} (n : Nat) (row : Nat → Cell N) : Cells N :=
+def physical {N} (n : Nat) (row : Nat → Cell N) : Cells N :=
   ParallelSignJoin.boxed ((List.range n).map (fun i => if (row i).1.val=i then some (row i).2 else none))
 
 private theorem physical_spec {N} (n : Nat) (row : Nat → Cell N) (bound : n≤Usize.max)
@@ -40,6 +40,17 @@ noncomputable def buildScalarMerge {N} (host : ParallelScalarFors.Platform) (d :
   let jobs ← collect (fun i => scalarJob host d sat t j sub (indexSize i)) (List.range count)
   ok ⟨t,j,sub,0#usize,alloc.vec.Vec.new _,physical count (fun i => jobs[i]!)⟩
 
+theorem scalarJob_runs {N} (host : ParallelScalarFors.Platform) (d : Data N) (valid : Valid d) (sat : Bool)
+    (t j sub : U32) (tree : t.val<d.p.k.val) (field : j.val<d.p.a.val) (lower : sub.val<j.val)
+    (i : Nat) (hi : i<2^(j.val-sub.val)) : ∃ row, scalarJob host d sat t j sub (indexSize i)=ok row ∧ row.1.val=i := by
+  have small := chunk_small d valid j sub field
+  have mx : 2^32-1≤Usize.max := by agrind
+  have iv := size_exact i (by omega)
+  obtain ⟨w,call,dest,_⟩ := spec_imp_exists (ParallelScalarFors.split_published host d.p valid.pn d.sk d.seed d.addr
+    valid.domain sat t d.p.a j d.choices.val[t.val]! sub 0#usize (indexSize i) (tree.trans_le valid.pn.valid.k_le)
+    valid.pn.valid.a_le field (valid.digits _ (valid.count ▸ tree)) lower (by rw [iv];exact hi) (by scalar_tac))
+  exact ⟨w,call,by simpa [iv] using dest⟩
+
 theorem buildScalarMerge_spec {N} (host : ParallelScalarFors.Platform) (d : Data N) (valid : Valid d) (sat : Bool)
     (t j sub : U32) (tree : t.val<d.p.k.val) (field : j.val<d.p.a.val) (lower : sub.val<j.val) :
     buildScalarMerge host d sat t j sub ⦃ m => m.Ready host d sat ∧ m.t=t ∧ m.j=j ∧ m.sub=sub ⦄ := by
@@ -47,12 +58,7 @@ theorem buildScalarMerge_spec {N} (host : ParallelScalarFors.Platform) (d : Data
   have small : count≤16384 := chunk_small d valid j sub field
   have mx : 2^32-1≤Usize.max := by agrind
   let f := fun i => scalarJob host d sat t j sub (indexSize i)
-  have total (i : Nat) (hi : i<count) : ∃ row, f i=ok row ∧ row.1.val=i := by
-    have iv := size_exact i (by omega)
-    obtain ⟨w,call,dest,_⟩ := spec_imp_exists (ParallelScalarFors.split_published host d.p valid.pn d.sk d.seed d.addr
-      valid.domain sat t d.p.a j d.choices.val[t.val]! sub 0#usize (indexSize i) (tree.trans_le valid.pn.valid.k_le)
-      valid.pn.valid.a_le field (valid.digits _ (valid.count ▸ tree)) lower (by rw [iv];exact hi) (by scalar_tac))
-    exact ⟨w,call,by simpa [iv] using dest⟩
+  have total := scalarJob_runs host d valid sat t j sub tree field lower
   obtain ⟨jobs,run,len,each⟩ := collect_ok f (List.range count) (fun i mem => by
     obtain ⟨w,call,_⟩ := total i (List.mem_range.mp mem);exact ⟨w,call⟩)
   have atJob (i : Nat) (hi : i<count) : f i=ok jobs[i]! := by
@@ -60,6 +66,7 @@ theorem buildScalarMerge_spec {N} (host : ParallelScalarFors.Platform) (d : Data
     rwa [getElem!_pos (List.range count) i (by simpa using hi),List.getElem_range] at v
   have dest (i : Nat) (hi : i<count) : jobs[i]!.1.val=i := by
     obtain ⟨w,call,whereAt⟩ := total i hi
+    change f i=ok w at call
     rw [atJob i hi] at call
     exact (Result.ok_injective call).symm ▸ whereAt
   obtain ⟨size,slots⟩ := physical_spec count (fun i => jobs[i]!) (by omega) dest
@@ -90,6 +97,26 @@ noncomputable def buildGroupMerge {N} (d : Data N) (first : U16) (active height 
   let cells := physical (active.val*count) (fun i => jobs[i%count]!.val[i/count]!)
   ok ⟨first,active,height,low,j,sub,0#usize,chunks,alloc.vec.Vec.new _,cells⟩
 
+theorem groupJob_runs {N} (d : Data N) (valid : Valid d) (first : U16) (active height low : U8) (j sub : U32)
+    (field : height.val<d.p.a.val) (lower : low.val<height.val) (hj : j.val=height.val) (hs : sub.val=low.val)
+    (on : 0<active.val) (width : active.val≤3) (range : first.val+active.val≤d.choices.length)
+    (i : Nat) (hi : i<2^(j.val-sub.val)) : ∃ rows, groupJob d first active height low (indexSize (2^(j.val-sub.val))) (indexWord i)=ok rows ∧
+      ∀ lane<active.val, rows.val[lane]!.1.val=lane*2^(j.val-sub.val)+i := by
+  let count := 2^(j.val-sub.val)
+  let chunks := indexSize count
+  have small : count≤16384 := chunk_small d valid j sub (by rwa [hj])
+  have cv : chunks.val=count := size_exact _ (by omega)
+  have maxCount := Nat.mul_le_mul width small
+  have mx : 2^32-1≤Usize.max := by agrind
+  have fits : active.val*count≤Usize.max := by omega
+  have iv : (indexWord i).val=i := Nat.mod_eq_of_lt (by change i<2^32;omega)
+  obtain ⟨rows,call,values⟩ := spec_imp_exists (@ParallelForsTicket.split_ticket_spec unreachableHigh N d.p valid.pn
+    d.sk d.seed d.addr d.choices first active height low (indexWord i) 0#usize chunks valid.domain valid.pn.valid.a_le field
+    (valid.count ▸ valid.pn.valid.k_le) on width range valid.digits lower.le (by simpa [count,hj,hs] using cv)
+    (by rwa [iv,cv]) (by simpa [cv] using fits))
+  refine ⟨rows,call,fun lane hl => ?_⟩
+  simpa [cv,iv] using (values lane hl).1
+
 theorem buildGroupMerge_spec {N} (d : Data N) (valid : Valid d) (first : U16) (active height low : U8) (j sub : U32)
     (field : height.val<d.p.a.val) (lower : low.val<height.val) (hj : j.val=height.val) (hs : sub.val=low.val)
     (on : 0<active.val) (width : active.val≤3) (range : first.val+active.val≤d.choices.length) :
@@ -103,14 +130,7 @@ theorem buildGroupMerge_spec {N} (d : Data N) (valid : Valid d) (first : U16) (a
   have maxCount := Nat.mul_le_mul width small
   have mx : 2^32-1≤Usize.max := by agrind
   have fits : active.val*count≤Usize.max := by omega
-  have total (i : Nat) (hi : i<count) : ∃ rows, f i=ok rows ∧ ∀ lane<active.val, rows.val[lane]!.1.val=lane*count+i := by
-    have iv : (indexWord i).val=i := Nat.mod_eq_of_lt (by change i<2^32;omega)
-    obtain ⟨rows,call,values⟩ := spec_imp_exists (@ParallelForsTicket.split_ticket_spec unreachableHigh N d.p valid.pn
-      d.sk d.seed d.addr d.choices first active height low (indexWord i) 0#usize chunks valid.domain valid.pn.valid.a_le field
-      (valid.count ▸ valid.pn.valid.k_le) on width range valid.digits lower.le (by simpa [count,hj,hs] using cv)
-      (by rwa [iv,cv]) (by simpa [cv] using fits))
-    refine ⟨rows,call,fun lane hl => ?_⟩
-    simpa [cv,iv] using (values lane hl).1
+  have total := groupJob_runs d valid first active height low j sub field lower hj hs on width range
   obtain ⟨jobs,run,len,each⟩ := collect_ok f (List.range count) (fun i mem => by
     obtain ⟨r,call,_⟩ := total i (List.mem_range.mp mem);exact ⟨r,call⟩)
   have atJob (i : Nat) (hi : i<count) : f i=ok jobs[i]! := by
@@ -118,6 +138,7 @@ theorem buildGroupMerge_spec {N} (d : Data N) (valid : Valid d) (first : U16) (a
     rwa [getElem!_pos (List.range count) i (by simpa using hi),List.getElem_range] at v
   have dest (i : Nat) (hi : i<count) (l : Nat) (hl : l<active.val) : jobs[i]!.val[l]!.1.val=l*count+i := by
     obtain ⟨r,call,whereAt⟩ := total i hi
+    change f i=ok r at call
     rw [atJob i hi] at call
     exact (Result.ok_injective call).symm ▸ whereAt l hl
   let row := fun i => jobs[i%count]!.val[i/count]!
