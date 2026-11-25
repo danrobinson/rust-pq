@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare the public cache constructor and SHA-2 tree builder with fresh Aeneas output."""
+"""Compare the public cache constructor and both tree builders with fresh Aeneas output."""
 from pathlib import Path
 import re
 import runpy
@@ -54,17 +54,84 @@ def check_builder(target, scratch):
     facade["run"](["lake", "env", "lean", "--stdin"], lean, input="\n".join(checks), text=True)
 
 
+def check_shake(target, scratch, *, scalar_only=False):
+    cuts = ("crate::cache::level_offset", "crate::cache::tree_node_count",
+            "crate::cache::shake_ops::simd::available", "crate::cache::shake_ops::simd::hash_pairs",
+            "crate::cache::shake_ops::simd::fill_xmss_leaves",
+            "crate::cache::shake_ops::wots_pk_gen_portable", "crate::cache::shake_ops::thash_pair")
+    if scalar_only:
+        cuts = tuple(cut for cut in cuts if "::simd::" not in cut)
+    package = facade["extract"]("rust", target, "ShakeTree", scratch, [builders[1]], cuts)
+    program = (lean / "Cachepath/BuilderShakeProgram.lean").read_text()
+    portable = lean.parent / "lean/Slhdsa"
+    if set(decls(package / "Types.lean", "slhdsa")) - set(decls(portable / "Types.lean", "slhdsa")):
+        raise ValueError(f"unexpected SHAKE tree type on {target}")
+    functions = set(decls(portable / "Funs.lean", "slhdsa"))
+    iterators = set(decls(lean / "Xmsskeys/Funs.lean", "XmssKeysRust"))
+    aliases = {
+        "cache.shake_ops.simd.available": "Backend.available",
+        "cache.shake_ops.simd.hash_pairs": "Backend.pairs",
+        "cache.shake_ops.simd.fill_xmss_leaves": "Backend.fill",
+        "cache.shake_ops.wots_pk_gen_portable": "CacheScalar.cache.shake_ops.wots_pk_gen_portable",
+        "cache.shake_ops.thash_pair": "shake.hash.thash_pair",
+    }
+    adapter = ("core.iter.adapters.enumerate.IteratorEnumerate.next",
+               "core.slice.iter.IterMut.Insts.CoreIterTraitsIteratorIteratorMutAT",
+               "core.iter.traits.iterator.Iterator.enumerate.trait_default")
+    for declaration in decls(package / "Funs.lean", "slhdsa"):
+        if declaration in functions or declaration in iterators:
+            continue
+        # Strip the Rust module prefix on this group's internal calls.
+        # Token matching keeps the separately verified primitive bindings intact.
+        pattern = r"cache\.shake_ops\.(?:simd\.)?[a-z_0-9]+"
+        linked = re.sub(pattern, lambda m: aliases.get(m[0], m[0].removeprefix("cache.shake_ops.")), declaration)
+        for method in adapter:
+            linked = linked.replace(method, "XmssKeysRust." + method)
+        if scalar_only:
+            for old, new in (("fill_leaves_chunk", "portableLeaves"), ("build_xmss_tree_loop0.body", "portableLevel")):
+                if f"def {old}\n" in linked:
+                    linked = linked.replace(f"def {old}\n", f"def {new}\n")
+                    break
+        if linked not in program and (not scalar_only or linked not in (lean / "Cachepath/BuilderPortable.lean").read_text()):
+            raise ValueError(f"unmatched SHAKE tree declaration on {target}: {linked}")
+    checks = ["import Cachepath.BuilderShake", "open Aeneas Aeneas.Std Result slhdsa",
+              "open slhdsa.cache.builder.nativeShake", "variable [b : Backend]"]
+    template = (package / "FunsExternal_Template.lean").read_text().split("open slhdsa", 1)[1]
+    expected = {cut.removeprefix("crate::").replace("::", ".") for cut in cuts}
+    for declaration in facade["common"]["declarations"](template):
+        match = re.fullmatch(r"axiom (\S+)\s+(.*)", declaration, re.S)
+        if not match or match[1] not in expected:
+            raise ValueError(f"unexpected SHAKE builder external: {declaration}")
+        symbol, signature = match.groups()
+        expected.remove(symbol)
+        binding = aliases.get(symbol, symbol)
+        if symbol.endswith(".available"):
+            binding += " N"
+        checks.append(f"example {signature} := {binding}")
+    if expected:
+        raise ValueError(f"missing SHAKE builder externals: {expected}")
+    facade["run"](["lake", "env", "lean", "--stdin"], lean, input="\n".join(checks), text=True)
+
+
 def main():
-    facade["run"](["lake", "build", "Cachepath.BuilderSha2"], lean)
+    facade["run"](["lake", "build", "Cachepath.BuiltSession", "Cachepath.BuilderPortable"], lean)
     with tempfile.TemporaryDirectory() as directory:
-        for target in facade["TARGETS"]:
+        portable = "riscv64gc-unknown-none-elf"
+        for target in (*facade["TARGETS"], portable):
             scratch = Path(directory) / target
             scratch.mkdir()
             check_constructor(target, scratch)
             check_builder(target, scratch)
-            print(f"{target}: matched the public constructor and serial SHA-2 builder", flush=True)
-    facade["audit_theorems"]("Cachepath.BuilderSha2", [
+            check_shake(target, scratch, scalar_only=target == portable)
+            print(f"{target}: matched the public constructor and serial SHA-2 and SHAKE builders", flush=True)
+    facade["audit_theorems"]("Cachepath.BuilderPortable", [
+        "slhdsa.cache.builder.nativeShake.portable_leaves_eq", "slhdsa.cache.builder.nativeShake.portable_level_eq",
+    ])
+    facade["audit_theorems"]("Cachepath.BuiltSession", [
         "CacheopsRust.cache.constructor.valid", "slhdsa.cache.builder.sha2_kernel",
+        "slhdsa.cache.builder.nativeShake.kernel", "slhdsa.cache.builder.nativeShake.scalar_correct",
+        "CacheopsRust.cache.constructor.reuse", "CacheopsRust.Public.build_and_sign",
+        "CacheopsRust.Public.build_and_sign_many", "CacheopsRust.Public.scalar_build_and_sign_many",
     ])
 
 

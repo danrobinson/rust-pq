@@ -129,7 +129,7 @@ private theorem level_spec {N : Usize} (p : params.Params) (hp : PN p N) (sk : A
     v (by simpa [atRow] using init) as ⟨v',hv'⟩
   simpa only [next hz,atRow,hcount] using hv'
 
-private theorem count_spec (hp : U32) (h : hp.val ≤ 9) :
+theorem count_spec (hp : U32) (h : hp.val ≤ 9) :
     tree_node_count hp ⦃ n => n.val = treeSize hp.val ⦄ := by
   have small : 2^(hp.val+1) < Usize.size := by
     have := Nat.pow_le_pow_right (by decide : 0 < 2) (show hp.val+1 ≤ 10 by omega)
