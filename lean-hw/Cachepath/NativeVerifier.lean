@@ -13,7 +13,8 @@ structure Recovery where
         (bytes sig.val) (bytes m.val) (bytes seed.val) (adrsS a) ⦄
   fors_spec {N : Usize} (p : slhdsa.params.Params) (hp : PN p N) (sig md : Slice U8)
       (seed : Array U8 N) (a : slhdsa.address.Adrs) (len : sig.length=p.k.val*(1+p.a.val)*N.val)
-      (mdLen : md.length=(p.k.val*p.a.val+7)/8) :
+      (mdLen : md.length=(p.k.val*p.a.val+7)/8)
+      (domain : a.typ=slhdsa.address.FORS_TREE ∧ a.word2=0#u32 ∧ a.word3=0#u32) :
       fors p sig md seed a ⦃ out => bytes out.val=Spec.forsPkFromSig (Shake.params p)
         (bytes sig.val) (bytes md.val) (bytes seed.val) (adrsS a) ⦄
 
@@ -97,7 +98,7 @@ run_cmd liftTermElabM do
   let pairs := [(`slhdsa.shake.xmss.xmss_pk_from_sig,`CacheopsRust.NativeVerifier.xmssPk),
     (`slhdsa.Shake.xmss_pk_from_sig_spec,`CacheopsRust.NativeVerifier.xmssSpec),
     (`slhdsa.shake.fors.fors_pk_from_sig,`CacheopsRust.NativeVerifier.Recovery.fors),
-    (`slhdsa.Shake.fors_pk_from_sig_spec,`CacheopsRust.NativeVerifier.Recovery.fors_spec)]
+    (`slhdsa.Shake.fors_verify_spec,`CacheopsRust.NativeVerifier.Recovery.fors_spec)]
   let names ← IO.mkRef (Std.HashMap.ofList pairs)
   let _ ← abstractCalls `VerifierWithRecovery [`Slhdsa,`Shakebatch,`Shakeopt] `SegmentedPublic.slhdsa.Shake.api_verify_spec names
   pure ()

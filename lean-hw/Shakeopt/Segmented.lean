@@ -312,8 +312,9 @@ set_option maxHeartbeats 2000000 in
     let* ⟨ s2, s2_post, s2_len ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
     let* ⟨ i2, i2_post, i2_post1 ⟩ ← md_bytes_spec
     let* ⟨ s3, s3_post, s3_len ⟩ ← alloc.vec.Vec.index_Range_spec
-    let* ⟨ pk_fors, pk_fors_post ⟩ ← Shake.fors_pk_from_sig_spec p hp s2 s3 pk_seed adrs
+    let* ⟨ pk_fors, pk_fors_post ⟩ ← fors_verify_spec p hp s2 s3 pk_seed adrs
       (by rw [s2_len, fors_end_post, i1_post, hp.n_eq]; omega) (by rw [s3_len, i2_post]; omega)
+      (by simp [adrs_post,a2_post1])
     let* ⟨ s4, s4_post, s4_len ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
     let* ⟨ b, b_post ⟩ ← Shake.ht_verify_spec p hp pk_fors s4 pk_seed idx_tree idx_leaf pk_root
       (by rw [s4_len, sig_bytes_post1, fors_end_post, i1_post, hfe, hxe]; simp only [hp.n_eq]; omega)

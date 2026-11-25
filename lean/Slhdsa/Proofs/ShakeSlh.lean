@@ -177,6 +177,16 @@ theorem slh_sign_internal_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp
         (bytes addrnd.val) ∧
       sig.length = (paramsS p).sigBytes ⦄ := slh_sign_internal_all_lengths p hp m sk addrnd hsk
 
+/-- The verifier constructs a cleared FORS_TREE address before recovering the FORS key.
+    Native recovery implementations can rely on these three caller-established fields. -/
+theorem fors_verify_spec {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N)
+    (sig md : Slice U8) (seed : Array U8 N) (a : address.Adrs)
+    (len : sig.length=p.k.val*(1+p.a.val)*N.val) (mdLen : md.length=(p.k.val*p.a.val+7)/8)
+    (_domain : a.typ=address.FORS_TREE ∧ a.word2=0#u32 ∧ a.word3=0#u32) :
+    shake.fors.fors_pk_from_sig p sig md seed a ⦃ out =>
+      bytes out.val=Spec.forsPkFromSig (Shake.params p) (bytes sig.val) (bytes md.val) (bytes seed.val) (adrsS a) ⦄ :=
+  fors_pk_from_sig_spec p hp sig md seed a len mdLen
+
 theorem slh_verify_internal_all_lengths {N : Usize} (p : _root_.slhdsa.params.Params) (hp : PN p N) (m sig pk : Slice U8)
     (hpk : pk.length = 2 * N.val) :
     shake.slh.slh_verify_internal N p m sig pk ⦃ b =>
@@ -219,8 +229,9 @@ theorem slh_verify_internal_all_lengths {N : Usize} (p : _root_.slhdsa.params.Pa
     let* ⟨ s2, s2_post, s2_len ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
     let* ⟨ i2, i2_post, i2_post1 ⟩ ← md_bytes_spec
     let* ⟨ s3, s3_post, s3_len ⟩ ← alloc.vec.Vec.index_Range_spec
-    let* ⟨ pk_fors, pk_fors_post ⟩ ← fors_pk_from_sig_spec p hp s2 s3 pk_seed adrs
+    let* ⟨ pk_fors, pk_fors_post ⟩ ← fors_verify_spec p hp s2 s3 pk_seed adrs
       (by rw [s2_len, fors_end_post, i1_post, hp.n_eq]; omega) (by rw [s3_len, i2_post]; omega)
+      (by simp [adrs_post,a2_post1])
     let* ⟨ s4, s4_post, s4_len ⟩ ← core.slice.index.SliceIndexRangeUsizeSlice.index.step_spec
     let* ⟨ b, b_post ⟩ ← ht_verify_spec p hp pk_fors s4 pk_seed idx_tree idx_leaf pk_root
       (by rw [s4_len, sig_bytes_post1, fors_end_post, i1_post, hfe, hxe]; simp only [hp.n_eq]; omega)
