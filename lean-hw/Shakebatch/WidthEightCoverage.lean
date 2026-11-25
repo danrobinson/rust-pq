@@ -30,12 +30,15 @@ run_cmd liftCoreM do
   for s in [`shake_128s,`shake_128f,`shake_192s,`shake_192f,`shake_256s,`shake_256f] do
     for (api,absorb) in [(`WidthEightAppleAPI,`AppleSingleStream.KappleouterRust.shake256.Sponge.absorb),
         (`WidthEightX86API,`KxouterRust.shake256.Sponge.absorb)] do
+      let hosted := if api == `WidthEightAppleAPI then `WidthEightApple else `WidthEightX86
       let ns := api ++ s
       for op in [`sign_spec,`sign_deterministic_spec] do
-        reaches (ns ++ op) [`ParallelFusedSignature.sign,`Shakeopt.ForsWideSignature.signature,
-          `slhdsa.WidthEight.Platform.available,absorb]
+        reaches (ns ++ op) [`ParallelFusedSignature.sign,hosted ++ `slhdsa.WidthEight.Fors.signature,
+          `slhdsa.WidthEight.Platform.available,
+          `slhdsa.NativeVerify.ActiveHash.short_active,`slhdsa.NativeVerify.ActiveHash.pair_active,
+          `slhdsa.NativeVerify.ForsFused.fused,absorb]
       reaches (ns ++ `verify_spec) [`slhdsa.WidthEight.Platform.recovery,absorb]
       reaches (ns ++ `seeded_roundtrip) [`slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal,
-        `ParallelFusedSignature.sign,`Shakeopt.ForsWideSignature.signature,absorb]
+        `ParallelFusedSignature.sign,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb]
 
 end slhdsa.WidthEight.Coverage

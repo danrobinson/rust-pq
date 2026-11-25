@@ -39,8 +39,10 @@ def main():
                   "slh_verify_spec", "slh_sign_internal_spec", "slh_verify_internal_spec", "seeded_roundtrip")
     theorems = [f"WidthEight{host}API.shake_{s}.{op}" for s in profiles
                 for host in ("Apple", "X86") for op in operations]
-    facade["audit_theorems"](module, theorems)
-    print(f"Verified {len(theorems)} width-eight hosted theorem roots and three dispatch mutations.")
+    lanes = ["slhdsa.WidthEight.Fors." + name for name in
+             ("secret_fips", "leaf_fips", "parent_fips", "secret_lane", "fused_lane", "packed_lane", "signature_eq")]
+    facade["audit_theorems"](module, theorems + lanes)
+    print(f"Verified {len(theorems)} width-eight hosted theorem roots, seven native FORS value and lane theorems, and three dispatch mutations.")
 
 
 if __name__ == "__main__":

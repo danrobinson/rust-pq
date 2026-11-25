@@ -1,5 +1,5 @@
 import Parallel.FusedSignature
-import Shakeopt.ForsWideSignature
+import Shakebatch.WidthEightFors
 import Parallel.KeygenPublic
 import Cachepath.NativeVerify.Hosted
 import Shakebatch.WidthThreeHost
@@ -63,8 +63,30 @@ theorem xmssSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN
     exact (WP.spec_ok _).mpr ⟨eq,size⟩
   · exact scalar
 
+/-- Project each active lane through the host's actual hash implementation.
+The surrounding wide shuffle and field trace are handled by the physical tree. -/
+def wideFors (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8)
+    (sk seed : Array U8 N) (a : address.Adrs) : Spec.Bytes :=
+  match host with
+  | .apple sha3 => @Fors.signature (AppleHybrid.machine sha3) (NativeVerify.appleActive sha3) N p md sk seed a
+  | .x86 => @Fors.signature Kxdispatch.machine
+      (NativeVerify.fullActive Kxdispatch.machine KxdispatchRust.shake256.parallel.available) N p md sk seed a
+
+theorem wideFors_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N)
+    (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs)
+    (domain : a.typ=address.FORS_TREE ∧ a.word2=0#u32 ∧ a.word3=0#u32) (on : host.available N=true) :
+    wideFors host p md sk seed a=Spec.forsSign (Shake.params p) (bytes md.val) (bytes sk.val)
+      (bytes seed.val) (adrsS a) := by
+  cases host with
+  | apple sha3 =>
+    exact @Fors.signature_eq (AppleHybrid.machine sha3) _ (NativeVerify.apple sha3)
+      (by change 0<8; decide) N p hp md sk seed a domain
+  | x86 =>
+    exact @Fors.signature_eq Kxdispatch.machine _ (NativeVerify.x86 (Bool.and_eq_true_iff.mp on).2)
+      (by change 0<8; decide) N p hp md sk seed a domain
+
 def forsSign (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) :=
-  if host.available N then packVec (Shakeopt.ForsWideSignature.signature (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a))
+  if host.available N then packVec (wideFors host p md sk seed a)
   else shake.fors.fors_sign p md sk seed a
 
 theorem forsSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N) (md : Slice U8)
@@ -76,7 +98,7 @@ theorem forsSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN
   unfold forsSign
   split
   · obtain ⟨r,_,eq,len⟩ := spec_imp_exists scalar
-    rw [Shakeopt.ForsWideSignature.signature_eq (Shake.params p) _ _ _ _ (by exact hp.valid.a_le),packVec_eq _ r eq]
+    rw [wideFors_spec host p hp md sk seed a domain (by assumption),packVec_eq _ r eq]
     exact (WP.spec_ok _).mpr ⟨eq,len⟩
   · exact scalar
 
