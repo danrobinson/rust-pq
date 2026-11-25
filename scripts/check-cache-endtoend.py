@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import re
 import runpy
+import shutil
 import subprocess
 import tempfile
 
@@ -70,6 +71,18 @@ EXPECTED_EXTERNALS = {
 FORBIDDEN = ("sorry", "admit", "axiom", "native_decide", "bv_decide")
 
 
+def copy_rust_crate(destination):
+    """Copy the crate inputs used by isolated negative-control extractions."""
+    crate = destination / "rust"
+    for name in ("src", "benches"):
+        original = ROOT / "rust" / name
+        if original.is_dir():
+            shutil.copytree(original, crate / name)
+    for name in ("Cargo.toml", "Cargo.lock"):
+        shutil.copyfile(ROOT / "rust" / name, crate / name)
+    return crate
+
+
 def extract_target(target, scratch, starts=STARTS, opaques=OPAQUES, *, crate=None):
     dest = scratch / "Cacheops"
     dest.mkdir(parents=True)
@@ -127,14 +140,14 @@ SCALAR_NAMES = {
 }
 
 
-def check_scalar_bodies(package):
+def generated_declarations(path, namespace):
     parser = facade["common"]
+    items = parser["declarations"](parser["body"](path, namespace))
+    return {m[1]: " ".join(item.split()) for item in items
+            if (m := re.search(r"\b(?:def|structure)\s+([\w.]+)", item))}
 
-    def declarations(path, namespace):
-        items = parser["declarations"](parser["body"](path, namespace))
-        return {m[1]: " ".join(item.split()) for item in items
-                if (m := re.search(r"\b(?:def|structure)\s+([\w.]+)", item))}
 
+def check_scalar_bodies(package):
     def rename(match):
         return "shake." + SCALAR_NAMES[match[1]]
 
@@ -145,15 +158,59 @@ def check_scalar_bodies(package):
          {"cache.shake_ops.wots_chain_loop", "cache.shake_ops.wots_chain_loop.body",
           "address.WOTS_PRF", "address.FORS_PRF", "address.Adrs.with_type",
           "address.Adrs.with_keypair", "address.Adrs.with_word2", "address.Adrs.with_word3",
-          "address.Adrs.full"}),
+          "address.Adrs.full", "util.block", "util.base_2b", "util.base_2b_loop0",
+          "util.base_2b_loop0.body", "util.base_2b_loop0_loop0", "util.base_2b_loop0_loop0.body",
+          "wots.wots_digits", "wots.wots_digits_loop", "wots.wots_digits_loop.body"}),
         ("Types.lean", {"address.Adrs"}),
     ):
-        cache = declarations(package / file, "CacheopsRust")
-        portable = declarations(ROOT / "lean/Slhdsa" / file, "slhdsa")
+        cache = generated_declarations(package / file, "CacheopsRust")
+        portable = generated_declarations(ROOT / "lean/Slhdsa" / file, "slhdsa")
         for original in sorted(expected):
             name = helpers.sub(rename, original)
             if helpers.sub(rename, cache[original]) != portable[name]:
                 raise ValueError(f"cache scalar declaration {original} differs from portable {name}")
+
+
+SCALAR_CALLERS = ("wots_sign", "wots_pk_from_sig", "fors_sign", "fors_pk_from_sig")
+
+
+def extract_scalar_callers(target, scratch, *, crate=None):
+    prefix = "crate::cache::shake_ops::"
+    cuts = ("simd::available", *("simd::" + name for name in SCALAR_CALLERS),
+            "start", "digest", "thash", "wots_chain", "wots_secret", "fors_sk_gen",
+            "fors_node_portable", "climb")
+    return extract_target(target, scratch, tuple(prefix + name for name in SCALAR_CALLERS),
+                          tuple(prefix + name for name in cuts) +
+                          ("crate::wots::wots_digits", "crate::util::base_2b", "crate::util::block",
+                           "crate::shake256"), crate=crate)
+
+
+def scalar_caller_program(package):
+    parser = facade["common"]
+    items = parser["declarations"](parser["body"](package / "Funs.lean", "CacheopsRust"))
+    return {m[1]: item for item in items
+            if (m := re.search(r"\bdef (cache\.shake_ops\.[\w.]+)", item))}
+
+
+def check_scalar_callers(package):
+    source = (LEAN / "Cachepath/ShakeScalarProgram.lean").read_text()
+    program = source.split("@[rust_loop_body]", 1)[1].rsplit("end slhdsa.CacheScalar", 1)[0]
+    program = "@[rust_loop_body]" + program
+    bodies = scalar_caller_program(package)
+
+    def strip_line_ends(text):
+        return "\n".join(line.rstrip() for line in text.strip().splitlines())
+
+    if strip_line_ends("\n\n".join(bodies.values())) != strip_line_ends(program):
+        raise ValueError("scalar cache WOTS/FORS program differs from the production extraction")
+
+    portable = ROOT / "lean/Slhdsa"
+    for file in ("Types.lean", "Funs.lean"):
+        native = generated_declarations(package / file, "CacheopsRust")
+        verified = generated_declarations(portable / file, "slhdsa")
+        for name, body in native.items():
+            if name not in bodies and verified.get(name) != body:
+                raise ValueError(f"scalar cache dependency {name} differs from the portable declaration")
 
 
 def check_node_dispatch(target, scratch):
@@ -161,7 +218,8 @@ def check_node_dispatch(target, scratch):
     cuts = ("simd::available", "simd::xmss_node", "wots_pk_gen_portable")
     prefix = "crate::cache::shake_ops::"
     roots = ("xmss_node", *SCALAR_NAMES)
-    package = extract_target(target, scratch / "node", tuple(prefix + name for name in roots),
+    shared = ("crate::util::block", "crate::util::base_2b", "crate::wots::wots_digits")
+    package = extract_target(target, scratch / "node", tuple(prefix + name for name in roots) + shared,
                              tuple(prefix + name for name in cuts) + ("crate::shake256",))
     check_scalar_bodies(package)
     program = (LEAN / "Cachepath/ShakeNode.lean").read_text()
@@ -270,7 +328,8 @@ def main():
                     f"unexpected Cacheops externals on {target}: {found} != {EXPECTED_EXTERNALS}"
                 )
             check_node_dispatch(target, scratch)
-            print(f"{target}: Cacheops translation, recursive XMSS dispatch and scalar WOTS/FORS primitives matched", flush=True)
+            check_scalar_callers(extract_scalar_callers(target, scratch / "scalar"))
+            print(f"{target}: Cacheops translation, recursive XMSS dispatch and complete scalar WOTS/FORS callers matched", flush=True)
 
     run_symbolic_lifecycle_replay()
 
@@ -284,6 +343,8 @@ def main():
             LEAN / "Cachepath/ShakeEndToEnd.lean",
             LEAN / "Cachepath/ShakeXmss.lean",
             LEAN / "Cachepath/ShakeNode.lean",
+            LEAN / "Cachepath/ShakeScalar.lean",
+            LEAN / "Cachepath/ShakeScalarProgram.lean",
         ]
     )
 
@@ -311,6 +372,12 @@ def main():
             "slhdsa.cache.endtoend.sign_from_digest_spec",
             "slhdsa.cache.endtoend.sign_from_digest_with_cache_spec",
             "CacheopsRust.ShakeNode.node_eq",
+            "slhdsa.cache.endtoend.shake.climb_eq",
+            "slhdsa.CacheScalar.assembly_contracts",
+            "slhdsa.CacheScalar.wots_sign_eq",
+            "slhdsa.CacheScalar.wots_recover_eq",
+            "slhdsa.CacheScalar.fors_sign_eq",
+            "slhdsa.CacheScalar.fors_recover_eq",
             "slhdsa.cache.endtoend.shake.thash_pair_eq",
             "slhdsa.cache.endtoend.shake.xmss_sign_eq",
             "slhdsa.cache.endtoend.shake.xmss_pk_from_sig_eq",

@@ -21,13 +21,7 @@ def main():
     subprocess.run(["lake", "build", "Cachepath.ShakeEndToEnd"], cwd=LEAN, check=True)
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
-        crate = folder / "rust"
-        for name in ("src", "benches"):
-            original = ROOT / "rust" / name
-            if original.is_dir():
-                shutil.copytree(original, crate / name)
-        for name in ("Cargo.toml", "Cargo.lock"):
-            shutil.copyfile(ROOT / "rust" / name, crate / name)
+        crate = proof["copy_rust_crate"](folder)
 
         cache = crate / "src/cache.rs"
         source = cache.read_text()
@@ -56,7 +50,7 @@ def main():
         # Rebuild each dependent proof in isolation against the mutated translation.
         proofs = folder / "Cachepath"
         shutil.copytree(LEAN / ".lake/build/lib/lean/Cachepath", proofs)
-        for module in ("EndToEnd", "ShakeXmss", "ShakeNode", "ShakeEndToEnd"):
+        for module in ("EndToEnd", "ShakeXmss", "ShakeNode", "ShakeScalarProgram", "ShakeScalar", "ShakeEndToEnd"):
             shutil.copyfile(LEAN / "Cachepath" / (module + ".lean"), proofs / (module + ".lean"))
             if module != "ShakeEndToEnd":
                 compile_module(proofs / (module + ".lean"), proofs / (module + ".olean"))

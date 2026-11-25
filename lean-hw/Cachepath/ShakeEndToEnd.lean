@@ -1,5 +1,6 @@
 import Cachepath.EndToEnd
 import Cachepath.ShakeNode
+import Cachepath.ShakeScalar
 import Slhdsa.Proofs.ShakeSlh
 
 /-! Serial production SHAKE cache assembly, including the extracted XMSS sign and recovery loops.

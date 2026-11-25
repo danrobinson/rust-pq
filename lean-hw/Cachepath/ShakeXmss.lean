@@ -84,6 +84,13 @@ private theorem climb_loop_eq {N : Usize} (auth : Slice U8) (first : Usize)
 termination_by it.end.val-it.start.val
 decreasing_by all_goals change it.start.val < it.end.val at more; rw [hen, hn]; omega
 
+/-- The shared SHAKE authentication-path routine agrees at every height and offset. -/
+theorem climb_eq {N : Usize} (node : Array U8 N) (idx : U32) (auth : Slice U8) (first : Usize)
+    (height : U32) (seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
+    CacheopsRust.cache.shake_ops.climb node idx auth first height seed a =
+      slhdsa.shake.xmss.climb node idx auth first height seed (toSlhAdrs a) :=
+  climb_loop_eq auth first seed a ⟨0#u32,height⟩ node idx
+
 /-- The complete cached XMSS recovery agrees with portable XMSS on every input. -/
 theorem xmss_pk_from_sig_eq {N : Usize} (p : CacheopsRust.params.Params) (idx : U32)
     (sig : Slice U8) (m seed : Array U8 N) (a : CacheopsRust.address.Adrs) :
