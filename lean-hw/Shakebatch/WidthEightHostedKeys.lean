@@ -15,7 +15,8 @@ run_cmd liftCoreM do
         if ns.isPrefixOf n then
           let src := n.replacePrefix ns Name.anonymous
           if env.contains src then known := (src,n)::known
-    PlatformProof.replay dest known #[root] [`Shakebatch.WidthEightGeneratedKeys,`Shakebatch.WidthEightKeygen,`Fused.Outer,`Fused.OuterNode,`Fused.OuterProgram,`Cachepath,`Shakeopt]
+    let node := if dest == `WidthEightAppleKeys then `slhdsa.WidthEight.apple_worker_node else `slhdsa.WidthEight.x86_worker_node
+    PlatformProof.replay dest known #[root,node] [`Shakebatch.WidthEightGeneratedKeys,`Shakebatch.WidthEightKeygen,`Fused.Outer,`Fused.OuterNode,`Fused.OuterProgram,`Cachepath,`Shakeopt]
     unless ((←getEnv).contains (outer ++ `slhdsa.Fused.Outer.shake.xmss.xmss_node) ||
         (←getEnv).contains (dest ++ `slhdsa.Fused.Outer.shake.xmss.xmss_node)) &&
         (←getEnv).contains (dest ++ `slhdsa.WidthEight.sourceEngine) do

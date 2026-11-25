@@ -19,11 +19,10 @@ def AllNodes (host : Platform) {N : Usize} (p : params.Params) :=
 @[instance_reducible] noncomputable def sourceEngine (host : Platform) (p : params.Params) : Engine ShakeSeed :=
   Fused.Outer.keyEngine (host.outer p)
 
-theorem source_keys {N : Usize} (p : params.Params) (hp : PN p N) (host : Platform)
-    (x86 : Bool) (threads : Nat) (pool : PoolOutcome) (nodes : AllNodes host (N:=N) p) :
-    ShNode.KeyPair (sourceEngine host p) x86 threads pool (N:=N) p := by
-  apply Fused.Outer.keypair (host.outer p) p hp x86 threads pool
-  intro sk i z seed a room
+theorem source_node {N : Usize} (p : params.Params) (hp : PN p N) (host : Platform)
+    (nodes : AllNodes host (N:=N) p) (sk : Array U8 N) (i z : U32) (seed : Array U8 N)
+    (a : address.Adrs) (room : (i.val+1)*2^z.val≤512) :
+    NodeResult p sk seed i z a ((sourceEngine host p).node sk i z seed a) := by
   apply @Fused.Outer.node_spec (host.outer p) N p hp sk seed i z a (host.available N) (probe_eq host N) room
   · intro enabled addr typ w2 w3
     cases host with
@@ -39,5 +38,11 @@ theorem source_keys {N : Usize} (p : params.Params) (hp : PN p N) (host : Platfo
         N p hp sk seed addr ⟨typ,w2,w3⟩ (by decide) (NativeVerify.x86 (Bool.and_eq_true_iff.mp enabled).2)
   · intro on pos cap
     exact nodes sk seed i z a on pos cap room
+
+theorem source_keys {N : Usize} (p : params.Params) (hp : PN p N) (host : Platform)
+    (x86 : Bool) (threads : Nat) (pool : PoolOutcome) (nodes : AllNodes host (N:=N) p) :
+    ShNode.KeyPair (sourceEngine host p) x86 threads pool (N:=N) p := by
+  apply Fused.Outer.keypair (host.outer p) p hp x86 threads pool
+  exact source_node p hp host nodes
 
 end slhdsa.WidthEight
