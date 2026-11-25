@@ -15,6 +15,10 @@ def Platform.wide : Platform → Bool
   | .apple _ => true
   | .x86 => GatherRust.avx512Available
 
+/-- The Rust dispatcher accepts only the three FIPS byte lengths. -/
+def Platform.available (host : Platform) (N : Usize) : Bool :=
+  (N.val == 16 || N.val == 24 || N.val == 32) && host.wide
+
 def Platform.recovery : Platform → CacheopsRust.NativeVerifier.Recovery
   | .apple sha3 => AppleNativeRecovery.slhdsa.NativeVerify.appleRecovery sha3
   | .x86 => X86NativeRecovery.slhdsa.NativeVerify.x86Recovery
@@ -41,7 +45,7 @@ theorem packVec_eq (b : Spec.Bytes) (r : alloc.vec.Vec U8) (eq : bytes r.val=b) 
 is shared by x86 hosts without the available instruction set. -/
 def xmssSign (host : Platform) {N : Usize} (p : params.Params) (m sk : Array U8 N) (idx : U32) (seed : Array U8 N)
     (a : address.Adrs) : Result (alloc.vec.Vec U8) :=
-  if host.wide && 3≤p.hp.val then
+  if 3≤p.hp.val && host.available N then
     packVec (ParallelFusedSignature.sign (Shake.params p) (bytes m.val) (bytes sk.val) idx.val (bytes seed.val)
       (adrsS a) (fun _ => []))
   else shake.xmss.xmss_sign p m sk idx seed a
@@ -60,7 +64,7 @@ theorem xmssSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN
   · exact scalar
 
 def forsSign (host : Platform) {N : Usize} (p : params.Params) (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) :=
-  if host.wide then packVec (Shakeopt.ForsWideSignature.signature (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a))
+  if host.available N then packVec (Shakeopt.ForsWideSignature.signature (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a))
   else shake.fors.fors_sign p md sk seed a
 
 theorem forsSign_spec (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N) (md : Slice U8)
