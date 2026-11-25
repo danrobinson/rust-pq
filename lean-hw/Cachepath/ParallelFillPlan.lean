@@ -62,4 +62,32 @@ theorem runtimeAttempt_eq {N : Usize} (threads n : Usize) (out : nativeShake.Row
   | none => rfl
   | some pair => cases pair; rfl
 
+/-- Connect the representative used by the public constructor to the complete
+worker ledger. Each real batch may be published in any order. The result
+after reading all OnceLocks is the same bit-for-bit slice and success flag. -/
+theorem runtime_join {N : Usize} (threads n c k : Usize) (out : nativeShake.Rows N)
+    (batch : Nat → Nat → Result (List (Array U8 N)))
+    (selected : runtimePlan n threads = ok (some (c,k)))
+    (successful : ∀ id<k.val, ∃ data, batch (id*c.val) (min (id*c.val+c.val) n.val-id*c.val)=ok data) :
+    ∃ payload : Nat → List (Array U8 N),
+      (∀ id<k.val, batch (id*c.val) (min (id*c.val+c.val) n.val-id*c.val)=ok (payload id)) ∧
+      ∀ cells, ParallelCached.Run k.val (fun id => [(id,payload id)]) k.val [] cells →
+        (do let rows ← assemble c.val (fun i => match cells i with
+                | some v => ok v | none => fail .panic) out k.val
+            ok (true, rows)) = runtimeAttempt threads n out batch := by
+  classical
+  let payload (id : Nat) := if h : id<k.val then (successful id h).choose else []
+  have values (id : Nat) (h : id<k.val) :
+      batch (id*c.val) (min (id*c.val+c.val) n.val-id*c.val)=ok (payload id) := by
+    simpa only [payload,dite_eq_left h] using (successful id h).choose_spec
+  refine ⟨payload,values,?_⟩
+  intro cells run
+  unfold runtimeAttempt
+  rw [selected,bind_ok]
+  simp only
+  exact congrArg (fun computation : Result (nativeShake.Rows N) => do
+      let rows ← computation
+      ok (true,rows))
+    (assemble_join c.val k.val (fun id => batch (id*c.val) (min (id*c.val+c.val) n.val-id*c.val)) payload out run values)
+
 end slhdsa.cache.builder.workers.fill

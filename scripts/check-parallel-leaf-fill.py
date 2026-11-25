@@ -112,14 +112,18 @@ def check(target, scratch):
     print(f"{target}: matched planner and slot protocol, kernel matched both per-ticket Rust programs", flush=True)
 
 def main():
-    run(["lake", "build", "Cachepath.ParallelFillHosted"], lean)
+    run(["lake", "build", "Cachepath.ParallelFillReplay"], lean)
     for target in facade["TARGETS"]:
         with tempfile.TemporaryDirectory(prefix="parallel-leaf-fill-") as work:
             check(target, Path(work))
     facade["audit_theorems"]("Cachepath.ParallelFill", [
         "slhdsa.cache.builder.workers.fill." + name for name in ("can_join", "assemble_join", "bounds")])
-    facade["audit_theorems"]("Cachepath.ParallelFillHosted", [
-        "CacheopsRust.NativeSession." + host + "_parallelBuild" for host in ("apple", "linuxArm", "linuxX86")])
+    facade["audit_theorems"]("Cachepath.ParallelFillPlan", ["slhdsa.cache.builder.workers.fill.runtime_join"])
+    facade["audit_theorems"]("Cachepath.ParallelFillReplay", [
+        "AppleFill.CacheopsRust.NativeSession.apple_parallelBuild",
+        "LinuxArmFill512.LinuxArmFill.CacheopsRust.NativeSession.linuxArm_parallelBuild",
+        "X86Fill.CacheopsRust.NativeSession.linuxX86_parallelBuild",
+    ])
 
 if __name__ == "__main__":
     main()
