@@ -191,11 +191,22 @@ def public_signing(lib):
     if not internal.startswith(compact("""validate_geometry::<N>(p)?;let num_sigs=requests.len();
         if num_sigs==0{return Ok(Vec::new());}""")):
         raise ValueError("GPU signer empty-batch behavior changed")
-    for prefix, family in (("", "Sha2"), ("shake_", "Shake")):
-        expected = compact(f"""HashFamily::{family}=>{{let r={prefix}prf_msg::<N>(&sk_prf,req.addrnd,req.msg);
+    for imports in ("slhdsa::hash::{h_msg,prf_msg,seed_ctx}", "slhdsa::shake256::shake256",
+                    "slhdsa::util::{base_2b,block,to_int}"):
+        if "use"+imports+";" not in src:
+            raise ValueError("GPU host primitive binding changed")
+    req = body(internal, "for(sig_idx,req)inrequests.iter().enumerate()")
+    expected = compact("""assert_eq!(req.sk.len(),4*N);
+        let sk_seed:&[u8;N]=req.sk[..N].try_into().unwrap();let sk_prf=block::<N>(req.sk,1);
+        let pk_seed:&[u8;N]=req.sk[2*N..3*N].try_into().unwrap();let pk_root=block::<N>(req.sk,3);
+        let key_idx=match unique_seeds.iter().position(|(ss,ps)|ss==&sk_seed&&ps==&pk_seed){
+          Some(idx)=>idx as u32,None=>{unique_seeds.push((sk_seed,pk_seed));(unique_seeds.len()-1)as u32}};
+        let (r,digest)=match family{""")
+    for prefix,family in (("","Sha2"), ("shake_","Shake")):
+        expected += compact(f"""HashFamily::{family}=>{{let r={prefix}prf_msg::<N>(&sk_prf,req.addrnd,req.msg);
             let digest={prefix}h_msg::<N>(p,&r,pk_seed,&pk_root,req.msg);(r,digest)}}""")
-        if internal.count(expected) != 1:
-            raise ValueError("GPU host digest primitive call changed")
+    if req.split("letidx_tree=",1)[0] != expected+"};":
+        raise ValueError("GPU host key selection or digest computation changed")
 
 
 def scopes(source, pos):
