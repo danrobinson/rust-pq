@@ -146,7 +146,20 @@ def fill(directory):
     for name, n in [("batch_root_16", "16"), ("batch_root_512", "N")]:
         original = function(src, name)
         before, tail = original.split("    for level in 1..=height {", 1)
-        if not tail.rstrip().endswith("roots[0]\n}"):
+        # The successor is the separately extracted and checked parent traversal.
+        # Reject intermediate mutations, alternate return stores or changed call arguments.
+        normalize = lambda code: re.sub(r"\s+", "", re.sub(r"//[^\n]*", "", code))
+        reduction = (
+            "let adr = adrs.with_type(TREE).with_word2(level);"
+            "arm_wide::parents_16(state, adr, first >> level, &mut roots, count >> level);"
+            if n == "16"
+            else "let adr=adrs.with_type(TREE).with_word2(level);let level_first=first>>level;"
+            "let level_count=count>>level;"
+            "let done=crate::sha512::paired::parents_batch(&seed.state512,adr,level_first,&mut roots,level_count);"
+            "for j in done..level_count{roots[j]=hash2(seed,&adr.with_word3(level_first+j as u32),"
+            "&roots[2*j],&roots[2*j+1],);}"
+        )
+        if normalize(tail) != normalize(reduction + "}roots[0]}"):
             raise ValueError(
                 "unexpected handoff from native leaves to parent reductions"
             )
@@ -242,7 +255,39 @@ def check_dispatch(target, directory):
         parent["declarations"](LEAN / "Slhdsa/Types.lean", "slhdsa")
     ):
         raise ValueError(f"{target}: Arm XMSS type layouts differ")
-    print(f"{target}: Aeneas batch_root dispatch and layouts match", flush=True)
+    package = facade["extract"](
+        "rust",
+        target,
+        "XNode",
+        directory,
+        ["crate::xmss::xmss_node"],
+        [
+            "crate::sha256::arm_wide::available",
+            "crate::xmss::arm::batch_root",
+            "crate::wots::wots_pk_gen",
+            "crate::xmss::hash2",
+        ],
+    )
+    node = parent["declarations"](package / "Funs.lean", "slhdsa")
+    portable = parent["declarations"](LEAN / "Slhdsa/Funs.lean", "slhdsa")
+    node_body = (LEAN / "Armwide/XmssNode.lean").read_text()
+    entries = [d for d in node if d.startswith("def xmss.xmss_node\n")]
+    if (
+        len(entries) != 1
+        or entries[0] not in node_body
+        or set(node) - set(entries) - set(portable)
+    ):
+        raise ValueError(
+            f"{target}: recursive Arm XMSS node or address operations differ"
+        )
+    if set(parent["declarations"](package / "Types.lean", "slhdsa")) - set(
+        parent["declarations"](LEAN / "Slhdsa/Types.lean", "slhdsa")
+    ):
+        raise ValueError(f"{target}: recursive Arm XMSS layouts differ")
+    print(
+        f"{target}: Aeneas batch_root and recursive public xmss_node dispatchers match",
+        flush=True,
+    )
 
 
 def main():
@@ -274,9 +319,9 @@ def main():
         for target in keygen["facade"]["TARGETS"][:2]:
             check_dispatch(target, Path(tmp))
     facade = keygen["facade"]
-    facade["run"](["lake", "build", "Armwide.XmssBatch"], LEAN)
+    facade["run"](["lake", "build", "Armwide.XmssNode"], LEAN)
     facade["audit_theorems"](
-        "Armwide.XmssBatch",
+        "Armwide.XmssNode",
         [
             "slhdsa.Armwide.XmssLeaves." + s
             for s in [
@@ -292,6 +337,8 @@ def main():
                 "large_root",
                 "batch_root_fips",
                 "batch_root_eq_scalar",
+                "Node.node_fips",
+                "Node.node_eq_scalar",
             ]
         ],
     )
