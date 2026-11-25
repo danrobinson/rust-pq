@@ -256,7 +256,12 @@ run_cmd do
 
 
 if __name__ == "__main__":
-    arm["run"](["lake", "build", "Cachepath.PlatformSha2Linux", "Cachepath.PlatformPortable"], LEAN)
+    arm["run"](["lake", "build", "Cachepath.PlatformSha2RoundTripLinux", "Cachepath.PlatformPortable"], LEAN)
+    cache["facade"]["audit_theorems"](
+        "Cachepath.PlatformSha2RoundTripLinux",
+        [f"{owner}.CacheopsRust.Public.sha2_seeded_roundtrip"
+         for owner in ["X86Sha2Session", "AppleSha2Session", "LinuxSha2Session.AppleSha2Session"]],
+    )
     cache["facade"]["audit_theorems"](
         "Cachepath.PlatformPortable",
         [
