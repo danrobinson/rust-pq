@@ -1,6 +1,5 @@
 import Cachepath.WotsOrderProgram
 import Slhdsa.Proofs.Basic
-import Shakeopt.WotsRefill
 import Mathlib.Data.Fintype.EquivFin
 
 open Aeneas Aeneas.Std Result
