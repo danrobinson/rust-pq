@@ -16,7 +16,7 @@ import signer
 def main():
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"), str(Path.home()/".cargo/bin"), os.environ["PATH"]])
-    facade["run"](["lake", "build", "Parallel.LastFinisher"], facade["LEAN"])
+    facade["run"](["lake", "build", "Parallel.QueueOrder", "Parallel.TicketProjection"], facade["LEAN"])
     template = signer.probe_source((facade["ROOT"] / "rust/src/cache.rs").read_text())
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp, "sign.rs")
@@ -27,17 +27,28 @@ def main():
                             "overflow-checks=yes", "-Awarnings", src, "-o", exe], check=True)
             replay = subprocess.check_output([exe], text=True, env={**os.environ, "RUST_PQ_SIGNING_CERTIFICATE":"1"})
             ledgers = [s for s in replay.splitlines() if s.startswith("LEDGER ")]
-            if len(ledgers) != 12:
+            ranges = [line.split()[1:] for line in replay.splitlines() if line.startswith("LEAF_RANGE ")]
+            if len(ledgers) != 12 or len(ranges) != len(ledgers):
                 raise ValueError(f"expected six parameter geometries with SIMD on and off, got {len(ledgers)}")
             for idx, line in enumerate(ledgers):
                 _, lanes, total, fields = line.split(" ",3)
                 jobs, reducer = map(json.loads, fields.split("|"))
                 if int(lanes) != width:
                     raise ValueError("unexpected width")
+                offset, leaves = map(int, ranges[idx])
                 proof = f"""import Parallel.SigningSchedules
+import Parallel.TicketProjection
 set_option maxRecDepth 200000
 set_option maxHeartbeats 0
 private def jobs : List (List Nat) := {jobs}
+private def leafFields (j : Nat) := jobs[j]!.filterMap fun k =>
+  if {offset} ≤ k ∧ k < {offset + leaves} then some (k-{offset}) else none
+private theorem leafCover : ((List.range jobs.length).flatMap leafFields).Perm (List.range {leaves}) :=
+  List.isPerm_iff.mp (by rfl)
+example {{issued : Nat}} {{done : List Nat}} (trace : ParallelSigning.Trace jobs.length issued [] done)
+    (exhausted : jobs.length < issued) :
+    ParallelSigning.Trace {leaves} ({leaves}+1) [] (done.flatMap leafFields) :=
+  ParallelSigning.projected_trace trace exhausted leafFields leafCover
 private def reducer : List Nat := {reducer}
 private def slots := jobs.flatten ++ reducer
 private theorem geometry : slots.Perm (List.range {int(total)}) := List.isPerm_iff.mp (by rfl)
@@ -49,6 +60,8 @@ example : jobs.length + jobs.length < 2^32 := by decide
 """
                 subprocess.run(["lake","env","lean","--stdin"], input=proof, text=True, cwd=facade["LEAN"], check=True)
                 print(f"width {width}, plan {idx+1}: {len(jobs)} sorted tickets, {total} physical slots", flush=True)
+    facade["audit_theorems"]("Parallel.QueueOrder", ["ParallelFused.LastFinisher.cell_at_last", "ParallelFused.LastFinisher.reordered_cells"])
+    facade["audit_theorems"]("Parallel.TicketProjection", ["ParallelSigning.projected_trace"])
     facade["audit_theorems"]("Parallel.SigningSchedules", ["ParallelFused.Schedules.signature_independent"])
 
     facade["audit_theorems"]("Parallel.LastFinisher", [

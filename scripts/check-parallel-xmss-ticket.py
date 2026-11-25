@@ -80,9 +80,9 @@ def main():
             file.write_text(raw.replace("sk idx height seed", "sk height idx seed"))
             if program(pkg).split() == checked:
                 raise ValueError("accepted swapped tree index and height")
-    module = "Parallel.LeafTable"
+    module = "Parallel.LeafVisibility"
     common["facade"]["run"](["lake", "build", module], lean)
-    common["facade"]["audit_theorems"](module, ["slhdsa.ParallelLeafTable.node_law", "slhdsa.ParallelLeafTable.leaves_spec"])
+    common["facade"]["audit_theorems"](module, ["slhdsa.ParallelLeafTable.node_law", "slhdsa.ParallelLeafTable.leaves_spec", "slhdsa.ParallelLeafTable.visible_leaves"])
     common["facade"]["audit_theorems"](module, ["slhdsa.ParallelXmssTicket." + n for n in
         ("subtree_spec", "leaf_spec", "linux_subtree", "linux_leaf", "hosted_law", "hosted_subtree", "hosted_leaf",
          "layer_table", "subtree_from_layers", "leaf_from_layers", "wots_from_layers", "published_leaf_returns")])

@@ -415,6 +415,7 @@ fn check_ledger(
             rows[ticket].push(offset + slot);
         }
         let reducer: Vec<_> = reserved.iter().map(|s| xmss + leaves + s).collect();
+        println!("LEAF_RANGE {} {}", xmss, leaves);
         println!("LEDGER {} {} {:?}|{:?}", PROOF_WIDTH, expected.len(), rows, reducer);
     }
     let mut reference = REFERENCE.lock().unwrap();
