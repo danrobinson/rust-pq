@@ -31,6 +31,11 @@ def recording_probe():
         begin = probe.index("let next = AtomicUsize::new(0);", start)
         join = probe.index("crate::pool::execute(active_workers, true, &fill);", begin)
         worker = probe[begin:join]
+        if "let active_workers = workers.min(jobs.len().max(1));" not in probe[start:begin]:
+            raise ValueError(f"review {name} worker-count bound")
+        protocol = "let id = next.fetch_add(1, Ordering::Relaxed); let Some(job) = jobs.get(id) else { break };"
+        if protocol not in " ".join(worker.split()):
+            raise ValueError(f"review {name} claim and retirement protocol")
         edits = 0
         def record(match):
             nonlocal edits
@@ -80,7 +85,7 @@ def certificates():
 
 if __name__ == "__main__":
     os.environ["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"), str(Path.home()/".cargo/bin"), os.environ["PATH"]])
-    facade["run"](["lake", "build", "Parallel.CacheAssembly"], lean)
+    facade["run"](["lake", "build", "Parallel.CacheTicketSignature"], lean)
     checked = certificates()
     # Definitional reduction in the Lean kernel checks each certificate. No native_decide axiom.
     for key, (total, jobs) in checked.items():
@@ -89,11 +94,18 @@ if __name__ == "__main__":
         variant = "s" if layers in (7,8) else "f"
         hit = "some d2" if cached == 2 else "none"
         p = f"Spec.{name}_{bits}{variant}"
-        program = f"""import Parallel.CacheAssembly
+        program = f"""import Parallel.CacheTicketSignature
 set_option maxRecDepth 20000
 set_option maxHeartbeats 4000000
 private def jobs : List (List Nat) := {json.dumps(jobs)}
 private theorem ownership : jobs.flatten.Perm (List.range {total}) := List.isPerm_iff.mp (by rfl)
+private theorem capacity : jobs.length + max jobs.length 1 < 2^32 := by decide
+example {{V : Type}} (want : Nat → V) {{workers st}}
+    (run : ParallelCached.Tickets.Reach (ParallelCached.Tickets.valued jobs want) workers st)
+    (workerBound : workers ≤ max jobs.length 1) : st.counter < 2^32 := by
+  refine (ParallelCached.Tickets.fetch_bound run ?_).1
+  simpa only [ParallelCached.Tickets.valued, List.length_map] using
+    lt_of_le_of_lt (Nat.add_le_add_left workerBound jobs.length) capacity
 example (d2 : List Spec.Bytes) : jobs.flatten.Perm (List.range
     (ParallelCached.activeLayers {p} ({hit})*{p}.hp + {p}.k*(1+{p}.a))) := ownership
 example {{V : Type}} (compute : Nat → Nat → V) {{t todo cells}}
@@ -107,4 +119,9 @@ example {{V : Type}} (compute : Nat → Nat → V) {{t todo cells}}
             raise ValueError(f"Lean rejected slot ownership for {key}: {result.stdout}{result.stderr}")
     facade["audit_theorems"]("Parallel.CacheCompletion", ["ParallelCached.can_join","ParallelCached.plan_completion"])
     facade["audit_theorems"]("Parallel.CacheAssembly", ["ParallelCached.joined_value", "ParallelCached.assemble_fips"])
+    facade["audit_theorems"]("Parallel.CacheTickets", [
+        "ParallelCached.Tickets.fetch_bound", "ParallelCached.Tickets.no_infinite",
+        "ParallelCached.Tickets.maximal_join",
+    ])
+    facade["audit_theorems"]("Parallel.CacheTicketSignature", ["ParallelCached.Tickets.ticket_signature"])
     print(f"Lean checked exact slot ownership and worker completion for {len(checked)} production job plans")
