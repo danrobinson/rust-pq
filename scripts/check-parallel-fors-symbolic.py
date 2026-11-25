@@ -44,7 +44,7 @@ def main():
     os.environ["PATH"] = f"{Path.home()}/.cargo/bin:" + os.environ["PATH"]
     raw = gate["build_source"]()
     plan, observer = generic(raw)
-    symbols = (HERE / "parallel-proof/fors-symbols.rs").read_text()
+    symbols = (HERE / "parallel-proof/planner-symbols.rs").read_text()
     symbolic_observer = replace_once(observer, ".map(|t| ((t as u32) * 6143 + 111) % (1 << a))", ".map(symbolic::Word::choice)")
     geometry = re.findall(r"pub const SHA2_(?:128|192|256)[SF]: Params = Params \{[^}]*? a: (\d+), k: (\d+),",
                           (gate["root"] / "rust/src/params.rs").read_text())
