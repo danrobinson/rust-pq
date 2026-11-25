@@ -2,6 +2,10 @@
 
 from collections import Counter
 import re
+import runpy
+from pathlib import Path
+
+leaf_dispatch = runpy.run_path(str(Path(__file__).parent / "metal-proof/leaf_dispatch.py"))
 
 
 def compact(s):
@@ -627,7 +631,7 @@ def chain_public_claim(label, cmd, p, g, n, word_size, tip):
     scratch = f"(MetalChainDispatch.invariant {p} {count} {n//word_size} {word_size} e ({tip} {p} e) keys trees other)"
     correct = f"(MetalCommandValues.correct {g} (MetalCommandValues.framed rs).length (pool.take (rs.length * {p}.sigBytes)) {spec} {scratch})"
     return f"""
-example (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes)
+private theorem {label}_chains (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes)
     (e : MetalChainDispatch.Execution) (keys : MetalChainDispatch.Keys)
     (trees : MetalChainDispatch.Trees) (other : MetalCommand.Region → Prop)
     (accepted : rs.any (fun r => decide (r.ctx.length > 255)) = false →
@@ -730,14 +734,18 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
         MetalCommandValues.published (trace := {label}) (by decide) {g} {splitBool}
           (by decide) {reader} (by decide) (by decide) b, (accepted guard).2⟩)
 """]
+                    def producer(region):
+                        epoch, inputs, outputs = next(entry for entry in trace if region in entry[2])
+                        return f"(⟨{epoch},{region_list(inputs)},{region_list(outputs)}⟩ : MetalCommand.Access)"
+                    source_cmd = producer("chain_tips") if phase else None
                     if phase:
-                        cmd = next(entry for entry in trace if "chain_tips" in entry[2])
-                        epoch, inputs, outputs = cmd
-                        source_cmd = f"(⟨{epoch},{region_list(inputs)},{region_list(outputs)}⟩ : MetalCommand.Access)"
                         statements.append(chain_public_claim(
                             label, source_cmd, p, g, n, 8 if is_shake else 4,
                             "shakeChainTip" if is_shake else "sha2ChainTip",
                         ))
+                    statements.append(leaf_dispatch["public_claim"](
+                        label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd,
+                    ))
     return "\n".join(statements)
 
 
@@ -763,6 +771,27 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     projections = []
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
+        for streaming in (False, True):
+            project = leaf_dispatch["project"]
+            projections.append(project(shader, is_shake, streaming, body, compact))
+            # Corrupt a leaf output and a hash-stream input independently.
+            order_site = {
+                (False, False): ("s.push_word(chain_tips[off + 2u]);", "s.push_word(chain_tips[off + 1u]);"),
+                (False, True): ("s.push_word(tip[2]);", "s.push_word(tip[1]);"),
+                (True, False): ("sp.absorb_lane(chain_tips[tip_base + i]);", "sp.absorb_lane(chain_tips[tip_base]);"),
+                (True, True): ("sp.absorb_lane(tip[i]);", "sp.absorb_lane(tip[0]);"),
+            }[bool(is_shake), streaming]
+            for before, after in (
+                ("out_leaves[out_off + i] = leaf[i];", "out_leaves[out_off + i] = leaf[0];"),
+                order_site,
+            ):
+                try:
+                    project(shader.replace(before, after), is_shake, streaming, body, compact)
+                except ValueError as error:
+                    if "unmodeled leaf projection" not in str(error):
+                        raise
+                else:
+                    raise ValueError(f"accepted incorrect XMSS leaf operation: {after}")
         # Valid MSL division in place of modulo still translates; Lean's
         # concrete counterexample must differ. A changed output store must fail parsing.
         projections.append(chain_projection(shader.replace(
