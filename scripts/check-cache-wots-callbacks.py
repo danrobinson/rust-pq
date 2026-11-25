@@ -47,6 +47,14 @@ def model_declarations(width):
     text = re.sub(r"(?<![.\w])((?:fill_xmss_leaves|hash_pairs)[.\w]*)", r"shake.batch.\1", text)
     for match in re.finditer(r"^def\s+(shake\.batch\.[\w.]+)\b[\s\S]*?(?=\n\s*\n|\nend\b|\Z)", text, re.M):
         models[match[1]] = normalize(match[0])
+    text = (LEAN / "Cachepath/WotsFusedProgram.lean").read_text()
+    text = text.replace("machine.width", f"{width}#usize").replace("machine.permute", "shake256.parallel.permute")
+    text = text.replace("ShakeBatch.shake.batch.", "shake.batch.").replace("ArrayAdrsW", f"ArrayAdrs{width}")
+    # The source closure carries a phantom N. Its specialized Lean call needs this explicit argument.
+    text = text.replace(f"ArrayAdrs{width}.call (N:=N)", f"ArrayAdrs{width}.call")
+    text = re.sub(r"(?<![.\w])generate(?=[._\s])", "shake.batch.wots_pk_gen_batch", text)
+    for match in re.finditer(r"^def\s+(shake\.batch\.[\w.]+)\b[\s\S]*?(?=\n\s*\n|\nend\b|\Z)", text, re.M):
+        models[match[1]] = normalize(match[0])
     return models
 
 
@@ -74,8 +82,7 @@ def check(package, target, width):
         if key in seen:
             continue
         seen.add(key)
-        todo.extend(ref for ref in names.findall(models[key]) if ref.startswith("shake.batch.") and ref not in seen
-                    and ref != "shake.batch.wots_pk_gen_batch")
+        todo.extend(ref for ref in names.findall(models[key]) if ref.startswith("shake.batch.") and ref not in seen)
     if seen != checked.keys():
         raise ValueError(f"{target}: unexpected WOTS dependency set {seen ^ checked.keys()}")
     # The sorted callers also use the ordinary address setters, serialization and FIPS constants.
@@ -96,7 +103,7 @@ def check(package, target, width):
 def extract_and_check(target, width, scratch, crate=None):
     roots = tuple(base + "simd::" + name for name in ("wots_sign", "wots_pk_from_sig", "wots_pk_gen_single",
                                                       "fill_xmss_leaves", "hash_pairs"))
-    cuts = tuple(base + name for name in ("start", "digest", "simd::wots_pk_gen_batch")) + (
+    cuts = tuple(base + name for name in ("start", "digest")) + (
         "crate::util::block", "crate::shake256::{Sponge}::absorb", "crate::shake256::parallel::permute",
     )
     package = shared["extract_target"](target, scratch, roots, cuts, crate=crate)
@@ -166,18 +173,22 @@ def mutation_test():
         crate = shared["copy_rust_crate"](scratch)
         path = crate / "src/cache.rs"
         source = path.read_text()
-        original = "chains(seed, addr, ids, &values, [0; WIDTH], ids.map(|i| digits[i]))"
-        if source.count(original) != 1:
-            raise ValueError("missing WOTS signing mutation site")
-        path.write_text(source.replace(original, original.replace("digits[i]", "digits[0]")))
-        try:
-            extract_and_check("aarch64-apple-darwin", 8, scratch / "changed", crate)
-        except ValueError as error:
-            if "differs from its verified body" not in str(error):
-                raise
-        else:
-            raise ValueError("accepted WOTS signing with a repeated first digit")
-        print("rejected the mutated production WOTS digit gather", flush=True)
+        for name, original, changed in (
+            ("signing digit gather", "chains(seed, addr, ids, &values, [0; WIDTH], ids.map(|i| digits[i]))",
+             "chains(seed, addr, ids, &values, [0; WIDTH], ids.map(|_| digits[0]))"),
+            ("fused sponge boundary", "if pos == 17 {", "if pos == 16 {"),
+        ):
+            if source.count(original) != 1:
+                raise ValueError(f"missing unique {name} mutation site")
+            path.write_text(source.replace(original, changed))
+            try:
+                extract_and_check("aarch64-apple-darwin", 8, scratch / name.replace(" ", "-"), crate)
+            except ValueError as error:
+                if "differs from its verified body" not in str(error):
+                    raise
+            else:
+                raise ValueError(f"accepted the incorrect {name}")
+            print(f"rejected the mutated production {name}", flush=True)
 
 
 def main():
@@ -196,7 +207,11 @@ def main():
             if "linux" in target:
                 check_permutation(target, scratch / "kernel")
                 check_stream(target, scratch / "stream")
-    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms", "Cachepath.WotsRows"], LEAN)
+    shared["facade"]["run"](["lake", "build", "Cachepath.WotsPlatforms", "Cachepath.WotsRows", "Cachepath.WotsFusedPrf"], LEAN)
+    shared["facade"]["audit_theorems"]("Cachepath.WotsFusedPrf", [
+        "slhdsa.cache.builder.nativeShake.Vector.Fused." + name for name in
+        ("round_spec", "rounds", "packed_layout", "chain_spec", "init_input", "init_prf", "addresses_spec", "inner_spec")
+    ])
     shared["facade"]["audit_theorems"]("Cachepath.WotsRows", [
         "slhdsa.cache.builder.nativeShake.Vector." + name for name in ("row_loop", "fill_spec", "parents_spec", "ops")
     ])
