@@ -83,7 +83,7 @@ def copy_rust_crate(destination):
     return crate
 
 
-def extract_target(target, scratch, starts=STARTS, opaques=OPAQUES, *, crate=None):
+def extract_target(target, scratch, starts=STARTS, opaques=OPAQUES, *, crate=None, features="platform-sha2"):
     dest = scratch / "Cacheops"
     dest.mkdir(parents=True)
     llbc = scratch / "cacheops.llbc"
@@ -99,7 +99,7 @@ def extract_target(target, scratch, starts=STARTS, opaques=OPAQUES, *, crate=Non
             "--",
             "--locked",
             "--features",
-            "platform-sha2",
+            features,
             "--target",
             target,
         ],
