@@ -71,6 +71,9 @@ def main():
     facade["audit_theorems"](module, ["slhdsa.ForsHorizontal." + n for n in
         ("indices_spec", "carry", "flush_transfer", "flush", "blocks", "subtree_spec")])
 
+    for probe in ("fors_buffered.py", "fors_buffered_symbolic.py"):
+        facade["run"](["uv", "run", "--script", HERE / "parallel-proof" / probe], root)
+
 
 if __name__ == "__main__":
     main()

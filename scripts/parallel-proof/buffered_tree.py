@@ -32,7 +32,7 @@ def build(directory, batch=None):
     return compile_probe(directory,source)
 
 
-def calls(n, height, sk, seed, idx, layer, tree, tail):
+def calls(n, height, sk, seed, idx, layer, tree, tail, *, fors=False):
     prefix = bv.Concat(layer,bv.BVV(0,32),tree)
     base = bv.Concat(prefix,*(tail.get_bytes(i,4).reversed for i in range(0,16,4)))
     nodes = {}
@@ -42,7 +42,8 @@ def calls(n, height, sk, seed, idx, layer, tree, tail):
         return nodes[h,i]
     def parents(h, first, count):
         indices = range(first,first+count)
-        addr = bv.Concat(*(bv.Concat(prefix,bv.BVV(2,32),bv.BVV(0,32),bv.BVV(h,32),
+        addr = bv.Concat(*(bv.Concat(prefix,bv.BVV(3 if fors else 2,32),
+                             tail.get_bytes(4,4).reversed if fors else bv.BVV(0,32),bv.BVV(h,32),
                              (idx << (height-h)) + i) for i in indices))
         left = bv.Concat(*(digest(h-1,2*i) for i in indices))
         right = bv.Concat(*(digest(h-1,2*i+1) for i in indices))
@@ -53,7 +54,13 @@ def calls(n, height, sk, seed, idx, layer, tree, tail):
         return "pairs",(seed,addr,left,right,bv.BVV(count,64)),bv.Concat(*values)
     groups = 1 << (height-3)
     for b in range(groups):
-        yield "leaves",(sk,seed,(idx << height)+8*b,base),bv.Concat(*(digest(0,8*b+l) for l in range(8)))
+        first = (idx << height)+8*b
+        if fors:
+            ids = bv.Concat(*((first+i).reversed for i in range(8)))
+            kind,args = "fors_leaves",(sk,seed,base,ids,bv.BVV(8,64))
+        else:
+            kind,args = "leaves",(sk,seed,first,base)
+        yield kind,args,bv.Concat(*(digest(0,8*b+l) for l in range(8)))
         level = 1
         while (b+1) % (1 << level) == 0:
             yield parents(level,8*((b+1)//(1 << level)-1),8)

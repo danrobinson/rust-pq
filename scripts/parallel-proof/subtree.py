@@ -185,7 +185,7 @@ def check(image, n, height):
     execute(project, st, out, stop, iter(stream), 8, f"{n} bytes, height {height}")
 
 
-def execute(project, st, out, stop, stream, width, label):
+def execute(project, st, out, stop, stream, width, label, *, report=True):
     addr = lambda name: project.loader.find_symbol(name).rebased_addr
 
     def fixed_address(state, kind):
@@ -200,7 +200,7 @@ def execute(project, st, out, stop, stream, width, label):
 
     permitted = {stop}
     extra = {}
-    for name in ("proof_permute", "proof_leaves", "proof_pairs"):
+    for name in ("proof_permute", "proof_leaves", "proof_pairs", "proof_fors_leaves"):
         symbol = project.loader.find_symbol(name)
         if symbol is not None:
             extra[name] = symbol.rebased_addr
@@ -238,14 +238,14 @@ def execute(project, st, out, stop, stream, width, label):
                 if kind != "return" or next(stream, None) is not None:
                     raise ValueError("early return")
                 same(st.memory.load(out, result.size() // 8), result)
-                print(
-                    f"{label}: checked {count} calls and output",
-                    flush=True,
-                )
+                if report:
+                    print(f"{label}: checked {count} calls and output", flush=True)
                 return
-            if st.addr in (extra.get("proof_leaves"), extra.get("proof_pairs")):
+            if st.addr in (extra.get("proof_leaves"), extra.get("proof_pairs"), extra.get("proof_fors_leaves")):
                 leaves = st.addr == extra.get("proof_leaves")
-                if kind != ("leaves" if leaves else "pairs"):
+                fors = st.addr == extra.get("proof_fors_leaves")
+                expected_kind = "fors_leaves" if fors else "leaves" if leaves else "pairs"
+                if kind != expected_kind:
                     raise ValueError(f"unexpected compiled subtree operation: {kind}")
                 for reg, expected in zip(("rsi","rdx","rcx","r8","r9")[:len(args)], args, strict=True):
                     regval = getattr(st.regs, reg)
