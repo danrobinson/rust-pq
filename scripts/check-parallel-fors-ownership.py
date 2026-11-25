@@ -45,7 +45,7 @@ def main():
         f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
     )
     facade = gate["ticket"]["shared"]["facade"]
-    facade["run"](["lake", "build", "Parallel.ForsFieldPack"], lean)
+    facade["run"](["lake", "build", "Parallel.ForsNativeField"], lean)
     geometry = re.findall(
         r"pub const SHA2_(?:128|192|256)[SF]: Params = Params \{[^}]*? a: (\d+), k: (\d+),",
         (root / "rust/src/params.rs").read_text(),
@@ -62,7 +62,7 @@ def main : IO Unit := do
   for (a,k) in (["""
             + ",".join(f"({a},{k})" for a, k in geometry)
             + """] : List (Nat × Nat)) do
-    for p in [Policy.scalar,.three,.eight] do
+    for p in [Policy.scalar,.three,.eight,.scalar] do
       for t in [:k] do
         for c in [:a+1] do
           match owner p a t c with
@@ -96,10 +96,16 @@ def main : IO Unit := do
             if (run.returncode == 0 and run.stdout == expected) != (old is None):
                 raise ValueError(f"unexpected ownership comparison: {old}")
     facade["audit_theorems"](
-        "Parallel.ForsFieldPack",
+        "Parallel.ForsNativeField",
         [
             "slhdsa.RawFors." + n
-            for n in ("unique", "complete", "Receipt.correct", "pack_spec")
+            for n in (
+                "unique",
+                "complete",
+                "Receipt.correct",
+                "pack_spec",
+                "native_receipt",
+            )
         ],
     )
 
