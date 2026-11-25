@@ -50,15 +50,17 @@ noncomputable def scalarDirect {N} (host : ParallelScalarFors.Platform) (d : Dat
 def unreachableLow : ParallelLowFors.Wide := ⟨fun _ _ _ _ _ => fail .panic⟩
 def unreachableHigh : ParallelForsTicket.Wide := ⟨fun _ _ _ _ _ => fail .panic⟩
 
-noncomputable def groupedLow {N} (mode : Mode) (d : Data N) (first : U16) (active depth : U8)
-    (col lane : Nat) : Result (Cell N) :=
+noncomputable def lowJournal {N} (mode : Mode) (d : Data N) (first : U16) (active depth : U8) : Result (ParallelLowFors.Journal N) :=
   let action := match mode with
     | .linux => @ParallelLowFors.ticket Kldisp.machine ParallelLowFors.linuxHost unreachableLow N
     | .apple b => @ParallelLowFors.ticket (AppleHybrid.machine b) (ParallelLowFors.appleHost b) (ParallelLowFors.appleWide b d.p) N
     | .x86 _ => @ParallelLowFors.ticket Kxdispatch.machine ParallelLowFors.x86Host (ParallelLowFors.x86Wide d.p) N
     | .fallback _ => fun _ _ _ _ _ _ _ _ _ => fail .panic
-  Std.bind (action d.sk d.seed d.addr d.choices d.p.a first active depth d.stride)
-    (fun rows => ok rows.val[col*active.val+lane]!)
+  action d.sk d.seed d.addr d.choices d.p.a first active depth d.stride
+
+noncomputable def groupedLow {N} (mode : Mode) (d : Data N) (first : U16) (active depth : U8)
+    (col lane : Nat) : Result (Cell N) :=
+  Std.bind (lowJournal mode d first active depth) (fun rows => ok rows.val[col*active.val+lane]!)
 
 noncomputable def groupedDirect {N} (d : Data N) (first : U16) (active h : U8) (lane : Nat) : Result (Cell N) :=
   Std.bind (@ParallelForsTicket.direct_ticket unreachableHigh N d.sk d.seed d.addr d.choices d.p.a first active h d.stride)

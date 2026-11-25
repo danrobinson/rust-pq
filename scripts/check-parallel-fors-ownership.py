@@ -45,7 +45,7 @@ def main():
         f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
     )
     facade = gate["ticket"]["shared"]["facade"]
-    facade["run"](["lake", "build", "Parallel.ForsNativeField"], lean)
+    facade["run"](["lake", "build", "Parallel.ForsSharedGroup"], lean)
     geometry = re.findall(
         r"pub const SHA2_(?:128|192|256)[SF]: Params = Params \{[^}]*? a: (\d+), k: (\d+),",
         (root / "rust/src/params.rs").read_text(),
@@ -96,7 +96,7 @@ def main : IO Unit := do
             if (run.returncode == 0 and run.stdout == expected) != (old is None):
                 raise ValueError(f"unexpected ownership comparison: {old}")
     facade["audit_theorems"](
-        "Parallel.ForsNativeField",
+        "Parallel.ForsSharedGroup",
         [
             "slhdsa.RawFors." + n
             for n in (
@@ -105,6 +105,9 @@ def main : IO Unit := do
                 "Receipt.correct",
                 "pack_spec",
                 "native_receipt",
+                "shared_low",
+                "shared_direct",
+                "shared_scalar",
             )
         ],
     )
