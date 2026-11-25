@@ -65,10 +65,10 @@ def cache.sha2_ops.build_xmss_tree
 
 end
 
-private theorem bind_right {α β} {r : Result α} {f g : α → Result β} (h : ∀ a, f a=g a) :
+theorem bind_right {α β} {r : Result α} {f g : α → Result β} (h : ∀ a, f a=g a) :
     Std.bind r f = Std.bind r g := by rw [funext h]
 
-private theorem leaf_loop [Cpu] [Features] {N} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
+theorem leaf_loop [Cpu] [Features] {N} (p : params.Params) (hp : PN p N) (sk : Array U8 N)
     (seed : hash.Seed N) (hs : SeedOk seed) (a : address.Adrs) (it : core.ops.range.Range Usize)
     (v : alloc.vec.Vec (Array U8 N)) :
     cache.sha2_ops.build_xmss_tree_loop0 it sk seed a v = slhdsa.cache.sha2_ops.build_xmss_tree_loop0 it sk seed a v := by

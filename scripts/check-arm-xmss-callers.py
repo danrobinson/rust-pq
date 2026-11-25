@@ -81,6 +81,31 @@ def inspect(target, temp):
     )
 
 
+def inspect_parallel(target, directory):
+    directory.mkdir()
+    construction = runpy.run_path(str(HERE / "check-cache-construction.py"))
+    tickets = runpy.run_path(str(HERE / "check-parallel-leaf-fill.py"))
+    construction["check_parallel"](target, directory)
+    tickets["check"](target, directory)
+    # The second instantiation reuses the four same extracted declarations in a
+    # namespace where the WOTS call is bound to the native public dispatcher.
+    native = (LEAN / "Armwide/XmssParallelBuilder.lean").read_text()
+    program = (LEAN / "Cachepath/ParallelFillProgram.lean").read_text()
+    worker = program[
+        program.index("@[rust_loop_body]") : program.index("def shakeBatch")
+    ].strip()
+    program = (LEAN / "Cachepath/BuilderParallelProgram.lean").read_text()
+    tree = program[
+        program.index("def sha2Tree\n") : program.index(
+            "/-- Parallel-feature root of the shake builder"
+        )
+    ].strip()
+    if worker not in native or tree not in native:
+        raise ValueError(
+            f"{target}: native parallel SHA-2 leaf builder or per-ticket program differs"
+        )
+
+
 def main():
     os.environ["PATH"] = os.pathsep.join(
         [
@@ -92,19 +117,25 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for target in facade["TARGETS"][:2]:
             inspect(target, Path(tmp))
+            inspect_parallel(target, Path(tmp) / target)
     facade["run"](
         [
             "lake",
             "build",
             "Armwide.XmssSigner",
             "Armwide.XmssKeygenSets",
-            "Armwide.XmssCacheBuilder",
+            "Armwide.XmssParallelBuilder",
         ],
         LEAN,
     )
     for module, namespace, names in [
         ("XmssSigner", "Signer", ["xmss_sign_spec", "sign_eq_scalar"]),
         ("XmssKeygen", "Generate", ["keygen_eq_scalar", "keygen_fips"]),
+        (
+            "XmssParallelBuilder",
+            "Generate",
+            ["parallel_builder_eq", "parallel_tree_kernel", "parallel_cached_keys"],
+        ),
         (
             "XmssCacheBuilder",
             "Generate",
