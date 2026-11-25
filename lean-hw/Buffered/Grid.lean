@@ -12,15 +12,15 @@ def levelBase (root z h : Nat) := root*2^(z-h)
 def rowBase (root z : Nat) (made : Nat → Nat) (h : Nat) := levelBase root z h+2*made (h+1)
 def nextBase (root z : Nat) (made : Nat → Nat) (h : Nat) := levelBase root z h + if h=0 then 0 else made h
 
-def cellBytes {N : Usize} (buf : Buffer N) (h j : Nat) := bytes buf.val[h]!.val[j]!.val
+def cellBytes {N depth : Usize} (buf : Array (Row16 N) depth) (h j : Nat) := bytes buf.val[h]!.val[j]!.val
 
-structure Grid {N : Usize} (node : CellFn) (root z : Nat) (made : Nat → Nat)
-    (buf : Buffer N) (len : Lengths) (cursor : Cursors) : Prop where
+structure Grid {N depth : Usize} (node : CellFn) (root z : Nat) (made : Nat → Nat)
+    (buf : Array (Row16 N) depth) (len : Array Usize depth) (cursor : Array U32 depth) : Prop where
   count : ∀ h≤z, len.val[h]!.val=waiting made h
   index : ∀ h≤z, cursor.val[h]!.val=nextBase root z made h
   cell : ∀ h≤z, ∀ j<waiting made h, cellBytes buf h j=node h (rowBase root z made h+j)
 
-theorem Grid.congr_made {N : Usize} {node root z c d} {buf : Buffer N} {len cur}
+theorem Grid.congr_made {N depth : Usize} {node root z c d} {buf : Array (Row16 N) depth} {len cur}
     (old : Grid node root z c buf len cur) (agree : ∀ h≤z+1,c h=d h) : Grid node root z d buf len cur := by
   have waitingEq (h : Nat) (le : h≤z) : waiting c h=waiting d h := by simp [waiting,agree h (by omega),agree (h+1) (by omega)]
   constructor
@@ -37,7 +37,7 @@ theorem level_step (root z h : Nat) (live : h<z) : levelBase root z h=2*levelBas
 
 /-- A transfer consumes all children at h and appends n freshly calculated parents
 to the next row. Other rows and previously stored parents survive the copy. -/
-theorem Grid.merge {N : Usize} {node root z c d} {buf out : Buffer N} {len newLen cur newCur}
+theorem Grid.merge {N depth : Usize} {node root z c d} {buf out : Array (Row16 N) depth} {len newLen cur newCur}
     (old : Grid node root z c buf len cur) (h n : Nat) (live : h<z)
     (child : waiting c h=2*n) (balanced : 2*c (h+1)≤c h) (up : 2*c (h+2)≤c (h+1))
     (change : ∀ k, d k=if k=h+1 then c k+n else c k)
@@ -81,7 +81,7 @@ theorem Grid.merge {N : Usize} {node root z c d} {buf out : Buffer N} {len newLe
       rw [if_neg (by tauto),old.cell k kz j hj]
       simp [rowBase,change,low]
 
-theorem Grid.appendLeaves {N : Usize} {node root z c d} {buf out : Buffer N} {len newLen cur}
+theorem Grid.appendLeaves {N depth : Usize} {node root z c d} {buf out : Array (Row16 N) depth} {len newLen cur}
     (old : Grid node root z c buf len cur) (balanced : 2*c 1≤c 0)
     (change : ∀ k, d k=if k=0 then c k+8 else c k)
     (lengths : ∀ k≤z, newLen.val[k]!.val=if k=0 then len.val[0]!.val+8 else len.val[k]!.val)

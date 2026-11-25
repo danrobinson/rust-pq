@@ -6,12 +6,12 @@ open ShakeBatch
 abbrev Stack (N : Usize) := Array (Row16 N) 17#usize
 
 /-- The full physical matrix frame, including cells past the occupied prefix. -/
-def Stored {N : Usize} (before after : Stack N) (level pos count : Nat) (src : Rows8 N) : Prop :=
+def Stored {N depth : Usize} (before after : Array (Row16 N) depth) (level pos count : Nat) (src : Rows8 N) : Prop :=
   ∀ h j, after.val[h]!.val[j]! =
     if h = level ∧ pos ≤ j ∧ j < pos+count then src.val[j-pos]! else before.val[h]!.val[j]!
 
-theorem stored_cells {N : Usize} (before : Stack N) (level : Usize) (pos count : Nat)
-    (src : Rows8 N) (row : Row16 N) (inside : level.val < 17) (fit : pos+count ≤ 16)
+theorem stored_cells_at {N depth : Usize} (before : Array (Row16 N) depth) (level : Usize) (pos count : Nat)
+    (src : Rows8 N) (row : Row16 N) (inside : level.val < depth.val) (fit : pos+count ≤ 16)
     (live : count ≤ 8)
     (write : row.val = before.val[level.val]!.val.setSlice! pos (src.val.take count)) :
     Stored before (before.set level row) level.val pos count src := by
@@ -29,6 +29,13 @@ theorem stored_cells {N : Usize} (before : Stack N) (level : Usize) (pos count :
       · exact List.getElem!_setSlice!_prefix _ _ _ _ early
       · exact List.getElem!_setSlice!_suffix _ _ _ _ (by rw [size];omega)
   · rw [setOther _ _ _ _ (Ne.symm same),if_neg (by simp [same])]
+
+theorem stored_cells {N : Usize} (before : Stack N) (level : Usize) (pos count : Nat)
+    (src : Rows8 N) (row : Row16 N) (inside : level.val < 17) (fit : pos+count ≤ 16)
+    (live : count ≤ 8)
+    (write : row.val = before.val[level.val]!.val.setSlice! pos (src.val.take count)) :
+    Stored before (before.set level row) level.val pos count src :=
+  stored_cells_at before level pos count src row inside fit live write
 
 def storeFull {N : Usize} (before : Stack N) (level pos : Usize) (src : Rows8 N) : Result (Stack N) := do
   let (row, restore) ← Array.index_mut_usize before level

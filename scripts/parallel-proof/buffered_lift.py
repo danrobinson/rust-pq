@@ -3,8 +3,8 @@
 from build import function
 
 
-def lift_rows(batch):
-    original = function(batch, "xmss_subtree")
+def lift_rows(batch, name="xmss_subtree"):
+    original = function(batch, name)
     lifted = original
     for bound in ("8", "count"):
         start = f"            for k in 0..{bound} {{"

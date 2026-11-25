@@ -27,7 +27,7 @@ theorem set_value {α : Type} [Inhabited α] {n : Usize} (old : Array α n) (k :
   · subst j;rw [if_pos rfl,setSame _ _ _ (by simpa using fits)]
   · rw [if_neg same,setOther _ _ _ _ (Ne.symm same)]
 
-theorem stored_bytes {N : Usize} {buf out : Buffer N} {h pos n : Nat} {rows : Rows8 N}
+theorem stored_bytes {N depth : Usize} {buf out : Array (Row16 N) depth} {h pos n : Nat} {rows : Rows8 N}
     (store : Stored buf out h pos n rows) (node : Nat → Spec.Bytes)
     (refine : ∀ k<n, bytes rows.val[k]!.val=node k) (k j : Nat) :
     cellBytes out k j = if k=h ∧ pos≤j ∧ j<pos+n then node (j-pos) else cellBytes buf k j := by
