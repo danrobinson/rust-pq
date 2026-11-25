@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Lift production rust/src/shake/fors_batch.rs over a symbolic SHAKE256 oracle and audit Lean proofs."""
+
 from pathlib import Path
 import os
 import runpy
@@ -475,9 +476,19 @@ def run_symbolic_replay(width: int) -> None:
 
 def main() -> None:
     os.environ["PATH"] = os.pathsep.join(
-        [str(Path.home() / ".elan/bin"), str(Path.home() / ".cargo/bin"), os.environ["PATH"]]
+        [
+            str(Path.home() / ".elan/bin"),
+            str(Path.home() / ".cargo/bin"),
+            os.environ["PATH"],
+        ]
     )
-    for gate in ("check-shake-fors-plan.py", "check-shake-fors-scatter.py", "check-shake-active-hashes.py"):
+    for gate in (
+        "check-shake-fors-plan.py",
+        "check-shake-fors-scatter.py",
+        "check-shake-active-hashes.py",
+        "check-shake-fors-fused.py",
+        "check-shake-fors-tree.py",
+    ):
         subprocess.run([sys.executable, HERE / gate], check=True)
     for width in (8, 3):
         run_symbolic_replay(width)

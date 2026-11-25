@@ -16,10 +16,13 @@ lean = ROOT / "lean-hw"
 
 
 def transcript(folder, width, original):
-    sign = function(original, "sign").replace("pub(super) fn", "fn")
+    sign = "\n".join(
+        function(original, op)
+        for op in ("batch_leaves_slice", "batch_pairs_slice", "sign")
+    ).replace("pub(super) fn", "fn")
     for before, after in (
         ("u8", "usize"),
-        ("selections: &[u32]", "selections: &[Expr]"),
+        ("&[u32]", "&[Expr]"),
         ("[u32; WIDTH]", "[Expr; WIDTH]"),
         ("[0u32;", "[Expr(0);"),
     ):
@@ -104,6 +107,11 @@ def reject_mutations(folder):
     original = source.read_text()
     mutants = (
         (3, "copy_from_slice(&sec[lane])", "copy_from_slice(&sec[0])"),
+        (
+            8,
+            "left[lane] = children[2 * (i + lane)];",
+            "left[lane] = children[2 * (i + lane) + 1];",
+        ),
         (8, "4 * sib + c as u32", "4 * sib + (3 - c) as u32"),
         (8, "let sib = (leaf >> j) ^ 1;", "let sib = (leaf >> j) ^ 0;"),
     )
@@ -127,7 +135,7 @@ def reject_mutations(folder):
                 f"missing expected failed proof for {new}: {out.stdout[:600]}"
             )
     print(
-        "Lean rejected three changed secret-lane, child-order and sibling selections.",
+        "Lean rejected all four changes to lane selection, packed child reads, and sibling indices.",
         flush=True,
     )
 

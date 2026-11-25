@@ -61,6 +61,7 @@ const FORS_TREE: u32 = 3;
 struct Adrs {
     typ: u32,
     keypair: u32,
+    height: u32,
     word3: Expr,
 }
 impl Adrs {
@@ -68,11 +69,15 @@ impl Adrs {
         Self {
             typ,
             keypair: 0,
+            height: 0,
             word3: Expr(0),
         }
     }
     fn with_keypair(self, keypair: u32) -> Self {
         Self { keypair, ..self }
+    }
+    fn with_word2(self, height: u32) -> Self {
+        Self { height, ..self }
     }
     fn with_word3(self, word3: Expr) -> Self {
         Self { word3, ..self }
@@ -113,6 +118,7 @@ fn short_active<const N: usize>(
         if j < active {
             keys(&keys_in[j], seed);
             addresses[j].check(FORS_PRF);
+            assert_eq!(addresses[j].height, 0);
             block("secret".into(), addresses[j].word3)
         } else {
             [0; N]
@@ -157,38 +163,44 @@ fn nodes_fallback<const N: usize>(
         }
     })
 }
-fn batch_leaves_slice<const N: usize>(
+fn fors_leaves_fused<const N: usize>(
     sk: &[usize; N],
     seed: &[usize; N],
     a: Adrs,
-    indices: &[Expr],
-    out: &mut [[usize; N]],
-) {
-    assert_eq!(out.len(), indices.len());
-    for (x, i) in out.iter_mut().zip(indices) {
-        *x = node(sk, seed, a, *i, 0)
-    }
-}
-fn batch_pairs_slice<const N: usize>(
-    seed: &[usize; N],
-    a: Adrs,
-    h: u32,
-    indices: &[Expr],
-    children: &[[usize; N]],
-    out: &mut [[usize; N]],
-) {
-    a.check(FORS_TREE);
-    assert_eq!(seed, &[2; N]);
-    assert_eq!(out.len(), indices.len());
-    assert_eq!(children.len(), out.len() * 2);
-    for (j, i) in indices.iter().enumerate() {
-        for side in 0..2 {
-            let (op, child) = inspect(&children[2 * j + side]);
-            assert_eq!(op, format!("node {}", h - 1));
-            println!("child {} {} {}", child.show(), i.show(), side);
+    indices: &[Expr; WIDTH],
+    active: usize,
+) -> [[usize; N]; WIDTH] {
+    assert!((1..=WIDTH).contains(&active));
+    core::array::from_fn(|j| {
+        if j < active {
+            node(sk, seed, a, indices[j], 0)
+        } else {
+            [0; N]
         }
-        out[j] = block(format!("node {h}"), *i)
-    }
+    })
+}
+fn pair_active<const N: usize>(
+    seed: &[usize; N],
+    addrs: &[Adrs; WIDTH],
+    left: &[[usize; N]; WIDTH],
+    right: &[[usize; N]; WIDTH],
+    active: usize,
+) -> [[usize; N]; WIDTH] {
+    assert_eq!(seed, &[2; N]);
+    assert!((1..=WIDTH).contains(&active));
+    core::array::from_fn(|j| {
+        if j >= active {
+            return [0; N];
+        }
+        let a = addrs[j];
+        a.check(FORS_TREE);
+        for (side, child) in [&left[j], &right[j]].iter().enumerate() {
+            let (op, idx) = inspect(child);
+            assert_eq!(op, format!("node {}", a.height - 1));
+            println!("child {} {} {}", idx.show(), a.word3.show(), side);
+        }
+        block(format!("node {}", a.height), a.word3)
+    })
 }
 // PRODUCTION_SIGN
 fn probe<const N: usize>(name: &str, p: &Params) {
@@ -197,6 +209,7 @@ fn probe<const N: usize>(name: &str, p: &Params) {
     let a = Adrs {
         typ: FORS_TREE,
         keypair: 123,
+        height: 0,
         word3: Expr(0),
     };
     let sig = sign(p, &choices, &[1; N], &[2; N], a);
