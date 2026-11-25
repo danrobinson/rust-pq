@@ -20,6 +20,51 @@ def Index.eval (pick : Nat → Nat) : Index → Nat
   | .shr x h => x.eval pick / 2^h
   | .xor x m => x.eval pick ^^^ m
 
+/-- A conservative upper bound at every intermediate. Every subtree must fit a Rust
+    u32 before its parent can use it. The XOR cap covers all FIPS FORS tree indices. -/
+def Index.bound (maxDigit : Nat) : Index → Option Nat
+  | .lit n => if n < 2^32 then some n else none
+  | .sel _ => if maxDigit < 2^32 then some maxDigit else none
+  | .add x y => do
+      let a ← x.bound maxDigit
+      let b ← y.bound maxDigit
+      if a+b < 2^32 then some (a+b) else none
+  | .mul k x => do
+      let a ← x.bound maxDigit
+      if k*a < 2^32 then some (k*a) else none
+  | .shr x h => do
+      let a ← x.bound maxDigit
+      if h < 32 then some (a/2^h) else none
+  | .xor x m => do
+      let a ← x.bound maxDigit
+      if a < 2^22 ∧ m < 2^22 then some (2^22-1) else none
+
+theorem Index.bound_sound (pick : Nat → Nat) (limit : Nat) (digits : ∀ j, pick j ≤ limit)
+    (x : Index) (b : Nat) (checked : x.bound limit = some b) :
+    x.eval pick ≤ b ∧ b < 2^32 := by
+  induction x generalizing b with
+  | lit n => simp only [bound] at checked; split at checked <;> simp_all [eval]
+  | sel t => simp only [bound] at checked; split at checked <;> simp_all [eval]
+  | add x y ix iy =>
+    cases hx : x.bound limit <;> cases hy : y.bound limit <;> simp [bound,hx,hy] at checked
+    obtain ⟨bounds,rfl⟩ := checked
+    exact ⟨Nat.add_le_add (ix _ hx).1 (iy _ hy).1,by assumption⟩
+  | mul k x ih =>
+    cases hx : x.bound limit <;> simp [bound,hx] at checked
+    obtain ⟨bounds,rfl⟩ := checked
+    exact ⟨Nat.mul_le_mul_left _ (ih _ hx).1,by assumption⟩
+  | shr x h ih =>
+    cases hx : x.bound limit <;> simp [bound,hx] at checked
+    obtain ⟨bounds,rfl⟩ := checked
+    exact ⟨Nat.div_le_div_right (ih _ hx).1,(Nat.div_le_self ..).trans_lt (ih _ hx).2⟩
+  | xor x m ih =>
+    cases hx : x.bound limit <;> simp [bound,hx] at checked
+    obtain ⟨bounds,rfl⟩ := checked
+   
+
+    have lt := Nat.xor_lt_two_pow (n:=22) ((ih _ hx).1.trans_lt bounds.1) bounds.2
+    exact ⟨by change x.eval pick ^^^ m ≤ _;omega,by decide⟩
+
 inductive Op where
   | secret
   | node (height : Nat)

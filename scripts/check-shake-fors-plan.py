@@ -48,11 +48,13 @@ def certificate(data, width):
     ]
     fields = {}
     checks = set()
+    intermediates = {}
     for line in data.splitlines():
         kind, value = line.split(" ", 1)
         if kind == "set":
             name = value
             fields[name] = []
+            intermediates[name] = set()
         elif kind == "block":
             op, index = value.split(") ", 1)
             fields[name].append(f"{op}),{index}")
@@ -71,6 +73,9 @@ def certificate(data, width):
             if not m:
                 raise ValueError(f"unknown child geometry: {line}")
             x, y, side = m.groups()
+            intermediates[name].update(
+                expr.replace("base", matches[0]) for expr in (x, y)
+            )
             checks.add(
                 f"example (base : Index) (pick : Nat → Nat) : Index.eval pick {x} = 2*Index.eval pick {y}+{side} := by simp [Index.eval] <;> omega"
             )
@@ -81,9 +86,11 @@ def certificate(data, width):
     src.extend(sorted(checks))
     for name, rows in fields.items():
         plan = ",\n".join(f"({row})" for row in rows)
+        children = ",\n".join(sorted(intermediates[name]))
         src.extend(
             [
                 f"def plan_{name} : List Field := [{plan}]",
+                f"example : (plan_{name}.map Prod.snd ++ ([{children}] : List Index)).all (fun x => (x.bound (2^shake_{name}.a-1)).isSome) = true := by decide",
                 f"theorem result_{name} (md sk pk : Bytes) (a : Adrs) : render shake_{name} md sk pk a plan_{name} = forsSign shake_{name} md sk pk a := by",
                 f"  have same : plan_{name} = canonical shake_{name} {str(width == 3).lower()} := by decide",
                 f"  rw [same]; exact render_fips {str(width == 3).lower()} shake_{name} md sk pk a",
