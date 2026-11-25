@@ -8,7 +8,7 @@ open Spec.Keccak
 set_option linter.concreteInstances false
 variable [machine : Machine]
 
-private def xorCell (s : Matrix machine.width) (r j : Usize) (w : U64) : Result (Matrix machine.width) := do
+def xorCell (s : Matrix machine.width) (r j : Usize) (w : U64) : Result (Matrix machine.width) := do
   let row ← Array.index_usize s r
   let old ← Array.index_usize row j
   let v ← lift (old ^^^ w)
@@ -16,7 +16,7 @@ private def xorCell (s : Matrix machine.width) (r j : Usize) (w : U64) : Result 
   let row ← Array.update row j v
   ok (back row)
 
-private theorem xorCell_bind {α : Type} (s : Matrix machine.width) (r j : Usize) (w : U64)
+theorem xorCell_bind {α : Type} (s : Matrix machine.width) (r j : Usize) (w : U64)
     (k : Matrix machine.width → Result α) :
     (xorCell s r j w >>= k) = (do
       let row ← Array.index_usize s r
@@ -28,7 +28,7 @@ private theorem xorCell_bind {α : Type} (s : Matrix machine.width) (r j : Usize
   simp only [xorCell,uncurry,bind_tc_eq,Std.bind_assoc,bind_ok]
   repeat' congr 1
 
-private theorem xorCell_spec (s : Matrix machine.width) (r j : Usize) (w : U64)
+theorem xorCell_spec (s : Matrix machine.width) (r j : Usize) (w : U64)
     (hr : r.val < 25) (hj : j.val < machine.width.val) :
     xorCell s r j w ⦃ out => ∀ l < machine.width.val, ShakeBatch.lane out l =
       if l=j.val then (ShakeBatch.lane s l).setIfInBounds r.val ((ShakeBatch.lane s l)[r.val]! ^^^ w.bv) else ShakeBatch.lane s l ⦄ := by
@@ -52,16 +52,16 @@ private theorem xorCell_spec (s : Matrix machine.width) (r j : Usize) (w : U64)
     by_cases same : k=r.val <;> simp only [same,ite_true,ite_false] <;> first | rfl | simp [Ne.symm same]
   · simp [eq,ShakeBatch.lane,ofFnAt _ _ hk]
 
-private theorem sweep (body : Range → Matrix machine.width → Result (ControlFlow (Range × Matrix machine.width) (Matrix machine.width)))
+theorem sweep (count : Usize) (body : Range → Matrix machine.width → Result (ControlFlow (Range × Matrix machine.width) (Matrix machine.width)))
     (init : Matrix machine.width) (f : Nat → State → State)
-    (advance : ∀ it s, it.end = machine.width → it.start.val < machine.width.val →
-      body it s ⦃ r => ∃ next out, r=cont (next,out) ∧ next.end=machine.width ∧
-        next.start.val=it.start.val+1 ∧ ∀ l < machine.width.val,
+    (advance : ∀ it s, it.end = count → it.start.val < count.val →
+      body it s ⦃ r => ∃ next out, r=cont (next,out) ∧ next.end=count ∧
+        next.start.val=it.start.val+1 ∧ ∀ l < count.val,
         ShakeBatch.lane out l = if l=it.start.val then f l (ShakeBatch.lane s l) else ShakeBatch.lane s l ⦄)
-    (doneAt : ∀ it s, it.start.val = machine.width.val → it.end = machine.width → body it s=ok (done s)) :
-    loop (fun q : Range × Matrix machine.width => body q.1 q.2) (⟨0#usize,machine.width⟩,init)
-      ⦃ out => ∀ l < machine.width.val, ShakeBatch.lane out l = f l (ShakeBatch.lane init l) ⦄ := by
-  apply WP.spec_mono (range_fold body machine.width init (fun n s => ∀ l < machine.width.val,
+    (doneAt : ∀ it s, it.start.val = count.val → it.end = count → body it s=ok (done s)) :
+    loop (fun q : Range × Matrix machine.width => body q.1 q.2) (⟨0#usize,count⟩,init)
+      ⦃ out => ∀ l < count.val, ShakeBatch.lane out l = f l (ShakeBatch.lane init l) ⦄ := by
+  apply WP.spec_mono (range_fold body count init (fun n s => ∀ l < count.val,
       ShakeBatch.lane s l = if l<n then f l (ShakeBatch.lane init l) else ShakeBatch.lane init l) (by simp) ?_ doneAt)
   · intro s h l hl; simpa [hl] using h l hl
   · intro it s he live old
@@ -77,7 +77,7 @@ theorem absorb_row (s : Matrix machine.width) (pos : Usize) (word : Array U64 ma
     ∀ l < machine.width.val, ShakeBatch.lane out l =
       (ShakeBatch.lane s l).setIfInBounds pos.val ((ShakeBatch.lane s l)[pos.val]! ^^^ word.val[l]!.bv) ⦄ := by
   unfold generate_loop0_loop1_loop0
-  apply sweep (generate_loop0_loop1_loop0.body pos word) s
+  apply sweep machine.width (generate_loop0_loop1_loop0.body pos word) s
     (fun l a => a.setIfInBounds pos.val (a[pos.val]! ^^^ word.val[l]!.bv))
   · intro it state stop live
     unfold generate_loop0_loop1_loop0.body
@@ -170,11 +170,11 @@ def padWords (pos : Nat) (a : State) : State :=
   let tagged := a.setIfInBounds pos (a[pos]! ^^^ 0x1f)
   tagged.setIfInBounds 16 (tagged[16]! ^^^ (1 <<< 63))
 
-theorem pad_rows (s : Matrix machine.width) (pos : Usize) (hr : pos.val<17) :
-    generate_loop1 ⟨0#usize,machine.width⟩ s pos ⦃ out =>
-    ∀ l < machine.width.val, ShakeBatch.lane out l = padWords pos.val (ShakeBatch.lane s l) ⦄ := by
+theorem pad_rows_to (count : Usize) (width : count.val≤machine.width.val) (s : Matrix machine.width) (pos : Usize) (hr : pos.val<17) :
+    generate_loop1 ⟨0#usize,count⟩ s pos ⦃ out =>
+    ∀ l < count.val, ShakeBatch.lane out l = padWords pos.val (ShakeBatch.lane s l) ⦄ := by
   unfold generate_loop1
-  apply sweep (generate_loop1.body pos) s (fun _ a => padWords pos.val a)
+  apply sweep count (generate_loop1.body pos) s (fun _ a => padWords pos.val a)
   · intro it state stop live
     unfold generate_loop1.body
     step with core.iter.range.IteratorRange.next_Usize_some_spec it (by simpa [stop] using live) as ⟨_,next,ho,hn,he⟩
@@ -183,16 +183,20 @@ theorem pad_rows (s : Matrix machine.width) (pos : Usize) (hr : pos.val<17) :
     simp_rw [← xorCell_bind _ 16#usize it.start 9223372036854775808#u64 (fun u => ok (cont (next,u)))]
     rw [← xorCell_bind state pos it.start 31#u64 (fun t =>
         xorCell t 16#usize it.start 9223372036854775808#u64 >>= fun u => ok (cont (next,u)))]
-    step with xorCell_spec state pos it.start 31#u64 (by omega) live as ⟨first,tag⟩
-    step with xorCell_spec first 16#usize it.start 9223372036854775808#u64 (by decide) live as ⟨last,bit⟩
+    step with xorCell_spec state pos it.start 31#u64 (by omega) (live.trans_le width) as ⟨first,tag⟩
+    step with xorCell_spec first 16#usize it.start 9223372036854775808#u64 (by decide) (live.trans_le width) as ⟨last,bit⟩
     refine ⟨next,last,rfl,he.trans stop,hn,?_⟩
     intro l hl
-    rw [bit l hl,tag l hl]
+    rw [bit l (hl.trans_le width),tag l (hl.trans_le width)]
     by_cases same : l=it.start.val <;> simp only [same,ite_true,ite_false,padWords] <;> rfl
   · intro it state last stop
     unfold generate_loop1.body
     obtain ⟨⟨_,_⟩,next,ho,_⟩ := spec_imp_exists (core.iter.range.IteratorRange.next_Usize_none_spec it (by rw [stop,last]))
     simp [next,ho]
+
+theorem pad_rows (s : Matrix machine.width) (pos : Usize) (hr : pos.val<17) :
+    generate_loop1 ⟨0#usize,machine.width⟩ s pos ⦃ out =>
+    ∀ l < machine.width.val, ShakeBatch.lane out l = padWords pos.val (ShakeBatch.lane s l) ⦄ := pad_rows_to machine.width (Nat.le_refl _) s pos hr
 
 theorem finish_rows (s : Matrix machine.width) (pos : Usize) (hr : pos.val<17) (permutes : PermutationCorrect) :
     (do let padded ← generate_loop1 ⟨0#usize,machine.width⟩ s pos
