@@ -248,6 +248,7 @@ def check_platform(platform, scratch):
 
 if __name__ == "__main__":
     common["run"](["lake", "build", *(f"Shakebatch.{p}Facade" for p in PLATFORMS)], LEAN)
+    common["run"]([sys.executable, Path(__file__).with_name("check-shake-width-eight-session.py")], LEAN.parent)
     for platform in PLATFORMS:
         with tempfile.TemporaryDirectory() as folder:
             check_platform(platform, Path(folder))
