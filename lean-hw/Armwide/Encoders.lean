@@ -1,7 +1,7 @@
 import Armwide.Funs
 import Spec.SlhDsa
 
-open Aeneas Aeneas.Std Result
+open ArmwideRust Aeneas Aeneas.Std Result
 
 /-!
 # Verified ARM64 SHA-256 / SHA-512 Stack Encoders (`Armwide.Encoders`)

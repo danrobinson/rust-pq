@@ -4,7 +4,7 @@
 Checks:
 1. Fresh Charon + Aeneas extraction of `Armwide` (`wots_digits_stack`, `base_2b_stack`,
    `prepare_tlen`, `sort_descending`, `parent_block_512`) on `aarch64-apple-darwin` and
-   `aarch64-unknown-linux-gnu` matches `lean-hw/Armwide/{Types,Funs}.lean` byte-for-byte
+   `aarch64-unknown-linux-gnu` matches `lean-hw/Armwide/{Types,Funs}.lean` after namespacing the extraction
    with zero external axioms.
 2. `rust/src/sha256.rs` `const K: [u32; 64]` matches `Spec.SHA256.K` in Lean.
 3. Symbolic AST verification of lifted production `make_head` (rounds 0..3),
@@ -50,10 +50,14 @@ def check_extraction(scratch: Path) -> None:
             raise ValueError(f"unexpected external axioms in Armwide extraction on {target}")
         for fname in ("Types.lean", "Funs.lean"):
             got = (dest / fname).read_bytes()
+            # The standalone extraction otherwise collides with the core slhdsa package
+            # when its signing scheduler and the SHA-256 kernel are imported together.
+            got = got.replace(b"namespace slhdsa\n", b"namespace ArmwideRust\n").replace(
+                b"end slhdsa\n", b"end ArmwideRust\n")
             ref = (LEAN / "Armwide" / fname).read_bytes()
             if got != ref:
                 raise ValueError(f"Armwide/{fname} differs from fresh extraction on {target}")
-        print(f"{target}: Armwide extraction matched byte-for-byte (0 external axioms)", flush=True)
+        print(f"{target}: Armwide namespace-adjusted extraction matched byte-for-byte (0 external axioms)", flush=True)
 
 
 def check_sha256_k() -> None:

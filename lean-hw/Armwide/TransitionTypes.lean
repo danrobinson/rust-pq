@@ -37,4 +37,10 @@ structure HashTrace where
   calls : List HashCall
   deriving DecidableEq, Inhabited
 
+structure Post where
+  consumed : Nat
+  lane : Register
+  writes : List Event
+  deriving DecidableEq, Inhabited
+
 end slhdsa.Armwide.Transitions

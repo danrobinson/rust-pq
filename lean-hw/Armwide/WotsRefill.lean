@@ -1,7 +1,7 @@
 import Armwide.Funs
 import Spec.SlhDsa
 
-open Aeneas Aeneas.Std Result
+open ArmwideRust Aeneas Aeneas.Std Result
 
 /-!
 # Longest-First Bucket-Sorted Dynamic 4-Lane Refill WOTS+ Scheduler (`Armwide.WotsRefill`)
@@ -1187,7 +1187,7 @@ def signMinLeft : List SignLane → Nat
   | [l] => l.left
   | l :: ls => min l.left (signMinLeft ls)
 
-private theorem signMinLeft_pos {lanes : List SignLane} (hne : lanes ≠ [])
+theorem signMinLeft_pos {lanes : List SignLane} (hne : lanes ≠ [])
     (hpos : ∀ l ∈ lanes, 0 < l.left) : 0 < signMinLeft lanes := by
   induction lanes with
   | nil => contradiction
@@ -1198,7 +1198,7 @@ private theorem signMinLeft_pos {lanes : List SignLane} (hne : lanes ≠ [])
       simp only [signMinLeft]
       exact Nat.lt_min.mpr ⟨hpos l (by simp), ih (by simp) (fun x hx => hpos x (by simp [hx]))⟩
 
-private theorem signMinLeft_le {lanes : List SignLane} {l : SignLane} (hl : l ∈ lanes) :
+theorem signMinLeft_le {lanes : List SignLane} {l : SignLane} (hl : l ∈ lanes) :
     signMinLeft lanes ≤ l.left := by
   induction lanes with
   | nil => contradiction
@@ -1522,29 +1522,38 @@ private theorem signRetireRefill_spec (p : Spec.Params) (pkSeed skSeed : Spec.By
         exact hpres' c hnc.2
 
 /-- Full dynamic 4-lane refill loop + tail drain loop for `wots_sign_fused`. -/
-def signRun (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
-    (digits : Nat → Nat) (active : List SignLane) (queue : List Nat) (out : Nat → Spec.Bytes)
+abbrev FourStep := List SignLane → List Nat → (Nat → Spec.Bytes) →
+  List SignLane × List Nat × (Nat → Spec.Bytes)
+abbrev TailStep := List SignLane → (Nat → Spec.Bytes) → List SignLane × (Nat → Spec.Bytes)
+
+def signRunUsing (four : FourStep) (tail : TailStep) (active : List SignLane) (queue : List Nat) (out : Nat → Spec.Bytes)
     (fuel : Nat) : Nat → Spec.Bytes :=
   match fuel with
   | 0 => out
   | fuel' + 1 =>
     if active.length = 4 then
-      let (a', q', out') := signStep4 p pkSeed skSeed adrs digits active queue out
-      signRun p pkSeed skSeed adrs digits a' q' out' fuel'
+      let (a', q', out') := four active queue out
+      signRunUsing four tail a' q' out' fuel'
     else if active.length > 0 then
-      let (a', out') := signStepTail p pkSeed adrs active out
-      signRun p pkSeed skSeed adrs digits a' queue out' fuel'
+      let (a', out') := tail active out
+      signRunUsing four tail a' queue out' fuel'
     else
       out
 
+def signRun (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs) (digits : Nat → Nat) :=
+  signRunUsing (signStep4 p pkSeed skSeed adrs digits) (signStepTail p pkSeed adrs)
+
 /-- Full `wots_sign_fused` scheduler: initial fill of up to 4 lanes from `order`
 (bucket-sorted descending by `digits`), then `signRun`. -/
-def signFusedFull (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
-    (digits : Nat → Nat) (order : List Nat) : Nat → Spec.Bytes :=
+def signFusedUsing (skSeed : Spec.Bytes) (digits : Nat → Nat) (order : List Nat) (four : FourStep) (tail : TailStep) : Nat → Spec.Bytes :=
   let initActive := (order.take 4).map fun c => (⟨skSeed, c, 0, 1 + digits c, true⟩ : SignLane)
   let initQueue := order.drop 4
-  signRun p pkSeed skSeed adrs digits initActive initQueue (fun _ => [])
+  signRunUsing four tail initActive initQueue (fun _ => [])
     (signMeasure initActive initQueue + 1)
+
+def signFusedFull (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
+    (digits : Nat → Nat) (order : List Nat) : Nat → Spec.Bytes :=
+  signFusedUsing skSeed digits order (signStep4 p pkSeed skSeed adrs digits) (signStepTail p pkSeed adrs)
 
 private theorem signStepOneLane_valid (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
     (digits : Nat → Nat) (len : Nat) (l : SignLane)
@@ -1568,23 +1577,28 @@ private theorem signStepOneLane_valid (p : Spec.Params) (pkSeed skSeed : Spec.By
     simp only [↓reduceIte, SignSteppedValid, ht0, hl1, hx]
     exact ⟨hlt, trivial, by omega, by simp [Spec.chain]⟩
 
-private theorem signRun_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
-    (digits : Nat → Nat) (len : Nat)
+theorem signRunUsing_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
+    (digits : Nat → Nat) (len : Nat) (four : FourStep) (tail : TailStep)
+    (four_ok : ∀ a q o, SignInv p pkSeed skSeed adrs digits len a q o → a.length = 4 →
+      four a q o = signStep4 p pkSeed skSeed adrs digits a q o)
+    (tail_ok : ∀ a o, SignInv p pkSeed skSeed adrs digits len a [] o → 0 < a.length → a.length < 4 →
+      tail a o = signStepTail p pkSeed adrs a o)
     (active : List SignLane) (queue : List Nat) (out : Nat → Spec.Bytes) (fuel : Nat)
     (hinv : SignInv p pkSeed skSeed adrs digits len active queue out)
     (hlen_le : active.length ≤ 4)
     (hqueue_empty : active.length ≠ 4 → queue = [])
     (hfuel : signMeasure active queue < fuel) :
-    ∀ c < len, signRun p pkSeed skSeed adrs digits active queue out fuel c =
+    ∀ c < len, signRunUsing four tail active queue out fuel c =
       wotsSignTarget p pkSeed skSeed adrs digits c := by
   induction fuel generalizing active queue out with
   | zero => omega
   | succ fuel' ih =>
     intro c hc
-    unfold signRun
+    unfold signRunUsing
     split
     · rename_i hlen4
       have hne : active ≠ [] := by intro h; simp [h] at hlen4
+      rw [four_ok active queue out hinv hlen4]
       dsimp only [signStep4]
       split
       · -- Mixed PRF/HASH path (1 step per lane)
@@ -1613,7 +1627,7 @@ private theorem signRun_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (
         have hlen_rr := signRetireRefill_len_le skSeed digits stepped queue out
         have hlt_rr := signRetireRefill_len_lt_queue_nil skSeed digits stepped queue out
         change (let (a', q', out') := signRetireRefill skSeed digits stepped queue out
-          signRun p pkSeed skSeed adrs digits a' q' out' fuel') c = _
+          signRunUsing four tail a' q' out' fuel') c = _
         rcases hres : signRetireRefill skSeed digits stepped queue out with ⟨a', q', out'⟩
         rw [hres] at hspec hmeas_rr hlen_rr hlt_rr
         simp only at hlen_rr hlt_rr
@@ -1666,7 +1680,7 @@ private theorem signRun_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (
         have hlen_rr := signRetireRefill_len_le skSeed digits stepped queue out
         have hlt_rr := signRetireRefill_len_lt_queue_nil skSeed digits stepped queue out
         change (let (a', q', out') := signRetireRefill skSeed digits stepped queue out
-          signRun p pkSeed skSeed adrs digits a' q' out' fuel') c = _
+          signRunUsing four tail a' q' out' fuel') c = _
         rcases hres : signRetireRefill skSeed digits stepped queue out with ⟨a', q', out'⟩
         rw [hres] at hspec hmeas_rr hlen_rr hlt_rr
         simp only at hlen_rr hlt_rr
@@ -1709,9 +1723,10 @@ private theorem signRun_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (
         have hlen_rr := signRetireRefill_len_le skSeed digits stepped [] out
         have hstep_len : stepped.length = active.length := by simp [stepped]
         have hq0 := signRetireRefill_nil_queue skSeed digits stepped out
+        rw [tail_ok active out hinv hpos (by omega)]
         dsimp only [signStepTail]
         change (let (rem, _, out') := signRetireRefill [] (fun _ => 0) stepped [] out
-          signRun p pkSeed skSeed adrs digits rem [] out' fuel') c = _
+          signRunUsing four tail rem [] out' fuel') c = _
         rw [hrr_indep]
         rcases hres : signRetireRefill skSeed digits stepped [] out with ⟨a', q', out'⟩
         rw [hres] at hq0
@@ -1737,20 +1752,25 @@ the bucket-sorted descending order of `digits` in `wots_sign_fused_active`),
 running `signFusedFull` produces the exact FIPS 205 WOTS+ signature element
 `Spec.chain p (Spec.PRF p pkSeed skSeed { wotsSkAdrs adrs with word2 := c }) 0 (digits c) pkSeed { adrs with word2 := c }`
 for EVERY chain `0 ≤ c < len` (including `digits c = 0` and `digits c = 15`). -/
-theorem sign_fused_scheduler_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
+theorem sign_using_scheduler_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
     (digits : Nat → Nat) (len : Nat) (order : List Nat)
+    (four : FourStep) (tail : TailStep)
+    (four_ok : ∀ a q o, SignInv p pkSeed skSeed adrs digits len a q o → a.length = 4 →
+      four a q o = signStep4 p pkSeed skSeed adrs digits a q o)
+    (tail_ok : ∀ a o, SignInv p pkSeed skSeed adrs digits len a [] o → 0 < a.length → a.length < 4 →
+      tail a o = signStepTail p pkSeed adrs a o)
     (hdig : ∀ c < len, digits c ≤ 15)
     (hnd : order.Nodup)
     (hmem : ∀ c, c ∈ order ↔ c < len) :
-    ∀ c < len, signFusedFull p pkSeed skSeed adrs digits order c =
+    ∀ c < len, signFusedUsing skSeed digits order four tail c =
       Spec.chain p (Spec.PRF p pkSeed skSeed { Spec.wotsSkAdrs adrs with word2 := c })
         0 (digits c) pkSeed { adrs with word2 := c } := by
-  unfold signFusedFull
+  unfold signFusedUsing
   set initActive := (order.take 4).map fun c => (⟨skSeed, c, 0, 1 + digits c, true⟩ : SignLane)
   set initQueue := order.drop 4
   have hchains : initActive.map (·.chain) ++ initQueue = order := by
     simp [initActive, initQueue, List.map_map, Function.comp_def, List.take_append_drop]
-  apply signRun_eq_fips p pkSeed skSeed adrs digits len initActive initQueue (fun _ => []) _
+  apply signRunUsing_eq_fips p pkSeed skSeed adrs digits len four tail four_ok tail_ok initActive initQueue (fun _ => []) _
   · refine ⟨?_, ?_, by rw [hchains]; exact hnd, ?_⟩
     · intro l hl
       rw [List.mem_map] at hl
@@ -1773,6 +1793,18 @@ theorem sign_fused_scheduler_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Byt
       omega
     exact List.drop_eq_nil_of_le (by omega)
   · exact Nat.lt_succ_self _
+
+theorem sign_fused_scheduler_eq_fips (p : Spec.Params) (pkSeed skSeed : Spec.Bytes) (adrs : Spec.Adrs)
+    (digits : Nat → Nat) (len : Nat) (order : List Nat)
+    (hdig : ∀ c < len, digits c ≤ 15)
+    (hnd : order.Nodup)
+    (hmem : ∀ c, c ∈ order ↔ c < len) :
+    ∀ c < len, signFusedFull p pkSeed skSeed adrs digits order c =
+      Spec.chain p (Spec.PRF p pkSeed skSeed { Spec.wotsSkAdrs adrs with word2 := c })
+        0 (digits c) pkSeed { adrs with word2 := c } :=
+  sign_using_scheduler_eq_fips p pkSeed skSeed adrs digits len order
+    (signStep4 p pkSeed skSeed adrs digits) (signStepTail p pkSeed adrs)
+    (by intros; rfl) (by intros; rfl) hdig hnd hmem
 
 /-- Edge-case corollary: for a chain with `digits c = 0`, `signFusedFull` retires immediately
 after `PRF` with 0 `F` steps, outputting `Spec.PRF p pkSeed skSeed { wotsSkAdrs adrs with word2 := c }`. -/

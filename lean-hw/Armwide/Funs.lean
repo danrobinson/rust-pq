@@ -19,7 +19,7 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
-namespace slhdsa
+namespace ArmwideRust
 
 /-- [slhdsa::address::WOTS_PK]
     Source: 'src/address.rs', lines 5:0-5:27
@@ -434,4 +434,4 @@ def xmss.arm.prepare_tlen
   let s5 ← core.slice.Slice.copy_from_slice core.marker.CopyU8 s3 s4
   ok (index_mut_back1 s5)
 
-end slhdsa
+end ArmwideRust

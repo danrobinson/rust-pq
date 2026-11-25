@@ -291,7 +291,7 @@ theorem sort_spec (ds : Slice U32) (len : ds.length ≤ 67)
       rw [getElem!_pos ord _ b] at h
       exact List.mem_iff_getElem.mpr ⟨_,b,h⟩
 
-private def prefixDigits (r : Array U32 67#usize) (k : Nat) : Slice U32 :=
+def prefixDigits (r : Array U32 67#usize) (k : Nat) : Slice U32 :=
   Slice.from (r.val.take k) (by
     rw [List.length_take]
     apply (Nat.min_le_right ..).trans
@@ -301,14 +301,18 @@ private def prefixDigits (r : Array U32 67#usize) (k : Nat) : Slice U32 :=
 
 /-- The extracted message encoder and inline signing sort drive the four-lane refill model.
 The concatenation is in signature order, independently of the bucket execution order. -/
-theorem sign_bytes {N : Usize} (p : Spec.Params) (valid : p.Valid) (n : p.n = N.val)
-    (m : Array U8 N) (pk sk : Spec.Bytes) (a : Spec.Adrs) :
-    (do let digits ← slhdsa.wots.arm.wots_digits_stack m
+theorem sign_bytes_using {N : Usize} (p : Spec.Params) (valid : p.Valid) (n : p.n = N.val)
+    (m : Array U8 N) (pk sk : Spec.Bytes) (a : Spec.Adrs)
+    (signer : (Nat → Nat) → List Nat → Nat → Spec.Bytes)
+    (correct : ∀ digits order, (∀ c < p.len, digits c ≤ 15) → order.Nodup →
+      (∀ c, c ∈ order ↔ c < p.len) → ∀ c < p.len,
+      signer digits order c = wotsSignTarget p pk sk a digits c) :
+    (do let digits ← ArmwideRust.wots.arm.wots_digits_stack m
         let ds := prefixDigits digits p.len
         let sorted ← sha256.arm_wide.sign_order ds
         let order := (sorted.val.take p.len).map (·.val)
         ok ((List.range p.len).flatMap
-          (signFusedFull p pk sk a (fun i => ds.val[i]!.val) order)))
+          (signer (fun i => ds.val[i]!.val) order)))
     ⦃ out => out = Spec.wotsSign p (bytes m.val) sk pk a ⦄ := by
   have casesN : N.val = 16 ∨ N.val = 24 ∨ N.val = 32 := by have := valid.n_cases; omega
   have len : p.len = 2*N.val+3 := by
@@ -333,9 +337,9 @@ theorem sign_bytes {N : Usize} (p : Spec.Params) (valid : p.Valid) (n : p.n = N.
   apply List.flatMap_congr
   intro i hi
   have hi := List.mem_range.mp hi
-  have target := sign_fused_scheduler_eq_fips p pk sk a (fun i => ds.val[i]!.val)
-    p.len _ (by rwa [← size]) nd covers i hi
+  have target := correct (fun i => ds.val[i]!.val) _ (by rwa [← size]) nd covers i hi
   rw [target]
+  dsimp only [wotsSignTarget]
   have veq : nats ds.val = Spec.wotsDigits p (bytes m.val) := by simpa only [elems,len] using values
   have hx := congrArg (fun l : List Nat => l[i]!) veq
   have bound : i < ds.val.length := by change i < ds.length; omega
@@ -343,5 +347,17 @@ theorem sign_bytes {N : Usize} (p : Spec.Params) (valid : p.Valid) (n : p.n = N.
   rw [getElem!_pos _ _ (by simpa using bound),List.getElem_map] at hx
   rw [getElem!_pos ds.val _ (by change i < ds.length; omega)]
   rw [hx]
+
+theorem sign_bytes {N : Usize} (p : Spec.Params) (valid : p.Valid) (n : p.n = N.val)
+    (m : Array U8 N) (pk sk : Spec.Bytes) (a : Spec.Adrs) :
+    (do let digits ← ArmwideRust.wots.arm.wots_digits_stack m
+        let ds := prefixDigits digits p.len
+        let sorted ← sha256.arm_wide.sign_order ds
+        let order := (sorted.val.take p.len).map (·.val)
+        ok ((List.range p.len).flatMap
+          (signFusedFull p pk sk a (fun i => ds.val[i]!.val) order)))
+    ⦃ out => out = Spec.wotsSign p (bytes m.val) sk pk a ⦄ := by
+  exact sign_bytes_using p valid n m pk sk a _ (fun digits order =>
+    sign_fused_scheduler_eq_fips p pk sk a digits p.len order)
 
 end slhdsa.Armwide.SignOrder

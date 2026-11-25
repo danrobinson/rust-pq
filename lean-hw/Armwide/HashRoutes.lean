@@ -15,18 +15,18 @@ def lanes : Mode → Nat
   | .mixed n => n.val+1
   | .shared _ => 4
 
-private def hashRoute (m : Mode) (j : Fin (lanes m)) : HashTrace :=
+def hashRoute (m : Mode) (j : Fin (lanes m)) : HashTrace :=
   let start := match m with
     | .mixed n => #[0,1,3,6][n.val]!
     | .shared k => 10+4*k.val
   hashes[start+j.val]!
 
-private def expected (m : Mode) (j : Nat) : HashTrace :=
+def expected (m : Mode) (j : Nat) : HashTrace :=
   match m with
   | .mixed _ => ⟨j,[⟨j,j,j,0⟩]⟩
   | .shared k => ⟨j,(List.range (k.val+1)).map fun i => ⟨4,j,j,i⟩⟩
 
-private theorem routed (m : Mode) (j : Fin (lanes m)) : hashRoute m j = expected m j := by
+theorem routed (m : Mode) (j : Fin (lanes m)) : hashRoute m j = expected m j := by
   cases m with
   | mixed n => exact (by decide : ∀ n, ∀ j, hashRoute (.mixed n) j = expected (.mixed n) j) n j
   | shared k => exact (by decide : ∀ k, ∀ j, hashRoute (.shared k) j = expected (.shared k) j) k j

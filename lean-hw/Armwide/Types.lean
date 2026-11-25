@@ -18,7 +18,7 @@ set_option maxHeartbeats 1000000
 /- You can set the `maxRecDepth` value with the `-max-recdepth` CLI option -/
 set_option maxRecDepth 2048
 
-namespace slhdsa
+namespace ArmwideRust
 
 /-- [slhdsa::address::Adrs]
     Source: 'src/address.rs', lines 13:0-27:1
@@ -31,4 +31,4 @@ structure address.Adrs where
   word2 : Std.U32
   word3 : Std.U32
 
-end slhdsa
+end ArmwideRust
