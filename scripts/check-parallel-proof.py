@@ -18,6 +18,7 @@ ROOT, LEAN, run = common["ROOT"], common["LEAN"], common["run"]
 sys.path.insert(0, str(HERE / "parallel-proof"))
 import build
 import signer
+import cached_mutations
 import subtree
 
 
@@ -157,9 +158,12 @@ def check_entry_calls():
 
 
 def check_pool():
-    # Events used by ParallelPool.join. This source guard covers the
-    # ownership/publication protocol; Rust's atomic and CV semantics are trusted.
-    source = (build.SRC / "pool.rs").read_text()
+    # Match the production branches modeled by Parallel.Pool and reject new raw
+    # accesses to the borrowed job. Atomic/CV semantics remain a trust boundary.
+    source = (build.SRC / "pool.rs").read_text().split("#[cfg(test)]", 1)[0]
+    stripped = re.sub(r"//[^\n]*|\s+", "", source)
+    if stripped.count(".job.get()") != 3:
+        raise ValueError("review the raw worker job access set")
 
     def ordered(body, markers):
         text = re.sub(r"//[^\n]*|\s+", "", body)
@@ -173,26 +177,35 @@ def check_pool():
     ordered(
         source[source.index("pub(crate) fn execute") :],
         [
-            "let n_workers = (max_threads - 1).min(spawned);",
-            ".compare_exchange(false,true,Ordering::Acquire,Ordering::Relaxed).is_err()",
+            "let n_workers = (max_threads - 1).min(spawned);dispatch(pool,n_workers,scrub,f);",
+            "if n_workers==0{f();return;}",
+            ".compare_exchange(false,true,Ordering::Acquire,Ordering::Relaxed).is_err(){f();return;}",
             "*pool.job.get()=Some(Job{",
             "pool.remaining.store(n_workers*2,Ordering::Relaxed);",
+            "pool.caller_parked.store(false,Ordering::Relaxed);",
             "let _guard=PoolGuard{pool};",
             "for slot in &pool.workers[..n_workers]",
-            "slot.state.swap(WORK_PENDING,Ordering::AcqRel)",
+            "slot.state.swap(WORK_PENDING,Ordering::AcqRel);if prev==IDLE_PARKED{need_notify=true;}",
+            "if need_notify{let _lock=pool.park_lock.lock().unwrap_or_else(|e|e.into_inner());pool.park_cv.notify_all();}",
             "f();",
         ],
     )
     ordered(
-        source[source.index("fn worker_loop") : source.index("static PARALLELISM")],
+        source[source.index("fn worker_once") : source.index("fn worker_loop")],
         [
-            "slot.state.load(Ordering::Acquire)",
+            "let s=slot.state.load(Ordering::Acquire);if s==WORK_PENDING{break;}",
+            "slot.state.compare_exchange(IDLE_SPIN,IDLE_PARKED,Ordering::AcqRel,Ordering::Acquire,)",
+            "Ok(_)=>{let mut guard=pool.park_lock.lock().unwrap_or_else(|e|e.into_inner());",
+            "while slot.state.load(Ordering::Acquire)==IDLE_PARKED{guard=pool.park_cv.wait(guard)",
+            "break;}Err(WORK_PENDING)=>break,",
             "let job=unsafe{(*pool.job.get()).expect(",
             "std::panic::catch_unwind(",
             "run_worker_job(job.call,job.data);",
-            "if result.is_err(){pool.remaining.fetch_or(1,Ordering::Relaxed);}",
+            "if let Err(payload)=result{pool.remaining.fetch_or(1,Ordering::Relaxed);",
+            "if let Err(second)=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||drop(payload))){core::mem::forget(second);}",
             "slot.state.store(IDLE_SPIN,Ordering::Release);",
-            "pool.remaining.fetch_sub(2,Ordering::SeqCst)<4",
+            "pool.remaining.fetch_sub(2,Ordering::SeqCst)<4&&pool.caller_parked.load(Ordering::SeqCst)",
+            "let _g=pool.done_lock.lock().unwrap_or_else(|e|e.into_inner());pool.done_cv.notify_one();",
         ],
     )
     ordered(
@@ -201,6 +214,10 @@ def check_pool():
         ],
         [
             "let failed=loop{let state=self.pool.remaining.load(Ordering::Acquire);if state<2{break state==1;}",
+            "self.pool.caller_parked.store(true,Ordering::SeqCst);",
+            "if self.pool.remaining.load(Ordering::SeqCst)>=2{let mut g=self.pool.done_lock.lock()",
+            "while self.pool.remaining.load(Ordering::Acquire)>=2{g=self.pool.done_cv.wait(g)",
+            "self.pool.caller_parked.store(false,Ordering::Relaxed);",
             "*self.pool.job.get()=None;",
             "self.pool.busy.store(false,Ordering::Release);",
             "if failed && !thread::panicking(){panic!(",
@@ -213,6 +230,7 @@ def main():
     check_pool()
     modules = {
         "Parallel.Pool": "ParallelPool.join",
+        "Parallel.Cached": "ParallelCached.interleavings",
         "Parallel.FusedWots": "ParallelFusedWots.selected",
         "Parallel.Fused": "ParallelFused.context_sign_fips",
         "Parallel.SplitTree": "ParallelSplitTree.keygenRoot",
@@ -223,11 +241,21 @@ def main():
     run(["lake", "build", *modules], LEAN)
     for module, theorem in modules.items():
         facade["audit_theorems"](module, [theorem])
-    facade["audit_theorems"]("Parallel.Pool", ["ParallelPool.packed_join"])
+    facade["audit_theorems"](
+        "Parallel.Pool",
+        [
+            "ParallelPool.packed_join",
+            "ParallelPool.safe_to_clear",
+            "ParallelPool.join_wakeup_order",
+            "ParallelPool.condvar_wakeup_order",
+            "ParallelPool.Publication.published",
+        ],
+    )
     facade["audit_theorems"]("Parallel.Fused", ["ParallelFused.phase_one_ready"])
     with tempfile.TemporaryDirectory() as tmp:
         check_dispatch(Path(tmp))
         signer.main()
+        cached_mutations.main()
         build.check_tree_layout(Path(tmp))
         image = build.build(Path(tmp))
         for n in (16, 24, 32):

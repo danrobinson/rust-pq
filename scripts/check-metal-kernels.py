@@ -75,7 +75,7 @@ def require_ordered(source: str, markers: list[str], label: str) -> None:
         pos = idx + len(cm)
 
 
-def audit_ffi_and_host_boundary() -> None:
+def audit_ffi_and_host_boundary() -> str:
     """Check Objective-C bridge, Rust FFI wrapper, buffer sizing, zeroize, overflow guards,
     and kernel binding/barrier consistency across all 12 parameter sets."""
     bridge = (ROOT / "metal/src/bridge.m").read_text()
@@ -140,7 +140,8 @@ def audit_ffi_and_host_boundary() -> None:
         "metal/src/lib.rs",
     )
 
-    # Verify secret zeroization runs BEFORE propagating GPU errors on both keygen and sign paths
+    # Both operations install cleanup before writing any pooled key material.
+    require_contains(lib_rs, ["impl Drop for ScratchUse<'_> {fn drop(&mut self) {if let Some(keys) = &mut self.0.keys { keys.zeroize_contents(); }}}"], "scratch key cleanup")
     keygen_fn = lib_rs[
         lib_rs.index("fn keygen_internal_batch_family") : lib_rs.index("fn sign_batch_family")
     ]
@@ -153,9 +154,10 @@ def audit_ffi_and_host_boundary() -> None:
             "validate_geometry::<N>(p)?;",
             "check_grid(count, leaves_per_tree * words)?;",
             "check_grid(count, leaves_per_tree * wots_len * words)?;",
-            "let gpu_res = cmd.commit_and_wait();",
-            "pool.keys.as_mut().unwrap().zeroize_contents();",
-            "gpu_res?;",
+            "let cleanup = ScratchUse(&mut locked);",
+            "let pool = &mut *cleanup.0;",
+            "ScratchPool::ensure(&self.ctx, &mut pool.keys,",
+            "cmd.commit_and_wait()?;",
         ],
         "keygen_internal_batch_family",
     )
@@ -168,6 +170,9 @@ def audit_ffi_and_host_boundary() -> None:
             "let s2 = p.a - s1;",
             "check_grid(num_sigs, p.k as usize * subtrees_per_tree as usize * words)?;",
             "check_grid(num_sigs, d * leaves_per_tree * wots_len * words)?;",
+            "let cleanup = ScratchUse(&mut locked);",
+            "let pool = &mut *cleanup.0;",
+            "ScratchPool::ensure(&self.ctx, &mut pool.keys,",
             "let mut cmd = self.ctx.begin_cmd(true)?;",
             "cmd.dispatch_threads(&pipes.wots_chains,",
             "cmd.dispatch_threads(&pipes.xmss_leaves_streaming,",
@@ -182,41 +187,48 @@ def audit_ffi_and_host_boundary() -> None:
             "cmd.dispatch_threads(&pipes.fors_pk,",
             "if need_stage3_barrier { cmd.barrier(); }",
             "cmd.dispatch_threads(&pipes.wots_sign,",
-            "let gpu_res = cmd.commit_and_wait();",
-            "pool.keys.as_mut().unwrap().zeroize_contents();",
-            "gpu_res?;",
+            "cmd.commit_and_wait()?;",
         ],
         "sign_internal_batch_family",
     )
 
-    # 4. Cross-check kernel buffer/inline/threadgroup bindings against DEFINE_KERNELS & DEFINE_SHAKE_KERNELS
-    expected_bindings = {
-        "wots_chains": (3, 3, False),
-        "wots_tlen": (4, 4, False),
-        "xmss_leaves_streaming": (3, 3, False),
-        "xmss_reduce": (5, 5, True),
-        "fors_pass1": (4, 4, True),
-        "fors_pass2": (5, 5, True),
-        "fors_pk": (4, 4, False),
-        "wots_sign": (5, 5, False),
-    }
-    for prefix, src in (("", sha2_msl), ("shake_", shake_msl)):
-        for kname, (nbufs, param_idx, uses_tg) in expected_bindings.items():
-            full = f"{prefix}{kname}_##SUFFIX"
-            m = re.search(rf"kernel void {re.escape(full)}\s*\((.*?)\)\s*\\?\s*\{{", src, re.S)
-            if not m:
-                raise ValueError(f"missing kernel definition for {full}")
-            sig = m.group(1)
-            buf_indices = [int(x) for x in re.findall(r"\[\[buffer\((\d+)\)\]\]", sig)]
-            if buf_indices != list(range(nbufs + 1)):
-                raise ValueError(f"{full}: unexpected buffer slots {buf_indices}")
-            if buf_indices[-1] != param_idx:
-                raise ValueError(f"{full}: params slot mismatch")
-            has_tg = "[[threadgroup(0)]]" in sig
-            if has_tg != uses_tg:
-                raise ValueError(f"{full}: threadgroup(0) mismatch")
+    bindings = runpy.run_path(str(HERE / "metal-bindings.py"))
+    binding_claims = bindings["verify"](lib_rs, sha2_msl, shake_msl)
+    bindings["check_stages"](lib_rs)
+    bindings["check_slot_swaps"](lib_rs, sha2_msl, shake_msl)
+    # The bridge binds the ith Rust handle at MSL slot i, with no dynamic offset.
+    require_contains(gpu_rs, [
+        "for (dst, b) in buf_ptrs.iter_mut().zip(buffers.iter()) { *dst = b.raw.as_ptr() as *const SlhMetalBuffer; }",
+        """for (i, b) in inline_bytes.iter().enumerate() {
+            byte_ptrs[i] = b.data.as_ptr() as *const c_void;
+            byte_lens[i] = u32::try_from(b.data.len()).expect("inline binding exceeds u32");
+            byte_indices[i] = b.index;
+        }""",
+        "self.dispatch_impl(pipeline,buffers,inline_bytes,grid_x,tg_x,tg_mem_len,false);",
+        "self.dispatch_impl(pipeline,buffers,inline_bytes,num_tgs,tg_x,tg_mem_len,true);",
+        "let data = bytemuck::bytes_of(val); Self { index, data }",
+        "slh_metal_cmd_dispatch(raw.as_ptr(),pipeline.raw.as_ptr(),buf_ptrs.as_ptr(),buffers.len() as u32,byte_ptrs.as_ptr(),byte_lens.as_ptr(),byte_indices.as_ptr(),inline_bytes.len() as u32,grid_x,tg_x,tg_mem_len,use_threadgroups,)",
+    ], "Rust dispatch forwarding")
+    require_contains(bridge, [
+        "for (uint32_t i = 0; i < num_buffers; ++i) { if (buffers[i]) { SlhMetalBufferObj *bufObj = (__bridge SlhMetalBufferObj *)buffers[i]; [enc setBuffer:bufObj.buffer offset:0 atIndex:i]; } }",
+        "for (uint32_t i = 0; i < num_bytes; ++i) { [enc setBytes:bytes_ptrs[i] length:bytes_lens[i] atIndex:bytes_indices[i]]; }",
+        "[enc setComputePipelineState:pipeObj.state];",
+        """MTLSize tgSize = MTLSizeMake(tg_x, 1, 1);
+        if (use_threadgroups) {
+            MTLSize numTgs = MTLSizeMake(grid_x, 1, 1);
+            [enc dispatchThreadgroups:numTgs threadsPerThreadgroup:tgSize];
+        } else {
+            MTLSize gridSize = MTLSizeMake(grid_x, 1, 1);
+            [enc dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
+        }""",
+    ], "Objective-C slot forwarding")
 
-    # 5. Mathematical proof of u32 index non-overflow under check_grid for all 12 parameter sets
+    dispatch = compact(bridge.split("void slh_metal_cmd_dispatch(", 1)[1].split("int slh_metal_cmd_commit_and_wait(", 1)[0])
+    for op in ("setComputePipelineState:", "setBuffer:", "setBytes:", "setThreadgroupMemoryLength:"):
+        if dispatch.count(op) != 1:
+            raise ValueError(f"unexpected Metal encoder operations for {op}")
+
+    # Verify 32-bit index bounds at every supported parameter geometry.
     u32_max = (1 << 32) - 1
     for name, family, n, h, d, hp, a, k, m_bytes in PARAM_SETS:
         wots_len = 2 * n + 3
@@ -229,6 +241,24 @@ def audit_ffi_and_host_boundary() -> None:
         xmss_sig_bytes = (wots_len + hp) * n
         sig_bytes = n + fors_sig_bytes + d * xmss_sig_bytes
 
+        # Instantiate the index theorem with each replayed layout. Count, item
+        # and the inner word/byte offset remain universally quantified in Lean.
+        sign_guard = max(sig_bytes, d * leaves * words)
+        for stride, guard in [
+            (leaves * words, leaves * words),
+            (leaves * wots_len * words, leaves * wots_len * words),
+            (sig_bytes, sign_guard),
+            (d * leaves * words, sign_guard),
+            (d * wots_len, sign_guard),
+            (k * subtrees * words, k * subtrees * words),
+            (d * leaves * wots_len * words, d * leaves * wots_len * words),
+        ]:
+            binding_claims += (
+                f"\nexample (count item offset : Nat) (checked : count ≤ (2^32-1)/{guard}) "
+                f"(hi : item < count) (ho : offset < {stride}) := "
+                f"@MetalBindings.flat_index count {stride} {guard} item offset "
+                "(by decide) checked (by decide) hi ho"
+            )
         # Max representable batch sizes admitted by check_grid
         max_kg_stream = u32_max // (leaves * words)
         max_kg_2ph = min(max_kg_stream, u32_max // (leaves * wots_len * words))
@@ -259,6 +289,7 @@ def audit_ffi_and_host_boundary() -> None:
         assert h == d * hp and 1 <= hp <= 9 and 1 <= a <= 14
 
     print("FFI/host boundary audit passed (bridge.m, gpu.rs, lib.rs, all 12 parameter sets).")
+    return binding_claims
 
 
 # ============================================================================
@@ -1862,7 +1893,7 @@ def build_test_cases_file(path: Path) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
-def check_lean_proofs() -> None:
+def check_lean_proofs(binding_claims: str) -> None:
     """Build Metal.Pipeline and audit all headline theorems strictly within
     [propext, Classical.choice, Quot.sound]."""
     os.environ["PATH"] = os.pathsep.join(
@@ -1873,7 +1904,9 @@ def check_lean_proofs() -> None:
         ]
     )
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
-    subprocess.run(["lake", "build", "Metal.Pipeline"], cwd=ROOT / "lean-hw", check=True)
+    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings"], cwd=ROOT / "lean-hw", check=True)
+    subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw", input=binding_claims, text=True, check=True)
+    facade["audit_theorems"]("Metal.Bindings", ["MetalBindings.dispatch", "MetalBindings.flat_index"])
     theorems = [
         "MetalPipeline.metal_wots_two_phase_eq_fips",
         "MetalPipeline.metal_wots_streaming_eq_fips",
@@ -1893,7 +1926,7 @@ def check_lean_proofs() -> None:
 
 
 def main() -> None:
-    audit_ffi_and_host_boundary()
+    binding_claims = audit_ffi_and_host_boundary()
 
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
@@ -1923,7 +1956,7 @@ def main() -> None:
         )
         subprocess.run([str(exe), str(cases_file)], check=True)
 
-    check_lean_proofs()
+    check_lean_proofs(binding_claims)
 
 
 if __name__ == "__main__":

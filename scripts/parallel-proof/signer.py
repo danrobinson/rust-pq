@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 from build import SRC, function
+import cached
 
 
 def once(s, before, after):
@@ -100,21 +101,34 @@ def symbolic_source(source):
     return meta + reduce + "\n" + sign
 
 
-def main():
+def probe_source(cache_source):
     source = (SRC / "slh/parallel.rs").read_text()
     probe = Path(__file__).with_name("signer.rs").read_text()
+    cached_probe = Path(__file__).with_name("cached.rs").read_text()
+    probe = probe.replace("// CACHED_HARNESS", cached.harness(cached_probe, cache_source))
     probe = probe.replace("// PRODUCTION_SIGNER", symbolic_source(source))
     probe = probe.replace("PARAMS_PATH", str(SRC / "params.rs"))
     probe = probe.replace("ADDRESS_PATH", str(SRC / "address.rs"))
+    return probe
+
+
+def main():
+    width_source = (SRC / "shake256/parallel.rs").read_text()
+    widths = re.findall(r"const WIDTH: usize = ([^;]+);", width_source)
+    if set(widths) != {"3", "8"}:
+        raise ValueError("replay all production Keccak lane widths")
+    probe = probe_source((SRC / "cache.rs").read_text())
     with tempfile.TemporaryDirectory() as tmp:
         src = Path(tmp, "signer.rs")
         binary = Path(tmp, "signer")
-        for width in (3, 8):
+        for width, simd in ((3, False), (3, True), (8, True)):
+            print(f"Checking cached and uncached signing at width {width}, cached SIMD {simd}", flush=True)
             src.write_text(probe.replace("PROOF_WIDTH", str(width)))
             subprocess.run(
                 [
                     "rustc",
                     "--edition=2021",
+                    *(["--cfg", "proof_simd"] if simd else []),
                     "-O",
                     "-C",
                     "overflow-checks=yes",

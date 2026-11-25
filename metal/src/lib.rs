@@ -75,6 +75,33 @@ mod tests {
     }
 
     #[test]
+    fn pooled_keys_are_cleared_on_early_return_and_unwind() {
+        let ctx = MetalContext::new(SHADER_SRC).unwrap();
+        let mut scratch = ScratchPool::new();
+        fn fail(
+            ctx: &MetalContext,
+            scratch: &mut ScratchPool,
+            unwind: bool,
+        ) -> Result<(), MetalError> {
+            let guard = ScratchUse(scratch);
+            ScratchPool::ensure(ctx, &mut guard.0.keys, 64, true)?
+                .as_mut_slice()
+                .fill(0x5a);
+            if unwind {
+                panic!("simulated unwind before commit");
+            }
+            Err(MetalError("simulated allocation failure".into()))
+        }
+        assert!(fail(&ctx, &mut scratch, false).is_err());
+        assert!(scratch.keys.as_ref().unwrap().as_slice().iter().all(|&b| b == 0));
+        let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            fail(&ctx, &mut scratch, true)
+        }));
+        assert!(unwind.is_err());
+        assert!(scratch.keys.as_ref().unwrap().as_slice().iter().all(|&b| b == 0));
+    }
+
+    #[test]
     fn grid_limits_include_the_last_representable_batch() {
         for stride in [1, 3, 4, 8, 7 * 512 * 35 * 4] {
             let last = u32::MAX as usize / stride;
@@ -232,6 +259,18 @@ struct ScratchPool {
     pk_fors: Option<MetalBuffer>,
     wots_layers: Option<MetalBuffer>,
     out_sigs: Option<MetalBuffer>,
+}
+
+/// Keeps pooled key bytes scoped to one operation. Commands created after this
+/// guard finish (including their unwinding Drop) before the buffer is cleared.
+struct ScratchUse<'a>(&'a mut ScratchPool);
+
+impl Drop for ScratchUse<'_> {
+    fn drop(&mut self) {
+        if let Some(keys) = &mut self.0.keys {
+            keys.zeroize_contents();
+        }
+    }
 }
 
 impl ScratchPool {
@@ -677,7 +716,9 @@ impl MetalSigner {
             check_grid(count, leaves_per_tree * wots_len * words)?;
         }
 
-        let mut pool = self.pool.lock().unwrap();
+        let mut locked = self.pool.lock().unwrap();
+        let cleanup = ScratchUse(&mut locked);
+        let pool = &mut *cleanup.0;
         let trees_bytes = count * std::mem::size_of::<XmssTreeDesc>();
         let leaves_bytes = total_leaves * N;
         let roots_bytes = count * N;
@@ -790,9 +831,7 @@ impl MetalSigner {
             );
         }
 
-        let gpu_res = cmd.commit_and_wait();
-        pool.keys.as_mut().unwrap().zeroize_contents();
-        gpu_res?;
+        cmd.commit_and_wait()?;
 
         let mut out = Vec::with_capacity(count);
         match family {
@@ -928,7 +967,7 @@ impl MetalSigner {
         }
 
         // CPU preprocessing: deduplicate keys + compute R, H_msg, FORS indices, HT descriptors
-        let mut unique_seeds: Vec<([u8; N], [u8; N])> = Vec::new();
+        let mut unique_seeds: Vec<(&[u8; N], &[u8; N])> = Vec::new();
         let mut r_values: Vec<[u8; N]> = Vec::with_capacity(num_sigs);
         let mut fors_jobs_host: Vec<ForsJobDesc> = Vec::with_capacity(num_sigs);
         let mut xmss_trees_host: Vec<XmssTreeDesc> = Vec::with_capacity(total_trees);
@@ -936,9 +975,9 @@ impl MetalSigner {
 
         for (sig_idx, req) in requests.iter().enumerate() {
             assert_eq!(req.sk.len(), 4 * N);
-            let sk_seed = block::<N>(req.sk, 0);
+            let sk_seed: &[u8; N] = req.sk[..N].try_into().unwrap();
             let sk_prf = block::<N>(req.sk, 1);
-            let pk_seed = block::<N>(req.sk, 2);
+            let pk_seed: &[u8; N] = req.sk[2 * N..3 * N].try_into().unwrap();
             let pk_root = block::<N>(req.sk, 3);
 
             let key_idx = match unique_seeds
@@ -955,12 +994,12 @@ impl MetalSigner {
             let (r, digest) = match family {
                 HashFamily::Sha2 => {
                     let r = prf_msg::<N>(&sk_prf, req.addrnd, req.msg);
-                    let digest = h_msg::<N>(p, &r, &pk_seed, &pk_root, req.msg);
+                    let digest = h_msg::<N>(p, &r, pk_seed, &pk_root, req.msg);
                     (r, digest)
                 }
                 HashFamily::Shake => {
                     let r = shake_prf_msg::<N>(&sk_prf, req.addrnd, req.msg);
-                    let digest = shake_h_msg::<N>(p, &r, &pk_seed, &pk_root, req.msg);
+                    let digest = shake_h_msg::<N>(p, &r, pk_seed, &pk_root, req.msg);
                     (r, digest)
                 }
             };
@@ -1011,7 +1050,9 @@ impl MetalSigner {
             }
         }
 
-        let mut pool = self.pool.lock().unwrap();
+        let mut locked = self.pool.lock().unwrap();
+        let cleanup = ScratchUse(&mut locked);
+        let pool = &mut *cleanup.0;
         let num_keys = unique_seeds.len();
 
         match family {
@@ -1302,9 +1343,7 @@ impl MetalSigner {
             );
         }
 
-        let gpu_res = cmd.commit_and_wait();
-        pool.keys.as_mut().unwrap().zeroize_contents();
-        gpu_res?;
+        cmd.commit_and_wait()?;
 
         let sig_slice = pool.out_sigs.as_ref().unwrap().as_slice();
         let mut out = Vec::with_capacity(num_sigs);

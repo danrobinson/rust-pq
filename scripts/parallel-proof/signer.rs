@@ -442,6 +442,10 @@ mod algorithm {
     }
 }
 
+mod cached {
+    // CACHED_HARNESS
+}
+
 fn check<const N: usize>(p: &Params, row: (u32, u32, u32, u32, u32, usize)) {
     assert_eq!(p.n, N);
     assert_eq!((p.h, p.d, p.hp, p.a, p.k, p.m), row);
@@ -486,6 +490,7 @@ fn check<const N: usize>(p: &Params, row: (u32, u32, u32, u32, u32, usize)) {
         root = xmss_node(&sk, Word::constant(0), p.hp, &pk, a);
         expected.extend(part);
     }
+    cached::check(p, &md, &sk, &pk, fors_addr, &r, t, l, &expected);
     for (cpus, workers, simd) in [
         (1, 1, false),
         (2, 1, false),

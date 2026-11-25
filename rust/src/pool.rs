@@ -146,58 +146,69 @@ pub(crate) fn scrub_worker_stack() {
     scratch.zeroize();
 }
 
+fn worker_once(pool: &Pool, slot: &WorkerSlot) {
+    let mut spins = 0u32;
+    loop {
+        let s = slot.state.load(Ordering::Acquire);
+        if s == WORK_PENDING {
+            break;
+        }
+        if spins < WORKER_SPIN_ITERS {
+            core::hint::spin_loop();
+            spins += 1;
+        } else {
+            match slot.state.compare_exchange(
+                IDLE_SPIN,
+                IDLE_PARKED,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    let mut guard = pool.park_lock.lock().unwrap_or_else(|e| e.into_inner());
+                    while slot.state.load(Ordering::Acquire) == IDLE_PARKED {
+                        guard = pool.park_cv.wait(guard).unwrap_or_else(|e| e.into_inner());
+                    }
+                    break;
+                }
+                Err(WORK_PENDING) => break,
+                Err(_) => {}
+            }
+        }
+    }
+
+    // SAFETY: Our Acquire load observed `WORK_PENDING`, which synchronizes-with
+    // the dispatcher's AcqRel swap after initializing `pool.job`.
+    let job = unsafe { (*pool.job.get()).expect("pool job present") };
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        run_worker_job(job.call, job.data);
+    }));
+    if let Err(payload) = result {
+        pool.remaining.fetch_or(1, Ordering::Relaxed);
+        // User-defined panic payloads can panic again in Drop. Retiring the
+        // first payload here keeps such a panic from terminating this worker.
+        if let Err(second) =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(payload)))
+        {
+            core::mem::forget(second);
+        }
+    }
+    if job.scrub {
+        scrub_worker_stack();
+    }
+    // Transition back to IDLE_SPIN BEFORE decrementing `remaining` so that
+    // once the outstanding count hits 0, all slots are ready for the next dispatch.
+    slot.state.store(IDLE_SPIN, Ordering::Release);
+    if pool.remaining.fetch_sub(2, Ordering::SeqCst) < 4
+        && pool.caller_parked.load(Ordering::SeqCst)
+    {
+        let _g = pool.done_lock.lock().unwrap_or_else(|e| e.into_inner());
+        pool.done_cv.notify_one();
+    }
+}
+
 fn worker_loop(pool: &'static Pool, slot: Arc<WorkerSlot>) {
     loop {
-        let mut spins = 0u32;
-        loop {
-            let s = slot.state.load(Ordering::Acquire);
-            if s == WORK_PENDING {
-                break;
-            }
-            if spins < WORKER_SPIN_ITERS {
-                core::hint::spin_loop();
-                spins += 1;
-            } else {
-                match slot.state.compare_exchange(
-                    IDLE_SPIN,
-                    IDLE_PARKED,
-                    Ordering::AcqRel,
-                    Ordering::Acquire,
-                ) {
-                    Ok(_) => {
-                        let mut guard = pool.park_lock.lock().unwrap_or_else(|e| e.into_inner());
-                        while slot.state.load(Ordering::Acquire) == IDLE_PARKED {
-                            guard = pool.park_cv.wait(guard).unwrap_or_else(|e| e.into_inner());
-                        }
-                        break;
-                    }
-                    Err(WORK_PENDING) => break,
-                    Err(_) => {}
-                }
-            }
-        }
-
-        // SAFETY: Our Acquire load observed `WORK_PENDING`, which synchronizes-with
-        // the dispatcher's AcqRel swap after initializing `pool.job`.
-        let job = unsafe { (*pool.job.get()).expect("pool job present") };
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            run_worker_job(job.call, job.data);
-        }));
-        if result.is_err() {
-            pool.remaining.fetch_or(1, Ordering::Relaxed);
-        }
-        if job.scrub {
-            scrub_worker_stack();
-        }
-        // Transition back to IDLE_SPIN BEFORE decrementing `remaining` so that
-        // once the outstanding count hits 0, all slots are ready for the next dispatch.
-        slot.state.store(IDLE_SPIN, Ordering::Release);
-        if pool.remaining.fetch_sub(2, Ordering::SeqCst) < 4
-            && pool.caller_parked.load(Ordering::SeqCst)
-        {
-            let _g = pool.done_lock.lock().unwrap_or_else(|e| e.into_inner());
-            pool.done_cv.notify_one();
-        }
+        worker_once(pool, &slot);
     }
 }
 
@@ -214,25 +225,25 @@ pub(crate) fn available_threads() -> usize {
 }
 
 fn global_pool() -> &'static Pool {
-    POOL.get_or_init(|| {
-        let total = available_threads();
-        let wanted = total.saturating_sub(1);
-        let mut slots = Vec::with_capacity(wanted);
-        for _ in 0..wanted {
-            slots.push(Arc::new(WorkerSlot::new()));
-        }
-        Pool {
-            busy: AtomicBool::new(false),
-            job: UnsafeCell::new(None),
-            workers: slots,
-            park_lock: Mutex::new(()),
-            park_cv: Condvar::new(),
-            remaining: AtomicUsize::new(0),
-            caller_parked: AtomicBool::new(false),
-            done_lock: Mutex::new(()),
-            done_cv: Condvar::new(),
-        }
-    })
+    POOL.get_or_init(|| new_pool(available_threads().saturating_sub(1)))
+}
+
+fn new_pool(wanted: usize) -> Pool {
+    let mut slots = Vec::with_capacity(wanted);
+    for _ in 0..wanted {
+        slots.push(Arc::new(WorkerSlot::new()));
+    }
+    Pool {
+        busy: AtomicBool::new(false),
+        job: UnsafeCell::new(None),
+        workers: slots,
+        park_lock: Mutex::new(()),
+        park_cv: Condvar::new(),
+        remaining: AtomicUsize::new(0),
+        caller_parked: AtomicBool::new(false),
+        done_lock: Mutex::new(()),
+        done_cv: Condvar::new(),
+    }
 }
 
 static WORKERS_SPAWNED: OnceLock<usize> = OnceLock::new();
@@ -273,6 +284,10 @@ pub(crate) fn execute<F: Fn() + Sync>(max_threads: usize, scrub: bool, f: &F) {
     }
     let (pool, spawned) = ensure_workers();
     let n_workers = (max_threads - 1).min(spawned);
+    dispatch(pool, n_workers, scrub, f);
+}
+
+fn dispatch<F: Fn() + Sync>(pool: &Pool, n_workers: usize, scrub: bool, f: &F) {
     if n_workers == 0 {
         f();
         return;
@@ -355,6 +370,42 @@ mod tests {
     }
 
     #[test]
+    fn panicking_payload_destructor_preserves_worker() {
+        struct Payload;
+        impl Drop for Payload {
+            fn drop(&mut self) {
+                panic!("payload destructor");
+            }
+        }
+
+        let pool = new_pool(1);
+        let caller = thread::current().id();
+        let (ready, retired) = std::sync::mpsc::channel();
+        thread::scope(|scope| {
+            let pool = &pool;
+            scope.spawn(move || {
+                worker_once(pool, &pool.workers[0]);
+                ready.send(()).unwrap();
+                worker_once(pool, &pool.workers[0]);
+            });
+            let failed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                dispatch(pool, 1, false, &|| {
+                    if thread::current().id() != caller {
+                        std::panic::panic_any(Payload);
+                    }
+                });
+            }));
+            assert!(failed.is_err());
+            retired.recv().expect("worker survived payload destructor");
+            let calls = AtomicUsize::new(0);
+            dispatch(pool, 1, false, &|| {
+                calls.fetch_add(1, Ordering::Relaxed);
+            });
+            assert_eq!(calls.load(Ordering::Relaxed), 2);
+        });
+    }
+
+    #[test]
     fn parallel_work_queue_and_scrub_preserve_results() {
         const ITEMS: usize = 32;
         let next = AtomicUsize::new(0);
@@ -371,18 +422,23 @@ mod tests {
 
     #[test]
     fn nested_reentrant_execute_falls_back_cleanly() {
-        let outer_sum = AtomicUsize::new(0);
-        let next = AtomicUsize::new(0);
-        execute(4, false, &|| {
-            while next.fetch_add(1, Ordering::Relaxed) < 8 {
-                let inner = AtomicUsize::new(0);
-                execute(4, false, &|| {
-                    inner.fetch_add(1, Ordering::Relaxed);
+        let pool = new_pool(1);
+        let caller = thread::current().id();
+        let nested = AtomicUsize::new(0);
+        thread::scope(|scope| {
+            scope.spawn(|| worker_once(&pool, &pool.workers[0]));
+            dispatch(&pool, 1, false, &|| {
+                let outer = thread::current().id();
+                dispatch(&pool, 1, false, &|| {
+                    assert_eq!(outer, thread::current().id());
+                    nested.fetch_add(1, Ordering::Relaxed);
                 });
-                outer_sum.fetch_add(inner.load(Ordering::Relaxed), Ordering::Relaxed);
-            }
+                if outer != caller {
+                    assert!(pool.busy.load(Ordering::Relaxed));
+                }
+            });
         });
-        assert_eq!(outer_sum.load(Ordering::Relaxed), 8);
+        assert_eq!(nested.load(Ordering::Relaxed), 2);
     }
 
     #[test]
@@ -421,6 +477,34 @@ mod tests {
             check.fetch_add(1, Ordering::Relaxed);
         });
         assert!(check.load(Ordering::Relaxed) >= 1);
+    }
+
+    #[test]
+    fn parked_worker_and_waiting_dispatcher_exchange_a_borrowed_job() {
+        let pool = new_pool(1);
+        let slot = &pool.workers[0];
+        let caller = thread::current().id();
+        let value = AtomicUsize::new(0);
+        thread::scope(|scope| {
+            scope.spawn(|| worker_once(&pool, slot));
+            // Dispatch after this worker has taken the parking branch.
+            while slot.state.load(Ordering::Acquire) != IDLE_PARKED {
+                thread::yield_now();
+            }
+            dispatch(&pool, 1, false, &|| {
+                if thread::current().id() != caller {
+                    // Complete after the caller has advertised its wait.
+                    while !pool.caller_parked.load(Ordering::Acquire) {
+                        thread::yield_now();
+                    }
+                    value.store(17, Ordering::Relaxed);
+                }
+            });
+            // Check publication through the pool join, before the scope joins.
+            assert_eq!(value.load(Ordering::Relaxed), 17);
+            assert_eq!(slot.state.load(Ordering::Relaxed), IDLE_SPIN);
+            assert!(!pool.busy.load(Ordering::Relaxed));
+        });
     }
 
     #[test]
