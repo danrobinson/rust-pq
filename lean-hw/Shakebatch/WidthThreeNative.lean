@@ -61,8 +61,8 @@ run_cmd liftTermElabM do
         let value ← mkLambdaFVars #[worker] (mkApp (mkConst claim) w)
         let type ← inferType value
         addDecl <| .thmDecl {«name» := `slhdsa.WidthThree.LinuxWorker ++ suite ++ op, levelParams := [], type, value}
-    for op in ["_sign","_sign_with_context","_randomized_sign"] do
-      let api := `slh_dsa ++ Name.mkSimple (suite.toString ++ op)
+  for api in PlatformProof.shakeFacadeRoots do
+    unless api.toString.startsWith "slh_dsa.multipart_" do
       install (`WidthThreeLinuxCompat.WidthThreeCompat ++ api) (`WidthThreeSignedFacade ++ api)
 
 end
