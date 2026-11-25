@@ -36,9 +36,11 @@ def declarations(text):
             yield item.strip()
 
 
-def checked_external_bindings(package):
+def checked_external_bindings(package, overrides=None):
     # Keep the exact Aeneas binder signatures. Every external resolves to an
     # existing model explicitly, and the fresh translation calls these bindings.
+    overrides = overrides or {}
+    selected = set()
     aliases = []
     models = "\n".join((LEAN / "Slhdsa" / f).read_text() for f in ("FunsExternal.lean", "TypesExternal.lean"))
     for path in sorted(package.glob("*External_Template.lean"), reverse=True):
@@ -49,6 +51,10 @@ def checked_external_bindings(package):
             if not m:
                 raise ValueError(f"unexpected external declaration in {path}: {declaration}")
             name, signature = m.groups()
+            if name in overrides:
+                selected.add(name)
+                aliases.append(f"abbrev {name} {signature} := {overrides[name]}")
+                continue
             if re.search(rf"^def {re.escape(name)}\b", models, re.MULTILINE):
                 owner = "_root_" if path.name.startswith("Types") else "slhdsa"
             elif name in ("core.slice.raw.from_ref", "core.slice.Slice.as_chunks",
@@ -63,6 +69,8 @@ def checked_external_bindings(package):
             args = " T N" if name == "core.slice.Slice.as_chunks" else (
                 " T" if "{T" in binders else " N" if "{N" in binders else "")
             aliases.append(f"abbrev {name} {signature} := @{owner}.{name}{args}")
+    if selected != set(overrides):
+        raise ValueError(f"expected source cutpoints absent: {set(overrides) - selected}")
     return "\n".join(aliases)
 
 
