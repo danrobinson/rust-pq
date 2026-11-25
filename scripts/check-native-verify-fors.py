@@ -52,6 +52,8 @@ if __name__ == "__main__":
         "Indices": ["indices_spec"],
         "Payload": ["pair_payloads"],
         "Rows": ["seed_rows", "leaf_payload", "snapshot"],
+        "LeafHash": ["leaf_fips", "split_batch"],
+        "Parents": ["parent_lanes"],
         "Padding": ["zero_leaf_tail", "zero_pair_tail", "pad_pair_word"],
         "Digest": ["extract_bytes", "append_batch"],
     }
