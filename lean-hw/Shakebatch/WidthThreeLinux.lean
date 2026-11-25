@@ -23,6 +23,13 @@ run_cmd liftCoreM do
   PlatformProof.replay `WidthThreeLinuxSDK (pairs ++ [
     (`slhdsa.NativeVerify.linuxRecovery,`LinuxNativeRecovery.slhdsa.NativeVerify.linuxRecovery)])
     roots [`Cachepath,`Shakeopt]
+  let mut compat := #[]
+  for root in PlatformProof.shakeFacadeRoots do
+    let param := `WidthThreeCompat ++ root
+    if (← getEnv).contains param then compat := compat.push param
+  PlatformProof.replay `WidthThreeLinuxCompat (pairs ++ [
+    (`slhdsa.NativeVerify.linuxRecovery,`LinuxNativeRecovery.slhdsa.NativeVerify.linuxRecovery)])
+    compat [`Cachepath,`Shakeopt]
   for entry in [`WidthThreeLinux.slhdsa.ParallelCaller.Sh.shake.slh.slh_sign_internal,
       `WidthThreeLinux.slhdsa.ParallelCaller.Sh.shake.slh.shake_sign_ctx,
       `WidthThreeLinuxSDK.WidthThreeSDK.SegmentedPublic.slhdsa.sets.shake_128s.sign,

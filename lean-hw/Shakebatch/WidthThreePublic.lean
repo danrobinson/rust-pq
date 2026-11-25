@@ -1,4 +1,5 @@
 import Shakebatch.WidthThreeHost
+import Shakebatch.NativeFacade
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthThree
 noncomputable section
@@ -42,6 +43,12 @@ run_cmd liftTermElabM do
       let actual ← CacheopsRust.NativeVerifier.abstractCalls `WidthThreeSDK [`Slhdsa,`Shakebatch,`Shakeopt,`Facade]
         goal names `slhdsa.WidthThree.SigningPrimitives
       unless actual == `WidthThreeSDK ++ goal do throwError "missed public entry {goal}"
+
+  for root in PlatformProof.shakeFacadeRoots do
+    let actual ← CacheopsRust.NativeVerifier.abstractCalls `WidthThreeCompat
+      [`Slhdsa,`Shakebatch,`Shakeopt,`Facade] root names `slhdsa.WidthThree.SigningPrimitives
+    if root.toString.endsWith "_sign" || root.toString.endsWith "_verify" || root.toString.endsWith "_new" then
+      unless actual != root do throwError "missed RustCrypto implementation {root}"
 
 end
 end slhdsa.WidthThree
