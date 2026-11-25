@@ -122,9 +122,17 @@ def main():
             if program(pkg).split()==expected:
                 raise ValueError("accepted source mutant at "+name)
     module="Parallel.ForsMetaIssued"
-    common["facade"]["run"](["lake","build",module],lean)
+    common["facade"]["run"](["lake","build",module,"Parallel.ForsSplitOrder","Parallel.ForsRebase"],lean)
     common["facade"]["audit_theorems"](module,["slhdsa.ForsMetadata."+r for r in
                         ("targets","scalar","group","record_merge","scalar_cells","group_cells","scalar_issued","group_issued","partition","group_cast_geometry")])
+
+    common["facade"]["audit_theorems"]("Parallel.ForsSplitOrder",["slhdsa.RawFors."+r for r in
+                        ("joinedJobs_eq","scheduledScalarMerge_eq","scheduledGroupMerge_eq","buildScalarMerge_spec","buildGroupMerge_spec")])
+    common["facade"]["audit_theorems"]("Parallel.ForsRebase",[
+        "slhdsa.ForsMetadata.merge_rebase","slhdsa.ForsMetadata.emitted_rebase",
+        "slhdsa.RawFors.ScalarMerge.action_rebase","slhdsa.RawFors.GroupMerge.action_rebase",
+        "slhdsa.ForsMetadata.chunkCells_rebase","slhdsa.RawFors.ScalarMerge.cells_rebase","slhdsa.RawFors.GroupMerge.cells_rebase",
+        "slhdsa.RawFors.ScalarMerge.published_rebase","slhdsa.RawFors.GroupMerge.published_rebase"])
 
 
 if __name__=="__main__":
