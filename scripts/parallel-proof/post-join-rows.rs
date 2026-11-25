@@ -3,6 +3,18 @@
 type Blocks = Vec<Vec<Token>>;
 static EXPECTED_CELLS: Mutex<Option<(Blocks, Blocks, Blocks)>> = Mutex::new(None);
 
+static EXPECTED_TICKETS: Mutex<Vec<(Adrs, Word, Vec<Token>)>> = Mutex::new(Vec::new());
+
+fn observe_ticket_inputs<const N: usize>(layers: &[(Adrs, Word)], roots: &[[Token; N]]) {
+    let expected = EXPECTED_TICKETS.lock().unwrap();
+    assert_eq!(layers.len(), expected.len());
+    assert_eq!(roots.len(), expected.len());
+    for (j, (address, leaf, root)) in expected.iter().enumerate() {
+        assert_eq!(layers[j], (*address, *leaf), "phase-two address and keypair");
+        assert_eq!(roots[j].as_slice(), root.as_slice(), "phase-two signing message");
+    }
+}
+
 fn row_numbers<'a>(
     expected: &[Vec<Token>],
     actual: impl Iterator<Item = &'a [Token]>,

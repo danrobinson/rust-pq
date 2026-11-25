@@ -144,13 +144,14 @@ def symbolic_slots(folder):
         probe,
         "    let mut expected = r.to_vec();",
         "    let reference_forest = fors.chunks_exact(N).map(<[Token]>::to_vec).collect();\n"
+        "    let mut ticket_inputs = Vec::new();\n"
         "    let (mut reference_auth, mut reference_wots) = (Vec::new(),Vec::new());\n"
         "    let mut expected = r.to_vec();",
     )
     probe = signer.once(
         probe,
         "        for h in 0..hp {\n            let idx = Word",
-        "        reference_wots.push(part.clone());\n        for h in 0..hp {\n            let idx = Word",
+        "        ticket_inputs.push((a, leaf, root.to_vec()));\n        reference_wots.push(part.clone());\n        for h in 0..hp {\n            let idx = Word",
     )
     probe = signer.once(
         probe,
@@ -161,8 +162,11 @@ def symbolic_slots(folder):
     probe = signer.once(
         probe,
         "    cached::check(",
+        "    *EXPECTED_TICKETS.lock().unwrap() = ticket_inputs;\n"
         "    *EXPECTED_CELLS.lock().unwrap() = Some((reference_forest, reference_auth, reference_wots));\n    cached::check(",
     )
+    barrier = 'let roots = roots_cell.get().expect("roots ready");'
+    probe = signer.once(probe, barrier, barrier + "\n        observe_ticket_inputs(&layers, roots);")
     anchor = 'let xmss_auth = xmss_auth_cell.get().expect("XMSS auth assembled");'
     probe = signer.once(
         probe,

@@ -241,6 +241,7 @@ def main():
     run([sys.executable, HERE / "check-parallel-keygen.py"], ROOT)
     run([sys.executable, HERE / "check-signing-schedules.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-sign-join.py"], ROOT)
+    run([sys.executable, HERE / "check-parallel-wots-ticket.py"], ROOT)
     run([sys.executable, HERE / "check-shake-fused-xmss.py"], ROOT)
     run([sys.executable, HERE / "parallel-proof" / "buffered_tree.py"], ROOT)
     modules = {
