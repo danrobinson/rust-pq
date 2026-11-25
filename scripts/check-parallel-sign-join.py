@@ -144,7 +144,7 @@ def symbolic_slots(folder, width=3):
         probe,
         "    let mut expected = r.to_vec();",
         "    let reference_forest = fors.chunks_exact(N).map(<[Token]>::to_vec).collect();\n"
-        "    let mut ticket_inputs = Vec::new();\n    let mut reference_leaves = Vec::new();\n"
+        "    let mut ticket_inputs = Vec::new();\n    let mut reference_leaves = Vec::new();\n    let mut reference_chunks = Vec::new();\n    let mut reference_meta = Vec::new();\n"
         "    let (mut reference_auth, mut reference_wots) = (Vec::new(),Vec::new());\n"
         "    let mut expected = r.to_vec();",
     )
@@ -157,15 +157,22 @@ def symbolic_slots(folder, width=3):
         probe,
         "            part.extend(xmss_node(&sk, idx, h as u32, &pk, a));",
         "            let node = xmss_node(&sk, idx, h as u32, &pk, a);\n"
+        "            let split = (h as u32).saturating_sub(if hp >= 6 { 3 } else { 2 });\n"
+        "            reference_meta.push((reference_chunks.len(), split, idx, h as u32));\n"
+        "            for c in 0..1u32 << split { reference_chunks.push(xmss_node(&sk, (idx << split) + c, h as u32 - split, &pk, a).to_vec()); }\n"
         "            reference_auth.push(node.to_vec());\n            part.extend(node);",
     )
     probe = signer.once(
         probe,
         "    cached::check(",
+        "    *EXPECTED_RAW.lock().unwrap() = (reference_meta, reference_chunks);\n"
         "    *EXPECTED_LEAVES.lock().unwrap() = reference_leaves;\n"
         "    *EXPECTED_TICKETS.lock().unwrap() = ticket_inputs;\n"
         "    *EXPECTED_CELLS.lock().unwrap() = Some((reference_forest, reference_auth, reference_wots));\n    cached::check(",
     )
+    pack_start = 'let mut sig_fors = Vec::with_capacity(p.fors_sig_bytes());'
+    probe = signer.once(probe, pack_start,
+        'observe_raw_rows(&fors_direct, &xmss_slots, xmss_meta.iter().map(|m| (m.slot_start, m.split, m.root_idx, m.height)));\n                ' + pack_start)
     root_start = 'let mut roots: Vec<[Token; N]> = Vec::with_capacity(d);'
     probe = signer.once(probe, root_start, 'observe_root_inputs(&sig_fors, &xmss_auth, &leaf_pks);\n                ' + root_start)
     barrier = 'let roots = roots_cell.get().expect("roots ready");'

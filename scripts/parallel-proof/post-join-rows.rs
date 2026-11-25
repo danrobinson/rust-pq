@@ -7,6 +7,23 @@ static EXPECTED_TICKETS: Mutex<Vec<(Adrs, Word, Vec<Token>)>> = Mutex::new(Vec::
 
 static EXPECTED_LEAVES: Mutex<Blocks> = Mutex::new(Vec::new());
 
+type AuthMetadata = (usize, u32, Word, u32);
+static EXPECTED_RAW: Mutex<(Vec<AuthMetadata>, Blocks)> = Mutex::new((Vec::new(), Vec::new()));
+
+fn observe_raw_rows<const N: usize>(
+    forest: &[OnceLock<[Token; N]>],
+    xmss: &[OnceLock<[Token; N]>],
+    metadata: impl Iterator<Item = AuthMetadata>,
+) {
+    let expected = EXPECTED_CELLS.lock().unwrap();
+    let (f, _, _) = expected.as_ref().unwrap();
+    assert!(forest.iter().map(|x| x.get().unwrap().as_slice()).eq(f.iter().map(Vec::as_slice)));
+    let raw = EXPECTED_RAW.lock().unwrap();
+    assert!(metadata.eq(raw.0.iter().copied()), "XMSS metadata before assembly");
+    assert!(xmss.iter().map(|x| x.get().unwrap().as_slice()).eq(raw.1.iter().map(Vec::as_slice)),
+        "XMSS chunk slots before assembly");
+}
+
 fn observe_root_inputs<const N: usize>(
     forest: &[Token],
     auth: &[[Token; N]],

@@ -13,15 +13,19 @@ run_cmd liftCoreM do
       let host := if apple then `ParallelApple else `ParallelX86
       let api := (if apple then `ParallelAppleAPI else `ParallelX86API) ++ suite
       let ticket := if apple then `TicketApple else `TicketX86
+      let table := (if apple then `AuthTableApple else `AuthTableX86) ++ `slhdsa.ParallelAuthTable.auth_table
       let engine := (if apple then `WidthEightAppleKeys else `WidthEightX86Keys) ++ `slhdsa.WidthEight.sourceEngine
       let sponge := if apple then `AppleSingleStream.KappleouterRust.shake256.Sponge.absorb else `KxouterRust.shake256.Sponge.absorb
-      let worker := [`slhdsa.ParallelCaller.Sh.signWith,host ++ `slhdsa.ParallelCaller.Sh.shake.slh.slh_sign_internal,`slhdsa.ParallelSignJoin.replayWith,`slhdsa.WidthEight.Ticket.observedInputs,
+      let worker := [`slhdsa.ParallelCaller.Sh.signWith,host ++ `slhdsa.ParallelCaller.Sh.shake.slh.slh_sign_internal,`slhdsa.ParallelSignJoin.replayWith,`slhdsa.ParallelRawWorker.inputs,`slhdsa.ParallelForestPack.pack_fors,
+    `slhdsa.ParallelAuthTable.issuedMetadata,`slhdsa.ParallelAuthTable.issuedNode,`slhdsa.ParallelLeafTable.leaves,table,
+        `slhdsa.ParallelRawChunks.fill,
         host ++ `slhdsa.WidthEight.Ticket.phaseTwo,ticket ++ `slhdsa.WidthEight.Ticket.ticket,
         `slhdsa.ParallelXmssTicket.build_layers,`slhdsa.ParallelRootWalk.all_roots,
         `slhdsa.ParallelSignJoin.run,`slhdsa.ParallelSignJoin.run_loop0,sponge]
       for op in [`slh_sign_internal_spec,`slh_sign_spec,`sign_spec,`sign_deterministic_spec] do
         reaches (api ++ op) worker
         excludes (api ++ op) `slhdsa.ParallelSignJoin.interpreted
+        excludes (api ++ op) `slhdsa.WidthEight.Ticket.observedInputs
       excludes (api ++ `roundtrip) `slhdsa.ParallelSignJoin.interpreted
       reaches (api ++ `roundtrip) (engine :: `slhdsa.WidthEight.verify :: worker)
       reaches (ticket ++ `slhdsa.WidthEight.Ticket.from_layers)

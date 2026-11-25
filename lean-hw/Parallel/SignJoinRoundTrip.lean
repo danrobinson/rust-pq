@@ -1,4 +1,5 @@
 import Parallel.PhaseTwoLinux
+import Parallel.RawWorker
 import Parallel.KeygenWidthThreeRoundTrip
 open Aeneas Aeneas.Std Result
 namespace slhdsa.ParallelSignJoin
@@ -8,12 +9,12 @@ abbrev TicketSchedule := ∀ n, WidthEight.Ticket.Schedule n
 
 def linuxJoin (schedule : TicketSchedule) (plan : PhysicalRows) : Join :=
   ThreeLane.slhdsa.WidthEight.Ticket.completedJoin .linuxArm
-    (ThreeLane.slhdsa.WidthEight.Ticket.rootsFrom .linuxArm (WidthEight.Ticket.observedInputs plan schedule))
+    (ThreeLane.slhdsa.WidthEight.Ticket.rootsFrom .linuxArm (ParallelRawWorker.inputs .linuxArm plan schedule))
 
 theorem linux_join_correct (schedule : TicketSchedule) {N : Usize} (p : params.Params) (hp : PN p N)
     (plan : PhysicalRows) (found : lookup (Shake.params p)=some plan) : JoinLawAt (linuxJoin schedule plan) N p :=
   ThreeLane.slhdsa.WidthEight.Ticket.joined_from_forest .linuxArm _ p hp
-    (WidthEight.Ticket.observed_law schedule p hp plan found)
+    (ParallelRawWorker.law .linuxArm schedule p hp plan found)
 
 /-- Replay only the parameter shapes for which the symbolic Rust worker emitted
 a physical-cell witness. The six standardized SHAKE profiles all have one. -/

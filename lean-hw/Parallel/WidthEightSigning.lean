@@ -1,5 +1,5 @@
 import Parallel.WidthEightSome
-import Parallel.PhaseTwoObserved
+import Parallel.RawWorker
 import Shakebatch.WidthEightSession
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthEight.ParallelSign
@@ -21,7 +21,7 @@ theorem fallback_correct (h : Platform) {N : Usize} (p : params.Params) (hp : PN
   ⟨WidthEight.forsSign_spec h p hp,WidthEight.forsRecoverSpec h p hp,WidthEight.htSignSpec h p hp⟩
 
 def joinedPlan (host : Platform) (schedule : ∀ n, Ticket.Schedule n) (plan : PhysicalRows) : Join :=
-  Ticket.completedJoin host (Ticket.rootsFrom host (Ticket.observedInputs plan schedule))
+  Ticket.completedJoin host (Ticket.rootsFrom host (ParallelRawWorker.inputs (Ticket.rootHost host) plan schedule))
 
 theorem computed_correct (host : Platform) (schedule : ∀ n, Ticket.Schedule n) (threads : Usize)
     {N : Usize} (p : params.Params) (hp : PN p N) :
@@ -34,7 +34,7 @@ theorem computed_correct (host : Platform) (schedule : ∀ n, Ticket.Schedule n)
   | some plan =>
     try simp only [found]
     exact worker_correct threads _ p hp
-      (Ticket.joined_from_forest host _ p hp (Ticket.observed_law schedule p hp plan found))
+      (Ticket.joined_from_forest host _ p hp (ParallelRawWorker.law (Ticket.rootHost host) schedule p hp plan found))
       md sk seed a r tree leaf seedOk mdLen treeLt leafLt address
 
 theorem worker_returns (c : Config) (enabled : 2≤c.threads.val) {N : Usize}
@@ -51,7 +51,7 @@ theorem worker_returns (c : Config) (enabled : 2≤c.threads.val) {N : Usize}
   obtain ⟨plan,found⟩ := rust_supported p member
   let join : Join := joinedPlan c.host c.schedule plan
   have law : JoinLawAt join N p := Ticket.joined_from_forest c.host _ p hp
-    (Ticket.observed_law c.schedule p hp plan found)
+    (ParallelRawWorker.law (Ticket.rootHost c.host) c.schedule p hp plan found)
   obtain ⟨ret,eq,value⟩ := spec_imp_exists
     (result c.threads join p hp law md sk seed a r tree leaf mdLen treeLt leafLt address)
   cases ret with
