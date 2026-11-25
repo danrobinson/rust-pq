@@ -71,7 +71,8 @@ def auth_suffix {N : Usize} (p : params.Params) (sk : Array U8 N) (idx : U32) (s
     xmss_sign_batch_loop5 { start := 3#u32, «end» := p.hp } sk
       idx seed addr sig4 i17
 
-private theorem parentValue {N : Usize} (p : params.Params) (hp : PN p N) (sk seed : Array U8 N)
+omit kernel in
+theorem parentValue {N : Usize} (p : params.Params) (hp : PN p N) (sk seed : Array U8 N)
     (a : address.Adrs) (parent : Spec.Adrs) (left right value : Spec.Bytes) (i z : Nat)
     (aspec : parent = {(adrsS a).setTypeAndClear Spec.TREE with word2:=z+1,word3:=i})
     (l : left = Spec.xmssNode (Shake.params p) (bytes sk.val) (2*i) z (bytes seed.val) (adrsS a))
