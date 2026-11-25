@@ -1,6 +1,7 @@
 import Armwide.WotsRegisterHash
 import Armwide.SignLoad
 import Armwide.TailNative
+import Armwide.InitProgram
 import Spec.Correctness
 
 namespace slhdsa.Armwide.Transitions
@@ -114,6 +115,31 @@ private theorem shared_eq (p : Spec.Params) [Fact (p.family=.sha2)] (valid : p.V
   rw [← getElem!_pos a i ha]
   simp only [ph]
   exact congrArg (fun digest => SignLane.mk digest a[i]!.chain (a[i]!.curT+k) (a[i]!.left-k) false) hm
+
+theorem initial_rows_eq (sk : Spec.Bytes) (digits : Nat → Nat) (order : List Nat) :
+    initialRows sk digits order =
+      ((order.take 4).map (fun c => (⟨sk,c,0,1+digits c,true⟩ : SignLane)),order.drop 4) := by
+  dsimp only [initialRows]
+  apply Prod.ext
+  · apply List.ext_getElem (by simp)
+    intro i h h'
+    have hi : i < order.length := by simp at h; omega
+    simp only [List.getElem_map,List.getElem_range,List.getElem_take,getElem!_pos order i hi]
+  · by_cases four : 4 ≤ order.length
+    · rw [Nat.min_eq_left four]
+    · rw [Nat.min_eq_right (by omega),List.drop_length,List.drop_eq_nil_of_le (by omega)]
+
+def initializedRun (sk : Spec.Bytes) (digits : Nat → Nat) (order : List Nat)
+    (full : FourStep) (drain : TailStep) :=
+  let (active,queue) := initialRows sk digits order
+  signRunUsing full drain active queue (fun _ => []) (signMeasure active queue+1)
+
+theorem initialized_eq (sk : Spec.Bytes) (digits : Nat → Nat) (order : List Nat)
+    (full : FourStep) (drain : TailStep) :
+    initializedRun sk digits order full drain = signFusedUsing sk digits order full drain := by
+  unfold initializedRun
+  rw [initial_rows_eq]
+  rfl
 
 /-- For all admissible WOTS lengths and digits, the register-hashing, retire/refill
 and compacting scheduler returns the FIPS signature element of every chain. -/

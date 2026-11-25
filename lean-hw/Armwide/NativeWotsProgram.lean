@@ -12,7 +12,7 @@ def hashAddress (a : Spec.Adrs) : Spec.Adrs := {a.setTypeAndClear Spec.WOTS_HASH
 def signRows (n : Nat) (state : List Spec.SHA256.Word) (sk : Spec.Bytes) (a : Spec.Adrs)
     (digits : Nat → Nat) (order : List Nat) :=
   let base := hashAddress a
-  WotsRefill.signFusedUsing sk digits order (Transitions.four n state sk base digits)
+  Transitions.initializedRun sk digits order (Transitions.four n state sk base digits)
     (Transitions.tail n state base)
 
 def sha256.arm_wide.wots_sign_fused {N : Usize} (state : Array U32 8#usize)

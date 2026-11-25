@@ -34,7 +34,7 @@ private theorem fused_spec {N : Usize} (p : params.Params) (hp : PN p N)
       change ds.val[i]!.val = (ds.val.map (·.val))[i]!
       rw [getElem!_pos (ds.val.map (·.val)) i (by simp; exact hi),List.getElem_map,getElem!_pos ds.val i hi]
     unfold row signRows
-    rw [st,←hp.n]
+    rw [Transitions.initialized_eq,st,←hp.n]
     unfold WotsRefill.wotsSignTarget at h
     simpa only [dig] using h
   have fit : ((List.range ds.length).flatMap row).length = out.length := by
