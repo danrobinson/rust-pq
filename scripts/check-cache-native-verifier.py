@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kernel-check the three hosted segmented verifier front ends at their WOTS/FORS recovery boundary."""
+"""Check each extracted verifier front end and audit its complete hosted recovery and cache theorems."""
 from pathlib import Path
 import runpy
 import tempfile
@@ -56,7 +56,7 @@ end FreshVerifier
 
 
 def main():
-    shared["facade"]["run"](["lake","build","Cachepath.NativeVerifierHosts"],LEAN)
+    shared["facade"]["run"](["lake","build","Cachepath.NativeVerify.Hosted"],LEAN)
     for target,host,sponge,functions,short in (
         ("aarch64-apple-darwin","Apple","KappleouterRust","AppleSingleStream.KappleouterRust","appleFull"),
         ("aarch64-unknown-linux-gnu","Linux","KspongeLRust","KspongeLRust","linuxArmFull"),
@@ -67,6 +67,10 @@ def main():
             f"{host}Verifier.VerifierWithRecovery.SegmentedPublic.slhdsa.Shake.api_verify_spec",
             f"{host}CachedVerification.Hosted{host}Session.CacheopsRust.NativeSession.{short}",
         ])
+    shared["facade"]["audit_theorems"]("Cachepath.NativeVerify.Hosted", [
+        "CacheopsRust.NativeVerifier." + stem + result
+        for stem in ("apple", "linuxArm", "linuxX86") for result in ("RoundTrip", "Verify")
+    ])
 
 
 if __name__ == "__main__":
