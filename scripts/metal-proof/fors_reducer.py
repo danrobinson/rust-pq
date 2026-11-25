@@ -18,7 +18,6 @@ def public_claim(header, label, p, g, family, words, size, phase, mode, s1, s2, 
     let roots := {roots}
     let sec := {stem}Secret {p} requests {s1}
     let auth := {stem}Auth {p} requests {s1} {s2} {words} subMem
-    let otherBytes := @MetalForsDispatch.values {g} requests.length sec auth
     let leafMem :="""
     header = header.replace("let leafMem :=", parts).replace("else unconstrained r", "else True")
     inv = header.split("    let inv := ")[1].split("\n")[0]
@@ -29,6 +28,8 @@ def public_claim(header, label, p, g, family, words, size, phase, mode, s1, s2, 
     for line in proof_scratch:
         header = header.replace(line+"\n", "")
     local_scratch = "\n".join("  "+line.strip() for line in proof_scratch)
+    native = f"MetalForsDispatch.serialized (p:={p}) (rs:=requests) (g:={g}) {str(family=='shake').lower()} authValue sec auth"
+    header = header.replace(f"MetalXmssDispatch.values (p:={p}) (rs:=requests) authValue otherBytes", native)
     start = header.index(f"      (∀ w : {field}")
     end = header.index(") →\n    MetalCommandValues.publicResult", start)
     order2 = (f" ∧ finalBuf.schedule.Perm (MetalChainDispatch.grid (requests.length*{p}.k) {words})" if s2 else "")
@@ -59,7 +60,10 @@ def public_claim(header, label, p, g, family, words, size, phase, mode, s1, s2, 
         else:
             cases.append(f"  · simpa only [span] using bytesOk {kind} (by simp) (by trivial)")
     proof = header+f"""
-  intro requests keys trees e raw subValue subMem roots sec auth otherBytes leafMem rootValue authValue bytesAt events
+  intro requests keys trees e raw subValue subMem roots sec auth leafMem rootValue authValue
+  rw [MetalForsDispatch.serialized_eq (p:={p}) (rs:=requests) (g:={g}) {str(family=="shake").lower()} authValue sec auth]
+  let otherBytes := @MetalForsDispatch.values {g} requests.length sec auth
+  intro bytesAt events
     rawWithRoots data jobs initial pkValue source buffers atByte toByte out accepted
 {local_scratch}
   let inputsInv := MetalWotsOutput.otherScratch {p} requests buffers keys rest

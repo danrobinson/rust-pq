@@ -83,13 +83,17 @@ def verify_lifetime(lib, gpu, bridge):
         if(!cmd){return;}@autoreleasepool{SlhMetalCmdObj*obj=(__bridge SlhMetalCmdObj*)cmd;
         if(obj.concurrent){[obj.encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];}}""",
     )
-    begin = body(bridge, "SlhMetalCmd*slh_metal_cmd_begin")
-    for part in (
-        "concurrent?[cmdBufcomputeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent]:[cmdBufcomputeCommandEncoder]",
-        "cmd.cmdBuf=cmdBuf;cmd.encoder=encoder;cmd.concurrent=concurrent;",
-    ):
-        if part not in begin:
-            raise ValueError("unexpected encoder type or command ownership")
+    exact(
+        bridge, "SlhMetalCmd*slh_metal_cmd_begin", """
+        if(!ctx){return NULL;} @autoreleasepool{
+          SlhMetalCtxObj *obj=(__bridge SlhMetalCtxObj *)ctx; id<MTLCommandBuffer> cmdBuf=[obj.queue commandBuffer];
+          if(!cmdBuf){return NULL;}
+          id<MTLComputeCommandEncoder> encoder=concurrent
+            ?[cmdBuf computeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent]:[cmdBuf computeCommandEncoder];
+          if(!encoder){return NULL;} SlhMetalCmdObj *cmd=[[SlhMetalCmdObj alloc]init];
+          cmd.cmdBuf=cmdBuf;cmd.encoder=encoder;cmd.concurrent=concurrent;
+          return (__bridge_retained SlhMetalCmd *)cmd;}""",
+    )
     exact(
         lib,
         "implDropforScratchUse",
@@ -812,7 +816,19 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
         except ValueError:
             continue
         raise ValueError("public wrapper mutation accepted: " + before)
-    projections = []
+    projections = [completion["resources"](bridge, gpu, compact, body)]
+    for changed_bridge, changed_gpu in (
+        (bridge.replace("if (!state) {", "if (false) {"), gpu),
+        (bridge.replace("if (!buf) {", "if (false) {"), gpu),
+        (bridge, gpu.replace("NonNull::new(raw)", "NonNull::new_unchecked(raw)")),
+    ):
+        try:
+            completion["resources"](changed_bridge, changed_gpu, compact, body)
+        except ValueError as error:
+            if "changed Metal" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted a failed Metal resource")
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
         forest = fors_reducer["project"]
@@ -850,6 +866,15 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
             raise ValueError("accepted FORS roots with wrong batch stride")
         projects = wots_output["project"]
         projections.append(projects(shader, is_shake, body, compact))
+        marker = "void write_"+("shake_" if is_shake else "")+"node_bytes_tg("
+        before, function, remainder = shader.partition(marker)
+        try:
+            projects(before+function+remainder.replace("node[i]", "node[0]", 1), is_shake, body, compact)
+        except ValueError as error:
+            if "unmodeled WOTS value or serialization" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted a broadcast threadgroup signature store")
         projections.append(projects(shader.replace("(desc.layer - 1u)", "(desc.layer - 0u)"),
             is_shake, body, compact, previous_layer_counterexample=True))
         corrupted = shader.replace("uint32_t c_idx = chain - len1;", "uint32_t c_idx = chain;")
@@ -901,6 +926,7 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     cases = [
         (1, "if rc == 0 {", "if rc != 0 {", "cleanup path"),
         (2, "[obj.cmdBuf status] != MTLCommandBufferStatusCompleted", "[obj.cmdBuf status] == MTLCommandBufferStatusCompleted", "cleanup path"),
+        (2, "if (!encoder) {", "if (false) {", "cleanup path"),
         (2, "[obj.cmdBuf waitUntilCompleted];", "", "cleanup path"),
         (2, "[obj.cmdBuf commit];", "return -1; [obj.cmdBuf commit];", "cleanup path"),
         (

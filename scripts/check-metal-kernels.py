@@ -1927,6 +1927,7 @@ def check_lean_proofs(binding_claims: str) -> None:
     ]
     names += [f"gpu_{row[0].replace('-', '_')}_{op}_success" for row in PARAM_SETS for op in ("sign","keygen","internal")]
     names += [f"gpu_{row[0].replace('-', '_')}_wrappers" for row in PARAM_SETS]
+    names.append("gpu_resource_completion")
     commands = "".join(f"#print axioms {name}\n" for name in names)
     checked = subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw",
                              input=binding_claims+"\n"+commands, text=True, stdout=subprocess.PIPE)
@@ -1944,7 +1945,7 @@ def check_lean_proofs(binding_claims: str) -> None:
     facade["audit_theorems"]("Metal.SignatureLayout", [
         "MetalSignatureLayout.in_bounds", "MetalSignatureLayout.disjoint", "MetalSignatureLayout.cover",
     ])
-    facade["audit_theorems"]("Metal.Completion", ["MetalCompletion.wait_success", "MetalCompletion.sign_success", "MetalCompletion.keygen_success"])
+    facade["audit_theorems"]("Metal.Completion", ["MetalCompletion.wait_success", "MetalCompletion.observed_success", "MetalCompletion.sign_success", "MetalCompletion.keygen_success"])
     facade["audit_theorems"]("Metal.SigningSchedule", ["MetalSigningSchedule.wots_order"])
     facade["audit_theorems"]("Metal.ForsDispatch", [
         "MetalForsDispatch.signature_region", "MetalForsDispatch.split_words", "MetalForsDispatch.unsplit_words",

@@ -171,6 +171,27 @@ def values {g : MetalSignatureLayout.Geometry} {n : Nat} (secret : SecretFn) (au
   | .inr (.inl (t,.inr (.inr h))) => (auth w.val.1 t (g.s1+h.val))[w.val.2.2.val]!
   | _ => 0
 
+/-- Both the thread-private and threadgroup writers serialize the owning
+native word with the family's byte order before storing this signature byte. -/
+def serialized {p : Params} {rs : List BatchSignReq} {g : MetalSignatureLayout.Geometry} (shake : Bool)
+    (xmss : Nat → Nat → Bytes) (secret : SecretFn) (auth : AuthFn) (w : MetalReducerBytes.Field g rs.length) : Spec.Byte :=
+  let store := fun (x : Bytes) => MetalWotsOutput.storeByte shake x w.val.2.2.val
+  match w.val.2.1 with
+  | .inr (.inl (t,.inl _)) => store (secret w.val.1 t)
+  | .inr (.inl (t,.inr (.inl h))) => store (auth w.val.1 t h)
+  | .inr (.inl (t,.inr (.inr h))) => store (auth w.val.1 t (g.s1+h.val))
+  | .inr (.inr (j,.inr h)) => store (xmss (w.val.1.val*p.d+j.val) h)
+  | _ => 0
+
+theorem serialized_eq {p : Params} {rs : List BatchSignReq} {g : MetalSignatureLayout.Geometry} (shake : Bool)
+    (xmss : Nat → Nat → Bytes) (secret : SecretFn) (auth : AuthFn) :
+    serialized (p:=p) (rs:=rs) (g:=g) shake xmss secret auth =
+      MetalXmssDispatch.values (p:=p) (rs:=rs) xmss (values secret auth) := by
+  funext w
+  rcases w with ⟨⟨s,n,b⟩,valid⟩
+  rcases n with z | ⟨t,z|(l|u)⟩ | ⟨j,c|h⟩ <;>
+    simp only [serialized,MetalWotsOutput.storeByte_eq,MetalXmssDispatch.values,values]
+
 theorem batch_byte (p : Params) (hv : p.Valid) (mode : XmssMode) (rs : List BatchSignReq)
     (s : Fin rs.length) (t : Fin p.k) (k : Fin (p.a+1)) (i : Fin p.n) (node : Bytes)
     (value : (slhSignInternal p rs[s].msg rs[s].sk rs[s].addrnd)[MetalReducerBytes.forsOffset p t k i]? = node[i.val]?) :

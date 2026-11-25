@@ -54,9 +54,11 @@ def project(msl, shake, body, compact, *, previous_layer_counterexample=False):
     store = "store_le64" if shake else "store_be32"
     stores = "".join(f"dst[{i}]=uint8_t(v{f'>>{shift}' if shift else ''});"
                      for i in range(size) for shift in [8 * (i if shake else size-1-i)])
+    node_writer = f"for(uint i=0;i<{width};++i){{{store}(dst+{size}u*i,node[i]);}}"
     for marker, expected in (
         (f"uint32_t {prefix}wots_digit_at(", digit),
-        (f"void {writer}(", f"for(uint i=0;i<{width};++i){{{store}(dst+{size}u*i,node[i]);}}"),
+        (f"void {writer}(", node_writer),
+        (f"void {writer}_tg(", node_writer),
         (f"void {store}(", stores),
     ):
         if compact(body(msl, marker)) != compact(expected):

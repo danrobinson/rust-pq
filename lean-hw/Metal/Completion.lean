@@ -24,6 +24,25 @@ theorem wait_success {α : Type} (exit : Exit) (read : Unit → α) (out : α) :
   | submitted status => cases status <;> simp [afterWait,bridgeCode,eq_comm]
   | _ => simp [afterWait]
 
+/-- Objective-C command creation checks the context, command buffer and
+encoder. Retaining a nil wrapper also yields a null handle to Rust. -/
+def observedExit (resources context command encoder wrapper completed : Bool) : Exit :=
+  if resources && context && command && encoder && wrapper then .submitted completed else .setupFailure
+
+theorem observed_success {α : Type} (resources context command encoder wrapper completed : Bool)
+    (read : Unit → α) (out : α) :
+    afterWait (observedExit resources context command encoder wrapper completed) read = .ok out ↔
+      resources=true ∧ context=true ∧ command=true ∧ encoder=true ∧ wrapper=true ∧ completed=true ∧ out=read () := by
+  rw [wait_success]
+  unfold observedExit
+  by_cases ready : (resources && context && command && encoder && wrapper)=true
+  · simp only [ready,↓reduceIte,Exit.submitted.injEq]
+    simp only [Bool.and_eq_true] at ready
+    simp [ready.1.1.1.1,ready.1.1.1.2,ready.1.1.2,ready.1.2,ready.2]
+  · simp only [ready,↓reduceIte,reduceCtorEq,false_and]
+    simp only [Bool.and_eq_true] at ready
+    tauto
+
 /-- The named parameter sets pass geometry validation. The public wrapper
 rejects oversized contexts before it enters the internal batch operation. -/
 def sign (p : Params) (rs : List BatchSignReq) (exit : Exit) (pool : Unit → Bytes) : Except Error (Option (List Bytes)) :=
