@@ -201,6 +201,9 @@ def execute(project, st, out, stop, stream, width, label):
     permitted = {addr("proof_permute"), stop}
     if project.loader.find_symbol("proof_parent") is not None:
         permitted.add(addr("proof_parent"))
+    child = project.loader.find_symbol("proof_child")
+    if child is not None:
+        permitted.add(child.rebased_addr)
     count = 0
 
     def concrete(v):
@@ -210,9 +213,17 @@ def execute(project, st, out, stop, stream, width, label):
 
     def same(x, y):
         if x is not y and st.solver.satisfiable(extra_constraints=[x != y]):
-            raise ValueError(
-                f"{label} mismatch at call {count}: {str(x)[:900]} vs {str(y)[:900]}"
-            )
+            if x.size() == y.size() and x.size() % 8 == 0:
+                for byte in range(x.size() // 8):
+                    actual, expected = x.get_byte(byte), y.get_byte(byte)
+                    if actual is not expected and st.solver.satisfiable(
+                        extra_constraints=[actual != expected]
+                    ):
+                        raise ValueError(
+                            f"{label} mismatch at call {count}, byte {byte}: "
+                            f"{actual} != {expected}"
+                        )
+            raise ValueError(f"{label} mismatch at call {count}: {x} != {y}")
 
     while True:
         if st.addr in permitted:
@@ -236,6 +247,18 @@ def execute(project, st, out, stop, stream, width, label):
                     same(st.memory.load(ptr + 8 * width * j, active * 8), row)
                 for j, returned in enumerate(result):
                     st.memory.store(ptr + 8 * width * j, returned)
+            elif child is not None and st.addr == child.rebased_addr:
+                if kind != "child":
+                    raise ValueError("unexpected recursive subtree")
+                *inputs, height = args
+                for ptr, expected in zip(
+                    (st.regs.rsi, st.regs.rdx, st.regs.rcx, st.regs.r8),
+                    inputs,
+                    strict=True,
+                ):
+                    same(st.memory.load(concrete(ptr), expected.size() // 8), expected)
+                same(st.regs.r9[31:0], bv.BVV(height, 32))
+                st.memory.store(concrete(st.regs.rdi), result)
             else:
                 if kind != "parent":
                     raise ValueError("unexpected parent")
