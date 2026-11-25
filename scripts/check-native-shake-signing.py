@@ -68,9 +68,9 @@ def execution(package, width):
 
 
 def main():
-    facade["run"](["lake", "build", "Cachepath.NativeShakeWots.Program", "Cachepath.NativeShakeWots.Hashes"], lean)
-    facade["audit_theorems"]("Cachepath.NativeShakeWots.Hashes", ["slhdsa.NativeShakeWots." + thm for thm in
-                             ("fill_layout", "refill_layout", "packed_fips")])
+    facade["run"](["lake", "build", "Cachepath.NativeShakeWots.KeyEntry"], lean)
+    facade["audit_theorems"]("Cachepath.NativeShakeWots.KeyEntry", ["slhdsa.NativeShakeWots." + thm for thm in
+                             ("fill_layout", "refill_layout", "packed_fips", "chain_rounds", "prf_lanes", "keygen_spec")])
     with tempfile.TemporaryDirectory() as tmp:
         packages = []
         for i, target in enumerate(facade["TARGETS"]):
