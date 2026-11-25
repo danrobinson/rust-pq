@@ -5,6 +5,7 @@ import re
 import runpy
 from pathlib import Path
 
+fors_pk = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_pk.py"))
 wots_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/wots_output.py"))
 leaf_dispatch = runpy.run_path(str(Path(__file__).parent / "metal-proof/leaf_dispatch.py"))
 
@@ -749,10 +750,11 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                         label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd,
                     )
                     statements.append(leaves_claim)
-                    statements.append(wots_output["public_claim"](
-                        label, p, g, family, n, phase, producer("xmss_leaves"),
-                        source_cmd, producer("wots"), leaf_scratch,
-                    ))
+                    for fors_stage in (None, (producer("pk_fors"), splitBool)):
+                        statements.append(wots_output["public_claim"](
+                            label, p, g, family, n, phase, producer("xmss_leaves"),
+                            source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage,
+                        ))
     return "\n".join(statements)
 
 
@@ -778,6 +780,16 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     projections = []
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
+        fp = fors_pk["project"]
+        projections.append(fp(shader, is_shake, body, compact, leaf_dispatch["kernel_body"]))
+        base = "sig_idx * p.k * " + ("NL" if is_shake else "NW")
+        try:
+            fp(shader.replace(base, "sig_idx * p.k"), is_shake, body, compact, leaf_dispatch["kernel_body"])
+        except ValueError as error:
+            if "unmodeled" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted FORS roots with wrong batch stride")
         projects = wots_output["project"]
         projections.append(projects(shader, is_shake, body, compact))
         projections.append(projects(shader.replace("(desc.layer - 1u)", "(desc.layer - 0u)"),

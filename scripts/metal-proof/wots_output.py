@@ -85,7 +85,7 @@ private theorem {name}SigByte_spec {{p count}} (inputs : MetalWotsOutput.Inputs)
 """
 
 
-def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch):
+def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None):
     words = n // (8 if family == "shake" else 4)
     mode = ".twoPhase" if phase else ".streaming"
     count = f"(rs.length * {p}.d * 2^{p}.hp)"
@@ -97,26 +97,60 @@ def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, l
     checks = f"a ≠ {chain_cmd} → " if phase else ""
     spec = f"(MetalPipeline.metalBatchSignInternal {mode} {p} requests).flatten"
     correct = f"(MetalCommandValues.correct {g} requests.length (out.take (rs.length*{p}.sigBytes)) {spec} inv)"
-    return f"""
-private theorem {label}_signature_store (rs : List MetalPipeline.BatchSignReq)
+    base = "signature_store" if fors_stage is None else "fors_public_key"
+    extras = setup = orders = exclude = ""
+    source = "data"
+    rest = "other"
+    if fors_stage is not None:
+        fors_cmd, split = fors_stage
+        size = 8 if family == "shake" else 4
+        extras = "(jobs : Nat → MetalForsPkDispatch.Job) (roots : MetalChainDispatch.Memory) (pkBuf : MetalChainDispatch.Execution)"
+        setup = f"""let pkValue := {family}ForsValue {p} e.keys jobs roots {words}
+    let source := {{data with fors := MetalForsPkDispatch.readPk requests.length {words} {size} pkValue pkBuf}}
+    let rest := MetalForsPkDispatch.scratch {p} requests keys jobs {words} {size} roots {split} other
+    """
+        source, rest = "source", "rest"
+        orders = f"pkBuf.schedule.Perm (MetalChainDispatch.grid requests.length {words}) ∧"
+        exclude = f"a ≠ {fors_cmd} →"
+    header = f"""
+private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
     ({leaf_execution} : MetalChainDispatch.Execution) (keys : MetalChainDispatch.Keys)
     (trees : MetalChainDispatch.Trees) (other : MetalCommand.Region → Prop)
-    (data : MetalWotsOutput.Inputs) (capacity : Nat) (initial : Nat → Spec.Byte)
+    (data : MetalWotsOutput.Inputs) {extras} (capacity : Nat) (initial : Nat → Spec.Byte)
     (schedule : List (MetalWotsOutput.Coord {p} (MetalCommandValues.framed rs).length)) :
     let requests := MetalCommandValues.framed rs
-    let buffers := {{data with keys := e.keys}}
+    {setup}let buffers := {{{source} with keys := e.keys}}
     let atByte := @{family}SigAddr {p} requests.length buffers {words}
     let toByte := @{family}SigByte {p} requests.length buffers
     let out := MetalWotsOutput.pool atByte toByte schedule initial capacity
-    let inputsInv := MetalWotsOutput.otherScratch {p} requests buffers keys other
+    let inputsInv := MetalWotsOutput.otherScratch {p} requests buffers keys {rest}
     let inv := {leaf_scratch}
     (rs.any (fun r => decide (r.ctx.length > 255)) = false →
       rs.length*{p}.sigBytes ≤ capacity ∧ {chain_order}{leaf_order} ∧
       (schedule.map MetalWotsOutput.lane).Perm (MetalChainDispatch.grid (requests.length*{p}.d*{p}.len) {p}.n) ∧
-      ∀ a ∈ {label}, {checks}a ≠ {leaf_cmd} → a ≠ {wots_cmd} →
+      {orders}
+      ∀ a ∈ {label}, {checks}a ≠ {leaf_cmd} → a ≠ {wots_cmd} → {exclude}
         (∀ r ∈ a.reads, {correct} r) → ∀ r ∈ a.writes, {correct} r) →
     MetalCommandValues.publicResult {p} rs out =
       rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
+"""
+    if fors_stage is not None:
+        return header + f"""
+  intro requests pkValue source rest buffers atByte toByte out inputsInv inv accepted
+  apply {label}_signature_store rs {leaf_execution} keys trees rest source capacity initial schedule
+  intro guard
+  obtain ⟨alloc,{", ".join(names.split())},cover,pkOrder,remaining⟩ := accepted guard
+  refine ⟨alloc,{",".join(names.split())},cover,?_⟩
+  intro a ha {"hc " if phase else ""}hl hw
+  by_cases eq : a = {fors_cmd}
+  · subst a
+    exact MetalForsPkDispatch.local_rule {p} (MetalPipeline.metal_all_12_params_valid _ (by decide))
+      requests {split} {fors_cmd} (by decide) (by decide) e.keys keys jobs roots {words} {size} (by decide)
+      pkValue ({family}ForsValue_spec {p} e.keys jobs roots {words}{" (by decide)" if family == "sha2" else ""})
+      pkBuf pkOrder {g} requests.length _ _ inv id id id id
+  · exact remaining a ha {"hc " if phase else ""}hl hw eq
+"""
+    return header + f"""
   intro requests buffers atByte toByte out inputsInv inv accepted
   apply {label}_leaves rs out {leaf_execution} keys trees inputsInv
   intro guard

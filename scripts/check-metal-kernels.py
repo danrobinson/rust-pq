@@ -197,7 +197,7 @@ def audit_ffi_and_host_boundary() -> str:
     command = runpy.run_path(str(HERE / "metal-command.py"))
     command["geometry_sources"](lib_rs, (ROOT / "rust/src/params.rs").read_text(), PARAM_SETS)
     command_claims = command["verify"](lib_rs, gpu_rs, bridge, sha2_msl, shake_msl, bindings, PARAM_SETS)
-    binding_claims = "import Metal.WotsOutput\nimport Metal.LeafDispatch\nimport Metal.ChainDispatch\nimport Metal.CommandValues\nimport Metal.SignatureLayout\nimport Metal.Command\n" + binding_claims + "\n" + command_claims
+    binding_claims = "import Metal.ForsPkDispatch\nimport Metal.WotsOutput\nimport Metal.LeafDispatch\nimport Metal.ChainDispatch\nimport Metal.CommandValues\nimport Metal.SignatureLayout\nimport Metal.Command\n" + binding_claims + "\n" + command_claims
     bindings["check_slot_swaps"](lib_rs, sha2_msl, shake_msl)
     # The bridge binds the ith Rust handle at MSL slot i, with no dynamic offset.
     require_contains(gpu_rs, [
@@ -1920,10 +1920,13 @@ def check_lean_proofs(binding_claims: str) -> None:
         ]
     )
     facade = runpy.run_path(str(HERE / "check-platform-facade.py"))
-    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings", "Metal.Command", "Metal.CommandValues", "Metal.ChainDispatch", "Metal.LeafDispatch", "Metal.WotsOutput", "Metal.SignatureLayout"], cwd=ROOT / "lean-hw", check=True)
+    subprocess.run(["lake", "build", "Metal.Pipeline", "Metal.Bindings", "Metal.Command", "Metal.CommandValues", "Metal.ChainDispatch", "Metal.LeafDispatch", "Metal.WotsOutput", "Metal.ForsPkDispatch", "Metal.SignatureLayout"], cwd=ROOT / "lean-hw", check=True)
     subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT / "lean-hw", input=binding_claims, text=True, check=True)
     facade["audit_theorems"]("Metal.SignatureLayout", [
         "MetalSignatureLayout.in_bounds", "MetalSignatureLayout.disjoint", "MetalSignatureLayout.cover",
+    ])
+    facade["audit_theorems"]("Metal.ForsPkDispatch", [
+        "MetalForsPkDispatch.value_spec", "MetalForsPkDispatch.readPk_spec", "MetalForsPkDispatch.local_rule",
     ])
     facade["audit_theorems"]("Metal.WotsOutput", [
         "MetalWotsOutput.digitAt_eq", "MetalWotsOutput.batch_wots_byte",
