@@ -46,6 +46,12 @@ def program(pkg):
 def main():
     runpy.run_path(str(Path(__file__).with_name("check-fors-wide-rows.py")))["main"]()
     os.environ["PATH"] = f"{Path.home()}/.cargo/bin:{Path.home()}/.elan/bin:" + os.environ["PATH"]
+    module = "ForsDriver.Entry"
+    facade["run"](["lake", "build", module], lean)
+    facade["audit_theorems"](module, ["slhdsa.ForsDriver." + name for name in (
+        "sign_spec", "raw_eq", "prepare_spec", "Fields.store", "column1", "column2",
+        "column3", "level_zero", "level_one", "level_two", "sibling_local",
+        "low0_spec", "low1_spec", "low2_spec", "upper")])
     with tempfile.TemporaryDirectory() as tmp:
         for target in ("aarch64-apple-darwin", "x86_64-unknown-linux-gnu"):
             folder = Path(tmp) / target
@@ -54,6 +60,14 @@ def main():
                                     shared["cuts"], ["crate::shake256::parallel::WIDTH"])
             if program(pkg).split() != dest.read_text().split():
                 raise ValueError(f"FORS signature driver differs on {target}")
+            original = (pkg / "Funs.lean").read_text()
+            # A changed authentication-field offset must break the source binding.
+            changed = original.replace("let i1 ← 2#usize * N", "let i1 ← 3#usize * N", 1)
+            mutant = folder / "wrong-offset"
+            mutant.mkdir()
+            (mutant / "Funs.lean").write_text(changed)
+            if program(mutant).split() == dest.read_text().split():
+                raise ValueError(f"changed authentication field escaped detection on {target}")
             base = lean / "Cachepath/NativeVerify"
             if shared["program"](pkg, 8) != (base / "ForsSignScatterProgram.lean").read_text():
                 raise ValueError(f"FORS secret loop differs on {target}")
