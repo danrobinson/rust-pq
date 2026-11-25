@@ -1,5 +1,5 @@
 import Parallel.WidthEightRoundTrip
-import Parallel.WidthEightTicketHosted
+import Parallel.PhaseTwoHosted
 open Lean Elab Command
 namespace slhdsa.WidthEight.ParallelSign.Coverage
 
@@ -33,5 +33,14 @@ run_cmd liftCoreM do
       reaches (api ++ `roundtrip) (engine :: `slhdsa.WidthEight.verify :: worker)
       reaches (ticket ++ `slhdsa.WidthEight.Ticket.from_layers)
         [`slhdsa.ParallelXmssTicket.build_layers,ticket ++ `slhdsa.WidthEight.Ticket.ticket,`slhdsa.NativeShakeWots.sign,sponge]
+  for apple in [true,false] do
+    let afterJoin := if apple then `PhaseTwoApple else `PhaseTwoX86
+    let ticket := if apple then `TicketApple else `TicketX86
+    let hash := if apple then `RootTableApple.slhdsa.shake.xmss.hash2 else `RootTableX86.slhdsa.shake.xmss.hash2
+    for op in [`internal_from_forest,`context_from_forest] do
+      reaches (afterJoin ++ `slhdsa.WidthEight.Ticket ++ op)
+        [afterJoin ++ `slhdsa.WidthEight.Ticket.phaseTwo,`slhdsa.WidthEight.Ticket.writeRows,
+         ticket ++ `slhdsa.WidthEight.Ticket.ticket,`slhdsa.ParallelXmssTicket.build_layers,
+         `slhdsa.ParallelRootWalk.all_roots,hash,`slhdsa.ParallelSignJoin.run_loop0]
 
 end slhdsa.WidthEight.ParallelSign.Coverage

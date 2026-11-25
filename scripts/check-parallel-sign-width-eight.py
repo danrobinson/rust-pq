@@ -68,6 +68,11 @@ def audit_public():
     facade["run"](["lake","build",ticket_module], lean)
     facade["audit_theorems"](ticket_module, [f"{host}.slhdsa.WidthEight.Ticket.{op}"
         for host in ("TicketApple","TicketX86") for op in ("published","from_layers")])
+    joined_module = "Parallel.PhaseTwoHosted"
+    facade["run"](["lake", "build", joined_module], lean)
+    facade["audit_theorems"](joined_module, [f"{host}.slhdsa.WidthEight.Ticket.{op}"
+        for host in ("PhaseTwoApple", "PhaseTwoX86") for op in
+        ("internal_from_forest", "context_from_forest", "joined_from_forest")])
     facade["audit_theorems"](module, roots + ["slhdsa.ParallelSignJoin.enabled_returns","slhdsa.ParallelSignJoin.uses_some"])
     print(f"Checked {len(roots)} hosted parallel signing theorems and the successful worker branch.", flush=True)
 

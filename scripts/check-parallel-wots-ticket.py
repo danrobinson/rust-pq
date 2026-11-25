@@ -14,6 +14,19 @@ stop = '            slot.set(sig).expect("unique WOTS sign job");'
 
 def ticket_body(source):
     sign = shared["signer"].function(source, "sign")
+    ordered = [
+        "let phase2_next = AtomicUsize::new(0);",
+        "let wots_sigs: Vec<OnceLock<Vec<u8>>> = (0..d).map(|_| OnceLock::new()).collect();",
+        'let roots = roots_cell.get().expect("roots ready");',
+        "let j = phase2_next.fetch_add(1, Ordering::Relaxed);",
+        stop, "crate::pool::execute(threads.min(total_phase1), true, &run);",
+    ]
+    compact = "".join(sign.split())
+    for marker in ordered:
+        marker = "".join(marker.split())
+        if compact.count(marker) != 1:
+            raise ValueError(f"phase-two publication sequence changed at {marker}")
+        compact = compact.split(marker, 1)[1]
     phase = sign.split("let j = phase2_next.fetch_add(1, Ordering::Relaxed);")
     if len(phase) != 2 or phase[1].count(start) != 1 or phase[1].count(stop) != 1:
         raise ValueError("phase-two ticket boundaries changed")
