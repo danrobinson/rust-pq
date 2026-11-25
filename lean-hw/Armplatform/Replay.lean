@@ -8,9 +8,11 @@ open Lean Elab Command
 
 private abbrev Renaming := Std.HashMap Name Name
 
-private def substitute (names : Renaming) (e : Expr) : Expr :=
+private partial def substitute (names : Renaming) (e : Expr) : Expr :=
   e.replace fun
     | .const n us => (names.get? n).map (fun target => .const target us)
+    | .proj n i val => (names.get? n).bind fun target =>
+        if target == n then none else some (.proj target i (substitute names val))
     | _ => none
 
 private partial def rebuild (extraModules : List Name) (destination : Name) (source : Name) (names : IO.Ref Renaming) :
@@ -55,6 +57,30 @@ def replay (destination : Name) (replacements : List (Name × Name)) (roots : Ar
                             type := info.type
                             levelParams := info.levelParams
                             value := value }
+
+/-- Replay record-valued implementation contracts whose fields mention the selected code.
+The kernel checks the new constructor and generates its recursor before checking
+the caller proofs. Records must be supplied in dependency order. -/
+def replayWithContracts (destination : Name) (replacements : List (Name × Name))
+    (contracts : List Name) (roots : Array Name) (modules : List Name) : CoreM Unit := do
+  let names ← IO.mkRef (Std.HashMap.ofList replacements)
+  for source in contracts do
+    let .inductInfo info ← getConstInfo source | throwError "expected a contract record: {source}"
+    if info.isRec || info.isUnsafe || info.all != [source] then
+      throwError "expected a safe nonrecursive contract record: {source}"
+    let [ctor] := info.ctors | throwError "expected one constructor: {source}"
+    let c ← getConstInfo ctor
+    for dep in info.type.getUsedConstants ++ c.type.getUsedConstants do
+      if dep != source then
+        discard <| rebuild modules destination dep names
+    let target := destination ++ source
+    names.modify fun m => ((m.insert source target).insert ctor (destination ++ ctor)).insert
+      (source ++ `rec) (target ++ `rec)
+    let m ← names.get
+    addDecl <| .inductDecl info.levelParams info.numParams
+      [{name := target, type := substitute m info.type,
+        ctors := [{name := destination ++ ctor, type := substitute m c.type}]}] false
+  replay destination (← names.get).toList roots modules
 
 end PlatformProof
 

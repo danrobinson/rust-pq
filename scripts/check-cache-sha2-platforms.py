@@ -256,7 +256,14 @@ run_cmd do
 
 
 if __name__ == "__main__":
-    arm["run"](["lake", "build", "Cachepath.PlatformSha2Linux"], LEAN)
+    arm["run"](["lake", "build", "Cachepath.PlatformSha2Linux", "Cachepath.PlatformPortable"], LEAN)
+    cache["facade"]["audit_theorems"](
+        "Cachepath.PlatformPortable",
+        [
+            f"PortableSession.CacheopsRust.Public.{name}"
+            for name in ("scalar_build_and_sign_many", "scalar_keygen_then_sign_many", "scalar_keygen_sign_verify")
+        ],
+    )
     cache["facade"]["audit_theorems"](
         "Cachepath.PlatformSha2Linux",
         [
