@@ -150,9 +150,10 @@ def main():
     env = os.environ.copy()
     env["PATH"] = os.pathsep.join([str(Path.home()/".elan/bin"),str(Path.home()/".cargo/bin"),env["PATH"]])
     lean = ROOT / "lean-hw"
-    subprocess.run(["lake","build","Metal.BridgeWait"], cwd=lean, env=env, check=True)
+    subprocess.run(["lake","build","Metal.BridgeWait","Metal.BridgeDispatch"], cwd=lean, env=env, check=True)
     original = (ROOT / "metal/src/bridge.m").read_text()
-    dispatch = runpy.run_path(str(HERE / "metal-proof/bridge_dispatch.py"))["check"]
+    dispatch_proof = runpy.run_path(str(HERE / "metal-proof/bridge_dispatch.py"))
+    dispatch = dispatch_proof["check"]
     caller = (ROOT / "metal/src/gpu.rs").read_text()
     if "assert!(buffers.len() <= 16 && inline_bytes.len() <= 8);" not in caller:
         raise ValueError("review Rust dispatch argument capacities")
@@ -183,7 +184,11 @@ def main():
                 archive_binding(ir, Path(tmp), env)
             compiled = ir.read_text()
             if name == "production":
-                print(f"Checked {dispatch(compiled)} optimized dispatch layouts and four early exits.", flush=True)
+                rows = []
+                dispatch(compiled, rows)
+                subprocess.run(["lake","env","lean","--stdin"], input=dispatch_proof["lean_certificate"](rows),
+                               text=True, cwd=lean, env=env, check=True)
+                print(f"Lean checked {len(rows)} optimized dispatch message layouts. Four early exits passed replay.", flush=True)
             if name in ("wrong inline index", "swapped grid dimensions"):
                 try:
                     dispatch(compiled)

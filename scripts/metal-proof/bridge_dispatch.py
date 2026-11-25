@@ -135,7 +135,7 @@ def execute(blocks, cmd, pipe, buffers, byte_count, grid, group, scratch, use_gr
     raise ValueError("dispatch exceeded its bounded loop count")
 
 
-def check(ir):
+def check(ir, collect=None):
     blocks = program(ir)
     count = 0
     for n in range(17):
@@ -155,8 +155,53 @@ def check(ir):
                     got = execute(blocks,"cmd","pipe",buffers,k,"grid","group",scratch,groups)
                     if got != expected:
                         raise ValueError("compiled dispatch message operands differ from the descriptor")
+                    if collect is not None:
+                        collect.append((n,k,groups,bool(scratch),got))
                     count += 1
     for cmd, pipe, grid, group in [(None,"pipe",1,1),("cmd",None,1,1),("cmd","pipe",0,1),("cmd","pipe",1,0)]:
         if execute(blocks,cmd,pipe,[],0,grid,group,0,False):
             raise ValueError("invalid command issued a message")
     return count
+
+def lean_certificate(rows):
+    """Intern only identical observed messages. Lean constructs the expected list."""
+    selectors = {"setComputePipelineState:":"pipeline", "setBuffer:offset:atIndex:":"buffer",
+                 "setBytes:length:atIndex:":"inlineBytes", "setThreadgroupMemoryLength:atIndex:":"scratch",
+                 "dispatchThreads:threadsPerThreadgroup:":"threads", "dispatchThreadgroups:threadsPerThreadgroup:":"groups"}
+    leaves = {"cmd":"command","pipe":"pipeline","scratch":"scratch","grid":"gridX","group":"groupX"}
+    arrays = {"pointers":"pointer","lengths":"length","indices":"index"}
+
+    def operand(v):
+        if isinstance(v,int):
+            return f".literal {v}"
+        if isinstance(v,str):
+            return "." + leaves[v]
+        if len(v) == 2:
+            tag, arg = v
+            if tag == "handle":
+                return f".handle {arg}"
+            if tag in ("state","buffer","encoder"):
+                return f".{tag} ({operand(arg)})"
+        if len(v) == 3 and v[2] == "value":
+            return f".{arrays[v[0]]} {v[1]}"
+        if len(v) == 3:
+            return ".size " + " ".join(f"({operand(t)})" for t in v)
+        raise ValueError(v)
+
+    definitions = ["import Metal.BridgeDispatch", "open MetalBridgeDispatch"]
+    ids = {}
+    proofs = []
+    for n,k,groups,scratch,trace in rows:
+        names = []
+        for msg in trace:
+            if msg not in ids:
+                name = f"m{len(ids)}"
+                args = ",".join(operand(arg) for arg in msg[1:])
+                definitions.append(f"private def {name} : Message := (.{selectors[msg[0]]},[{args}])")
+                ids[msg] = name
+            names.append(ids[msg])
+        g,s = str(groups).lower(),str(scratch).lower()
+        proofs.append(f"example : [{','.join(names)}] = expected {n} {k} {g} {s} := by rfl")
+    if len(proofs) != 612:
+        raise ValueError("incomplete dispatch geometry")
+    return "\n".join(definitions + proofs)
