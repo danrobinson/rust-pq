@@ -37,7 +37,7 @@ fn wots_ticket<const N: usize>(layers: &Vec<(Adrs, u32)>, roots: &Vec<[u8; N]>,
         ["crate::shake::wots::wots_sign"], crate=crate, features="parallel,platform-sha2")
 
 
-def program(pkg):
+def program(pkg, wide=False):
     text = (pkg / "Funs.lean").read_text()
     body = text[text.index("def shake.slh.parallel.wots_ticket"):text.rindex("end CacheopsRust")].strip()
     decls = runpy.run_path(str(Path(__file__).with_name("check-cache-construction.py")))["decls"]
@@ -52,6 +52,12 @@ def program(pkg):
     external = re.findall(r"^axiom ([\w.]+)", (pkg / "FunsExternal_Template.lean").read_text(), re.M)
     if external != ["shake.wots.wots_sign"]:
         raise ValueError(f"unexpected ticket calls {external}")
+    if wide:
+        return ("import Parallel.SignTicket\nimport Shakebatch.WidthEightOuterHosted\nopen Aeneas Aeneas.Std Result\n"
+                "namespace slhdsa.WidthEight.Ticket\n\n"
+                + body.replace("def shake.slh.parallel.wots_ticket", "noncomputable def ticket (host : Platform) (p : params.Params)")
+                  .replace("shake.wots.wots_sign a", "@Fused.Outer.shake.wots.wots_sign (host.outer p) N a")
+                + "\n\nend slhdsa.WidthEight.Ticket\n")
     return ("import Shakebatch.WidthThreeNative\nopen Aeneas Aeneas.Std Result\n"
             "namespace slhdsa.ParallelSignTicket\n\n"
             + body.replace("def shake.slh.parallel.wots_ticket", "noncomputable def ticket")

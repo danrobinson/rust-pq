@@ -132,7 +132,7 @@ variable (threadsAvailable : Result Usize) (join : Join)
     return prefix + "\n\n".join(decl) + "\nend slhdsa.ParallelSignJoin\n"
 
 
-def symbolic_slots(folder):
+def symbolic_slots(folder, width=3):
     src = root / "rust/src"
     probe = signer.probe_source((src / "cache.rs").read_text())
     probe = signer.once(
@@ -175,7 +175,7 @@ def symbolic_slots(folder):
     )
     path = folder / "observed.rs"
     binary = folder / "observed"
-    path.write_text(probe.replace("PROOF_WIDTH", "3"))
+    path.write_text(probe.replace("PROOF_WIDTH", str(width)))
     subprocess.run(
         [
             "rustc",
@@ -219,7 +219,7 @@ def table(observed):
         len(witnesses) != 4 for witnesses in observed.values()
     ):
         raise ValueError(
-            "expected all six Linux Arm shapes and four positive scalar/SIMD thread configurations"
+            "expected all six SHAKE shapes and four positive scalar/SIMD thread configurations"
         )
     entries = []
     for (n, d), witnesses in sorted(observed.items()):
