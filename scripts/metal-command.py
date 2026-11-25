@@ -135,6 +135,36 @@ def public_signing(lib):
               "sign_internal_batch::<N>(p,&[SignInternalReq{msg:m,sk,addrnd,}],)?;Ok(sigs.pop().unwrap())")
         exact("pubfn"+prefix+"sign_internal_batch<",
               f"self.sign_internal_batch_family::<N>(HashFamily::{family},p,requests)")
+        exact("pubfn"+prefix+"sign_deterministic<", "if ctx.len()>255{return Ok(None);}"
+              "let pk_seed=block::<N>(sk,2);self."+prefix+"sign::<N>(p,m,ctx,sk,&pk_seed)")
+        for method, args in (("sign_batch_same_key", ",addrnds"),("sign_deterministic_batch_same_key", "")):
+            exact("pubfn"+prefix+method+"<",
+                  f"self.{method}_family::<N>(HashFamily::{family},p,sk,messages,ctx{args})")
+    exact("fnsign_batch_same_key_family<","""assert_eq!(messages.len(),addrnds.len());
+      if ctx.len()>255{return Ok(None);}let reqs:Vec<SignReq<'_,N>>=messages.iter().zip(addrnds.iter())
+      .map(|(&msg,&addrnd)|SignReq{msg,ctx,sk,addrnd,}).collect();self.sign_batch_family::<N>(family,p,&reqs)""")
+    exact("fnsign_deterministic_batch_same_key_family<","""if ctx.len()>255{return Ok(None);}
+      let pk_seed=block::<N>(sk,2);let reqs:Vec<SignReq<'_,N>>=messages.iter()
+      .map(|&msg|SignReq{msg,ctx,sk,addrnd:&pk_seed,}).collect();self.sign_batch_family::<N>(family,p,&reqs)""")
+    macro=body(src,"macro_rules!metal_set")
+    for method,slot,args in (
+        ("sign_internal","sg_int","m,sk,addrnd"),("sign","sg","m,ctx,sk,addrnd"),
+        ("sign_deterministic","sg_det","m,ctx,sk"),("sign_batch_same_key","sg_batch","sk,messages,ctx,addrnds"),
+        ("sign_deterministic_batch_same_key","sg_det_batch","sk,messages,ctx")):
+        if body(macro,"pubfn"+method+"(")!=f"gpu.${slot}::<N>(&PARAMS,{args})":
+            raise ValueError("per-set public signer forwarding changed")
+    calls=re.findall(r"metal_set!\(([^)]*)\);",src)
+    publicNames=set()
+    for call in calls:
+        name,module,*methods=call.split(",")
+        prefix="shake_" if name.startswith("shake_") else ""
+        expected=[prefix+m for m in ("keygen_internal","keygen","sign_internal","sign",
+                  "sign_deterministic","sign_batch_same_key","sign_deterministic_batch_same_key")]
+        if name!=module or methods!=expected or name in publicNames:
+            raise ValueError("per-set parameter or backend binding changed: "+name)
+        publicNames.add(name)
+    if publicNames!={f"{f}_{s}" for f in ("shake","sha2") for s in ("128s","128f","192s","192f","256s","256f")}:
+        raise ValueError("incomplete per-set Metal signing API")
     for name, bodyText in {
         "fnshake_prf_msg<": """let mut input=Vec::with_capacity(2*N+msg.len());
             input.extend_from_slice(sk_prf);input.extend_from_slice(opt_rand);input.extend_from_slice(msg);
