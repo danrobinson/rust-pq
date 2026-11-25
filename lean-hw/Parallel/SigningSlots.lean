@@ -17,7 +17,18 @@ def climb (p : Params) (pk : Bytes) (a : Adrs) (layer : Nat) (auth : Nat → Byt
     (leaf : Bytes) (index levels : Nat) : Bytes × Nat :=
   (List.range levels).foldl (hashStep p pk a layer auth) (leaf,index)
 
-private theorem climbed (p : Params) (sk pk : Bytes) (a : Adrs) (j i : Nat) (auth : Nat → Bytes)
+theorem climb_succ (p : Params) (pk : Bytes) (a : Adrs) (j : Nat) (auth : Nat → Bytes)
+    (leaf : Bytes) (i h : Nat) :
+    climb p pk a j auth leaf i (h+1) =
+      let prev := climb p pk a j auth leaf i h
+      let sibling := auth (j*p.hp+h)
+      let parent := prev.2/2
+      (H p pk {a.setTypeAndClear TREE with word2:=h+1,word3:=parent}
+        (if prev.2%2=0 then prev.1++sibling else sibling++prev.1),parent) := by
+  simp only [climb,List.range_succ,List.foldl_append,List.foldl_cons,List.foldl_nil]
+  rfl
+
+theorem climbed (p : Params) (sk pk : Bytes) (a : Adrs) (j i : Nat) (auth : Nat → Bytes)
     (leaf : Bytes) (base : leaf=xmssNode p sk i 0 pk a)
     (siblings : ∀ h<p.hp, auth (j*p.hp+h)=xmssNode p sk ((i/2^h)^^^1) h pk a)
     (c : Nat) (bound : c≤p.hp) :
