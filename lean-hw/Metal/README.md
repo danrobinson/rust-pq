@@ -2,7 +2,7 @@
 
 [CommandValues.lean](CommandValues.lean) composes the command epochs, typed signature layout and FIPS 205 pipeline model. For supported parameters, well-formed signing keys and a successful public signing batch, the result contains the FIPS signature of each request in order, with its context and supplied randomness. The theorem covers pooled buffers larger than the current output, an empty batch and context rejection. The host checker instantiates it for both XMSS modes on all twelve parameter sets. [Host traces and public wrappers](../../scripts/metal-command.py) · [FIPS pipeline model](Pipeline.lean)
 
-The theorem takes a local value contract for each command. Its premise says that if every region read by that command contains its intended values, the command produces the intended values in its own output regions. Host initialization has no inputs in the command graph. Each GPU input has exactly one writer in an earlier epoch. Induction on epochs then supplies the local premises without assuming that the returned buffer already contains a valid signature.
+The command-composition lemma takes a local value contract for each command. The generated public signing theorems below derive every such contract. Its premise says that if every region read by that command contains its intended values, the command produces the intended values in its own output regions. Host initialization has no inputs in the command graph. Each GPU input has exactly one writer in an earlier epoch. Induction on epochs then supplies the local premises without assuming that the returned buffer already contains a valid signature.
 
 | Producer | Value checked |
 |---|---|
@@ -32,6 +32,10 @@ The source checker generates 24 public signing theorems named `*_signing_executi
 
 All command values are derived. The grid premises cover all scheduled word and signature-byte stores, including the unique writers of the intermediate signature fields.
 
+Key generation replays the extracted keygen command sequence, including the host’s final root read. Lean checks the returned keypair for each batch element, the single-key seed slices and the key packing order for all twelve sets in both modes. The arbitrary-schedule theorem permits different initial buffer contents, and the canonical theorem constructs a complete grid. The big-endian SHA-2 and little-endian SHAKE readback helpers, slice strides, singleton wrappers and typed API routing are checked against Rust. [Key generation dispatch](KeygenDispatch.lean) · [Host readback checker](../../scripts/metal-proof/keygen_output.py)
+
+For each named set Lean also checks the runtime choice between the streaming and two-phase grids, including an override of the default leaf threshold. After the submitted command returns, Rust reads the buffers only on success. The Objective-C bridge tests the driver status after its wait and propagates an incomplete or failed command as an error. Lean proves every successful public batch return equals FIPS and covers the empty-batch and context-rejection early returns. These theorems assume the observed driver status and model errors by their source, without modeling diagnostic text. [Completion and return semantics](Completion.lean) · [Mode selection and public outputs](../../scripts/metal-proof/completion.py)
+
 The hash boundaries use specification PRF, F, H and T with native words represented by their serialized bytes. The separate shader and primitive checkers check their input conventions, including the precompressed SHA-2 seed state. Applying the public theorem to a device requires faithful source projections and compilation, valid representable counts and offsets, correct buffer binding and lifetime, coherent memory, and successful dispatch and synchronization. Native signature comparisons exercise finite vectors.
 
 Run from the repository root with CBMC installed or `CBMC` set to its executable.
@@ -39,6 +43,7 @@ Run from the repository root with CBMC installed or `CBMC` set to its executable
 ```sh
 python3 scripts/check-metal-kernels.py
 python3 scripts/check-metal-values.py
+cargo test --release --manifest-path metal/Cargo.toml --test metal_verify
 uv run --script scripts/check-metal-reads.py
 uv run --script scripts/check-metal-workgroups.py
 ```

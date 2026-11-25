@@ -5,6 +5,8 @@ import re
 import runpy
 from pathlib import Path
 
+completion = runpy.run_path(str(Path(__file__).parent / "metal-proof/completion.py"))
+keygen_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/keygen_output.py"))
 fors_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_reducer.py"))
 xmss_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/xmss_reducer.py"))
 fors_pk = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_pk.py"))
@@ -698,6 +700,11 @@ def claims(
             statements.append(
                 f"example : MetalCommand.safe [{entries}] = {expected} := by decide"
             )
+            if not sign and not split and expected=="true":
+                for rowName, family, n, *_ in rows:
+                    if (family == "shake") == bool(is_shake):
+                        stem = f"gpu_{rowName.replace('-', '_')}_{int(phase)}_kg"
+                        statements.append(keygen_output["claims"](stem,"Spec."+rowName.replace("-","_"),family,n,phase,entries))
             if sign and expected=="true":
                 splitBool = str(bool(split)).lower()
                 i,r,w=trace[-1]
@@ -775,6 +782,19 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     traces = bindings["check_stages"](lib)
     roles = bindings["SHADER_ROLES"]
     public_signing(lib)
+    keygen_output["host"](lib, compact, body)
+    for before, after in (
+        ("pk.extend_from_slice(pk_root);","pk.extend_from_slice(pk_seed);"),
+        ("&lanes[i].to_le_bytes()","&lanes[i].to_be_bytes()"),
+        ("roots_words[i * nw..(i + 1) * nw]","roots_words[0..nw]"),
+    ):
+        try:
+            keygen_output["host"](lib.replace(before,after), compact, body)
+        except ValueError as error:
+            if "changed keygen" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted keygen host value mutation")
     for before, after in (
         ("requests.iter().any(|r| r.ctx.len() > 255)", "requests.iter().any(|r| r.ctx.len() >= 255)"),
         ("mp.push(0u8);", "mp.push(1u8);"),
@@ -872,9 +892,12 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
         else:
             raise ValueError("accepted broadcast rather than per-word chain-tip store")
     positive = "\n".join(projections) + claims(*args, traces, roles, rows=rows)
+    positive += completion["project"](lib, compact, body, rows)
     # A missing wait, premature result view or omitted host producer must fail
     # against the actual source, independent of the positive trace assertions.
     cases = [
+        (1, "if rc == 0 {", "if rc != 0 {", "cleanup path"),
+        (2, "[obj.cmdBuf status] != MTLCommandBufferStatusCompleted", "[obj.cmdBuf status] == MTLCommandBufferStatusCompleted", "cleanup path"),
         (2, "[obj.cmdBuf waitUntilCompleted];", "", "cleanup path"),
         (2, "[obj.cmdBuf commit];", "return -1; [obj.cmdBuf commit];", "cleanup path"),
         (

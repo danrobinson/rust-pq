@@ -112,15 +112,19 @@ def canonical(header, label, p, g, words, phase, s2):
     perms = ["le_rfl"]+["List.Perm.refl _"]*(1+int(phase))
     perms += [f"MetalSigningSchedule.wots_order {p} requests.length (by decide) (by decide)"]
     perms += ["List.Perm.refl _"]*(4+bool(s2))
-    return f"""
-private theorem {label}_canonical_fips (rs : List MetalPipeline.BatchSignReq)
-    (initial : MetalChainDispatch.Memory) (memory : Nat → Spec.Byte) :
-    let requests := MetalCommandValues.framed rs
+    setup = f"""    let requests := MetalCommandValues.framed rs
 {buffers}
     let middle := MetalReducerBytes.grid {g} requests.length
     let capacity := rs.length*{p}.sigBytes
     let schedule := MetalSigningSchedule.wots {p} requests.length (by decide) (by decide)
-{model}
+{model}"""
+    args = "(rs : List MetalPipeline.BatchSignReq) (initial : MetalChainDispatch.Memory) (memory : Nat → Spec.Byte)"
+    return f"""
+private def {label}_pool {args} : Spec.Bytes :=
+{setup}
+    out
+private theorem {label}_canonical_fips {args} :
+{setup}
     MetalCommandValues.publicResult {p} rs out = rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
   intro requests {names} middle capacity schedule
   apply {stem} rs {names} middle capacity memory schedule
