@@ -61,7 +61,8 @@ theorem xmssSpec (recovery : Recovery) {N : Usize} (p : _root_.slhdsa.params.Par
 
 
 open Lean Meta in
-partial def abstractCalls (destination : Name) (modules : List Name) (source : Name) (seen : IO.Ref (Std.HashMap Name Name)) : MetaM Name := do
+partial def abstractCalls (destination : Name) (modules : List Name) (source : Name) (seen : IO.Ref (Std.HashMap Name Name))
+    (parameterType : Name := `CacheopsRust.NativeVerifier.Recovery) : MetaM Name := do
   if let some target := (← seen.get).get? source then return target
   let env ← getEnv
   let some idx := env.getModuleIdxFor? source | return source
@@ -71,13 +72,13 @@ partial def abstractCalls (destination : Name) (modules : List Name) (source : N
   let some body := info.value? true | return source
   let mut changed := false
   for child in info.type.getUsedConstants ++ body.getUsedConstants do
-    if (← abstractCalls destination modules child seen) != child then changed := true
+    if (← abstractCalls destination modules child seen parameterType) != child then changed := true
   unless changed do
     seen.modify (·.insert source source)
     return source
   let target := destination ++ source
   let names ← seen.get
-  withLocalDeclD `recovery (mkConst `CacheopsRust.NativeVerifier.Recovery) fun r => do
+  withLocalDeclD `operations (mkConst parameterType) fun r => do
     let replace (e : Expr) := e.replace fun
       | .const n ls => (names.get? n).bind fun dst => if n==dst then none else some (mkApp (mkConst dst ls) r)
       | _ => none
