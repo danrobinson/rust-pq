@@ -209,6 +209,7 @@ shake_only! {
 }
 
 sha2_only! {
+    #[cfg(feature = "platform-sha2")]
     pub(crate) mod message;
 }
 

@@ -8,7 +8,7 @@ def familyParams (p : CacheopsRust.params.Params) : CacheopsRust.cache.HashFamil
   | .Sha2 => paramsS (toSlhParams p)
   | .Shake => Shake.params (toSlhParams p)
 
-private theorem compatible {N : Usize} (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
+theorem compatible {N : Usize} (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
     (c : CacheopsRust.cache.TopTreeCache N) (sk : Slice U8) (hs : sk.length = 4*N.val)
     (hk : Spec.KeyOk (familyParams p c.family) (bytes sk.val))
     (hc : CacheValid c (familyParams p c.family)
@@ -47,14 +47,14 @@ private theorem layer_lookup {N : Usize} (p : CacheopsRust.params.Params) (hp : 
     rw [eq] at hh
     cases hf : c.family <;> simp only [hf,familyParams,hi] at hh ⊢ <;> exact hh
 
-private def digestFor {N : Usize} (f : CacheopsRust.cache.HashFamily) :=
+def digestFor {N : Usize} (f : CacheopsRust.cache.HashFamily) :=
   match f with
   | .Sha2 => @cache.sha2_ops.pure_digest N
   | .Shake => @cache.shake_ops.pure_digest N
 
 variable [backend : Closed.Backend]
 
-private def signFor {N : Usize} (f : CacheopsRust.cache.HashFamily) :=
+def signFor {N : Usize} (f : CacheopsRust.cache.HashFamily) :=
   match f with
   | .Sha2 => @CacheopsRust.cache.sha2_ops.sign_from_digest N
   | .Shake => @Closed.cache.shake_ops.sign_from_digest backend N
@@ -76,6 +76,42 @@ private theorem messageFlow {N : Usize} (p : CacheopsRust.params.Params)
     cases f <;> simp only [cache.sign_cached,cache.TopTreeCache.sign,hc,ite_false,compat,
       bind_tc_eq,Std.bind_assoc,bind_ok,digestFor,signFor]
     all_goals rfl
+
+theorem signFor_spec {N : Usize} [Closed.DispatchCorrect backend N]
+    (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
+    (c : CacheopsRust.cache.TopTreeCache N) (m ctx sk : Slice U8)
+    (rnd k prf seed root r : Array U8 N) (digest : alloc.vec.Vec U8) (hit : Option (Slice (Array U8 N)))
+    (good' : ¬(bytes ctx.val).length > 255)
+    (valid : CacheValid c (familyParams p c.family) (bytes k.val) (bytes seed.val))
+    (hlayer : optionalLayer p c k seed digest.deref hit) (len : digest.deref.length = p.m.val)
+    (b0 : bytes k.val = Spec.block (familyParams p c.family) (bytes sk.val) 0)
+    (b1 : bytes prf.val = Spec.block (familyParams p c.family) (bytes sk.val) 1)
+    (b2 : bytes seed.val = Spec.block (familyParams p c.family) (bytes sk.val) 2)
+    (b3 : bytes root.val = Spec.block (familyParams p c.family) (bytes sk.val) 3)
+    (hr : bytes r.val = Spec.PRFmsg (familyParams p c.family) (bytes prf.val) (bytes rnd.val)
+        (Spec.withContext (bytes m.val) (bytes ctx.val)))
+    (hv : bytes digest.val = Spec.Hmsg (familyParams p c.family) (bytes r.val) (bytes seed.val)
+        (bytes root.val) (Spec.withContext (bytes m.val) (bytes ctx.val))) :
+    signFor c.family p k seed r digest.deref c.top_tree.deref hit ⦃ sig =>
+      some (bytes sig.val) = Spec.slhSign (familyParams p c.family) (bytes m.val)
+        (bytes ctx.val) (bytes sk.val) (bytes rnd.val) ⦄ := by
+  have htop := valid.top_built
+  have hlen := valid.top_len
+  unfold optionalLayer at hlayer
+  cases hf : c.family
+  all_goals simp only [hf,familyParams] at htop hlen hlayer hr hv b0 b1 b2 b3
+  · apply WP.spec_mono (sign_from_digest_spec p hp k seed r digest.deref _ hit len
+      (by rwa [vec_deref_length]) htop hlayer)
+    intro s h
+    simp only [Spec.slhSign,good',ite_false,Option.some.injEq,Spec.slhSignInternal]
+    simpa only [familyParams,b0,b1,b2,b3,hr,vec_deref_val,hv] using h
+  · simp only [signFor]
+    rw [Closed.sign_from_digest_eq p hp _ _ _ _ len]
+    apply WP.spec_mono (slhdsa.cache.endtoend.shake.sign_from_digest_spec p hp k seed r digest.deref _ hit len
+      (by rwa [vec_deref_length]) htop hlayer)
+    intro s h
+    simp only [Spec.slhSign,good',ite_false,Option.some.injEq,Spec.slhSignInternal]
+    simpa only [familyParams,b0,b1,b2,b3,hr,vec_deref_val,hv] using h
 
 /-- Pure signing from the caller's message, context, randomness, key and cache. -/
 theorem sign_cached_spec {N : Usize} [Closed.DispatchCorrect backend N] (p : CacheopsRust.params.Params) (hp : PN (toSlhParams p) N)
@@ -115,26 +151,8 @@ theorem sign_cached_spec {N : Usize} [Closed.DispatchCorrect backend N] (p : Cac
   have len : digest.deref.length = p.m.val := by
     rw [vec_deref_length]; cases hf : c.family <;> simp only [hf,familyParams] at hl <;> exact hl
   let* ⟨hit,hlayer⟩ ← layer_lookup p hp c k seed digest.deref len valid
-  have sig : signFor c.family p k seed r digest.deref c.top_tree.deref hit ⦃ sig =>
-      some (bytes sig.val) = Spec.slhSign (familyParams p c.family) (bytes m.val)
-        (bytes ctx.val) (bytes sk.val) (bytes rnd.val) ⦄ := by
-    have htop := valid.top_built
-    have hlen := valid.top_len
-    unfold optionalLayer at hlayer
-    cases hf : c.family
-    all_goals simp only [hf,familyParams] at htop hlen hlayer hr hv b0 b1 b2 b3
-    · apply WP.spec_mono (sign_from_digest_spec p hp k seed r digest.deref _ hit len
-        (by rwa [vec_deref_length]) htop hlayer)
-      intro s h
-      simp only [Spec.slhSign,good',ite_false,Option.some.injEq,Spec.slhSignInternal]
-      simpa only [familyParams,b0,b1,b2,b3,hr,vec_deref_val,hv] using h
-    · simp only [signFor]
-      rw [Closed.sign_from_digest_eq p hp _ _ _ _ len]
-      apply WP.spec_mono (slhdsa.cache.endtoend.shake.sign_from_digest_spec p hp k seed r digest.deref _ hit len
-        (by rwa [vec_deref_length]) htop hlayer)
-      intro s h
-      simp only [Spec.slhSign,good',ite_false,Option.some.injEq,Spec.slhSignInternal]
-      simpa only [familyParams,b0,b1,b2,b3,hr,vec_deref_val,hv] using h
+  have sig := signFor_spec p hp c m ctx sk rnd k prf seed root r digest hit good'
+    valid hlayer len b0 b1 b2 b3 hr hv
   let* ⟨out,hout⟩ ← sig
   exact hout
 
