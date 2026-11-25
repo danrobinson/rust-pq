@@ -43,8 +43,13 @@ run_cmd liftCoreM do
           `slhdsa.NativeVerify.ForsFused.fused,absorb]
       for op in [`verify_spec,`slh_verify_internal_spec,`slh_verify_spec] do
         reaches (ns ++ op) [`slhdsa.WidthEight.Platform.recovery,absorb]
-      let key := if api == `WidthEightAppleAPI then `KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.engine else `KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.engine
-      reaches (ns ++ `seeded_roundtrip) [key,hw,subtree,`slhdsa.Buffered.Full.leaves,`slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal,
-        `slhdsa.Fused.xmss_sign_batch,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb]
+      let key := if api == `WidthEightAppleAPI then `WidthEightAppleKeys.slhdsa.WidthEight.sourceEngine else `WidthEightX86Keys.slhdsa.WidthEight.sourceEngine
+      let node := if api == `WidthEightAppleAPI then `WidthEightOuterApple.slhdsa.Fused.Outer.shake.xmss.xmss_node else `WidthEightOuterX86.slhdsa.Fused.Outer.shake.xmss.xmss_node
+      let keyRoute := [key,node,hw,subtree,`slhdsa.Buffered.Full.leaves,`slhdsa.Buffered.SmallWots.leaves,
+        `slhdsa.ParallelKeygenHost.Sh.shake.slh.slh_keygen_internal]
+      for op in [`keygen_spec,`slh_keygen_internal_spec] do
+        reaches (ns ++ op) keyRoute
+      reaches (ns ++ `seeded_roundtrip) (keyRoute ++ [
+        `slhdsa.Fused.xmss_sign_batch,hosted ++ `slhdsa.WidthEight.Fors.signature,absorb])
 
 end slhdsa.WidthEight.Coverage

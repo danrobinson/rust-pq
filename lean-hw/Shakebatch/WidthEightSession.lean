@@ -1,5 +1,5 @@
 import Shakebatch.WidthEightHosted
-import Parallel.KeygenNativeHashes
+import Shakebatch.WidthEightHostedKeys
 open Aeneas Aeneas.Std Result
 namespace slhdsa.WidthEight
 open ParallelKeygenHost
@@ -11,23 +11,24 @@ def Platform.isX86 : Platform → Bool
 
 @[instance_reducible] noncomputable def keyEngine (host : Platform) (p : params.Params) : Engine ShakeSeed :=
   match host with
-  | .apple sha3 =>
-    let stream := AppleSingleStream.ShakeForestApple.slhdsa.ShakeBatch.scalarStream
-    let machine := AppleHybrid.machine sha3
-    @KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.engine machine stream
-      (@KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.primitives machine stream p true)
-      (ShNode.detector (ok true))
-  | .x86 =>
-    let stream := ShakeForestX86.slhdsa.ShakeBatch.scalarStream
-    @KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.engine Kxdispatch.machine stream
-      (@KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.primitives Kxdispatch.machine stream p true)
-      (ShNode.detector KxdispatchRust.shake256.parallel.available)
+  | .apple sha3 => WidthEightAppleKeys.slhdsa.WidthEight.sourceEngine (.apple sha3) p
+  | .x86 => WidthEightX86Keys.slhdsa.WidthEight.sourceEngine .x86 p
 
 theorem keys (host : Platform) {N : Usize} (p : params.Params) (hp : PN p N)
     (threads : Nat) (pool : PoolOutcome) : ShNode.KeyPair (keyEngine host p) host.isX86 threads pool (N:=N) p := by
   cases host with
-  | apple sha3 => exact KeygenAppleHashes.slhdsa.ParallelKeygenHost.ShNode.apple_keys sha3 p hp threads pool
-  | x86 => exact KeygenX86Hashes.slhdsa.ParallelKeygenHost.ShNode.x86_keys p hp threads pool
+  | apple sha3 => exact WidthEightAppleKeys.slhdsa.WidthEight.apple_keys sha3 p hp threads pool
+  | x86 => exact WidthEightX86Keys.slhdsa.WidthEight.x86_keys p hp threads pool
+
+theorem keygen_public {N : Usize} (p : params.Params) (hp : PN p N) (host : Platform) (threads : Nat)
+    (pool : PoolOutcome) (seeds sk pk : Slice U8) (ss : seeds.length=3*N.val)
+    (ks : sk.length=4*N.val) (ps : pk.length=2*N.val) :
+    @Sh.shake.api.keygen (keyEngine host p) ⟨host.isX86,threads,pool⟩ N p seeds sk pk ⦃ out =>
+      (bytes out.1.val,bytes out.2.val)=Spec.slhKeygenInternal (Shake.params p)
+        (Spec.block (paramsS p) (bytes seeds.val) 0) (Spec.block (paramsS p) (bytes seeds.val) 1)
+        (Spec.block (paramsS p) (bytes seeds.val) 2) ∧ out.1.length=4*N.val ∧ out.2.length=2*N.val ⦄ :=
+  @Sh.public_keygen (keyEngine host p) ⟨host.isX86,threads,pool⟩ N p hp seeds sk pk ss ks ps
+    (keys host p hp threads pool)
 
 def sign (host : Platform) {N : Usize} (p : params.Params) (m ctx sk : Slice U8) (rnd : Array U8 N) :=
   match host with

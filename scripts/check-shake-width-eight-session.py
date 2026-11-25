@@ -42,7 +42,8 @@ def main():
     module = "Shakebatch.WidthEightCoverage"
     facade["run"](["lake", "build", module], root / "lean-hw")
     operations = ("sign_spec", "sign_deterministic_spec", "verify_spec", "slh_sign_spec",
-                  "slh_verify_spec", "slh_sign_internal_spec", "slh_verify_internal_spec", "seeded_roundtrip")
+                  "slh_verify_spec", "slh_sign_internal_spec", "slh_verify_internal_spec", "seeded_roundtrip",
+                  "keygen_spec", "slh_keygen_internal_spec")
     theorems = [f"WidthEight{host}API.shake_{s}.{op}" for s in profiles
                 for host in ("Apple", "X86") for op in operations]
     lanes = ["slhdsa.WidthEight.Fors." + name for name in

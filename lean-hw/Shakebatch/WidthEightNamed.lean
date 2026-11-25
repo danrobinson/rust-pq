@@ -24,6 +24,8 @@ run_cmd liftTermElabM do
           install (dst ++ op) args proof
         let p := mkConst (`slhdsa.sets ++ s ++ `params.PARAMS)
         let hp := mkConst (`slhdsa ++ s ++ `pn)
+        install (dst ++ `keygen_spec) args (← mkAppOptM ``keygen_public #[none,some p,some hp,some host])
+        install (dst ++ `slh_keygen_internal_spec) args (← mkAppOptM ``keys #[some host,none,some p,some hp])
         let cert ← mkAppM ``seeded_accepts #[host]
         forallBoundedTelescope (← inferType cert) (some 2) fun xs _ => do
           let proof ← mkAppOptM ``seeded_accepts #[some host,some xs[0]!,some xs[1]!,none,some p,some hp]
