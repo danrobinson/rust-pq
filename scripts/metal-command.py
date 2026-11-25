@@ -109,6 +109,65 @@ def verify_lifetime(lib, gpu, bridge):
     exact(gpu, "fnzeroize_contents", "self.as_mut_slice().zeroize();")
 
 
+def public_signing(lib):
+    """Match the entire accepted/rejected message wrapper, the actual primitive
+    calls, and the final slice loop. Return only after these stages match."""
+    src = compact(lib)
+    def exact(name, expected):
+        if body(src, name) != compact(expected):
+            raise ValueError("GPU signer public framing or routing changed in " + name)
+
+    exact("fnwith_context(", """
+      let mut mp=Vec::with_capacity(2+ctx.len()+m.len());mp.push(0u8);
+      mp.push(ctx.len() as u8);mp.extend_from_slice(ctx);mp.extend_from_slice(m);mp""")
+    exact("fnsign_batch_family<", """
+      if requests.iter().any(|r|r.ctx.len()>255){return Ok(None);}
+      let framed:Vec<Vec<u8>>=requests.iter().map(|r|with_context(r.msg,r.ctx)).collect();
+      let internal_reqs:Vec<SignInternalReq<'_,N>>=requests.iter().zip(framed.iter())
+        .map(|(r,mp)|SignInternalReq{msg:mp.as_slice(),sk:r.sk,addrnd:r.addrnd,}).collect();
+      self.sign_internal_batch_family::<N>(family,p,&internal_reqs).map(Some)""")
+    for prefix, family in (("", "Sha2"), ("shake_", "Shake")):
+        exact("pubfn"+prefix+"sign_batch<",f"self.sign_batch_family::<N>(HashFamily::{family}, p, requests)")
+        exact("pubfn"+prefix+"sign<", """
+          if ctx.len()>255{return Ok(None);}let mp=with_context(m,ctx);
+          self."""+prefix+"sign_internal::<N>(p,&mp,sk,addrnd).map(Some)")
+        exact("pubfn"+prefix+"sign_internal<", "let mut sigs=self."+prefix+
+              "sign_internal_batch::<N>(p,&[SignInternalReq{msg:m,sk,addrnd,}],)?;Ok(sigs.pop().unwrap())")
+        exact("pubfn"+prefix+"sign_internal_batch<",
+              f"self.sign_internal_batch_family::<N>(HashFamily::{family},p,requests)")
+    for name, bodyText in {
+        "fnshake_prf_msg<": """let mut input=Vec::with_capacity(2*N+msg.len());
+            input.extend_from_slice(sk_prf);input.extend_from_slice(opt_rand);input.extend_from_slice(msg);
+            let mut out=[0u8;N];shake256(&input,&mut out);out""",
+        "fnshake_h_msg<": """let mut input=Vec::with_capacity(3*N+msg.len());input.extend_from_slice(r);
+            input.extend_from_slice(pk_seed);input.extend_from_slice(pk_root);input.extend_from_slice(msg);
+            let mut out=vec![0u8;p.m];shake256(&input,&mut out);out""",
+        "fnbuild_key_material<": """let seed=seed_ctx::<N>(pk_seed);let mut sk_words=[0u32;8];
+            for i in 0..(N/4){sk_words[i]=u32::from_be_bytes([sk_seed[4*i],sk_seed[4*i+1],
+            sk_seed[4*i+2],sk_seed[4*i+3],]);}KeyMaterial{sk_seed:sk_words,state256:seed.state,
+            state512:seed.state512,}""",
+        "fnbuild_shake_key_material<": """let mut sk_lanes=[0u64;4];let mut pk_lanes=[0u64;4];
+            for i in 0..(N/8){sk_lanes[i]=u64::from_le_bytes(sk_seed[8*i..8*i+8].try_into().unwrap());
+            pk_lanes[i]=u64::from_le_bytes(pk_seed[8*i..8*i+8].try_into().unwrap());}
+            ShakeKeyMaterial{sk_seed:sk_lanes,pk_seed:pk_lanes,}""",
+    }.items():
+        exact(name, bodyText)
+    internal = body(src, "fnsign_internal_batch_family<")
+    if not internal.endswith(compact("""cmd.commit_and_wait()?;
+        let sig_slice=pool.out_sigs.as_ref().unwrap().as_slice();let mut out=Vec::with_capacity(num_sigs);
+        for sig_idx in 0..num_sigs{let off=sig_idx*sig_bytes;out.push(sig_slice[off..off+sig_bytes].to_vec());}
+        Ok(out)""")):
+        raise ValueError("GPU signer result slicing changed")
+    if not internal.startswith(compact("""validate_geometry::<N>(p)?;let num_sigs=requests.len();
+        if num_sigs==0{return Ok(Vec::new());}""")):
+        raise ValueError("GPU signer empty-batch behavior changed")
+    for prefix, family in (("", "Sha2"), ("shake_", "Shake")):
+        expected = compact(f"""HashFamily::{family}=>{{let r={prefix}prf_msg::<N>(&sk_prf,req.addrnd,req.msg);
+            let digest={prefix}h_msg::<N>(p,&r,pk_seed,&pk_root,req.msg);(r,digest)}}""")
+        if internal.count(expected) != 1:
+            raise ValueError("GPU host digest primitive call changed")
+
+
 def scopes(source, pos):
     """Enclosing Rust blocks at one operation, excluding the function braces."""
     stack, start = [], 0
@@ -439,6 +498,7 @@ def claims(
     roles,
     *,
     unsafe_case=lambda sign, phase, split: False,
+    rows=(),
 ):
     verify_lifetime(lib, gpu, bridge)
     statements = []
@@ -471,14 +531,70 @@ def claims(
             statements.append(
                 f"example : MetalCommand.safe [{entries}] = {expected} := by decide"
             )
+            if sign and expected=="true":
+                splitBool = str(bool(split)).lower()
+                i,r,w=trace[-1]
+                reader = f"(⟨{i},{region_list(r)},{region_list(w)}⟩ : MetalCommand.Access)"
+                # Kernel-check the link for each actual trace with arbitrary
+                # batch cardinality and descriptor geometry of this split.
+                statements.append(
+                    f"example (g : MetalSignatureLayout.Geometry) "
+                    f"(hi : {splitBool} = false → g.s2 = 0) (count : Nat) "
+                    f"(b : MetalSignatureLayout.Byte g count) : "
+                    f"∃ a ∈ ([{entries}] : List MetalCommand.Access), "
+                    f"MetalCommandValues.owner g b.2.1 ∈ a.writes := "
+                    f"MetalCommandValues.published (by decide) g {splitBool} hi {reader} "
+                    f"(by decide) (by decide) b"
+                )
+                # Instantiate the public arbitrary-batch statement for every
+                # production parameter row that uses this exact command trace.
+                for rowName,family,n,_,d,hp,a,k,_ in rows:
+                    if (family=="shake") != bool(is_shake) or (a>8) != bool(split):
+                        continue
+                    s1=a if a<=8 else 7
+                    g=f"(⟨{n},{k},{s1},{a-s1},{d},{2*n+3},{hp}⟩ : MetalSignatureLayout.Geometry)"
+                    p="Spec."+rowName.replace("-","_")
+                    mode=(".twoPhase" if phase else ".streaming")
+                    label="gpu_"+rowName.replace("-","_")+"_"+str(int(phase))
+                    statements += [f"private def {label} : List MetalCommand.Access := [{entries}]", f"""
+example (rs : List MetalPipeline.BatchSignReq) (pool : Spec.Bytes) (scratch : MetalCommand.Region → Prop)
+  (accepted : rs.any (fun r => decide (r.ctx.length > 255)) = false →
+    rs.length * {p}.sigBytes ≤ pool.length ∧
+    MetalCommandValues.Local {label} (MetalCommandValues.correct {g} (MetalCommandValues.framed rs).length
+       (pool.take (rs.length * {p}.sigBytes))
+       (MetalPipeline.metalBatchSignInternal {mode} {p} (MetalCommandValues.framed rs)).flatten scratch)) :
+  MetalCommandValues.publicResult {p} rs pool =
+    rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) :=
+  MetalCommandValues.public_pooled_batch (trace := {label}) (by decide)
+    {p} (MetalPipeline.metal_all_12_params_valid _ (by decide)) {mode}
+    {g} (by decide) rs pool scratch (fun guard =>
+      ⟨(accepted guard).1, fun b =>
+        MetalCommandValues.published (trace := {label}) (by decide) {g} {splitBool}
+          (by decide) {reader} (by decide) (by decide) b, (accepted guard).2⟩)
+"""]
     return "\n".join(statements)
 
 
-def verify(lib, gpu, bridge, sha2, shake, bindings):
+def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     args = [lib, gpu, bridge, sha2, shake]
     traces = bindings["check_stages"](lib)
     roles = bindings["SHADER_ROLES"]
-    positive = claims(*args, traces, roles)
+    public_signing(lib)
+    for before, after in (
+        ("requests.iter().any(|r| r.ctx.len() > 255)", "requests.iter().any(|r| r.ctx.len() >= 255)"),
+        ("mp.push(0u8);", "mp.push(1u8);"),
+        ("out.push(sig_slice[off..off + sig_bytes].to_vec());",
+         "out.insert(0, sig_slice[off..off + sig_bytes].to_vec());"),
+        ("input.extend_from_slice(opt_rand);", "input.extend_from_slice(sk_prf);"),
+    ):
+        if lib.count(before)!=1:
+            raise ValueError("ambiguous public wrapper mutation: " + before)
+        try:
+            public_signing(lib.replace(before,after))
+        except ValueError:
+            continue
+        raise ValueError("public wrapper mutation accepted: " + before)
+    positive = claims(*args, traces, roles, rows=rows)
     # A missing wait, premature result view or omitted host producer must fail
     # against the actual source, independent of the positive trace assertions.
     cases = [
