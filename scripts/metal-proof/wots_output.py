@@ -85,7 +85,7 @@ private theorem {name}SigByte_spec {{p count}} (inputs : MetalWotsOutput.Inputs)
 """
 
 
-def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None, host_cmd=None):
+def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, leaf_scratch, *, fors_stage=None, host_cmd=None, xmss_stage=None):
     words = n // (8 if family == "shake" else 4)
     mode = ".twoPhase" if phase else ".streaming"
     count = f"(rs.length * {p}.d * 2^{p}.hp)"
@@ -123,15 +123,30 @@ def public_claim(label, p, g, family, n, phase, leaf_cmd, chain_cmd, wots_cmd, l
     (roots : MetalChainDispatch.Memory) (pkBuf : MetalChainDispatch.Execution)
     (events : List (MetalHostValues.Middle {g} (MetalCommandValues.framed rs).length))
     (capacity : Nat) (memory : Nat → Spec.Byte)"""
+        middle_setup = ""
+        raw, unconstrained = "raw", "unconstrained"
+        if xmss_stage is not None:
+            base = "xmss_reduce"
+            reducer, xmss_cmd = xmss_stage
+            mid, middle_setup, more_orders, more_exclude = reducer["public_parts"](
+                p, g, family, words, size, phase, count, xmss_cmd,
+            )
+            arguments = arguments.replace(
+                f"(events : List (MetalHostValues.Middle {g} (MetalCommandValues.framed rs).length))", mid,
+            )
+            raw, unconstrained = "rawWithRoots", "remainder"
+            orders += more_orders
         host_setup = f"""let keys := MetalHostValues.keys {p} requests
     let trees := MetalHostValues.trees {p} requests
     let e := MetalHostValues.initialized (p := {p}) requests pre
-    let data := {{raw with desc := MetalHostValues.layer {p} requests}}
+    {middle_setup}let data := {{{raw} with desc := MetalHostValues.layer {p} requests}}
     let jobs := MetalHostValues.job {p} requests
     let initial := MetalHostValues.afterMiddle events (MetalHostValues.initMemory {p} requests memory)
-    let other := fun r => if r = MetalCommand.Region.randomizer then True else unconstrained r
+    let other := fun r => if r = MetalCommand.Region.randomizer then True else {unconstrained} r
     """
         exclude += f" a ≠ {host_cmd} →"
+        if xmss_stage is not None:
+            exclude += more_exclude
     header = f"""
 private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
     {arguments}
@@ -152,6 +167,8 @@ private theorem {label}_{base} (rs : List MetalPipeline.BatchSignReq)
     MetalCommandValues.publicResult {p} rs out =
       rs.mapM (fun r => Spec.slhSign {p} r.msg r.ctx r.sk r.addrnd) := by
 """
+    if xmss_stage is not None:
+        return header + reducer["public_proof"](label, p, g, family, words, size, phase, count, mode, names, xmss_cmd)
     if host_cmd is not None:
         return header + f"""
   intro requests keys trees e data jobs initial other pkValue source rest buffers atByte toByte out inputsInv inv accepted

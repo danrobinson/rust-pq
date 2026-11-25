@@ -112,4 +112,12 @@ theorem cover (g : Geometry) {count pos : Nat} (h : pos < count * signatureBytes
     rw [← byte_eq, Equiv.apply_symm_apply]
   exact ⟨p, hp, fun other ho => disjoint g count (ho.trans hp.symm)⟩
 
+/-- Row-major enumeration of every signature byte for a completed batch. -/
+def allBytes (g : Geometry) (count : Nat) : List (Byte g count) :=
+  (List.finRange _).map (flatten g count).symm
+
+theorem allBytes_complete (g : Geometry) (count : Nat) (b : Byte g count) : b ∈ allBytes g count := by
+  apply List.mem_map.mpr
+  exact ⟨flatten g count b, List.mem_finRange _, Equiv.symm_apply_apply _ _⟩
+
 end MetalSignatureLayout

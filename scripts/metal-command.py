@@ -5,6 +5,7 @@ import re
 import runpy
 from pathlib import Path
 
+xmss_reducer = runpy.run_path(str(Path(__file__).parent / "metal-proof/xmss_reducer.py"))
 fors_pk = runpy.run_path(str(Path(__file__).parent / "metal-proof/fors_pk.py"))
 wots_output = runpy.run_path(str(Path(__file__).parent / "metal-proof/wots_output.py"))
 leaf_dispatch = runpy.run_path(str(Path(__file__).parent / "metal-proof/leaf_dispatch.py"))
@@ -750,13 +751,15 @@ private theorem {label}_public (rs : List MetalPipeline.BatchSignReq) (pool : Sp
                         label, p, g, family, n, phase, producer("xmss_leaves"), source_cmd,
                     )
                     statements.append(leaves_claim)
-                    for fors_stage, host_cmd in (
-                        (None, None), ((producer("pk_fors"), splitBool), None),
-                        ((producer("pk_fors"), splitBool), producer("randomizer")),
+                    fp = (producer("pk_fors"), splitBool)
+                    host = producer("randomizer")
+                    for fors_stage, host_cmd, xmss_stage in (
+                        (None, None, None), (fp, None, None), (fp, host, None),
+                        (fp, host, (xmss_reducer, producer("xmss_roots"))),
                     ):
                         statements.append(wots_output["public_claim"](
                             label, p, g, family, n, phase, producer("xmss_leaves"),
-                            source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage, host_cmd=host_cmd,
+                            source_cmd, producer("wots"), leaf_scratch, fors_stage=fors_stage, host_cmd=host_cmd, xmss_stage=xmss_stage,
                         ))
     return "\n".join(statements)
 
@@ -783,6 +786,16 @@ def verify(lib, gpu, bridge, sha2, shake, bindings, rows=()):
     projections = []
     for is_shake, shader in enumerate((sha2, shake)):
         projections.append(chain_projection(shader, is_shake))
+        xp = xmss_reducer["project"]
+        projections.append(xp(shader, is_shake, body, compact))
+        mutant = shader.replace("cur_cnt >>= 1;", "cur_cnt >>= 2;")
+        try:
+            xp(mutant, is_shake, body, compact)
+        except ValueError as error:
+            if "unmodeled reducer phase" not in str(error):
+                raise
+        else:
+            raise ValueError("accepted wrong XMSS reduction depth")
         fp = fors_pk["project"]
         projections.append(fp(shader, is_shake, body, compact, leaf_dispatch["kernel_body"]))
         base = "sig_idx * p.k * " + ("NL" if is_shake else "NW")
