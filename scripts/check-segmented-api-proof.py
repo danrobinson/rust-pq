@@ -41,7 +41,8 @@ def check(scratch, target):
 
 
 if __name__ == "__main__":
-    for target in ("x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "aarch64-unknown-linux-gnu"):
+    for target in ("x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
+                   "riscv64gc-unknown-none-elf"):
         with tempfile.TemporaryDirectory() as temp:
             check(Path(temp), target)
     run(["lake", "build", "Segmentedapi.Top"], LEAN)

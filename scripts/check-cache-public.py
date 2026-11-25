@@ -30,7 +30,7 @@ def typed_check(native, source, scratch):
     """Compile the extracted 48 array-typed wrappers and prove each forwards to its FIPS entry."""
     std = shared["generated_declarations"](ROOT / "lean/Slhdsa/Funs.lean", "slhdsa")
     checked = {}
-    code = ["import Cachepath.PublicMut", "open Aeneas Aeneas.Std Result ControlFlow Error",
+    code = ["import Cachepath.PlatformPortable", "open Aeneas Aeneas.Std Result ControlFlow Error",
             "namespace CacheopsRust.Public.Typed", "set_option linter.concreteInstances false",
             "set_option linter.unnecessarySeqFocus false", "set_option linter.unusedTactic false", "variable [backend : Closed.Backend]"]
     code.extend(f"abbrev width{n} := {n}#usize" for n in (16, 24, 32, 64, 96, 128))
@@ -56,6 +56,13 @@ def typed_check(native, source, scratch):
             code.append(source[base])
         code.append(source[instance])
         n = int(bits[:3]) // 8
+        hash_family = "Sha2" if family == "sha2" else "Shake"
+        # Instantiate the full seeded round trip with the parameter constant
+        # compiled into this typed public Rust wrapper.
+        code.append(f"""theorem {param}_pn : slhdsa.PN (CacheopsRust.toSlhParams {instance}) width{n} := by
+              with_unfolding_all exact slhdsa.sha2_{bits}.pn
+            #check PortableSession.CacheopsRust.Public.scalar_keygen_sign_verify
+              {instance} {param}_pn CacheopsRust.cache.HashFamily.{hash_family}""")
         for op in OPS:
             name = f"cache.{param}.{op}"
             body = source[name].replace("  cache.TopTreeCache.", "  CacheopsRust.Public.cache.TopTreeCache.")
@@ -153,7 +160,7 @@ def negative_control():
 
 
 if __name__ == "__main__":
-    shared["facade"]["run"](["lake", "build", "Cachepath.PublicReuse"], LEAN)
+    shared["facade"]["run"](["lake", "build", "Cachepath.PlatformPortable"], LEAN)
     for target in (*shared["facade"]["TARGETS"], "riscv64gc-unknown-none-elf"):
         with tempfile.TemporaryDirectory() as tmp:
             check(target, Path(tmp))
