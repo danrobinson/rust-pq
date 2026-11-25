@@ -239,6 +239,7 @@ def main():
     check_pool()
     run([sys.executable, HERE / "check-uncached-parallel-caller.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-keygen.py"], ROOT)
+    run([sys.executable, HERE / "check-shake-fused-xmss.py"], ROOT)
     modules = {
         "Parallel.Pool": "ParallelPool.join",
         "Parallel.SigningSlots": "ParallelFused.Slots.output_fips",

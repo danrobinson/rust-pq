@@ -3,10 +3,10 @@
 import subprocess
 from pathlib import Path
 
-from build import SRC, function
+from build import SRC, function, fused_auth
 
 
-def program(directory, batch=None):
+def program(directory, batch=None, *, signing=False):
     if batch is None:
         batch = (SRC / "shake/batch.rs").read_text()
     production = "\n".join(
@@ -24,6 +24,16 @@ def program(directory, batch=None):
     template = template.replace("// PRODUCTION", production).replace(
         "ADDRESS_PATH", str(SRC / "address.rs")
     )
+    if signing:
+        auth = Path(__file__).with_name("fused-auth-shapes.rs").read_text()
+        writes = (
+            fused_auth(batch)
+            .replace("[0u8; N]", "[0usize; N]")
+            .replace("xmss_subtree(sk", "xmss_subtree::<N>(sk")
+        )
+        template = template.split("fn check<const N: usize>()", 1)[0] + auth.replace(
+            "// PRODUCTION_AUTH", writes
+        )
     declarations = []
     by_shape = {}
 
@@ -45,7 +55,7 @@ def program(directory, batch=None):
         return by_shape[expr]
 
     tables = {}
-    for width in (3, 8):
+    for width in (8,) if signing else (3, 8):
         src, binary = directory / "tree.rs", directory / "tree"
         src.write_text(template.replace("PROOF_WIDTH", str(width)))
         subprocess.run(
@@ -70,9 +80,16 @@ def program(directory, batch=None):
                 raise ValueError(
                     f"width {width}: digest-dependent or incomplete traversal at N={n}, h={z}"
                 )
-        if set(table) != set(range(1, 10)):
+        heights = range(9) if signing else range(1, 10)
+        if set(table) != set(heights):
             raise ValueError("missing subtree height")
-        tables[width] = "[" + ", ".join(table[z] for z in range(1, 10)) + "]"
+        tables[width] = "[" + ", ".join(table[z] for z in heights) + "]"
+    if signing:
+        return (
+            "import Parallel.KeygenShape\n\nnamespace ParallelFusedSignature\nopen ParallelKeygen.Tree\n"
+            + "\n".join(declarations)
+            + f"\ndef schedule : List Shape := {tables[8]}\nend ParallelFusedSignature\n"
+        )
     return (
         "import Parallel.KeygenShape\n\nnamespace ParallelKeygen.Tree\n"
         + "\n".join(declarations)
