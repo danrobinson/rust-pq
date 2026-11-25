@@ -13,4 +13,4 @@ run_cmd liftCoreM do
        (`shake256.Sponge, `ShakeAbsRust.shake256.Sponge)])
     [`CacheopsRust.Closed.FastSpec, `CacheopsRust.Closed.DispatchCorrect]
     #[`CacheopsRust.Public.scalar_build_and_sign_many, `CacheopsRust.Public.scalar_keygen_then_sign_many,
-      `CacheopsRust.Public.scalar_keygen_sign_verify] (Cachepath.PlatformSha2.modules ++ [`Shakeopt])
+      `CacheopsRust.Public.scalar_keygen_sign_verify, `CacheopsRust.Public.scalar_keygen_sign_verify_with_precompute] (Cachepath.PlatformSha2.modules ++ [`Shakeopt])

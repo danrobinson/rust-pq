@@ -13,7 +13,7 @@ def TreeKernel {N : Usize} (builder : mutation.Builder N) (p : Spec.Params) : Pr
       nodes.length = treeSize p.hp ∧ slhdsa.cache.Built (alloc.vec.Vec.deref nodes)
         p (bytes sk.val) (bytes pk.val) (layerAdrs layer.val tree.val) ⦄
 
-private theorem keyBlock {N : Usize} (p : Spec.Params) (hn : p.n = N.val) (sk : Slice U8)
+theorem keyBlock {N : Usize} (p : Spec.Params) (hn : p.n = N.val) (sk : Slice U8)
     (i : Usize) (h : (i.val + 1) * N.val ≤ sk.length) :
     CacheopsRust.util.block N sk i ⦃ a => bytes a.val = Spec.block p (bytes sk.val) i.val ⦄ := by
   apply WP.spec_mono (slhdsa.block_spec N sk i h)
