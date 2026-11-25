@@ -27,7 +27,7 @@ private theorem coordinate (n : Nat) (width : n=16 ∨ n=24 ∨ n=32) :
 
 private theorem shape : traces[0]! = expected := by decide
 
-private def runCall (n : Nat) (st : List Word) (a : Spec.Adrs) (c : Nat) (v : Arm.V × Arm.V) (op : Call) :=
+def runCall (n : Nat) (st : List Word) (a : Spec.Adrs) (c : Nat) (v : Arm.V × Arm.V) (op : Call) :=
   hashRegisters n st {a.setTypeAndClear op.head with keypair:=a.keypair}
     ((c:Int)+op.chainDelta).toNat op.counter v.1 v.2
 
@@ -36,6 +36,16 @@ def endpoint (n : Nat) (st : List Word) (sk : Spec.Bytes) (a : Spec.Adrs) (c : N
   let initial := if row.origin=0 then loadDigest n sk else (default,default)
   let v := (traces[row.trace]!).foldl (runCall n st a c) initial
   storedBytes n v.1 v.2
+
+theorem endpoint_program (n : Nat) (width : n=16 ∨ n=24 ∨ n=32) (st : List Word)
+    (sk : Spec.Bytes) (a : Spec.Adrs) (c : Nat) (hc : c<2*n+3) :
+    endpoint n st sk a c =
+      let calls := (⟨5,0,0⟩ : Call)::(List.range 15).map (fun t => ⟨0,0,t⟩)
+      let r := calls.foldl (runCall n st a c) (loadDigest n sk)
+      storedBytes n r.1 r.2 := by
+  unfold endpoint
+  rw [coordinate n width c hc]
+  simp only [shape,expected,↓reduceIte]
 
 private theorem calls_fips (p : Spec.Params) [Fact (p.family=.sha2)] (valid : p.Valid) (pk : Spec.Bytes)
     (plen : pk.length=p.n) (a : Spec.Adrs) (c : Nat) (small : c<65536) (ts : List Nat) (v : Arm.V × Arm.V) :

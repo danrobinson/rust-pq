@@ -16,14 +16,14 @@ private theorem gathered (msg : Spec.Bytes) (i : Nat) : gather msg (chunk i) = b
   rw [show 64=16+(16+(16+16)) by decide,List.take_add,List.take_add (i:=16) (j:=16+16),List.take_add (i:=16) (j:=16)]
   simp only [List.drop_drop,Nat.add_assoc]
 
-private def step (msg : Spec.Bytes) (st : List Word) (offsets : List Nat) :=
+def step (msg : Spec.Bytes) (st : List Word) (offsets : List Nat) :=
   let (lo,hi) := Kernel.compressBlockLane true st (gather msg offsets)
   vwords lo ++ vwords hi
 
-private def multi256 (st : List Word) (msg : Spec.Bytes) : Spec.Bytes :=
+def multi256 (st : List Word) (msg : Spec.Bytes) : Spec.Bytes :=
   (ser (blocks.foldl (step msg) st)).take 16
 
-private theorem state256 (st : List Word) (len : st.length=8) (msg : Spec.Bytes) (geom : msg.length=640) :
+theorem state256 (st : List Word) (len : st.length=8) (msg : Spec.Bytes) (geom : msg.length=640) :
     multi256 st msg = (ser (hashFrom st msg)).take 16 := by
   have sequence : blocks=(List.range 10).map chunk := by decide
   have calcBlocks (k : Nat) (bound : k≤10) :
@@ -44,7 +44,7 @@ private theorem state256 (st : List Word) (len : st.length=8) (msg : Spec.Bytes)
       exact ⟨by simp [compress],rfl⟩
   simp only [multi256,sequence,(calcBlocks 10 (by decide)).2,hashFrom,geom,Nat.reduceDiv]
 
-private def scalar512 (n : Nat) (st : List Spec.SHA512.Word) (msg : Spec.Bytes) :=
+def scalar512 (n : Nat) (st : List Spec.SHA512.Word) (msg : Spec.Bytes) :=
   ((H512.Multi.iterCompress st msg).flatMap (fun w => Spec.toByte w.toNat 8)).take n
 
 def compression (n : Nat) (hard : Bool) (st : List Word) (wide : List Spec.SHA512.Word) (msg : Spec.Bytes) :=
@@ -59,7 +59,7 @@ private theorem shape512 (n : Nat) (width : n=24 ∨ n=32) (hard : Bool) :
     (calls[hard.toNat]!)[group n]! = if hard then [(512,total n)] else List.replicate (total n/128) (1,128) := by
   rcases width with rfl|rfl <;> cases hard <;> decide
 
-private theorem route512 (n : Nat) (width : n=24 ∨ n=32) (hard : Bool) (st : List Word)
+theorem route512 (n : Nat) (width : n=24 ∨ n=32) (hard : Bool) (st : List Word)
     (wide : List Spec.SHA512.Word) (size : wide.length=8) (msg : Spec.Bytes) (geom : msg.length=total n) :
     compression n hard st wide msg = scalar512 n wide msg := by
   unfold compression
