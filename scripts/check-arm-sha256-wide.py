@@ -1478,7 +1478,9 @@ def main():
     runpy.run_path(str(HERE / "check-arm-sign-order.py"))["check"]()
     subprocess.run([os.sys.executable, HERE / "check-arm-wots-transitions.py"], check=True)
     subprocess.run([os.sys.executable, HERE / "check-arm-keygen.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-wots-recovery.py"], check=True)
     subprocess.run([os.sys.executable, HERE / "check-arm-xmss-leaves.py"], check=True)
+    subprocess.run([os.sys.executable, HERE / "check-arm-xmss-callers.py"], check=True)
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Path(tmp)
         check_extraction(scratch)
