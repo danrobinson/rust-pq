@@ -240,6 +240,7 @@ def main():
     run([sys.executable, HERE / "check-uncached-parallel-caller.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-keygen.py"], ROOT)
     run([sys.executable, HERE / "check-signing-schedules.py"], ROOT)
+    run([sys.executable, HERE / "check-worker-mir.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-sign-join.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-sign-width-eight.py"], ROOT)
     run([sys.executable, HERE / "check-parallel-wots-ticket.py"], ROOT)
