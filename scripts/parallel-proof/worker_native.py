@@ -5,6 +5,7 @@ import re
 from worker_control import completion_witness, control_witness, runtime_witness
 from worker_copy import copy_witness
 from worker_effects import effects_witness
+from worker_reducer_values import REDUCER_VALUES
 
 # External functions reside one namespace above the generated Rust definitions.
 # A separate namespace lets Lean import those definitions together with the
@@ -282,6 +283,7 @@ def native_package(package, target):
             runtime_witness(generated),
             completion_witness(),
             NATIVE_SCHEDULE,
+            REDUCER_VALUES,
             "end",
             "end NativeSigner",
         )
