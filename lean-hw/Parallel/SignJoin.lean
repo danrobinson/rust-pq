@@ -16,12 +16,12 @@ def JoinLawAt (join : Join) (N : Usize) (p : params.Params) : Prop :=
 @[instance_reducible] def worker (threads : Usize) (join : Join) : ParallelCaller.Worker ParallelCaller.ShakeSeed :=
   ⟨@run (ok threads) join⟩
 
-theorem result (threads : Usize) (join : Join) {N : Usize}
-    (p : params.Params) (hp : PN p N) (joined : JoinLawAt join N p)
+theorem result_at (threads : Usize) (join : Join) {N : Usize}
+    (p : params.Params) (hp : PN p N)
     (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) (r : Array U8 N)
-    (tree : U64) (leaf : U32) (mdLen : md.length=(Shake.params p).mdBytes)
-    (treeLt : tree.val<2^(p.h.val-p.hp.val)) (leafLt : leaf.val<2^p.hp.val)
-    (address : adrsS a={{Spec.Adrs.zero with tree:=tree.val}.setTypeAndClear Spec.FORS_TREE with keypair:=leaf.val}) :
+    (tree : U64) (leaf : U32) (leafLt : leaf.val<2^p.hp.val)
+    (joined : 2≤threads.val → join p md sk seed a r tree leaf threads ⦃ cells =>
+      Joined N (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a) tree.val leaf.val cells ⦄) :
     (worker threads join).run p md sk seed a r tree leaf ⦃ res => match res with
       | none => threads < 2#usize ∨ p.hp=0#u32
       | some out => Output (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a)
@@ -34,7 +34,7 @@ theorem result (threads : Usize) (join : Join) {N : Usize}
     split
     · simp_all
     · simp only [lift,bind_ok]
-      step with joined md sk seed a r tree leaf threads (by scalar_tac) mdLen treeLt leafLt address as ⟨f,t,w,get⟩
+      step with joined (by scalar_tac) as ⟨f,t,w,get⟩
       obtain ⟨forest,auth,forestCell,authCell,ready⟩ := get
       simp only at forestCell authCell ready
       subst f t
@@ -78,6 +78,19 @@ theorem result (threads : Usize) (join : Join) {N : Usize}
         rw [treeOk,forestOk]
       rw [equal]
       exact published
+
+theorem result (threads : Usize) (join : Join) {N : Usize}
+    (p : params.Params) (hp : PN p N) (joined : JoinLawAt join N p)
+    (md : Slice U8) (sk seed : Array U8 N) (a : address.Adrs) (r : Array U8 N)
+    (tree : U64) (leaf : U32) (mdLen : md.length=(Shake.params p).mdBytes)
+    (treeLt : tree.val<2^(p.h.val-p.hp.val)) (leafLt : leaf.val<2^p.hp.val)
+    (address : adrsS a={{Spec.Adrs.zero with tree:=tree.val}.setTypeAndClear Spec.FORS_TREE with keypair:=leaf.val}) :
+    (worker threads join).run p md sk seed a r tree leaf ⦃ res => match res with
+      | none => threads < 2#usize ∨ p.hp=0#u32
+      | some out => Output (Shake.params p) (bytes md.val) (bytes sk.val) (bytes seed.val) (adrsS a)
+          (bytes r.val) tree.val leaf.val (bytes out.val) ⦄ := by
+  exact result_at threads join p hp md sk seed a r tree leaf leafLt
+    (fun enough => joined md sk seed a r tree leaf threads enough mdLen treeLt leafLt address)
 
 theorem worker_correct (threads : Usize) (join : Join) {N : Usize}
     (p : params.Params) (hp : PN p N) (joined : JoinLawAt join N p) :

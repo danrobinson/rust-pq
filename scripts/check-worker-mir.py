@@ -12,7 +12,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(HERE / "parallel-proof"))
+import worker_barrier
 import worker_mir as mir
+from worker_allocations import (
+    allocation_graphs,
+    allocation_sites,
+    allocation_witness,
+    check_captures,
+)
+from worker_control import control_witness, runtime_witness
+from worker_effects import effects_witness
+from worker_native import native_package
+from worker_phase_one import phase_one_witness
 from worker_source import stage
 
 probe = runpy.run_path(str(HERE / "probe-parallel-sign-borrows.py"))
@@ -53,7 +64,7 @@ def compile_mir(crate, tmp, target):
     return path.read_text()
 
 
-def check_target(prod, crate, tmp, target):
+def check_target(prod, crate, tagged, tmp, target):
     text = compile_mir(prod, tmp, target)
     staged = compile_mir(crate, tmp, target)
     worker = mir.only(
@@ -102,9 +113,12 @@ def check_target(prod, crate, tmp, target):
         "accepted reversed work dispatch",
     )
 
-    source = "import Parallel.WorkerMir\nopen ParallelWorkerMir\nset_option maxRecDepth 16384\n"
+    source = "import Parallel.WorkerPrepared\nopen ParallelWorkerMir\nset_option maxRecDepth 16384\n"
     source += mir.graph_witness(original, lifted, "dispatch")
-    names = ["dispatch"]
+    labelled = compile_mir(tagged, tmp, target)
+    a, b = allocation_graphs(staged, labelled)
+    source += mir.graph_witness(a, b, "allocation")
+    names = ["dispatch", "allocation"]
     require(
         re.findall(
             r"const shake::slh::parallel::sign::(PHASE\w+): u8 = const (\d+)_u8;", text
@@ -179,6 +193,29 @@ def check_target(prod, crate, tmp, target):
         )
         names.append(region)
         source += mir.graph_witness(production, extracted, region)
+        if region in ("publish", "reduce"):
+            source += worker_barrier.check_writer(production, region)
+        if region == "wait":
+            source += worker_barrier.witness(production)
+            # Invert the fast-path predicate on just the represented production
+            # graph. Even though wait still contains an acquire, acceptance on
+            # RUNNING must invalidate the certificate.
+            inverted = [
+                (
+                    [
+                        op.replace(" = Eq(", " = Ne(") if "PHASE2_READY" in op else op
+                        for op in ops
+                    ],
+                    edges,
+                )
+                for ops, edges in production
+            ]
+            try:
+                worker_barrier.witness(inverted)
+            except ValueError as err:
+                require("without acquiring READY" in str(err), str(err))
+            else:
+                raise ValueError("accepted wait that admits an early reader")
     checked = subprocess.run(
         ["lake", "env", "lean", "--stdin"],
         cwd=ROOT / "lean-hw",
@@ -197,6 +234,22 @@ def check_target(prod, crate, tmp, target):
             or f"'{name}_runs' does not depend on any axioms"
             in checked.stdout.splitlines(),
             f"unexpected axiom dependency for {name}",
+        )
+    for name in (
+        "wait_acquires_ready",
+        "wait_reads_installed",
+        "wait_accepts_values",
+        "wait_native_signature",
+        "wait_passes",
+        "wait_to_wots_heap",
+        "wait_runtime",
+        "publish_sender_order",
+        "reduce_sender_order",
+    ):
+        require(
+            f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]"
+            in checked.stdout.splitlines(),
+            f"unexpected kernel assumptions for {name}",
         )
     package = tmp / target / "Worker"
     package.mkdir(parents=True)
@@ -223,7 +276,7 @@ def check_target(prod, crate, tmp, target):
             "--target",
             target,
         ],
-        cwd=crate,
+        cwd=tagged,
         check=True,
     )
     subprocess.run(
@@ -257,7 +310,20 @@ def check_target(prod, crate, tmp, target):
             "def shake.slh.parallel." + fn + "\n" in output,
             "absent extracted function " + fn,
         )
-    check_package(package)
+    check_captures(output)
+    # The previous pure extraction reused these same-typed objects. Keep both
+    # failures as regression controls at the actual callback boundary.
+    for old in ("phase1_done", "roots_cell"):
+        wrong = "phase1_next" if old == "phase1_done" else "xmss_auth_cell"
+        bad, n = re.subn(r"(?<=, )" + old + r"(?=,)", wrong, output)
+        require(n > 0, "missing shared-identity mutation site")
+        try:
+            check_captures(bad)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("accepted an aliased shared allocation: " + old)
+    check_package(package, target)
     print(
         f"{target}: full staged signer typechecked; {len(names)} normal MIR graph comparisons passed",
         flush=True,
@@ -335,7 +401,7 @@ end slhdsa
 """
 
 
-def check_package(package):
+def check_package(package, target):
     # Unimplemented library interfaces are explicit parameters of this typecheck.
     # Only the independent MIR trace theorems are audited as assumption-free.
     allowed = {
@@ -410,14 +476,53 @@ def check_package(package):
             env=env,
             check=True,
         )
-    subprocess.run(
-        ["lean", "--stdin"],
-        cwd=package.parent,
-        env=env,
-        check=True,
-        text=True,
-        input=iteration_witness((package / "Funs.lean").read_text(), package.name),
-    )
+    check_witnesses(package, env, target)
+
+
+def check_witnesses(package, env, target):
+    generated = (package / "Funs.lean").read_text()
+    witnesses = [
+        iteration_witness(generated, package.name) + allocation_witness(generated),
+        "import Parallel.WorkerPhaseOne\nimport Parallel.WorkerWotsLoop\nimport Parallel.WorkerPoolRuntime\nimport Parallel.WorkerCounterSafety\n"
+        + effects_witness(generated, package.name)
+        + control_witness(generated)
+        + runtime_witness(generated)
+        + worker_barrier.pool_witness(generated)
+        + phase_one_witness(generated)
+        + worker_barrier.certified_phase1_witness(generated),
+    ]
+    witnesses.append(native_package(package, target))
+    for witness in witnesses:
+        checked = subprocess.run(
+            ["lean", "--stdin"],
+            cwd=package.parent,
+            env=env,
+            capture_output=True,
+            text=True,
+            input=witness,
+        )
+        output = checked.stdout + checked.stderr
+        require(checked.returncode == 0, output)
+        require(
+            "declaration uses 'sorry'" not in output and "sorryAx" not in output,
+            "unfinished generated proof",
+        )
+        for theorem in re.findall(
+            r"^#print axioms (NativeSigner[.\w]+)$", witness, re.MULTILINE
+        ):
+            reports = re.findall(
+                r"^'"
+                + re.escape(theorem)
+                + r"' (?:does not depend on any axioms|depends on axioms: \[([^\]]*)\])$",
+                output,
+                re.MULTILINE,
+            )
+            allowed = {"propext", "Classical.choice", "Quot.sound"}
+            require(
+                len(reports) == 1
+                and {a.strip() for a in reports[0].split(",") if a.strip()} <= allowed,
+                f"unexpected native theorem assumptions for {theorem}: {reports}",
+            )
 
 
 def main():
@@ -437,9 +542,18 @@ def main():
         [
             "lake",
             "build",
-            "Parallel.WorkerMir",
             "Parallel.WorkerFetchPublic",
             "Parallel.WorkerIteration",
+            "Parallel.WorkerPoolRuntime",
+            "Parallel.WorkerCounterSafety",
+            "Parallel.WorkerPhaseOne",
+            "Parallel.WorkerScalarLow",
+            "Parallel.WorkerScatterHeap",
+            "Parallel.WorkerIterators",
+            "Parallel.WorkerActualReturn",
+            "Parallel.WorkerCrypto",
+            "Parallel.WorkerWotsHistory",
+            "Parallel.WorkerPrepared",
         ],
         cwd=ROOT / "lean-hw",
         check=True,
@@ -479,14 +593,98 @@ def main():
             )
         ],
     )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerBarrier",
+        [
+            "slhdsa.WorkerBarrier." + n
+            for n in ("read_at_last_finisher", "no_lost_notification", "wake_to_reader")
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerPoolRuntime",
+        [
+            "ParallelWorkerPool." + name
+            for name in ("exact_callbacks", "dispatched_steps", "caller_only")
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerWaitHeap",
+        [
+            "ParallelWorkerHeap." + name
+            for name in ("wait_runtime_step", "publish_runtime_step", "wait_to_wots")
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerRuntime",
+        [
+            "ParallelWorkerRuntime." + name
+            for name in (
+                "index_table",
+                "rmw_step",
+                "publish_step",
+                "Starts.loop",
+                "Starts.step",
+            )
+        ]
+        + [
+            "ParallelWorkerHeap." + name
+            for name in ("read_after_write", "frame", "fetch_frame")
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerPrepared",
+        [
+            "slhdsa.WorkerPayload." + name
+            for name in (
+                "native_signature",
+                "wait_to_native_signature",
+                "prepare_native",
+                "wait_to_signature",
+                "joined_native_heap",
+                "native_run",
+                "Execution.replay",
+                "Execution.erase",
+            )
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerWotsHistory",
+        [
+            "ParallelWorkerRuntime.Wots." + name
+            for name in ("reflect_step", "reflect_run", "joined", "all_schedules")
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerCounterSafety",
+        [
+            "ParallelWorkerCounterSafety.all_interleavings",
+            "ParallelWorkerCounterSafety.published_persists",
+            "ParallelWorkerCounterSafety.set_slot",
+        ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerPhaseOne",
+        ["ParallelPhaseOne.Schedule.executes", "ParallelPhaseOne.direct_plan"],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerScatterHeap",
+        [
+            "ParallelWorkerInterleave.Step.unique_worker",
+            "ParallelWorkerScatter.realize",
+            "ParallelWorkerScatter.reflect",
+            "ParallelWorkerScatter.serial_fors",
+        ],
+    )
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         prod = common["copy_rust_crate"](tmp / "original")
         crate = common["copy_rust_crate"](tmp / "staged")
         path = crate / "src/slh/parallel.rs"
         path.write_text(stage(path.read_text()))
+        tagged = common["copy_rust_crate"](tmp / "tagged")
+        (tagged / "src/slh/parallel.rs").write_text(allocation_sites(path.read_text()))
         for target in (selected,) if selected else TARGETS:
-            check_target(prod, crate, tmp, target)
+            check_target(prod, crate, tagged, tmp, target)
 
 
 if __name__ == "__main__":
