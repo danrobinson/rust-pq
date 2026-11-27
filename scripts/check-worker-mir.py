@@ -658,6 +658,7 @@ def main():
         "Parallel.WorkerCounterSafety",
         [
             "ParallelWorkerCounterSafety.all_interleavings",
+            "ParallelWorkerCounterSafety.last_finisher",
             "ParallelWorkerCounterSafety.published_persists",
             "ParallelWorkerCounterSafety.set_slot",
         ],

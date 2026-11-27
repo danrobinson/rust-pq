@@ -252,6 +252,28 @@ theorem all_interleavings {N A} (c : Counter) {start final : Shared N} {workers 
   obtain ⟨count,range⟩ := recorded_values history capacity
   exact ⟨count,range,range ▸ List.nodup_range' 1 (by decide)⟩
 
+/-- The completion counter selects exactly one last finisher once the queue's
+positive total has been reached. The index counts actual RMWs on this counter,
+so arbitrarily many operations by other workers may intervene. -/
+theorem last_finisher {N A} {first final : Pair N A} {log : List Nat}
+    (history : Recorded .phase1Done first final log) (fresh : first.1.counts .phase1Done = 0)
+    (capacity : log.length < 2 ^ System.Platform.numBits) (total : Usize)
+    (positive : 0 < total.val) (reached : total.val ≤ final.1.counts .phase1Done) :
+    ∃! i : Fin log.length, log[i.val] + 1 = total.val := by
+  obtain ⟨count,range⟩ := recorded_values history (by simpa [fresh] using capacity)
+  have values (i : Fin log.length) : log[i.val] = i.val := by
+    have h := congrArg (fun l : List Nat => l[i.val]?) range
+    simpa [fresh,List.getElem?_eq_getElem,i.isLt] using h
+  rw [count,fresh,Nat.zero_add] at reached
+  let winner : Fin log.length := ⟨total.val-1,by omega⟩
+  refine ⟨winner,?_,?_⟩
+  · change log[winner.val] + 1 = total.val
+    rw [values winner]; dsimp [winner]; omega
+  · intro j other
+    rw [values] at other
+    apply Fin.ext
+    dsimp [winner]; omega
+
 private theorem allowed_persists {f : Shared N → Shared N} (ok : Allowed N f) (h : Shared N) :
     (h.ready = true → (f h).ready = true) ∧
     ∀ (k : Key) (v : Payload N k), h.cells k = some v → (f h).cells k = some v := by
