@@ -21,6 +21,7 @@ from worker_allocations import (
     check_captures,
 )
 from worker_control import control_witness, runtime_witness
+from worker_dispatch_receipt import dispatch_receipt_witness
 from worker_effects import effects_witness
 from worker_native import native_package
 from worker_phase_one import phase_one_witness
@@ -483,10 +484,11 @@ def check_witnesses(package, env, target):
     generated = (package / "Funs.lean").read_text()
     witnesses = [
         iteration_witness(generated, package.name) + allocation_witness(generated),
-        "import Parallel.WorkerPhaseOne\nimport Parallel.WorkerWotsLoop\nimport Parallel.WorkerPoolRuntime\nimport Parallel.WorkerCounterSafety\n"
+        "import Parallel.WorkerDispatchWrites\nimport Parallel.WorkerPhaseOne\nimport Parallel.WorkerWotsLoop\nimport Parallel.WorkerPoolRuntime\nimport Parallel.WorkerCounterSafety\n"
         + effects_witness(generated, package.name)
         + control_witness(generated)
         + runtime_witness(generated)
+        + dispatch_receipt_witness(generated)
         + worker_barrier.pool_witness(generated)
         + phase_one_witness(generated)
         + worker_barrier.certified_phase1_witness(generated),
@@ -498,6 +500,7 @@ def check_witnesses(package, env, target):
             cwd=package.parent,
             env=env,
             capture_output=True,
+            check=False,
             text=True,
             input=witness,
         )
@@ -546,6 +549,7 @@ def main():
             "Parallel.WorkerIteration",
             "Parallel.WorkerPoolRuntime",
             "Parallel.WorkerCounterSafety",
+            "Parallel.WorkerDispatchWrites",
             "Parallel.WorkerPhaseOne",
             "Parallel.WorkerScalarLow",
             "Parallel.WorkerScatterHeap",
@@ -662,6 +666,9 @@ def main():
             "ParallelWorkerCounterSafety.published_persists",
             "ParallelWorkerCounterSafety.set_slot",
         ],
+    )
+    common["facade"]["audit_theorems"](
+        "Parallel.WorkerDispatchWrites", ["ParallelDispatchWrites.RecordedJob.completed"]
     )
     common["facade"]["audit_theorems"](
         "Parallel.WorkerPhaseOne",

@@ -30,7 +30,7 @@ def copy_witness(generated):
             raise ValueError("missing emitted post-join copy loop")
         local = f"copyBranch{i}"
 
-        def snapshot(s):
+        def snapshot(s, fn=fn, local=local):
             return (
                 s.replace(
                     "std.sync.once_lock.OnceLock.get",
