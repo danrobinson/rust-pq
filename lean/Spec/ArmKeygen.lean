@@ -147,6 +147,10 @@ def step (c : Config) (s : State) (w : Nat) (regions : Option Regions := none) :
   else if mask 0xff00001f == 0x54000009 then
     let ls ← s.ls
     return {s with pc := if ls then addr pc (4*signExt ((w/32)%2^19) 19) else s.pc}
+  else if mask 0xff000000 == 0x34000000 then
+    guard (d < 31)
+    let v ← natVal (g s d)
+    return {s with pc := if v % radix == 0 then addr pc (4*signExt ((w/32)%2^19) 19) else s.pc}
   else if mask 0x7c000000 == 0x14000000 then
     let s := if w/2^31 == 1 then put s 30 (num (pc+4)) else s
     return {s with pc := addr pc (4*signExt (w%2^26) 26)}
@@ -208,6 +212,14 @@ def inlineWords : List Nat := [0x6e200800, 0x6f00e401, 0xad0107e0, 0xad0207e1, 0
   0x5100050f, 0xd27f01d0, 0x3cf07963, 0x924005ef, 0x3cef7965, 0x5e056064,
   0x3cae7964, 0x17ffffe7, 0x3dc3d141, 0x4ea18441, 0x3dc3cd22, 0x4ea28400]
 
+/-- The current keygen image has the same register program with relocated
+IV and round-table loads. The witness generator resolves their linked addresses
+and reads both literal tables from the supplied image. -/
+def currentInlineWords : List Nat :=
+  [(4,0xf0000349),(5,0x3dc35d20),(6,0xf000034a),(7,0x3dc36141),
+   (9,0xd000038c),(10,0x9109018c),(38,0x3dc36141),(40,0x3dc35d22)].foldl
+    (fun acc (i,word) => acc.set i word) inlineWords
+
 /-- The internal signer's inlined seed-compression region uses X9 as its counter
     and SP+112 for its message schedule. Its digest vectors have the keygen layout. -/
 def signInlineWords : List Nat := [0x6e200800, 0x6f00e401, 0xad0387e0, 0xad0487e1, 0xf00002c8, 0x3dc3cd00,
@@ -227,9 +239,9 @@ def inlineSeed (c : Config) (s : State) (words iv rounds : List Nat) (signer : B
   guard (c.n == 16 && !s.seeded && !s.called && q s 0 == block c.n 2 && (← natVal (g s (if signer then 9 else 8))) == 0)
   let h0 := Spec.SHA256.H0.map BitVec.toNat
   -- The load into Q0 reads EFGH. The adjacent literal loaded into Q1 holds ABCD.
-  guard (s.pc == (if signer then 0x10007a0e8 else 0x10007ad1c) &&
-    words == (if signer then signInlineWords else inlineWords) &&
-    iv == (h0.drop 4 ++ h0.take 4) && rounds == Spec.SHA256.K.map BitVec.toNat)
+  let code := if signer then s.pc == 0x10007a0e8 && words == signInlineWords
+    else (s.pc == 0x10007ad1c && words == inlineWords) || (s.pc == 0x1000af500 && words == currentInlineWords)
+  guard (code && iv == (h0.drop 4 ++ h0.take 4) && rounds == Spec.SHA256.K.map BitVec.toNat)
   let out := s.sp+(if signer then 112 else 32)
   guard (region out 64 s.sp (stack-s.sp))
   let regs := (List.range 9).foldl (fun t i => t.insert (8+i) (unknown (128+i) 2)) s.g
@@ -261,7 +273,7 @@ def subtree (c : Config) (s : State) : Option State := do
 
 /-- Every candidate instruction includes its linked address. A return, branch, or
     call that disagrees with the next PC invalidates the complete witness. -/
-def run (c : Config) (path : List (Nat × Nat)) : Option (Cells × Cells) := do
+def runWith (rootCall : Config → State → Option State) (c : Config) (path : List (Nat × Nat)) : Option (Cells × Cells) := do
   guard (c.params.length == 36 && c.params.all (· < 256) && [16,24,32].contains c.n)
   let start := init c
   let s ← path.foldlM (fun s (pc,w) => do
@@ -269,13 +281,15 @@ def run (c : Config) (path : List (Nat × Nat)) : Option (Cells × Cells) := do
       | .external entry => if s.pc == entry then externalSeed c s else some s
       | .inlined entry words iv k => if s.pc == entry then inlineSeed c s words iv k else some s
       | .shake => some s
-    let s ← if s.pc == c.root then subtree c s else some s
+    let s ← if s.pc == c.root then rootCall c s else some s
     guard (s.pc == pc && pc%4 == 0)
     step c s w) start
   guard (s.pc == stop && g s 30 == unknown 30 2 && s.sp == stack && s.called)
   guard (((List.range 12).map (·+18)).all (fun r => g s r == g start r))
   guard (((List.range 8).map (·+8)).all (fun r => (q s r).take 2 == (q start r).take 2))
   return (← read s.m sk (4*c.n), ← read s.m (if c.internal then sk+4*c.n else pk) (2*c.n))
+
+abbrev run := runWith subtree
 
 /-- Interpret each four-byte symbolic cell as its arbitrary four bytes. -/
 def bytes (values : Nat → Spec.Bytes) (cells : Cells) : Spec.Bytes := cells.flatMap values

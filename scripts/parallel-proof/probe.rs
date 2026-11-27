@@ -7,11 +7,14 @@ mod params;
 mod parallel {
     // PRODUCTION_LAYOUT
     extern "C" {
-        pub fn proof_permute(states: &mut States);
+        pub fn proof_permute(states: &mut States, active: usize);
+    }
+    pub fn permute_active(states: &mut States, active: usize) {
+        unsafe { proof_permute(states, active) }
     }
     pub fn permute(states: &mut States) {
         unsafe {
-            proof_permute(states);
+            proof_permute(states, WIDTH);
         }
     }
 }
@@ -40,8 +43,11 @@ mod hash {
     }
 }
 mod batch {
-    use crate::address::{Adrs, WOTS_PK, WOTS_PRF};
+    use crate::address::{Adrs, WOTS_HASH, WOTS_PK, WOTS_PRF, TREE};
     use crate::parallel::{self, States, WIDTH};
     use crate::params::{LEN2, W};
+    use crate::hash::thash_pair;
+    // Exclusive to the width-three fallback. Reaching it fails this width-eight replay.
+    fn keygen<const N: usize>(_: &[u8;N], _: &[u8;N], _: Adrs) -> [u8;N] { unreachable!() }
     // PRODUCTION_HELPERS
 }

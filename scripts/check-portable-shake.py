@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 LEAN = ROOT / "lean-hw"
 TARGETS = ("i686-unknown-linux-gnu", "powerpc64-unknown-linux-gnu", "riscv64gc-unknown-none-elf")
 API = ("keygen", "public_key", "sign", "sign_deterministic", "verify")
+SEGMENTED = {"sign", "sign_deterministic", "verify", "slh_sign", "slh_verify"}
+SEGMENTED_NAMESPACE = "PortableSegmented.SegmentedPublic."
 INTERNAL = ("slh_keygen_internal", "slh_sign_internal", "slh_verify_internal")
 os.environ["PATH"] = os.pathsep.join([str(Path.home()/".cargo/bin"), str(Path.home()/".elan/bin"), os.environ["PATH"]])
 
@@ -37,13 +39,15 @@ def check(target, folder):
     decls = lambda path: {s.strip() for s in re.split(r"/--.*?-/",body(path),flags=re.S) if s.strip()}
     if decls(folder/"Types.lean") - decls(LEAN/"Slhdsa/Types.lean"):
         raise ValueError("fresh nominal types differ from checked structures")
-    lines = ["import Shakebatch.PortableApi", "open Aeneas Aeneas.Std Result ControlFlow Error",
+    lines = ["import Shakebatch.PortableSegmented", "open Aeneas Aeneas.Std Result ControlFlow Error",
              "open slhdsa", "set_option maxRecDepth 65536", "set_option maxHeartbeats 0",
              "noncomputable section", "namespace FreshPortable",
              "abbrev shake256.Sponge := ShakeAbsRust.shake256.Sponge", body(folder/"Funs.lean"), "end FreshPortable"]
     claims = []
     for op in API + INTERNAL:
-        prefix = "" if op == "public_key" else "PortableShake."
+        prefix = SEGMENTED_NAMESPACE if op in SEGMENTED else "PortableShake."
+        if op == "public_key":
+            prefix = ""
         thm = prefix + "slhdsa.Shake." + ("api_" if op in API else "") + op + "_spec"
         entry = "shake." + ("api." if op in API else "slh.") + op
         old = prefix + "slhdsa." + entry
@@ -52,10 +56,11 @@ def check(target, folder):
         lines.append(f"#print axioms {new}_spec")
         claims.append(new+"_spec")
     for s, op in wrappers:
-        prefix = "" if op == "public_key" else "PortableShakeSDK."
+        owner = SEGMENTED_NAMESPACE if op in SEGMENTED else "PortableShakeSDK."
+        prefix = "" if op == "public_key" else owner
         old = f"{prefix}slhdsa.sets.{s}.{op}"
         new = f"FreshPortable.sets.{s}.{op}"
-        theorem = f"PortableShakeSDK.slhdsa.{s}.{op}_spec"
+        theorem = f"{owner}slhdsa.{s}.{op}_spec"
         lines.append(f"run_cmd Lean.Elab.Command.liftCoreM <| PlatformProof.bindEntry `{theorem} `{old} `{new} `{new}_spec")
         lines.append(f"#print axioms {new}_spec")
         claims.append(new+"_spec")
@@ -70,7 +75,7 @@ def check(target, folder):
 
 
 if __name__ == "__main__":
-    subprocess.run(["lake","build","Shakebatch.PortableApi"],cwd=LEAN,check=True)
+    subprocess.run(["lake","build","Shakebatch.PortableSegmented"],cwd=LEAN,check=True)
     with tempfile.TemporaryDirectory() as scratch:
         for target in TARGETS:
             check(target,Path(scratch)/target)

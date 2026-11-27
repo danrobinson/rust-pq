@@ -112,10 +112,13 @@ def check(target, scratch):
 def audit_theorems(module, theorems):
     source = f"import {module}\n" + "".join(f"#print axioms {name}\n" for name in theorems)
     result = run(["lake", "env", "lean", "--stdin"], LEAN, input=source, text=True, stdout=subprocess.PIPE)
-    audits = " ".join(result.stdout.split())
+    allowed = {"propext", "Classical.choice", "Quot.sound"}
     for name in theorems:
-        expected = f"'{name}' depends on axioms: [propext, Classical.choice, Quot.sound]"
-        if expected not in audits:
+        reports = re.findall(
+            rf"^'{re.escape(name)}' (?:does not depend on any axioms|depends on axioms: \[([^\]]*)\])$",
+            result.stdout, re.MULTILINE,
+        )
+        if len(reports) != 1 or {x.strip() for x in reports[0].split(",") if x.strip()} - allowed:
             raise ValueError(f"unexpected facade axiom audit for {name}\n{result.stdout}")
 
 

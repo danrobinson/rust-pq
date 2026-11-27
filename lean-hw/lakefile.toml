@@ -23,6 +23,12 @@ srcDir = "../lean"
 name = "Arm"
 
 [[lean_lib]]
+name = "Buffered"
+
+[[lean_lib]]
+name = "Fused"
+
+[[lean_lib]]
 name = "Shakebatch"
 
 # The Aeneas translation of rust/ built with `hw-sha2` (scripts/extract-hw.sh), and its
@@ -281,3 +287,30 @@ name = "RcSlhSha2"
 
 [[lean_lib]]
 name = "Parallel"
+
+[[lean_lib]]
+name = "Prehash"
+
+[[lean_lib]]
+name = "Prehashdigest"
+
+[[lean_lib]]
+name = "Cachepath"
+
+[[lean_lib]]
+name = "Cachesearch"
+
+[[lean_lib]]
+name = "Cacheops"
+
+[[lean_lib]]
+name = "Metal"
+
+[[lean_lib]]
+name = "Shakeopt"
+
+[[lean_lib]]
+name = "Armwide"
+
+[[lean_lib]]
+name = "ForsDriver"

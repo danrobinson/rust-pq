@@ -1,0 +1,98 @@
+"""Lift the returned expression of each hosted SHAKE XMSS traversal."""
+
+import subprocess
+from pathlib import Path
+
+from build import SRC, function, fused_auth
+
+
+def program(directory, batch=None, *, signing=False):
+    if batch is None:
+        batch = (SRC / "shake/batch.rs").read_text()
+    production = "\n".join(
+        function(batch, f) for f in ("xmss_subtree", "xmss_subtree_fallback")
+    )
+    production = (
+        production.replace("pub(super) fn", "fn")
+        .replace("[u8; N]", "Digest")
+        .replace("[0u8; N]", "EMPTY")
+    )
+    # The digest type no longer carries N, so supply each erased const argument.
+    for name in ("xmss_subtree_fallback", "keygen", "thash_pair", "pair_active"):
+        production = production.replace(name + "(", name + "::<N>(")
+    template = Path(__file__).with_name("keygen-subtrees.rs").read_text()
+    template = template.replace("// PRODUCTION", production).replace(
+        "ADDRESS_PATH", str(SRC / "address.rs")
+    )
+    if signing:
+        auth = Path(__file__).with_name("fused-auth-shapes.rs").read_text()
+        writes = (
+            fused_auth(batch)
+            .replace("[0u8; N]", "[0usize; N]")
+            .replace("xmss_subtree(sk", "xmss_subtree::<N>(sk")
+        )
+        template = template.split("fn check<const N: usize>()", 1)[0] + auth.replace(
+            "// PRODUCTION_AUTH", writes
+        )
+    declarations = []
+    by_shape = {}
+
+    def intern(tokens):
+        tag = next(tokens)
+        if tag == "L":
+            k, off = int(next(tokens)), int(next(tokens))
+            expr = f".leaf {k} ({off})"
+        elif tag == "B":
+            packed, hd, off = (int(next(tokens)) for _ in range(3))
+            left, right = intern(tokens), intern(tokens)
+            expr = f".branch {str(bool(packed)).lower()} ({hd}) ({off}) {left} {right}"
+        else:
+            raise ValueError(tag)
+        if expr not in by_shape:
+            name = f"shape{len(by_shape)}"
+            declarations.append(f"private def {name} : Shape := {expr}")
+            by_shape[expr] = name
+        return by_shape[expr]
+
+    tables = {}
+    for width in (8,) if signing else (3, 8):
+        src, binary = directory / "tree.rs", directory / "tree"
+        src.write_text(template.replace("PROOF_WIDTH", str(width)))
+        subprocess.run(
+            [
+                "rustc",
+                "--edition=2021",
+                "-Awarnings",
+                "-O",
+                "-Coverflow-checks=yes",
+                src,
+                "-o",
+                binary,
+            ],
+            check=True,
+        )
+        table = {}
+        for line in subprocess.check_output([binary], text=True).splitlines():
+            it = iter(line.split())
+            n, z = int(next(it)), int(next(it))
+            witness = intern(it)
+            if next(it, None) is not None or table.setdefault(z, witness) != witness:
+                raise ValueError(
+                    f"width {width}: digest-dependent or incomplete traversal at N={n}, h={z}"
+                )
+        heights = range(9) if signing else range(1, 10)
+        if set(table) != set(heights):
+            raise ValueError("missing subtree height")
+        tables[width] = "[" + ", ".join(table[z] for z in heights) + "]"
+    if signing:
+        return (
+            "import Parallel.KeygenShape\n\nnamespace ParallelFusedSignature\nopen ParallelKeygen.Tree\n"
+            + "\n".join(declarations)
+            + f"\ndef schedule : List Shape := {tables[8]}\nend ParallelFusedSignature\n"
+        )
+    return (
+        "import Parallel.KeygenShape\n\nnamespace ParallelKeygen.Tree\n"
+        + "\n".join(declarations)
+        + f"\ndef schedule (wide : Bool) : List Shape :=\n  if wide then {tables[8]}\n  else {tables[3]}\n"
+        + "end ParallelKeygen.Tree\n"
+    )

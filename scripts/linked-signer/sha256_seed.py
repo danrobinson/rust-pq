@@ -39,6 +39,7 @@ class SeedCompression:
             if i < 12:
                 su = self.op("SU0", msg[j], msg[(j + 1) % 4])
                 msg[j] = self.op("SU1", su, msg[(j + 2) % 4], msg[(j + 3) % 4])
+        self.final_ring = tuple(msg)
         self.seed = c.Concat(
             c.BVV(0, 512),
             add4(vector(initial[:4]), ab).reversed,

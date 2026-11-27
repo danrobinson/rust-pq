@@ -1,0 +1,14 @@
+AArch64 LinkedWorkerHandshake
+{
+ uint64_t row=0; uint64_t root=0; uint64_t done=0; uint8_t ready=0;
+ 0:X0=row; 0:X1=done; 1:X1=done; 1:X2=ready; 1:X7=root; 2:X2=ready; 2:X0=row; 2:X7=root;
+}
+ P0                  | P1                     | P2                ;
+ MOV X3,#1           | MOV X3,#1              | LDAPRB W5,[X2]    ;
+ STR X3,[X0]         | LDADDAL X3,X4,[X1]     | LDR X6,[X0]       ;
+ LDADDAL X3,X4,[X1]  | CMP X4,#1              | LDR X8,[X7]       ;
+                     | B.NE end               |                   ;
+                     | STR X3,[X7]            |                   ;
+                     | STLRB W3,[X2]          |                   ;
+                     | end:                   |                   ;
+exists (0:X4=0 /\ 1:X4=1 /\ 2:X5=1 /\ 2:X6=0)

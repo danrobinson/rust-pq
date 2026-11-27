@@ -19,11 +19,21 @@ pub fn xmss_node<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<
         if matches!(N, 16 | 24 | 32) && (2..=4).contains(&z) && crate::sha256::x86::avx512_available() {
             return wide::batch_root(sk_seed, i, z, seed, adrs);
         }
+        #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+        if matches!(N, 16 | 24 | 32) && (1..=4).contains(&z) && crate::sha256::arm_wide::available() {
+            return arm::batch_root(sk_seed, i, z, seed, adrs);
+        }
     }
     shake_only! {
-        #[cfg(all(feature = "parallel", target_arch = "x86_64", target_feature = "sse2"))]
-        if z == 3 && super::batch::available::<N>() {
-            return super::batch::subtree8(sk_seed, seed, i, adrs);
+        #[cfg(all(
+            feature = "platform-sha2",
+            any(
+                all(target_arch = "aarch64", target_endian = "little"),
+                all(target_arch = "x86_64", target_feature = "sse2")
+            )
+        ))]
+        if z >= 1 && super::batch::available::<N>() {
+            return super::batch::xmss_subtree(sk_seed, seed, i, z, adrs);
         }
     }
     if z == 0 {
@@ -45,6 +55,18 @@ pub fn xmss_sign<const N: usize>(
     seed: &Seed<N>,
     adrs: Adrs,
 ) -> Vec<u8> {
+    shake_only! {
+        #[cfg(all(
+            feature = "platform-sha2",
+            any(
+                all(target_arch = "aarch64", target_endian = "little"),
+                all(target_arch = "x86_64", target_feature = "sse2")
+            )
+        ))]
+        if p.hp >= 3 && super::batch::available::<N>() {
+            return super::batch::xmss_sign_batch(p, m, sk_seed, idx, seed, adrs);
+        }
+    }
     let mut sig = wots_sign::<N>(m, sk_seed, seed, adrs.with_type(WOTS_HASH).with_keypair(idx));
     let mut j: u32 = 0;
     while j < p.hp {
@@ -102,4 +124,6 @@ pub fn xmss_pk_from_sig<const N: usize>(
 sha2_only! {
     #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
     mod wide;
+    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    mod arm;
 }

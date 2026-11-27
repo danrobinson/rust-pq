@@ -32,6 +32,10 @@ fn fors_batch<const N: usize>(sk_seed: &[u8; N], i: u32, z: u32, seed: &Seed<N>,
     if z >= 3 && matches!(N, 16 | 24 | 32) && crate::sha256::x86::avx512_available() {
         return wide::subtree(sk_seed, i, z, seed, adrs);
     }
+    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    if matches!(N, 16 | 24 | 32) && crate::sha256::arm_wide::available() {
+        return arm::subtree(sk_seed, i, z, seed, adrs);
+    }
     let n = 1usize << z;
     let prf_adrs = adrs.with_type(FORS_PRF).with_keypair(adrs.keypair);
     let mut blocks = [[0u8; 64]; BATCH];
@@ -133,6 +137,10 @@ pub fn fors_sign<const N: usize>(p: &Params, md: &[u8], sk_seed: &[u8; N], seed:
 /// each level of the authentication paths. (For `n > 16` a level is `k`
 /// SHA-512 blocks, one after another.)
 pub fn fors_pk_from_sig<const N: usize>(p: &Params, sig: &[u8], md: &[u8], seed: &Seed<N>, adrs: Adrs) -> [u8; N] {
+    #[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+    if matches!(N, 16 | 24 | 32) && crate::sha256::arm_wide::available() {
+        return arm::pk_from_sig(p, sig, md, seed, adrs);
+    }
     let a = p.a;
     let k = p.k as usize;
     let indices = base_2b(md, a, k);
@@ -210,3 +218,6 @@ pub fn fors_pk_from_sig<const N: usize>(p: &Params, sig: &[u8], md: &[u8], seed:
 
 #[cfg(all(feature = "platform-sha2", target_arch = "x86_64", target_feature = "sse2"))]
 mod wide;
+
+#[cfg(all(feature = "platform-sha2", target_arch = "aarch64", target_endian = "little"))]
+mod arm;
