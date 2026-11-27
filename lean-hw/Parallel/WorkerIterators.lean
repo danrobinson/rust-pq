@@ -33,6 +33,21 @@ def arrayMap {T : Type t} {F : Type f} {U : Type u} {N : Usize} (callback : core
     (a : Array T N) (f : F) : Result (Array U N) :=
   Aeneas.Std.bind (mapItems callback a.val f) fun ys => ok (Array.from ys.val (by simp [ys.property]))
 
+private theorem mapItems_values {T F U : Type} (callback : core.ops.function.FnMut F T U)
+    (xs : List T) (state : F) (value : T → U)
+    (each : ∀ x ∈ xs, callback.call_mut state x = ok (value x,state)) :
+    mapItems callback xs state = ok ⟨xs.map value,by simp⟩ := by
+  induction xs with
+  | nil => rfl
+  | cons x xs ih =>
+    simp [mapItems,each x (by simp),ih (fun y mem => each y (by simp [mem])),bind_ok]
+
+theorem arrayMap_values {T F U : Type} {N : Usize} (callback : core.ops.function.FnMut F T U)
+    (a : Array T N) (state : F) (value : T → U)
+    (each : ∀ x ∈ a.val, callback.call_mut state x = ok (value x,state)) :
+    arrayMap callback a state = ok (Array.from (a.val.map value) (by simp)) := by
+  simp [arrayMap,mapItems_values callback a.val state value each,bind_ok]
+
 theorem exhausted {I : Type i} {F : Type f} {T : Type t} {U : Type u} (it : core.iter.traits.iterator.Iterator I T)
     (f : core.ops.function.FnMut F T U) (m : core.iter.adapters.map.Map I F) (stop : I)
     (last : it.next m.iter = ok (none,stop)) : next it f m = ok (none,⟨stop,m.f⟩) := by
